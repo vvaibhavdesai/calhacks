@@ -63,7 +63,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "services", "ap
 
 from app.db import get_session_factory, make_engine  # noqa: E402
 from app.ingestion import import_source  # noqa: E402
-from app.models_ledger import Order, OrderLine, Payment, Vendor  # noqa: E402
+from app.models_ledger import Order, OrderLine, Payment, SourceDocument, Vendor  # noqa: E402
 from app.models_reconciliation import BankEntry  # noqa: E402
 from app.storage.local_fs import get_document_storage  # noqa: E402
 from sqlalchemy import insert  # noqa: E402
@@ -124,7 +124,10 @@ def load(fixture: Path, decision_set: str, state_path: Path) -> None:
     }
 
     # 1. sources (hash-preserving), mapping B source_id -> A source document
-    src_map = {}
+    # Intake metadata carried with each document: business received_at (DA19:
+    # nothing may be used before it was received), vendor and kind.
+    kinds = {"CONTRACT": "CONTRACT", "CONTRACT_AMENDMENT": "AMENDMENT", "EMAIL_THREAD": "EMAIL"}
+    src_map, doc_meta = {}, []
     for sd in items(fixture, "source_documents"):
         data = (fixture / sd["path"]).read_bytes()
         assert "sha256:" + hashlib.sha256(data).hexdigest() == sd["content_hash"], sd["path"]
@@ -137,9 +140,13 @@ def load(fixture: Path, decision_set: str, state_path: Path) -> None:
             mime_type=sd["media_type"],
             actor_id="score-loader",
             actor_capability="import_source",
+            received_at=datetime.fromisoformat(sd["received_at"].replace("Z", "+00:00")),
         )
         db.commit()
         src_map[sd["id"]] = (r.source_document_id, r.version, r.content_hash)
+        doc_meta.append(
+            (r.source_document_id, kinds.get(sd["kind"], sd["kind"]), sd.get("vendor_id"))
+        )
     print(f"sources imported: {len(src_map)}")
 
     def src_cols(refs):
@@ -157,6 +164,11 @@ def load(fixture: Path, decision_set: str, state_path: Path) -> None:
     festival_id = items(fixture, "vendors")[0]["festival_id"]
     for v in items(fixture, "vendors"):
         db.add(Vendor(id=v["id"], festival_id=v["festival_id"], name=v["name"]))
+    db.commit()
+    for doc_id, kind, vendor_id in doc_meta:
+        d = db.get(SourceDocument, doc_id)
+        d.document_kind = kind
+        d.vendor_id = vendor_id
     db.commit()
 
     # 3. orders + lines (taxability from menu_items)

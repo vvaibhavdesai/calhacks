@@ -80,6 +80,14 @@ class SourceDocument(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
+    # --- A06 additive columns (migration 0009) ---
+    # Which vendor a document concerns (from intake metadata), and its kind
+    # (CONTRACT / AMENDMENT / EMAIL / ...). Both nullable: unknown is allowed.
+    vendor_id: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("vendors.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    document_kind: Mapped[str | None] = mapped_column(String(40), nullable=True)
+
     versions: Mapped[list[SourceVersion]] = relationship(
         back_populates="document", cascade="all, delete-orphan"
     )

@@ -18,6 +18,9 @@ class LocalFilesystemStorage(DocumentStorage):
         self._root.mkdir(parents=True, exist_ok=True)
 
     def _resolve(self, key: str) -> Path:
+        # Accept the locator `save()` returns ("local://<key>") as well as a
+        # bare key, so a stored SourceVersion.storage_locator reads back.
+        key = key.removeprefix("local://")
         candidate = (self._root / key).resolve()
         if self._root not in candidate.parents and candidate != self._root:
             raise ValueError(f"key escapes storage root: {key!r}")

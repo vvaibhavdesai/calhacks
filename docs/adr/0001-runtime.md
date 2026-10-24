@@ -102,6 +102,14 @@ Every required configuration name used by A01 is listed in `.env.example`
   call anywhere in the codebase until A06 is actually picked up with a key in
   hand -- this line records the decision, it is not itself an authorization
   to start A06.
+  **2026-10-24, A06 started:** the user supplied an API key (kept only in the
+  gitignored `.env`; one earlier key pasted in chat was revoked by the user)
+  and chose **`claude-sonnet-5-5`** for A06 (it superseded the pre-selected
+  `claude-sonnet-5`: same price, current generation). `ANTHROPIC_MODEL` now
+  defaults to that in `.env.example`; code falls back to the same ID. Calls
+  use the official `anthropic` Python SDK with the server-side refusal
+  fallback (`fallbacks: "default"`, beta `server-side-fallback-2026-07-01`),
+  so the model that actually served each call is recorded per extraction.
 - The frontend (`apps/web`) receives exactly one env var,
   `VITE_API_BASE_URL`, which is a public origin, not a secret. No database
   URL, JWT secret, or Anthropic key is ever referenced from `apps/web`.

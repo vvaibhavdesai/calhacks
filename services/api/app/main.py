@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.logging_config import configure_logging
 from app.routers import (
+    agents,
     auth,
     cases,
     example,
@@ -42,6 +43,7 @@ app.include_router(payouts.router)
 app.include_router(payouts.cash_pool_router)
 app.include_router(payouts.vendors_router)
 app.include_router(finance.router)
+app.include_router(agents.router)
 
 
 @app.get("/")

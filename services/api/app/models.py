@@ -120,6 +120,9 @@ CAPABILITY_MANAGE_PAYABLES = "manage_payables"
 # A08: post journals, change finance (tax/schedule) configuration, issue
 # vendor statements and run the daily close.
 CAPABILITY_CLOSE_BOOKS = "close_books"
+# A06: start agent work (document extraction / investigation) that spends
+# Anthropic API credit. Separate so model spend can be granted on its own.
+CAPABILITY_RUN_AGENTS = "run_agents"
 
 ALL_CAPABILITY_CODES = (
     CAPABILITY_ADMIN,
@@ -132,4 +135,5 @@ ALL_CAPABILITY_CODES = (
     CAPABILITY_CALCULATE_SETTLEMENT,
     CAPABILITY_MANAGE_PAYABLES,
     CAPABILITY_CLOSE_BOOKS,
+    CAPABILITY_RUN_AGENTS,
 )
