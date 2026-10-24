@@ -1,8 +1,9 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState } from 'react';
 import { NavLink, useParams } from 'react-router-dom';
 import { useApp } from '../app/AppContext';
-import type { ListItem, ListOperationId, QueryOf, SourceRef, SourceDocument, Vendor } from '../api/types';
+import type { ListItem, ListOperationId, QueryOf, SourceRef } from '../api/types';
 import { DataTable, type Column } from '../components/DataTable';
+import { EvidenceButton } from '../components/EvidenceButton';
 import { EvidenceDrawer } from '../components/EvidenceDrawer';
 import { FilterBar, type FilterField } from '../components/FilterBar';
 import { BusinessDate, Code, Instant, Money } from '../components/Formatted';
@@ -11,15 +12,10 @@ import { Pagination } from '../components/Pagination';
 import { EmptyState, ErrorState, Loading } from '../components/QueryState';
 import { useApiQuery } from '../hooks/useApiQuery';
 import { useListParams } from '../hooks/useListParams';
+import { useLookups, type Lookups } from '../hooks/useLookups';
 import { NotFound } from './NotFound';
 
 const PAGE_SIZE = 10;
-
-interface Lookups {
-  vendorName: (id: string | null | undefined) => ReactNode;
-  vendorOptions: { value: string; label: string }[];
-  businessDates: { value: string; label: string }[];
-}
 
 interface CollectionDef<K extends ListOperationId> {
   slug: string;
@@ -32,12 +28,7 @@ interface CollectionDef<K extends ListOperationId> {
 }
 
 function evidenceButton(title: string, refs: SourceRef[] | undefined, open: (t: string, r: SourceRef[]) => void) {
-  const n = refs?.length ?? 0;
-  return (
-    <button type="button" className="button button-small" onClick={() => open(title, refs ?? [])} aria-label={`Evidence for ${title} (${n})`}>
-      Evidence ({n})
-    </button>
-  );
+  return <EvidenceButton title={title} refs={refs} onOpen={open} />;
 }
 
 const DEFS = {
@@ -222,37 +213,6 @@ export function SourceRecords() {
       <RecordList key={def.slug} def={def as unknown as CollectionDef<ListOperationId>} />
     </>
   );
-}
-
-function useLookups(): { lookups: Lookups; describeSource: (id: string) => ReactNode } {
-  const { client } = useApp();
-  const vendors = useApiQuery('lookup:vendors', (signal) => client.list('listVendors', { signal, query: { limit: 200 } }));
-  const docs = useApiQuery('lookup:documents', (signal) => client.list('listSourceDocuments', { signal, query: { limit: 200 } }));
-  const festival = useApiQuery('lookup:festival', (signal) => client.get('getFestival', { signal }));
-
-  return useMemo(() => {
-    const vendorList: Vendor[] = vendors.data?.items ?? [];
-    const byId = new Map(vendorList.map((v) => [v.id, v.name]));
-    const docById = new Map<string, SourceDocument>((docs.data?.items ?? []).map((d) => [d.id, d]));
-    const dates = festival.data?.business_dates ?? [];
-    return {
-      lookups: {
-        vendorName: (id) => (id ? byId.get(id) ?? <Code>{id}</Code> : '—'),
-        vendorOptions: vendorList.map((v) => ({ value: v.id, label: v.name })),
-        businessDates: dates.map((d) => ({ value: d, label: d })),
-      },
-      describeSource: (id) => {
-        const d = docById.get(id);
-        return d ? (
-          <>
-            <strong>{d.title}</strong> <span className="muted">({d.kind}, {d.media_type})</span>
-          </>
-        ) : (
-          <span className="muted">Source document metadata not loaded</span>
-        );
-      },
-    };
-  }, [vendors.data, docs.data, festival.data]);
 }
 
 function RecordList({ def }: { def: CollectionDef<ListOperationId> }) {
