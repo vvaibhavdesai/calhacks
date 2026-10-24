@@ -1,0 +1,105 @@
+{
+  "items": [
+    {
+      "amount_cents": "10900",
+      "booth_id": "booth_bc4d1fc834e12d44",
+      "business_date": "2026-10-18",
+      "counted_at": "2026-10-19T06:50:00Z",
+      "counted_by_role": "organizer cash office",
+      "currency": "USD",
+      "custody": "CENTRALLY_COLLECTED",
+      "festival_id": "fest_bf25e974c723d827",
+      "id": "cashct_126c9c06fcabf497",
+      "location": "ORGANIZER_CASH_OFFICE",
+      "source_native_id": "CASHCOUNT-B-03-20261018",
+      "source_refs": [
+        {
+          "content_hash": "sha256:49ae40162c281bd43a2670713c263d08087f326b713de718ba29b31db38bb9bc",
+          "locator": "row=1",
+          "locator_kind": "row",
+          "source_id": "src_60f06f465cc4a421",
+          "source_version": 1
+        }
+      ],
+      "status": "RECORDED",
+      "vendor_id": "ven_bdccc4a0fab46f90",
+      "version": 1
+    },
+    {
+      "amount_cents": "436000",
+      "booth_id": "booth_429785af7ec72a84",
+      "business_date": "2026-10-16",
+      "counted_at": "2026-10-17T06:45:00Z",
+      "counted_by_role": "vendor (self-reported)",
+      "currency": "USD",
+      "custody": "VENDOR_RETAINED",
+      "festival_id": "fest_bf25e974c723d827",
+      "id": "cashct_ca2b104ccd72d7fe",
+      "location": "VENDOR_DRAWER",
+      "source_native_id": "CASHCOUNT-B-05-20261016",
+      "source_refs": [
+        {
+          "content_hash": "sha256:49ae40162c281bd43a2670713c263d08087f326b713de718ba29b31db38bb9bc",
+          "locator": "row=2",
+          "locator_kind": "row",
+          "source_id": "src_60f06f465cc4a421",
+          "source_version": 1
+        }
+      ],
+      "status": "RECORDED",
+      "vendor_id": "ven_5b3b7298e61a7172",
+      "version": 1
+    },
+    {
+      "amount_cents": "327000",
+      "booth_id": "booth_429785af7ec72a84",
+      "business_date": "2026-10-17",
+      "counted_at": "2026-10-18T06:45:00Z",
+      "counted_by_role": "vendor (self-reported)",
+      "currency": "USD",
+      "custody": "VENDOR_RETAINED",
+      "festival_id": "fest_bf25e974c723d827",
+      "id": "cashct_1589a0eee91c45a0",
+      "location": "VENDOR_DRAWER",
+      "source_native_id": "CASHCOUNT-B-05-20261017",
+      "source_refs": [
+        {
+          "content_hash": "sha256:49ae40162c281bd43a2670713c263d08087f326b713de718ba29b31db38bb9bc",
+          "locator": "row=3",
+          "locator_kind": "row",
+          "source_id": "src_60f06f465cc4a421",
+          "source_version": 1
+        }
+      ],
+      "status": "RECORDED",
+      "vendor_id": "ven_5b3b7298e61a7172",
+      "version": 1
+    },
+    {
+      "amount_cents": "327000",
+      "booth_id": "booth_429785af7ec72a84",
+      "business_date": "2026-10-18",
+      "counted_at": "2026-10-19T06:45:00Z",
+      "counted_by_role": "vendor (self-reported)",
+      "currency": "USD",
+      "custody": "VENDOR_RETAINED",
+      "festival_id": "fest_bf25e974c723d827",
+      "id": "cashct_7be62c2d348dab4c",
+      "location": "VENDOR_DRAWER",
+      "source_native_id": "CASHCOUNT-B-05-20261018",
+      "source_refs": [
+        {
+          "content_hash": "sha256:49ae40162c281bd43a2670713c263d08087f326b713de718ba29b31db38bb9bc",
+          "locator": "row=4",
+          "locator_kind": "row",
+          "source_id": "src_60f06f465cc4a421",
+          "source_version": 1
+        }
+      ],
+      "status": "RECORDED",
+      "vendor_id": "ven_5b3b7298e61a7172",
+      "version": 1
+    }
+  ],
+  "next_cursor": null
+}

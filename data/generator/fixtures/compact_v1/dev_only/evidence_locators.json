@@ -1,0 +1,272 @@
+{
+  "items": [
+    {
+      "id": "evid_22637ee5259116a0",
+      "source_ref": {
+        "content_hash": "sha256:406591995e7336b96918bb73060eee6a5e8bb7232fdff2bc1de98db31264231c",
+        "locator": "chars=600-717",
+        "locator_kind": "span",
+        "quoted_excerpt": "3.1 Commission: 15% of eligible festival sales. Eligible sales exclude sales tax and tips and are reduced by refunds.",
+        "source_id": "src_88169f1ed8b0d222",
+        "source_version": 1
+      },
+      "topic": "commission",
+      "vendor_id": "ven_7248fe404ac157ca",
+      "version": 1
+    },
+    {
+      "id": "evid_72efaae9f10df362",
+      "source_ref": {
+        "content_hash": "sha256:406591995e7336b96918bb73060eee6a5e8bb7232fdff2bc1de98db31264231c",
+        "locator": "chars=718-936",
+        "locator_kind": "span",
+        "quoted_excerpt": "3.2 Festival minimum: $500.00 for the entire festival, not per night. If the percentage commission for the whole festival is lower, the final settlement adds the difference. Sales tax and tips are never used to pay it.",
+        "source_id": "src_88169f1ed8b0d222",
+        "source_version": 1
+      },
+      "topic": "minimum",
+      "vendor_id": "ven_7248fe404ac157ca",
+      "version": 1
+    },
+    {
+      "id": "evid_70db7882bf4f6be9",
+      "source_ref": {
+        "content_hash": "sha256:406591995e7336b96918bb73060eee6a5e8bb7232fdff2bc1de98db31264231c",
+        "locator": "chars=937-1038",
+        "locator_kind": "span",
+        "quoted_excerpt": "3.3 Processor fees: Vendor bears card processing fees, which are deducted from the vendor settlement.",
+        "source_id": "src_88169f1ed8b0d222",
+        "source_version": 1
+      },
+      "topic": "processor_fees",
+      "vendor_id": "ven_7248fe404ac157ca",
+      "version": 1
+    },
+    {
+      "id": "evid_27806be55dd3a5f1",
+      "source_ref": {
+        "content_hash": "sha256:95cdf9fef2d12e9874a9023440b8324939971416066fa3ca526463cffbf4f0c5",
+        "locator": "chars=586-703",
+        "locator_kind": "span",
+        "quoted_excerpt": "3.1 Commission: 15% of eligible festival sales. Eligible sales exclude sales tax and tips and are reduced by refunds.",
+        "source_id": "src_4dcc7ce9f370b56b",
+        "source_version": 1
+      },
+      "topic": "commission",
+      "vendor_id": "ven_c309836b4f9601f2",
+      "version": 1
+    },
+    {
+      "id": "evid_a82c80f009b97dce",
+      "source_ref": {
+        "content_hash": "sha256:95cdf9fef2d12e9874a9023440b8324939971416066fa3ca526463cffbf4f0c5",
+        "locator": "chars=704-922",
+        "locator_kind": "span",
+        "quoted_excerpt": "3.2 Festival minimum: $500.00 for the entire festival, not per night. If the percentage commission for the whole festival is lower, the final settlement adds the difference. Sales tax and tips are never used to pay it.",
+        "source_id": "src_4dcc7ce9f370b56b",
+        "source_version": 1
+      },
+      "topic": "minimum",
+      "vendor_id": "ven_c309836b4f9601f2",
+      "version": 1
+    },
+    {
+      "id": "evid_5954f1087cb9e321",
+      "source_ref": {
+        "content_hash": "sha256:95cdf9fef2d12e9874a9023440b8324939971416066fa3ca526463cffbf4f0c5",
+        "locator": "chars=923-1030",
+        "locator_kind": "span",
+        "quoted_excerpt": "3.3 Processor fees: Organizer bears card processing fees; they are not deducted from the vendor settlement.",
+        "source_id": "src_4dcc7ce9f370b56b",
+        "source_version": 1
+      },
+      "topic": "processor_fees",
+      "vendor_id": "ven_c309836b4f9601f2",
+      "version": 1
+    },
+    {
+      "id": "evid_1513242084bb893b",
+      "source_ref": {
+        "content_hash": "sha256:47a778da9183c1a076c2c844d7f940cdeb66ad5a7ad054a431bb09905d584dd5",
+        "locator": "chars=654-771",
+        "locator_kind": "span",
+        "quoted_excerpt": "3.1 Commission: 15% of eligible festival sales. Eligible sales exclude sales tax and tips and are reduced by refunds.",
+        "source_id": "src_0a53137b3e9b6d72",
+        "source_version": 1
+      },
+      "topic": "commission",
+      "vendor_id": "ven_bdccc4a0fab46f90",
+      "version": 1
+    },
+    {
+      "id": "evid_409a760e3d326be3",
+      "source_ref": {
+        "content_hash": "sha256:47a778da9183c1a076c2c844d7f940cdeb66ad5a7ad054a431bb09905d584dd5",
+        "locator": "chars=772-990",
+        "locator_kind": "span",
+        "quoted_excerpt": "3.2 Festival minimum: $500.00 for the entire festival, not per night. If the percentage commission for the whole festival is lower, the final settlement adds the difference. Sales tax and tips are never used to pay it.",
+        "source_id": "src_0a53137b3e9b6d72",
+        "source_version": 1
+      },
+      "topic": "minimum",
+      "vendor_id": "ven_bdccc4a0fab46f90",
+      "version": 1
+    },
+    {
+      "id": "evid_04d951e244eebd44",
+      "source_ref": {
+        "content_hash": "sha256:47a778da9183c1a076c2c844d7f940cdeb66ad5a7ad054a431bb09905d584dd5",
+        "locator": "chars=991-1098",
+        "locator_kind": "span",
+        "quoted_excerpt": "3.3 Processor fees: Organizer bears card processing fees; they are not deducted from the vendor settlement.",
+        "source_id": "src_0a53137b3e9b6d72",
+        "source_version": 1
+      },
+      "topic": "processor_fees",
+      "vendor_id": "ven_bdccc4a0fab46f90",
+      "version": 1
+    },
+    {
+      "id": "evid_01cd1b5269ffc0b4",
+      "source_ref": {
+        "content_hash": "sha256:41d0a55735e769aa36646a1cb87e0eeb1fcf06a3013bda81a2d9b340e5ebcb77",
+        "locator": "chars=604-721",
+        "locator_kind": "span",
+        "quoted_excerpt": "3.1 Commission: 15% of eligible festival sales. Eligible sales exclude sales tax and tips and are reduced by refunds.",
+        "source_id": "src_2a3a620d79211299",
+        "source_version": 1
+      },
+      "topic": "commission",
+      "vendor_id": "ven_6d07f90ca688444e",
+      "version": 1
+    },
+    {
+      "id": "evid_9d0d5c20464545ab",
+      "source_ref": {
+        "content_hash": "sha256:41d0a55735e769aa36646a1cb87e0eeb1fcf06a3013bda81a2d9b340e5ebcb77",
+        "locator": "chars=722-940",
+        "locator_kind": "span",
+        "quoted_excerpt": "3.2 Festival minimum: $500.00 for the entire festival, not per night. If the percentage commission for the whole festival is lower, the final settlement adds the difference. Sales tax and tips are never used to pay it.",
+        "source_id": "src_2a3a620d79211299",
+        "source_version": 1
+      },
+      "topic": "minimum",
+      "vendor_id": "ven_6d07f90ca688444e",
+      "version": 1
+    },
+    {
+      "id": "evid_3dfb819dcf92d53d",
+      "source_ref": {
+        "content_hash": "sha256:41d0a55735e769aa36646a1cb87e0eeb1fcf06a3013bda81a2d9b340e5ebcb77",
+        "locator": "chars=941-1048",
+        "locator_kind": "span",
+        "quoted_excerpt": "3.3 Processor fees: Organizer bears card processing fees; they are not deducted from the vendor settlement.",
+        "source_id": "src_2a3a620d79211299",
+        "source_version": 1
+      },
+      "topic": "processor_fees",
+      "vendor_id": "ven_6d07f90ca688444e",
+      "version": 1
+    },
+    {
+      "id": "evid_faf6cde5f6169c8d",
+      "source_ref": {
+        "content_hash": "sha256:79bd312566b05b62c558fd294b67c5f077ae0cdc511557267aaefe26fb7f092c",
+        "locator": "chars=664-781",
+        "locator_kind": "span",
+        "quoted_excerpt": "3.1 Commission: 15% of eligible festival sales. Eligible sales exclude sales tax and tips and are reduced by refunds.",
+        "source_id": "src_de85106c79ea966b",
+        "source_version": 1
+      },
+      "topic": "commission",
+      "vendor_id": "ven_5b3b7298e61a7172",
+      "version": 1
+    },
+    {
+      "id": "evid_c1380f49f93d0f47",
+      "source_ref": {
+        "content_hash": "sha256:79bd312566b05b62c558fd294b67c5f077ae0cdc511557267aaefe26fb7f092c",
+        "locator": "chars=782-1000",
+        "locator_kind": "span",
+        "quoted_excerpt": "3.2 Festival minimum: $500.00 for the entire festival, not per night. If the percentage commission for the whole festival is lower, the final settlement adds the difference. Sales tax and tips are never used to pay it.",
+        "source_id": "src_de85106c79ea966b",
+        "source_version": 1
+      },
+      "topic": "minimum",
+      "vendor_id": "ven_5b3b7298e61a7172",
+      "version": 1
+    },
+    {
+      "id": "evid_a3968e4191216036",
+      "source_ref": {
+        "content_hash": "sha256:79bd312566b05b62c558fd294b67c5f077ae0cdc511557267aaefe26fb7f092c",
+        "locator": "chars=1001-1108",
+        "locator_kind": "span",
+        "quoted_excerpt": "3.3 Processor fees: Organizer bears card processing fees; they are not deducted from the vendor settlement.",
+        "source_id": "src_de85106c79ea966b",
+        "source_version": 1
+      },
+      "topic": "processor_fees",
+      "vendor_id": "ven_5b3b7298e61a7172",
+      "version": 1
+    },
+    {
+      "id": "evid_9fa475cb143df1eb",
+      "source_ref": {
+        "content_hash": "sha256:3f4c46c983f32af346b8210eea08abcb5a12ac1d947bd4b2afdc1c9273c41f39",
+        "locator": "chars=588-705",
+        "locator_kind": "span",
+        "quoted_excerpt": "3.1 Commission: 15% of eligible festival sales. Eligible sales exclude sales tax and tips and are reduced by refunds.",
+        "source_id": "src_4472f9097a6e390e",
+        "source_version": 1
+      },
+      "topic": "commission",
+      "vendor_id": "ven_24b891c0ef6e9864",
+      "version": 1
+    },
+    {
+      "id": "evid_716ef2c528b03ceb",
+      "source_ref": {
+        "content_hash": "sha256:3f4c46c983f32af346b8210eea08abcb5a12ac1d947bd4b2afdc1c9273c41f39",
+        "locator": "chars=706-924",
+        "locator_kind": "span",
+        "quoted_excerpt": "3.2 Festival minimum: $500.00 for the entire festival, not per night. If the percentage commission for the whole festival is lower, the final settlement adds the difference. Sales tax and tips are never used to pay it.",
+        "source_id": "src_4472f9097a6e390e",
+        "source_version": 1
+      },
+      "topic": "minimum",
+      "vendor_id": "ven_24b891c0ef6e9864",
+      "version": 1
+    },
+    {
+      "id": "evid_56986bd4725870b2",
+      "source_ref": {
+        "content_hash": "sha256:3f4c46c983f32af346b8210eea08abcb5a12ac1d947bd4b2afdc1c9273c41f39",
+        "locator": "chars=925-1032",
+        "locator_kind": "span",
+        "quoted_excerpt": "3.3 Processor fees: Organizer bears card processing fees; they are not deducted from the vendor settlement.",
+        "source_id": "src_4472f9097a6e390e",
+        "source_version": 1
+      },
+      "topic": "processor_fees",
+      "vendor_id": "ven_24b891c0ef6e9864",
+      "version": 1
+    },
+    {
+      "id": "evid_9c8c30fe176dab99",
+      "source_ref": {
+        "content_hash": "sha256:7852507296d8ef4d2428b978272b508d4bc95959f7f6accd8e2df819ae6f77dc",
+        "locator": "chars=762-801",
+        "locator_kind": "span",
+        "quoted_excerpt": "we agreed 10% commission for Taco Libre",
+        "source_id": "src_1b532360bfaa3697",
+        "source_version": 1
+      },
+      "topic": "commission",
+      "vendor_id": null,
+      "version": 1
+    }
+  ],
+  "next_cursor": null,
+  "note": "FRONTEND DEV ONLY. Span locators into source documents for evidence-drawer mock data. Must not be given to agents, retrieval or prompts: it would pre-locate the terms an agent is meant to find itself."
+}
