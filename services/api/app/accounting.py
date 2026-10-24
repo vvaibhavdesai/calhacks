@@ -277,23 +277,37 @@ def post_sales_for_day(
             Payment.custody == "centrally_collected",
             Order.business_date == business_date,
         )
+        .order_by(Payment.created_at, Payment.id)
     ).all()
-    summary: dict[tuple[str, str], list] = defaultdict(lambda: [0, 0, 0, [], set(), 0])
+    by_order: dict[str, list] = defaultdict(list)
+    orders: dict[str, Order] = {}
     for payment, order in rows:
-        asset = _asset_for(payment.method)
-        s = summary[(payment.vendor_id, asset)]
-        gross = abs(payment.amount_cents)
-        sign = 1 if payment.kind == "capture" else -1
-        s[0] += sign * gross
-        s[1] += sign * _alloc(order.tax_cents, gross, order.gross_cents)
-        s[2] += sign * _alloc(order.tips_cents, gross, order.gross_cents)
-        s[3].append(payment.id)
-        s[4].add(order.id)
-        if sign < 0:
-            s[5] += 1
+        by_order[order.id].append(payment)
+        orders[order.id] = order
+
+    summary: dict[tuple[str, str], list] = defaultdict(lambda: [0, 0, 0, 0, [], set(), 0])
+    for order_id, payments in by_order.items():
+        order = orders[order_id]
+        captures = sum(abs(p.amount_cents) for p in payments if p.kind == "capture")
+        reversals = sum(abs(p.amount_cents) for p in payments if p.kind != "capture")
+        m = acct.split_order_money(
+            order_gross_cents=order.gross_cents, captures_cents=captures, reversals_cents=reversals
+        )
+        g_abs = abs(order.gross_cents)
+        tax = _alloc(abs(order.tax_cents), abs(m.goods_cents), g_abs)
+        tips = _alloc(abs(order.tips_cents), abs(m.goods_cents), g_abs)
+        sign = -1 if m.goods_cents < 0 else 1
+        s = summary[(order.vendor_id, _asset_for(payments[0].method))]
+        s[0] += m.gross_net_cents
+        s[1] += sign * tax
+        s[2] += sign * tips
+        s[3] += m.customer_money_cents
+        s[4].extend(p.id for p in payments)
+        s[5].add(order.id)
+        s[6] += sum(1 for p in payments if p.kind != "capture")
 
     results = []
-    for (vendor_id, asset), (gross, tax, tips, payment_ids, order_ids, n_adj) in sorted(
+    for (vendor_id, asset), (gross, tax, tips, cust, payment_ids, order_ids, n_adj) in sorted(
         summary.items()
     ):
         results.append(
@@ -304,7 +318,11 @@ def post_sales_for_day(
                 business_date=business_date,
                 kind="SALES_CAPTURE_SUMMARY",
                 lines=acct.sales_capture(
-                    asset_code=asset, gross_cents=gross, tax_cents=tax, tips_cents=tips
+                    asset_code=asset,
+                    gross_cents=gross,
+                    tax_cents=tax,
+                    tips_cents=tips,
+                    customer_money_cents=cust,
                 ),
                 source_record_ids=sorted(payment_ids) + sorted(order_ids),
                 note=f"Net of {n_adj} refund/chargeback payment(s)." if n_adj else None,
@@ -330,7 +348,6 @@ def post_processor_deposits(
             select(BankEntry).where(
                 BankEntry.festival_id == festival_id,
                 BankEntry.business_date == business_date,
-                BankEntry.direction == "credit",
                 BankEntry.batch_gross_cents.is_not(None),
             )
         )
@@ -340,6 +357,9 @@ def post_processor_deposits(
     results = []
     for be in entries:
         fee = be.batch_fee_cents or 0
+        # A net-negative batch (refunds/chargebacks exceeding sales) is a
+        # bank DEBIT: the processor pulls money, clearing is debited back.
+        bank = be.amount_cents if be.direction == "credit" else -be.amount_cents
         results.append(
             post_cumulative(
                 db,
@@ -348,7 +368,7 @@ def post_processor_deposits(
                 business_date=business_date,
                 kind="PROCESSOR_SETTLEMENT",
                 lines=acct.processor_settlement(
-                    bank_cents=be.amount_cents, fee_cents=fee, gross_cents=be.batch_gross_cents
+                    bank_cents=bank, fee_cents=fee, gross_cents=be.batch_gross_cents
                 ),
                 source_refs=[_bank_ref(be)],
                 source_record_ids=[be.id],
@@ -393,13 +413,15 @@ def post_settlement(
             base_key=f"COMMISSION:{tag}",
             business_date=root.business_date,
             kind="COMMISSION_SETTLEMENT",
-            lines=acct.commission_settlement(
-                assessed_cents=settlement.assessed_fee_cents,
-                collected_from_payable_cents=settlement.collected_fee_cents,
-                receivable_cents=uncollected,
-            )
-            if settlement.assessed_fee_cents
-            else [],
+            lines=(
+                acct.commission_settlement(
+                    assessed_cents=settlement.assessed_fee_cents,
+                    collected_from_payable_cents=settlement.collected_fee_cents,
+                    receivable_cents=uncollected,
+                )
+                if settlement.assessed_fee_cents
+                else []
+            ),
             source_record_ids=[settlement.id],
             note=(
                 f"From settlement {settlement.id}"

@@ -96,6 +96,15 @@ def _largest_remainder(total: int, weights: list[tuple[str, int]]) -> dict[str, 
 
 
 def _tax_lines(db: Session, festival_id: str, through: date | None) -> list[tax_rules.TaxLine]:
+    """Supports both refund representations:
+      - a refund/chargeback PAYMENT against the original sale order (A's
+        fixtures): its tax/eligible are allocated from the order and split
+        across lines deterministically by line id;
+      - a separate refund ORDER with its own negative lines and business
+        date (lane B's generator): its lines are taken as recorded, and its
+        refund payment is not allocated a second time.
+    Custody comes from the order's first payment of any kind. Payments and
+    lines are loaded in bulk (one query each), not per order."""
     q = (
         select(Order)
         .join(Vendor, Vendor.id == Order.vendor_id)
@@ -104,17 +113,27 @@ def _tax_lines(db: Session, festival_id: str, through: date | None) -> list[tax_
     if through is not None:
         q = q.where(Order.business_date <= through)
     orders = db.execute(q).scalars().all()
+    order_ids = [o.id for o in orders]
+    payments_by_order: dict[str, list[Payment]] = defaultdict(list)
+    lines_by_order: dict[str, list[OrderLine]] = defaultdict(list)
+    for chunk_start in range(0, len(order_ids), 5000):
+        chunk = order_ids[chunk_start : chunk_start + 5000]
+        for p in db.execute(
+            select(Payment).where(Payment.order_id.in_(chunk)).order_by(Payment.created_at)
+        ).scalars():
+            payments_by_order[p.order_id].append(p)
+        for ln in db.execute(select(OrderLine).where(OrderLine.order_id.in_(chunk))).scalars():
+            lines_by_order[ln.order_id].append(ln)
+
     out: list[tax_rules.TaxLine] = []
     for order in orders:
-        payments = db.execute(select(Payment).where(Payment.order_id == order.id)).scalars().all()
-        captures = [p for p in payments if p.kind == "capture"]
-        if not captures:
+        payments = payments_by_order.get(order.id, [])
+        if not payments:
             continue
-        custody = "central" if captures[0].custody == "centrally_collected" else "vendor_retained"
-        lines = sorted(
-            db.execute(select(OrderLine).where(OrderLine.order_id == order.id)).scalars().all(),
-            key=lambda ln: ln.line_id,
-        )
+        first = next((p for p in payments if p.kind == "capture"), payments[0])
+        custody = "central" if first.custody == "centrally_collected" else "vendor_retained"
+        lines = sorted(lines_by_order.get(order.id, []), key=lambda ln: ln.line_id)
+        is_refund_order = order.gross_cents < 0
         for ln in lines:
             out.append(
                 tax_rules.TaxLine(
@@ -124,34 +143,47 @@ def _tax_lines(db: Session, festival_id: str, through: date | None) -> list[tax_
                     tax_category=ln.tax_category,
                     eligible_net_cents=ln.eligible_net_cents,
                     supplied_tax_cents=ln.tax_cents,
+                    inherits_supplied=is_refund_order,
                 )
             )
-        for p in payments:
-            if p.kind == "capture":
-                continue
-            gross = abs(p.amount_cents)
-            # Same order-level allocation app/accounting.py's sales posting
-            # uses, then split across lines deterministically by line id.
-            refund_tax = _round(Decimal(order.tax_cents) * gross / Decimal(order.gross_cents or 1))
-            refund_tips = _round(
-                Decimal(order.tips_cents) * gross / Decimal(order.gross_cents or 1)
-            )
-            refund_eligible = gross - refund_tax - refund_tips
-            tax_split = _largest_remainder(-refund_tax, [(ln.id, ln.tax_cents) for ln in lines])
-            elig_split = _largest_remainder(
-                -refund_eligible, [(ln.id, ln.eligible_net_cents) for ln in lines]
-            )
-            for ln in lines:
-                out.append(
-                    tax_rules.TaxLine(
-                        business_date=order.business_date,
-                        order_line_ref=f"{ln.id}:refund:{p.id}",
-                        custody=custody,
-                        tax_category=ln.tax_category,
-                        eligible_net_cents=elig_split[ln.id],
-                        supplied_tax_cents=tax_split[ln.id],
-                    )
+        if is_refund_order:
+            continue
+        captures = sum(abs(p.amount_cents) for p in payments if p.kind == "capture")
+        reversals = sum(abs(p.amount_cents) for p in payments if p.kind != "capture")
+        if not reversals:
+            continue
+        # Same split app/accounting.py's sales posting uses: reversals first
+        # return any duplicate-charge excess (customer money, no tax effect);
+        # only the remainder reverses goods. Refund tax/tips are the order's
+        # totals minus what the remaining goods carry, so the summary ties to
+        # the sales-tax liability in the journal to the cent.
+        m = acct.split_order_money(
+            order_gross_cents=order.gross_cents, captures_cents=captures, reversals_cents=reversals
+        )
+        if m.goods_refunded_cents == 0:
+            continue
+        g = Decimal(order.gross_cents or 1)
+        kept_tax = _round(Decimal(order.tax_cents) * m.goods_cents / g)
+        kept_tips = _round(Decimal(order.tips_cents) * m.goods_cents / g)
+        refund_tax = order.tax_cents - kept_tax
+        refund_tips = order.tips_cents - kept_tips
+        refund_eligible = m.goods_refunded_cents - refund_tax - refund_tips
+        tax_split = _largest_remainder(-refund_tax, [(ln.id, ln.tax_cents) for ln in lines])
+        elig_split = _largest_remainder(
+            -refund_eligible, [(ln.id, ln.eligible_net_cents) for ln in lines]
+        )
+        for ln in lines:
+            out.append(
+                tax_rules.TaxLine(
+                    business_date=order.business_date,
+                    order_line_ref=f"{ln.id}:refund",
+                    custody=custody,
+                    tax_category=ln.tax_category,
+                    eligible_net_cents=elig_split[ln.id],
+                    supplied_tax_cents=tax_split[ln.id],
+                    inherits_supplied=True,
                 )
+            )
     return out
 
 
@@ -467,14 +499,16 @@ def build_statement_content(db: Session, vendor: Vendor, business_date: date) ->
         "amounts": amounts,
         "line_items": line_items,
         "holds": holds,
-        "payout": None
-        if payout is None
-        else {
-            "payout_id": payout.id,
-            "state": payout.state,
-            "amount_cents": payout.amount_cents,
-            "label": "SIMULATED payout - no real money movement",
-        },
+        "payout": (
+            None
+            if payout is None
+            else {
+                "payout_id": payout.id,
+                "state": payout.state,
+                "amount_cents": payout.amount_cents,
+                "label": "SIMULATED payout - no real money movement",
+            }
+        ),
         "journal_entries": sorted(
             ({"id": e.id, "entry_key": e.entry_key, "kind": e.kind} for e in entries),
             key=lambda x: x["entry_key"] or "",
@@ -708,9 +742,9 @@ def sponsorship_memo(db: Session, festival_id: str) -> list[dict]:
                 "amount_cents": si.amount_cents,
                 "received_cents": got,
                 "outstanding_memo_cents": si.amount_cents - got,
-                "status": "PAID"
-                if got == si.amount_cents
-                else ("PARTIALLY_PAID" if got else "OPEN"),
+                "status": (
+                    "PAID" if got == si.amount_cents else ("PARTIALLY_PAID" if got else "OPEN")
+                ),
             }
         )
     return rows

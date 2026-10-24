@@ -79,9 +79,11 @@ def _event(db, *, stream, event_type, aggregate_id, version, actor_id, actor_cap
         actor_capability=actor_capability,
         occurred_at=datetime.now(UTC),
         payload=payload,
-        lineage_refs=[{"ref_kind": "supplier_invoice", "ref_id": aggregate_id}]
-        if stream.startswith("supplier_invoice:")
-        else None,
+        lineage_refs=(
+            [{"ref_kind": "supplier_invoice", "ref_id": aggregate_id}]
+            if stream.startswith("supplier_invoice:")
+            else None
+        ),
     )
 
 

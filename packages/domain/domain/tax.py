@@ -10,7 +10,9 @@ C05 rules implemented:
     expected tax; a discrepancy is shown, never "fixed" by rewriting the
     supplied number;
   - refunds carry negative eligible/tax amounts and reduce the same
-    business date's totals they are recorded on;
+    business date's totals they are recorded on; a refund line inherits
+    the original's charged tax as its expected tax (any variance is
+    reported once, on the original sale line);
   - exempt categories are reported as exempt sales, with zero expected tax;
   - liability owner is explicit per custody: tax collected centrally is
     held by the organizer as agent; tax on vendor-retained sales is the
@@ -54,6 +56,12 @@ class TaxLine:
     tax_category: str | None
     eligible_net_cents: int
     supplied_tax_cents: int
+    # A refund/reversal line returns the tax actually charged on the
+    # original sale (C05: "refunds refer to original tax"). It is not
+    # recalculated independently -- doing so invents one-cent "mismatches"
+    # on proportional partial refunds -- and any variance is reported once,
+    # on the original line.
+    inherits_supplied: bool = False
 
 
 def summarize(lines: Iterable[TaxLine], config: dict) -> dict:
@@ -74,11 +82,12 @@ def summarize(lines: Iterable[TaxLine], config: dict) -> dict:
             row[f"{prefix}_exempt_sales_cents"] += ln.eligible_net_cents
         else:
             row[f"{prefix}_taxable_sales_cents"] += ln.eligible_net_cents
-        expected = (
-            0
-            if ln.tax_category in exempt
-            else recalc_line_tax(ln.eligible_net_cents, rates[ln.tax_category])
-        )
+        if ln.inherits_supplied:
+            expected = ln.supplied_tax_cents
+        elif ln.tax_category in exempt:
+            expected = 0
+        else:
+            expected = recalc_line_tax(ln.eligible_net_cents, rates[ln.tax_category])
         row[f"{prefix}_recalculated_tax_cents"] += expected
         if expected != ln.supplied_tax_cents:
             row[f"{prefix}_variance_cents"] += ln.supplied_tax_cents - expected

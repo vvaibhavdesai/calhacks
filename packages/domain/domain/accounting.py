@@ -126,21 +126,67 @@ def opening_balance(amount_cents: int) -> list[Line]:
 
 
 def sales_capture(
-    *, asset_code: str, gross_cents: int, tax_cents: int, tips_cents: int
+    *,
+    asset_code: str,
+    gross_cents: int,
+    tax_cents: int,
+    tips_cents: int,
+    customer_money_cents: int = 0,
 ) -> list[Line]:
     """Centrally collected sales: the organizer holds the money as agent.
-    Eligible (gross - tax - tips) is owed to the vendor, tax and tips are
-    protected liabilities. Organizer revenue is NOT credited here --
-    commission is recognized separately when the settlement is posted.
-    Negative inputs (a refund/chargeback summary) reverse the same lines."""
-    eligible = gross_cents - tax_cents - tips_cents
+    Eligible (gross - tax - tips - customer money) is owed to the vendor;
+    tax and tips are protected liabilities; `customer_money_cents` (e.g. a
+    duplicate charge, captured beyond the order total) is owed back to the
+    customer. Organizer revenue is NOT credited here -- commission is
+    recognized separately when the settlement is posted. Negative inputs
+    (a refund/chargeback summary) reverse the same lines."""
+    eligible = gross_cents - tax_cents - tips_cents - customer_money_cents
     return build(
         [
             (asset_code, gross_cents, 0),
             ("2000", 0, eligible),
             ("2100", 0, tax_cents),
             ("2200", 0, tips_cents),
+            ("2500", 0, customer_money_cents),
         ]
+    )
+
+
+@dataclass(frozen=True)
+class OrderMoney:
+    """How one order's centrally collected payments split, in cents."""
+
+    gross_net_cents: int  # captures minus refunds/chargebacks actually moved
+    goods_cents: int  # net amount that is vendor sales (incl. tax and tips)
+    goods_refunded_cents: int  # refunds/chargebacks that reversed goods
+    customer_money_cents: int  # captured beyond the order total, still owed back
+
+
+def split_order_money(
+    *, order_gross_cents: int, captures_cents: int, reversals_cents: int
+) -> OrderMoney:
+    """Captures beyond the order total are customer money (a duplicate
+    charge), not vendor sales. A later refund/chargeback first returns that
+    excess; only the remainder reverses goods. A refund ORDER (negative
+    gross, lane B's representation) is all goods reversal.
+
+    All inputs are non-negative except `order_gross_cents`."""
+    if order_gross_cents < 0:
+        return OrderMoney(
+            gross_net_cents=captures_cents - reversals_cents,
+            goods_cents=-reversals_cents,
+            goods_refunded_cents=reversals_cents,
+            customer_money_cents=0,
+        )
+    captured_goods = min(captures_cents, order_gross_cents)
+    over = captures_cents - captured_goods
+    excess_returned = min(reversals_cents, over)
+    goods_refunded = reversals_cents - excess_returned
+    return OrderMoney(
+        gross_net_cents=captures_cents - reversals_cents,
+        goods_cents=captured_goods - goods_refunded,
+        goods_refunded_cents=goods_refunded,
+        customer_money_cents=over - excess_returned,
     )
 
 
