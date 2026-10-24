@@ -14,7 +14,7 @@ not started · in progress · blocked · review · done
 | Ticket | Tier | Status | Branch commits | Handoff doc |
 |---|---|---|---|---|
 | X0.1 generalize cases/approvals | must | review (verified) | migration 0010; see handoff for commit list | [X0.1-handoff.md](../progress/X0.1-handoff.md) |
-| X0.2 term provenance/precedence | must | not started | — | — |
+| X0.2 term provenance/precedence | must | review (verified) | migration 0011; see handoff for commit list | [X0.2-handoff.md](../progress/X0.2-handoff.md) |
 | X0.3 contract obligations/links | must | not started | — | — |
 | X0.4 generator additions | must | **deferred** (collision risk with teammate's live `data/generator`/`tests/oracle` work — see CONTEXT.md) | — | — |
 | R1 readiness records/checks | must | not started | — | — |
@@ -65,6 +65,21 @@ not started · in progress · blocked · review · done
    cleanly onto today's capability vocabulary). R1/R2 should confirm or
    introduce a dedicated capability instead of silently inheriting this
    guess — see X0.1-handoff.md's "Open risks."
+7. **X0.2's `resolve_vendor_term_precedence` has no production caller
+   yet.** By design (R4 is its first intended consumer, per X0.2's own
+   ticket text: "R-track has something real to call") — but this means it
+   is currently exercised only by its own verify script. R4 should wire it
+   into the settlement-gate/statement path per X0.2-handoff.md's
+   "Statement labeling: how far this got wired" section before treating
+   "statements cite the rule/interpretation label" as done end-to-end.
+8. **`source_kind='signed_amendment'`/`'approved_interpretation'` are only
+   structurally enforced at the service-function layer** (`app/
+   term_provenance.py`'s two constructors), not via an ORM validator or DB
+   trigger — a future caller that constructs `VendorContractTerm(...)`
+   directly with an arbitrary `source_kind` string bypasses that
+   enforcement. Consistent with this codebase's existing convention
+   (invariants enforced in service functions, not ORM/DB-level), but worth
+   knowing before any future ticket adds a new term-creation call site.
 
 ## Deviations from `TICKET_SPEC.md` (running log)
 
@@ -88,6 +103,20 @@ not started · in progress · blocked · review · done
   list is specifically about *approval* fields, not case-opening). Tagged
   additively, same as the other two case-opening sites. See handoff for
   detail.
+- **X0.2: backfill uses a DB-level `server_default`, not a per-row Python
+  loop.** Every pre-existing `VendorContractTerm` row gets the identical
+  `source_kind='contract'` value (unlike X0.1's `cases.subject_type`
+  backfill, which genuinely needed per-row logic), so a plain `ADD COLUMN
+  ... DEFAULT` sufficed. See X0.2-handoff.md.
+- **X0.2: no DB-level CHECK constraint on `source_kind`'s vocabulary.**
+  Matches this schema's existing precedent (zero CHECK constraints
+  anywhere in the migration history; enum-like status columns are
+  validated in application code only). See X0.2-handoff.md.
+- **X0.2: verification is non-HTTP.** TICKET_SPEC.md's X0.2 section names
+  no new endpoint; every check runs against a real migrated Postgres
+  database and real SQLAlchemy sessions, just without an HTTP hop (unlike
+  `verify_x01_*`, which does drive real HTTP calls because X0.1 added a
+  real endpoint). See X0.2-handoff.md.
 
 ## Capabilities added by X0.1 (new, beyond A01-A08's existing set)
 
