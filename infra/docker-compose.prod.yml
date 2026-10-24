@@ -98,6 +98,9 @@ services:
       OPS_WORKER_HEALTH_URL: http://worker:8100/health/live
       OPS_STALLED_RUN_MINUTES: ${OPS_STALLED_RUN_MINUTES:-30}
       OPS_OUTBOX_STALE_MINUTES: ${OPS_OUTBOX_STALE_MINUTES:-10}
+      # Both intent types this system enqueues now have a dispatcher, so
+      # nothing is PENDING "by design" any more -- see .env.example.
+      OPS_OUTBOX_UNCONSUMED_INTENT_TYPES: ${OPS_OUTBOX_UNCONSUMED_INTENT_TYPES-}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     volumes:
       - encore_documents:/data/documents
@@ -117,9 +120,17 @@ services:
       retries: 5
       start_period: 20s
 
-  # Placeholder process until the LangGraph/outbox worker lands (A06+): it
-  # exposes the liveness contract (heartbeat-based /health/live) that the API's
-  # WORKER_DOWN alert and this healthcheck already depend on.
+  # The autonomous side of the system: the nightly-close coordinator, the
+  # outbox dispatcher and the schedule, each as a loop inside this one
+  # process (services/worker/worker/main.py). It keeps exposing the liveness
+  # contract (heartbeat-based /health/live) the API's WORKER_DOWN alert and
+  # the healthcheck below depend on, and is now stale as soon as ANY enabled
+  # loop stops making progress.
+  #
+  # Scaling out is safe (`--scale worker=N`): every loop claims its work
+  # from PostgreSQL with a lease, and the schedule's exactly-once key is
+  # UNIQUE(job_name, scheduled_for). There is no leader election and no
+  # assumption of a singleton process. Do NOT map host ports if you scale.
   worker:
     build:
       context: ..
@@ -129,6 +140,28 @@ services:
     environment:
       WORKER_HEALTH_PORT: "8100"
       WORKER_HEARTBEAT_SECONDS: "30"
+      # Restricted runtime role, as the api service above.
+      DATABASE_URL: postgresql+psycopg://encore_app:${ENCORE_APP_DB_PASSWORD:?set ENCORE_APP_DB_PASSWORD}@postgres:5432/${POSTGRES_DB:-encore}
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:?set AUTH_JWT_SECRET}
+      APP_ENV: ${APP_ENV:-production}
+      PAYMENT_MODE: simulated
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-5-5}
+      ORCHESTRATION_WORKER_ENABLED: ${ORCHESTRATION_WORKER_ENABLED:-1}
+      OUTBOX_DISPATCHER_ENABLED: ${OUTBOX_DISPATCHER_ENABLED:-1}
+      SCHEDULER_ENABLED: ${SCHEDULER_ENABLED:-1}
+      OUTBOX_MAX_ATTEMPTS: ${OUTBOX_MAX_ATTEMPTS:-5}
+      OUTBOX_RELEASE_WINDOW_ENABLED: ${OUTBOX_RELEASE_WINDOW_ENABLED:-1}
+      SCHEDULE_FESTIVAL_ID: ${SCHEDULE_FESTIVAL_ID:-}
+      SCHEDULE_ACTOR_EMAIL: ${SCHEDULE_ACTOR_EMAIL:-}
+      SCHEDULE_STATEMENTS_AT: ${SCHEDULE_STATEMENTS_AT:-09:00}
+      SCHEDULE_PAYOUT_RELEASE_AT: ${SCHEDULE_PAYOUT_RELEASE_AT:-10:00}
+      SCHEDULE_FIRST_BUSINESS_DATE: ${SCHEDULE_FIRST_BUSINESS_DATE:-2026-10-16}
+      SCHEDULE_LAST_BUSINESS_DATE: ${SCHEDULE_LAST_BUSINESS_DATE:-2026-10-18}
+      # APP_ENV=production already makes the demo clock inert; this is the
+      # second, explicit switch.
+      DEMO_CLOCK_MODE: "off"
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
     depends_on:
       postgres:
         condition: service_healthy

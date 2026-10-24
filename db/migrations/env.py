@@ -24,6 +24,7 @@ from app import (  # noqa: E402,F401
     models_payout_dispatch,
     models_reconciliation,
     models_settlement,
+    models_worker,
 )
 
 # side effect of the import above: registers tables on Base.metadata
