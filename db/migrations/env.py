@@ -19,6 +19,7 @@ from app import (  # noqa: E402,F401
     models_cash_office,
     models_finance,
     models_ledger,
+    models_orchestration,
     models_payout_dispatch,
     models_reconciliation,
     models_settlement,
