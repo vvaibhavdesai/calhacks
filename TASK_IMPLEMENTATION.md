@@ -1,7 +1,7 @@
 # Encore: implementation task plan
 
 Status: ready-to-assign planning document. Application implementation has NOT been authorized.
-Version: 1.1, 2026-10-23.
+Version: 1.2, 2026-10-23.
 Companion: [AGENT_HANDOFF.md](AGENT_HANDOFF.md).
 
 ## 1. Goal and boundary
@@ -76,6 +76,8 @@ The exact folder structure is a recommendation, not an existing repository. Do n
 8. No secrets, generated private credentials, runtime database dumps or evaluator answer keys in public runtime artifacts. Commit generator and compact synthetic fixtures; document how full data is rebuilt.
 
 ## 4. G0: freeze contracts before parallel implementation
+
+Shared contract draft: [CONTRACTS.md](CONTRACTS.md). C00–C06 below are work items; the companion document provides proposed field definitions, states and consistency rules. Both humans must review/freeze required portions before dependent tasks. The contracts remain drafts, not completed executable schemas.
 
 - [ ] **C00: runtime setup choices.** Choose an available exact Claude model ID, repository, deployment destination, secret injection, authentication provider/session strategy and document storage. Record versions and rationale. These implementation choices are not yet selected.
 - [ ] **C01: domain conventions.** Stable opaque IDs; USD integer cents; Decimal/rational rates; explicit rounding points; UTC timestamps plus festival-local business dates. Distinguish observed/ingested/occurred time and demo clock from wall clock.

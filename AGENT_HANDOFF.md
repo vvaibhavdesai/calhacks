@@ -1,6 +1,8 @@
 # Encore: agent context and handoff
 
-Version 1.1, 2026-10-23. Read alongside [TASK_IMPLEMENTATION.md](TASK_IMPLEMENTATION.md).
+Version 1.2, 2026-10-23. Read alongside [TASK_IMPLEMENTATION.md](TASK_IMPLEMENTATION.md).
+
+Shared interfaces: read [CONTRACTS.md](CONTRACTS.md) before parallel implementation. It is a reviewable C00–C06 draft, not a frozen interface. Both people must agree versions/fixtures before dependent tasks.
 
 ## Start here: authority and current status
 
