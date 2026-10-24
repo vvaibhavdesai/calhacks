@@ -43,6 +43,7 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
+import app.accounting as accounting
 import app.rail_simulator as rail_simulator
 from app.models import CAPABILITY_APPROVE_PAYOUT, CAPABILITY_FINANCE_LEAD
 from app.models_ledger import Case, OutboxIntent, Payout, Vendor
@@ -853,6 +854,11 @@ def confirm_payout_rail(
     if payout.state == "SUBMITTED":
         payout.state = "CONFIRMED"
     payout.version += 1
+    # A08: the books record the payout once, when it is confirmed -- never
+    # at release or submission, which may still fail or stay unknown.
+    accounting.post_vendor_payout(
+        db, payout=payout, actor_id=actor_id, actor_capability=actor_capability
+    )
     _append_payout_event(
         db,
         payout,
