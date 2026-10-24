@@ -382,7 +382,14 @@ paths:
       tags: [proposals]
       x-encore-proposal: Q32
       operationId: getSettlement
-      parameters: [{ $ref: '#/components/parameters/PathId' }]
+      parameters:
+        - $ref: '#/components/parameters/PathId'
+        - name: version
+          in: query
+          required: false
+          x-encore-proposal: Q54
+          description: A specific (possibly superseded) settlement version; versions are never deleted.
+          schema: { $ref: '#/components/schemas/Version' }
       responses:
         '200':
           description: Settlement and statement (server-calculated).
@@ -1991,6 +1998,11 @@ components:
         payment_mode: { $ref: '#/components/schemas/PaymentMode', x-encore-proposal: Q38 }
         batch_id: { type: [string, 'null'], x-encore-proposal: Q38 }
         settlement_id: { type: [string, 'null'], x-encore-proposal: Q38 }
+        settlement_version:
+          type: [integer, 'null']
+          minimum: 1
+          x-encore-proposal: Q54
+          description: Exact settlement version this payout pays (C01 pins versions, not a mutable latest pointer). Used by payout trace.
         run_id: { type: [string, 'null'], x-encore-proposal: Q38 }
         verified_beneficiary_version: { anyOf: [{ $ref: '#/components/schemas/Version' }, { type: 'null' }], x-encore-proposal: Q38, description: Latest verified beneficiary version on the vendor; differs from beneficiary_version when details changed. }
         approval_required: { type: boolean, x-encore-proposal: Q38, description: Server says a finance-lead amount approval is needed (above the automatic limit). }

@@ -12,7 +12,9 @@ import { parse } from 'yaml';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { createFixtureTransport } from '@encore/fixture-data';
 import { ApiClient } from './client';
+import { prepareCommand } from './commands';
 import { OPERATIONS } from './operations';
+import { RECORDER_CAPS, approvalPayload, challengeTacoPolicy, previewFor } from '../test/night3';
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const specPath = path.join(appRoot, 'contracts-draft/openapi.draft.yaml');
@@ -187,6 +189,57 @@ describe('fixture transport responses conform', () => {
     for (const t of (await out.list('listTaxReports')).items) expectValid('TaxReport', await out.get('getTaxReport', { path: { id: t.id } }));
     expectValid('FinancialReportList', await out.list('listFinancialReports'));
     for (const r of (await out.list('listFinancialReports')).items) expectValid('FinancialReport', await out.get('getFinancialReport', { path: { id: r.id } }));
+  });
+
+  it('B06 night3 (ILLUSTRATIVE) recorder, history, challenge, correction, branch and replay responses validate', async () => {
+    const out = new ApiClient({ transport: createFixtureTransport({ story: 'night3', capabilities: RECORDER_CAPS }) });
+    const events = await out.list('listEvents', { query: { limit: 200 } });
+    expectValid('EventList', events);
+    for (const e of events.items) expectValid('EventEnvelope', await out.get('getEvent', { path: { id: e.event_id } }));
+    expectValid('EventList', await out.list('listEvents', { query: { branch_id: 'illus_branch_taco_15' } }));
+    expectValid('HistoricalProjection', await out.get('getHistoricalProjection', { query: { knowledge_cutoff: '2026-10-18T12:00:00Z', business_date: '2026-10-16' } }));
+    expectValid('BranchList', await out.list('listBranches'));
+    expectValid('Branch', await out.get('getBranch', { path: { id: 'illus_branch_taco_15' } }));
+    expectValid('ReplayList', await out.list('listReplays'));
+    expectValid('Replay', await out.get('getReplay', { path: { id: 'illus_replay_n1' } }));
+    for (const p of (await out.list('listPayouts', { query: { limit: 200 } })).items) expectValid('Payout', p);
+    for (const st of (await out.list('listSettlements', { query: { limit: 200 } })).items) expectValid('Settlement', st);
+    for (const c of (await out.list('listCases', { query: { limit: 200 } })).items) expectValid('Case', c);
+    for (const p of (await out.list('listPolicies', { query: { limit: 200 } })).items) expectValid('PolicyVersion', p);
+
+    const chId = await challengeTacoPolicy(out);
+    expectValid('Challenge', await out.get('getChallenge', { path: { id: chId } }));
+    expectValid('ChallengeList', await out.list('listChallenges', { query: { target_id: 'illus_pv_taco_rate_v1' } }));
+    const cId = await previewFor(out, chId);
+    const c = await out.get('getCorrection', { path: { id: cId } });
+    expectValid('Correction', c);
+    expectValid('ApproveCorrectionPayload', approvalPayload(c));
+    const res = await out.command('approveCorrection', prepareCommand({ expectedVersion: c.version, payload: approvalPayload(c) }), { path: { id: cId } });
+    if (res.kind !== 'accepted') throw new Error('expected 202');
+    expectValid('JobAccepted', res.job);
+    for (let i = 0; i < 10; i += 1) expectValid('JobStatus', await out.get('getJob', { path: { id: res.job.job_id } }));
+    expectValid('Correction', await out.get('getCorrection', { path: { id: cId } }));
+    expectValid('EventList', await out.list('listEvents', { query: { limit: 200 } }));
+    expectValid('HistoricalProjection', await out.get('getHistoricalProjection', { query: { knowledge_cutoff: '2099-01-01T00:00:00Z' } }));
+    for (const p of (await out.list('listPayouts', { query: { limit: 200 } })).items) expectValid('Payout', p);
+    for (const e of (await out.list('listJournalEntries', { query: { limit: 200 } })).items) expectValid('JournalEntry', e);
+    expectValid('Settlement', await out.get('getSettlement', { path: { id: 'illus_set_n1_taco' }, query: { version: 2 } }));
+  });
+
+  it('B06 command payload schemas reject spoofed actors and promotion-like fields', () => {
+    const challenge = validator('CreateChallengePayload');
+    const ok = { action: 'CHALLENGE', target: { kind: 'POLICY_VERSION', id: 'p', version: 2 }, superseding_evidence: [{ source_id: 's', source_version: 1, content_hash: `sha256:${'a'.repeat(64)}` }], reason: 'r' };
+    expect(challenge(ok)).toBe(true);
+    expect(challenge({ ...ok, actor_id: 'spoofed' })).toBe(false);
+    expect(challenge({ ...ok, superseding_evidence: [] })).toBe(false);
+    const branch = validator('CreateBranchPayload');
+    const b = { action: 'CREATE_WHAT_IF_BRANCH', label: 'l', base_knowledge_cutoff: '2026-10-19T16:45:00Z', overrides: [{ policy_version_id: 'p', commission_bps: 1500 }] };
+    expect(branch(b)).toBe(true);
+    expect(branch({ ...b, promote_to_production: true })).toBe(false);
+    const replay = validator('StartReplayPayload');
+    expect(replay({ action: 'START_REPLAY', run_id: 'r', mode: 'RECORDED_RESULTS_ONLY' })).toBe(true);
+    expect(replay({ action: 'START_REPLAY', run_id: 'r', mode: 'LIVE' })).toBe(false);
+    expect(validator('PreviewCorrectionPayload')({ action: 'PREVIEW_CORRECTION', challenge_id: 'c' })).toBe(true);
   });
 
   it('decision payload schemas keep one-time resolution and policy approval distinct', () => {

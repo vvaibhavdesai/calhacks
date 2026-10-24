@@ -2,7 +2,7 @@
 // Production-bundle guard: dist/ must contain no fixture data. Collects every
 // id / provider reference / name from the compact fixture, the dev-only
 // evidence locators and the ILLUSTRATIVE output fixtures (B04 outputs, B05
-// finance), and fails if any appears in a built file.
+// finance, B06 recorder), and fails if any appears in a built file.
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -11,12 +11,13 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const fixtureRoot = path.resolve(root, '../../data/generator/fixtures/compact_v1');
 const dist = path.join(root, 'dist');
 
-const illustrativeFiles = ['outputs_v1.json', 'finance_v1.json'].map((f) => path.join(root, 'src/fixtures/illustrative', f));
+const illustrativeFiles = ['outputs_v1.json', 'finance_v1.json', 'recorder_v1.json'].map((f) => path.join(root, 'src/fixtures/illustrative', f));
 
-const markers = new Set(['compact_v1', 'Golden Coast', 'illustrative_outputs_v1', 'illustrative_finance_v1']);
+const markers = new Set(['compact_v1', 'Golden Coast', 'illustrative_outputs_v1', 'illustrative_finance_v1', 'illustrative_recorder_v1']);
 const KEYS = new Set([
   'id', 'line_id', 'provider_reference', 'source_native_id', 'name', 'content_hash', 'source_id',
   'entry_id', 'idempotency_key', 'invoice_number', 'po_number', 'logical_obligation_id',
+  'event_id', 'hash', 'previous_hash', 'state_hash', 'preview_hash',
 ]);
 // Every illustrative record id is prefixed `illus_` / `illus-` (e.g. illus_case_taco_rate).
 const ILLUSTRATIVE_ID = /^illus[_-][a-z0-9_-]{3,}$/;

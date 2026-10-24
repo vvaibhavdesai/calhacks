@@ -1535,6 +1535,8 @@ export interface components {
             payment_mode?: components["schemas"]["PaymentMode"];
             batch_id?: string | null;
             settlement_id?: string | null;
+            /** @description Exact settlement version this payout pays (C01 pins versions, not a mutable latest pointer). Used by payout trace. */
+            settlement_version?: number | null;
             run_id?: string | null;
             /** @description Latest verified beneficiary version on the vendor; differs from beneficiary_version when details changed. */
             verified_beneficiary_version?: components["schemas"]["Version"] | null;
@@ -2891,7 +2893,10 @@ export interface operations {
     };
     getSettlement: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description A specific (possibly superseded) settlement version; versions are never deleted. */
+                version?: components["schemas"]["Version"];
+            };
             header?: never;
             path: {
                 id: components["parameters"]["PathId"];

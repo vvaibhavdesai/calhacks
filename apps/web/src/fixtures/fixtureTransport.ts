@@ -18,7 +18,9 @@
  * payouts and batches, cash position, suppliers/POs/invoices/supplier payments,
  * journal, draft tax and financial reports, plus POST /payouts/{id}/approve with
  * the same HTTP semantics (exact amount/beneficiary binding; an amount approval
- * never clears a failing hard-blocker gate check). B06 outputs stay 501.
+ * never clears a failing hard-blocker gate check). B06 adds the opt-in recorder stand-in
+ * (./recorderTransport.ts, recorder_v1.json) for the night3 story; without it
+ * those routes answer 501.
  *
  * Never imported by production code paths: it is reachable only through the
  * '@encore/fixture-data' alias, which a build replaces with ./disabled.ts.
@@ -27,6 +29,8 @@ import type { Transport } from '../api/client';
 import { API_PREFIX } from '../config/env';
 import { compareCents, isCanonicalCents } from '../lib/money';
 import { isBusinessDate } from '../lib/time';
+import { CommandLedger, canonical, conflict, error, header, json } from './http';
+import { createRecorder, type RecorderFixture } from './recorderTransport';
 
 type Row = Record<string, unknown>;
 
@@ -74,6 +78,12 @@ export interface FixtureTransportOptions {
   outputs?: IllustrativeOutputs;
   /** Actor id recorded on fixture decisions. */
   actorId?: string;
+  /**
+   * B06: ILLUSTRATIVE flight-recorder / history / challenge / correction /
+   * branch / replay stand-in (recorder_v1.json). Requires `outputs` (the
+   * night3 story overlay). Without it those routes answer 501.
+   */
+  recorder?: RecorderFixture;
 }
 
 type CollectionKey = keyof FixtureData['collections'] | keyof IllustrativeOutputs;
@@ -190,33 +200,6 @@ const OUTPUT_DETAIL: Record<string, CollectionKey> = {
 const DEFAULT_LIMIT = 25;
 const MAX_LIMIT = 200;
 
-let requestCounter = 0;
-
-function json(status: number, body: unknown): Response {
-  requestCounter += 1;
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json', 'X-Request-ID': `fixture-req-${requestCounter}` },
-  });
-}
-
-function error(
-  status: number,
-  code: string,
-  message: string,
-  fieldErrors: { field: string; message: string }[] = [],
-): Response {
-  requestCounter += 1;
-  return json(status, {
-    code,
-    message,
-    request_id: `fixture-req-${requestCounter}`,
-    retryable: false,
-    field_errors: fieldErrors,
-    current_version: null,
-  });
-}
-
 function compareValues(a: unknown, b: unknown): number {
   if (isCanonicalCents(a) && isCanonicalCents(b)) return compareCents(a, b);
   if (typeof a === 'number' && typeof b === 'number') return a - b;
@@ -307,6 +290,15 @@ export function createFixtureTransportFrom(data: FixtureData, options: FixtureTr
     ? (JSON.parse(JSON.stringify(options.outputs)) as IllustrativeOutputs)
     : null;
   const commands = new CommandLedger();
+  const recorder =
+    outputs && options.recorder
+      ? createRecorder(options.recorder, {
+          // Same arrays the transport serves: recorder commands append/replace records in place.
+          collections: { ...(outputs as unknown as Record<string, Row[]>), source_documents: data.collections.source_documents },
+          capabilities,
+          actorId: options.actorId ?? 'fixture-actor',
+        })
+      : null;
 
   const rowsOf = (key: CollectionKey): Row[] =>
     key in data.collections
@@ -327,6 +319,10 @@ export function createFixtureTransportFrom(data: FixtureData, options: FixtureTr
     const method = (init.method ?? 'GET').toUpperCase();
 
     if (method !== 'GET') {
+      if (recorder && method === 'POST') {
+        const handled = recorder.post(route, init);
+        if (handled) return handled;
+      }
       if (outputs && method === 'POST') {
         const handled = handleCommand(route, init, outputs, commands, capabilities, options.actorId ?? 'fixture-actor');
         if (handled) return handled;
@@ -341,6 +337,10 @@ export function createFixtureTransportFrom(data: FixtureData, options: FixtureTr
         workspace_id: 'fixture-workspace',
         capabilities,
       });
+    }
+    if (recorder) {
+      const handled = recorder.get(route, u.searchParams);
+      if (handled) return handled;
     }
     if (route === '/festival') return json(200, data.festival);
     if (route === '/business-config') return json(200, data.businessConfig);
@@ -394,50 +394,6 @@ export function createFixtureTransportFrom(data: FixtureData, options: FixtureTr
 }
 
 // ----------------------------------------------------------- commands (ILLUSTRATIVE)
-
-/** Idempotency-Key ledger: same key + same body replays; same key + other body is 409 (C03). */
-class CommandLedger {
-  private readonly byKey = new Map<string, { body: string; status: number; response: unknown }>();
-  get(key: string) {
-    return this.byKey.get(key);
-  }
-  set(key: string, body: string, status: number, response: unknown) {
-    this.byKey.set(key, { body, status, response });
-  }
-}
-
-function header(init: RequestInit, name: string): string | null {
-  const h = init.headers;
-  if (!h) return null;
-  if (h instanceof Headers) return h.get(name);
-  if (Array.isArray(h)) return h.find(([k]) => k.toLowerCase() === name.toLowerCase())?.[1] ?? null;
-  const rec = h as Record<string, string>;
-  const k = Object.keys(rec).find((x) => x.toLowerCase() === name.toLowerCase());
-  return k ? (rec[k] ?? null) : null;
-}
-
-function conflict(code: string, message: string, currentVersion: number | null): Response {
-  requestCounter += 1;
-  return json(409, {
-    code,
-    message,
-    request_id: `fixture-req-${requestCounter}`,
-    retryable: false,
-    field_errors: [],
-    current_version: currentVersion,
-  });
-}
-
-/** Canonical JSON (sorted keys) for comparing echoed scopes. */
-function canonical(v: unknown): string {
-  if (v === null || typeof v !== 'object') return JSON.stringify(v);
-  if (Array.isArray(v)) return `[${v.map(canonical).join(',')}]`;
-  return `{${Object.entries(v as Row)
-    .filter(([, x]) => x !== undefined)
-    .sort(([a], [b]) => (a < b ? -1 : 1))
-    .map(([k, x]) => `${JSON.stringify(k)}:${canonical(x)}`)
-    .join(',')}}`;
-}
 
 function handleCommand(
   route: string,

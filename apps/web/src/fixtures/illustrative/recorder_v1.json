@@ -1,0 +1,5468 @@
+{
+ "fixture_id": "illustrative_recorder_v1",
+ "notice": "ILLUSTRATIVE, hand-authored dev/test sample flight-recorder, history, challenge/correction, branch and replay data (B06) for UI development only. Not oracle-derived, not calculated from compact_v1 inputs by any engine, not expected answers. Payouts are SIMULATED. The follow-up email, events, hashes and the Night 3 story are invented.",
+ "story": "Night 3 world: Taco Libre 10% policy approved on Night 1, reused on Night 2, then challenged with a late-recorded producer email confirming 15%. Overlays the B04/B05 illustrative records when the night3 story is enabled.",
+ "overlay": {
+  "runs": [
+   {
+    "id": "illus_run_n1",
+    "version": 8,
+    "status": "WAITING_REVIEW",
+    "business_date": "2026-10-16",
+    "branch_id": null,
+    "festival_id": "fest_bf25e974c723d827",
+    "started_at": "2026-10-17T08:05:00Z",
+    "completed_at": null,
+    "vendor_summary": {
+     "total": 6,
+     "active": 1,
+     "held": 2,
+     "failed": 0,
+     "completed": 3
+    }
+   },
+   {
+    "id": "illus_run_n2",
+    "version": 6,
+    "status": "COMPLETED",
+    "business_date": "2026-10-17",
+    "branch_id": null,
+    "festival_id": "fest_bf25e974c723d827",
+    "started_at": "2026-10-18T08:05:00Z",
+    "completed_at": "2026-10-18T17:05:00Z",
+    "vendor_summary": {
+     "total": 1,
+     "active": 0,
+     "held": 0,
+     "failed": 0,
+     "completed": 1
+    }
+   },
+   {
+    "id": "illus_run_n3",
+    "version": 4,
+    "status": "RUNNING",
+    "business_date": "2026-10-18",
+    "branch_id": null,
+    "festival_id": "fest_bf25e974c723d827",
+    "started_at": "2026-10-19T08:00:00Z",
+    "completed_at": null,
+    "vendor_summary": {
+     "total": 1,
+     "active": 1,
+     "held": 0,
+     "failed": 0,
+     "completed": 0
+    }
+   }
+  ],
+  "vendor_runs": [
+   {
+    "id": "illus_vrun_n1_taco",
+    "version": 5,
+    "run_id": "illus_run_n1",
+    "vendor_id": "ven_c309836b4f9601f2",
+    "business_date": "2026-10-16",
+    "milestone": "CONTROLS_CHECKED",
+    "state": "COMPLETED",
+    "holds": [],
+    "case_ids": [
+     "illus_case_taco_rate"
+    ],
+    "settlement_id": "illus_set_n1_taco",
+    "failure": null,
+    "updated_at": "2026-10-17T09:10:00Z"
+   },
+   {
+    "id": "illus_vrun_n2_taco",
+    "version": 4,
+    "run_id": "illus_run_n2",
+    "vendor_id": "ven_c309836b4f9601f2",
+    "business_date": "2026-10-17",
+    "milestone": "CONTROLS_CHECKED",
+    "state": "COMPLETED",
+    "holds": [],
+    "case_ids": [
+     "illus_case_taco_rate_n2"
+    ],
+    "settlement_id": "illus_set_n2_taco",
+    "failure": null,
+    "updated_at": "2026-10-18T09:00:00Z"
+   },
+   {
+    "id": "illus_vrun_n3_taco",
+    "version": 3,
+    "run_id": "illus_run_n3",
+    "vendor_id": "ven_c309836b4f9601f2",
+    "business_date": "2026-10-18",
+    "milestone": "CALCULATED",
+    "state": "ACTIVE",
+    "holds": [],
+    "case_ids": [],
+    "settlement_id": "illus_set_n3_taco",
+    "failure": null,
+    "updated_at": "2026-10-19T09:00:00Z"
+   }
+  ],
+  "settlements": [
+   {
+    "id": "illus_set_n1_taco",
+    "version": 2,
+    "status": "CALCULATED",
+    "vendor_id": "ven_c309836b4f9601f2",
+    "festival_id": "fest_bf25e974c723d827",
+    "business_date": "2026-10-16",
+    "calculation_version": "illus-calc-0.1",
+    "source_manifest_hash": "sha256:b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2",
+    "policy_refs": [
+     "illus_pv_taco_rate_v1"
+    ],
+    "line_items": [
+     {
+      "line_id": "illus_set_n1_taco_li_sales",
+      "kind": "ELIGIBLE_SALES",
+      "label": "Eligible sales (excludes tax and tips, net of refunds)",
+      "amount_cents": "80000",
+      "treatment": "FEE_BASIS",
+      "source_refs": [
+       {
+        "source_id": "src_6282cdeafdb52961",
+        "source_version": 1,
+        "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+        "locator_kind": "row",
+        "locator": "vendor_id=ven_c309836b4f9601f2"
+       }
+      ],
+      "policy_version_id": null
+     },
+     {
+      "line_id": "illus_set_n1_taco_li_comm",
+      "kind": "COMMISSION",
+      "label": "Commission assessed at 10% (approved policy v1)",
+      "amount_cents": "-8000",
+      "treatment": "FEE",
+      "source_refs": [
+       {
+        "source_id": "src_1b532360bfaa3697",
+        "source_version": 1,
+        "content_hash": "sha256:7852507296d8ef4d2428b978272b508d4bc95959f7f6accd8e2df819ae6f77dc",
+        "locator_kind": "span",
+        "locator": "chars=718-972",
+        "quoted_excerpt": "Confirming what we discussed: for this year we agreed 10% commission for Taco Libre, with the same $500.00 festival minimum. I will ask finance to update the paperwork. Please just push this through on settlement night without waiting for a new contract."
+       }
+      ],
+      "policy_version_id": "illus_pv_taco_rate_v1"
+     },
+     {
+      "line_id": "illus_set_n1_taco_li_payout",
+      "kind": "PAYOUT",
+      "label": "Vendor payout payable",
+      "amount_cents": "72000",
+      "treatment": "PAYOUT",
+      "source_refs": [],
+      "policy_version_id": null
+     },
+     {
+      "line_id": "illus_set_n1_taco_li_tax",
+      "kind": "SALES_TAX",
+      "label": "Sales tax collected: organizer liability (DEMO rate), never used for fees",
+      "amount_cents": "7200",
+      "treatment": "PROTECTED",
+      "source_refs": [],
+      "policy_version_id": null
+     }
+    ],
+    "assessed_fee_cents": "8000",
+    "collected_fee_cents": "8000",
+    "payout_cents": "72000",
+    "unpaid_balance_cents": "0",
+    "holds": [],
+    "tips_passthrough_cents": "0",
+    "tax_collected_cents": "7200",
+    "phase": "INTERIM",
+    "statement_status": "FINAL",
+    "statement_generated_at": "2026-10-17T16:00:00Z",
+    "applied_policies": [
+     {
+      "policy_version_id": "illus_pv_taco_rate_v1",
+      "policy_id": "illus_pol_taco_rate",
+      "version": 1,
+      "title": "Taco Libre: apply the producer email rate (10%) for this festival",
+      "origin_case_id": "illus_case_taco_rate",
+      "status_at_application": "ACTIVE",
+      "applied_at": "2026-10-17T09:10:00Z"
+     }
+    ],
+    "run_id": "illus_run_n1"
+   },
+   {
+    "id": "illus_set_n2_taco",
+    "version": 2,
+    "status": "CALCULATED",
+    "vendor_id": "ven_c309836b4f9601f2",
+    "festival_id": "fest_bf25e974c723d827",
+    "business_date": "2026-10-17",
+    "calculation_version": "illus-calc-0.1",
+    "source_manifest_hash": "sha256:b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2",
+    "policy_refs": [
+     "illus_pv_taco_rate_v1"
+    ],
+    "line_items": [
+     {
+      "line_id": "illus_set_n2_taco_li_sales",
+      "kind": "ELIGIBLE_SALES",
+      "label": "Eligible sales (excludes tax and tips, net of refunds)",
+      "amount_cents": "500000",
+      "treatment": "FEE_BASIS",
+      "source_refs": [
+       {
+        "source_id": "src_6282cdeafdb52961",
+        "source_version": 1,
+        "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+        "locator_kind": "row",
+        "locator": "vendor_id=ven_c309836b4f9601f2"
+       }
+      ],
+      "policy_version_id": null
+     },
+     {
+      "line_id": "illus_set_n2_taco_li_comm",
+      "kind": "COMMISSION",
+      "label": "Commission assessed at 10% (approved policy v1)",
+      "amount_cents": "-50000",
+      "treatment": "FEE",
+      "source_refs": [
+       {
+        "source_id": "src_1b532360bfaa3697",
+        "source_version": 1,
+        "content_hash": "sha256:7852507296d8ef4d2428b978272b508d4bc95959f7f6accd8e2df819ae6f77dc",
+        "locator_kind": "span",
+        "locator": "chars=718-972",
+        "quoted_excerpt": "Confirming what we discussed: for this year we agreed 10% commission for Taco Libre, with the same $500.00 festival minimum. I will ask finance to update the paperwork. Please just push this through on settlement night without waiting for a new contract."
+       }
+      ],
+      "policy_version_id": "illus_pv_taco_rate_v1"
+     },
+     {
+      "line_id": "illus_set_n2_taco_li_payout",
+      "kind": "PAYOUT",
+      "label": "Vendor payout payable",
+      "amount_cents": "450000",
+      "treatment": "PAYOUT",
+      "source_refs": [],
+      "policy_version_id": null
+     },
+     {
+      "line_id": "illus_set_n2_taco_li_tax",
+      "kind": "SALES_TAX",
+      "label": "Sales tax collected: organizer liability (DEMO rate), never used for fees",
+      "amount_cents": "45000",
+      "treatment": "PROTECTED",
+      "source_refs": [],
+      "policy_version_id": null
+     }
+    ],
+    "assessed_fee_cents": "50000",
+    "collected_fee_cents": "50000",
+    "payout_cents": "450000",
+    "unpaid_balance_cents": "0",
+    "holds": [],
+    "tips_passthrough_cents": "0",
+    "tax_collected_cents": "45000",
+    "phase": "INTERIM",
+    "statement_status": "FINAL",
+    "statement_generated_at": "2026-10-18T16:00:00Z",
+    "applied_policies": [
+     {
+      "policy_version_id": "illus_pv_taco_rate_v1",
+      "policy_id": "illus_pol_taco_rate",
+      "version": 1,
+      "title": "Taco Libre: apply the producer email rate (10%) for this festival",
+      "origin_case_id": "illus_case_taco_rate",
+      "status_at_application": "ACTIVE",
+      "applied_at": "2026-10-18T09:00:00Z"
+     }
+    ],
+    "run_id": "illus_run_n2"
+   },
+   {
+    "id": "illus_set_n3_taco",
+    "version": 1,
+    "status": "CALCULATED",
+    "vendor_id": "ven_c309836b4f9601f2",
+    "festival_id": "fest_bf25e974c723d827",
+    "business_date": "2026-10-18",
+    "calculation_version": "illus-calc-0.1",
+    "source_manifest_hash": "sha256:b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2",
+    "policy_refs": [
+     "illus_pv_taco_rate_v1"
+    ],
+    "line_items": [
+     {
+      "line_id": "illus_set_n3_taco_li_sales",
+      "kind": "ELIGIBLE_SALES",
+      "label": "Eligible sales (excludes tax and tips, net of refunds)",
+      "amount_cents": "30000",
+      "treatment": "FEE_BASIS",
+      "source_refs": [
+       {
+        "source_id": "src_6282cdeafdb52961",
+        "source_version": 1,
+        "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+        "locator_kind": "row",
+        "locator": "vendor_id=ven_c309836b4f9601f2"
+       }
+      ],
+      "policy_version_id": null
+     },
+     {
+      "line_id": "illus_set_n3_taco_li_comm",
+      "kind": "COMMISSION",
+      "label": "Commission assessed at 10% (approved policy v1)",
+      "amount_cents": "-3000",
+      "treatment": "FEE",
+      "source_refs": [
+       {
+        "source_id": "src_1b532360bfaa3697",
+        "source_version": 1,
+        "content_hash": "sha256:7852507296d8ef4d2428b978272b508d4bc95959f7f6accd8e2df819ae6f77dc",
+        "locator_kind": "span",
+        "locator": "chars=718-972",
+        "quoted_excerpt": "Confirming what we discussed: for this year we agreed 10% commission for Taco Libre, with the same $500.00 festival minimum. I will ask finance to update the paperwork. Please just push this through on settlement night without waiting for a new contract."
+       }
+      ],
+      "policy_version_id": "illus_pv_taco_rate_v1"
+     },
+     {
+      "line_id": "illus_set_n3_taco_li_payout",
+      "kind": "PAYOUT",
+      "label": "Vendor payout payable",
+      "amount_cents": "27000",
+      "treatment": "PAYOUT",
+      "source_refs": [],
+      "policy_version_id": null
+     },
+     {
+      "line_id": "illus_set_n3_taco_li_tax",
+      "kind": "SALES_TAX",
+      "label": "Sales tax collected: organizer liability (DEMO rate), never used for fees",
+      "amount_cents": "2700",
+      "treatment": "PROTECTED",
+      "source_refs": [],
+      "policy_version_id": null
+     }
+    ],
+    "assessed_fee_cents": "3000",
+    "collected_fee_cents": "3000",
+    "payout_cents": "27000",
+    "unpaid_balance_cents": "0",
+    "holds": [],
+    "tips_passthrough_cents": "0",
+    "tax_collected_cents": "2700",
+    "phase": "FINAL",
+    "statement_status": "PROVISIONAL",
+    "statement_generated_at": "2026-10-19T16:00:00Z",
+    "applied_policies": [
+     {
+      "policy_version_id": "illus_pv_taco_rate_v1",
+      "policy_id": "illus_pol_taco_rate",
+      "version": 1,
+      "title": "Taco Libre: apply the producer email rate (10%) for this festival",
+      "origin_case_id": "illus_case_taco_rate",
+      "status_at_application": "ACTIVE",
+      "applied_at": "2026-10-19T09:00:00Z"
+     }
+    ],
+    "run_id": "illus_run_n3"
+   }
+  ],
+  "cases": [
+   {
+    "id": "illus_case_taco_rate",
+    "version": 4,
+    "status": "RESOLVED",
+    "vendor_id": "ven_c309836b4f9601f2",
+    "run_id": "illus_run_n1",
+    "reason_code": "TERMS_CONFLICT",
+    "title": "Commission rate conflict: contract says 15%, producer email says 10%",
+    "business_date": "2026-10-16",
+    "opened_at": "2026-10-17T08:21:00Z",
+    "evidence_refs": [
+     {
+      "source_id": "src_4dcc7ce9f370b56b",
+      "source_version": 1,
+      "content_hash": "sha256:95cdf9fef2d12e9874a9023440b8324939971416066fa3ca526463cffbf4f0c5",
+      "locator_kind": "span",
+      "locator": "chars=586-703",
+      "quoted_excerpt": "3.1 Commission: 15% of eligible festival sales. Eligible sales exclude sales tax and tips and are reduced by refunds."
+     },
+     {
+      "source_id": "src_1b532360bfaa3697",
+      "source_version": 1,
+      "content_hash": "sha256:7852507296d8ef4d2428b978272b508d4bc95959f7f6accd8e2df819ae6f77dc",
+      "locator_kind": "span",
+      "locator": "chars=718-972",
+      "quoted_excerpt": "Confirming what we discussed: for this year we agreed 10% commission for Taco Libre, with the same $500.00 festival minimum. I will ask finance to update the paperwork. Please just push this through on settlement night without waiting for a new contract."
+     }
+    ],
+    "evidence_hash": "sha256:3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c",
+    "financial_impact": {
+     "amount_cents": "4000",
+     "description": "Commission for this night differs by this amount between the two options (illustrative figure).",
+     "basis": "Server-calculated: 15% option minus 10% option for 2026-10-16.",
+     "affected_settlement_ids": [
+      "illus_set_n1_taco"
+     ]
+    },
+    "proposed_resolution": null,
+    "required_capability": "case.resolve",
+    "resolution_options": [
+     {
+      "option_id": "opt_contract_rate",
+      "label": "Apply the signed contract rate (15%)",
+      "effect_summary": "Settle Taco Libre for 2026-10-16 at 15%. The email is recorded but not applied.",
+      "impact_cents": "0",
+      "is_proposed": false
+     },
+     {
+      "option_id": "opt_email_rate",
+      "label": "Apply the producer email rate (10%)",
+      "effect_summary": "Settle Taco Libre for 2026-10-16 at 10%, citing the email.",
+      "impact_cents": "-4000",
+      "is_proposed": false
+     }
+    ],
+    "policy_candidate_id": "illus_pv_taco_rate_v1",
+    "resolution": {
+     "decision": "RESOLVED_ONE_TIME",
+     "option_id": "opt_email_rate",
+     "approval_id": "illus_appr_taco_case",
+     "actor_id": "illus_actor_maya",
+     "capability": "case.resolve",
+     "decided_at": "2026-10-17T09:02:00Z",
+     "policy_version_id": null
+    },
+    "applied_policies": []
+   },
+   {
+    "id": "illus_case_taco_rate_n2",
+    "version": 2,
+    "status": "RESOLVED",
+    "vendor_id": "ven_c309836b4f9601f2",
+    "run_id": "illus_run_n2",
+    "reason_code": "TERMS_CONFLICT",
+    "title": "Commission rate conflict recurred (contract 15%, email 10%)",
+    "business_date": "2026-10-17",
+    "opened_at": "2026-10-18T08:40:00Z",
+    "evidence_refs": [
+     {
+      "source_id": "src_4dcc7ce9f370b56b",
+      "source_version": 1,
+      "content_hash": "sha256:95cdf9fef2d12e9874a9023440b8324939971416066fa3ca526463cffbf4f0c5",
+      "locator_kind": "span",
+      "locator": "chars=586-703",
+      "quoted_excerpt": "3.1 Commission: 15% of eligible festival sales. Eligible sales exclude sales tax and tips and are reduced by refunds."
+     },
+     {
+      "source_id": "src_1b532360bfaa3697",
+      "source_version": 1,
+      "content_hash": "sha256:7852507296d8ef4d2428b978272b508d4bc95959f7f6accd8e2df819ae6f77dc",
+      "locator_kind": "span",
+      "locator": "chars=718-972",
+      "quoted_excerpt": "Confirming what we discussed: for this year we agreed 10% commission for Taco Libre, with the same $500.00 festival minimum. I will ask finance to update the paperwork. Please just push this through on settlement night without waiting for a new contract."
+     }
+    ],
+    "evidence_hash": "sha256:3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c",
+    "financial_impact": {
+     "amount_cents": "25000",
+     "description": "Commission difference between the two rates for this night (illustrative figure).",
+     "basis": "Server-calculated: 15% option minus 10% option for 2026-10-17.",
+     "affected_settlement_ids": [
+      "illus_set_n2_taco"
+     ]
+    },
+    "proposed_resolution": null,
+    "required_capability": "case.resolve",
+    "resolution_options": [],
+    "policy_candidate_id": null,
+    "resolution": {
+     "decision": "AUTO_POLICY",
+     "option_id": null,
+     "approval_id": null,
+     "actor_id": null,
+     "capability": null,
+     "decided_at": "2026-10-18T08:40:10Z",
+     "policy_version_id": "illus_pv_taco_rate_v1"
+    },
+    "applied_policies": [
+     {
+      "policy_version_id": "illus_pv_taco_rate_v1",
+      "policy_id": "illus_pol_taco_rate",
+      "version": 1,
+      "title": "Taco Libre: apply the producer email rate (10%) for this festival",
+      "origin_case_id": "illus_case_taco_rate",
+      "status_at_application": "ACTIVE",
+      "applied_at": "2026-10-18T08:40:10Z"
+     }
+    ]
+   }
+  ],
+  "policies": [
+   {
+    "id": "illus_pv_taco_rate_v1",
+    "policy_id": "illus_pol_taco_rate",
+    "version": 1,
+    "record_version": 2,
+    "status": "ACTIVE",
+    "title": "Taco Libre: apply the producer email rate (10%) for this festival",
+    "scope": {
+     "festival_id": "fest_bf25e974c723d827",
+     "vendor_ids": [
+      "ven_c309836b4f9601f2"
+     ],
+     "business_date_from": "2026-10-16",
+     "business_date_to": "2026-10-18",
+     "description": "Taco Libre only, Golden Coast 2026 festival nights"
+    },
+    "predicates": [
+     {
+      "field": "contract.commission_bps",
+      "operator": "equals",
+      "value": "1500",
+      "description": "Signed contract version 1 still states 15%."
+     },
+     {
+      "field": "producer_email.commission_bps",
+      "operator": "equals",
+      "value": "1000",
+      "description": "The cited producer email still states 10%."
+     },
+     {
+      "field": "source_versions",
+      "operator": "unchanged",
+      "value": "src_4dcc7ce9f370b56b@1, src_1b532360bfaa3697@1",
+      "description": "Re-escalate if either source gets a new version."
+     }
+    ],
+    "effect": {
+     "kind": "SET_COMMISSION_BPS",
+     "description": "Use 10% commission for Taco Libre settlements in scope.",
+     "commission_bps": 1000
+    },
+    "evidence_refs": [
+     {
+      "source_id": "src_4dcc7ce9f370b56b",
+      "source_version": 1,
+      "content_hash": "sha256:95cdf9fef2d12e9874a9023440b8324939971416066fa3ca526463cffbf4f0c5",
+      "locator_kind": "span",
+      "locator": "chars=586-703",
+      "quoted_excerpt": "3.1 Commission: 15% of eligible festival sales. Eligible sales exclude sales tax and tips and are reduced by refunds."
+     },
+     {
+      "source_id": "src_1b532360bfaa3697",
+      "source_version": 1,
+      "content_hash": "sha256:7852507296d8ef4d2428b978272b508d4bc95959f7f6accd8e2df819ae6f77dc",
+      "locator_kind": "span",
+      "locator": "chars=718-972",
+      "quoted_excerpt": "Confirming what we discussed: for this year we agreed 10% commission for Taco Libre, with the same $500.00 festival minimum. I will ask finance to update the paperwork. Please just push this through on settlement night without waiting for a new contract."
+     }
+    ],
+    "evidence_hash": "sha256:3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c",
+    "approver_ref": "illus_appr_taco_policy",
+    "approval": {
+     "approval_id": "illus_appr_taco_policy",
+     "actor_id": "illus_actor_maya",
+     "capability": "policy.approve",
+     "decided_at": "2026-10-17T09:04:00Z"
+    },
+    "valid_from": "2026-10-16T07:00:00Z",
+    "valid_to": "2026-10-19T07:00:00Z",
+    "supersedes_version": null,
+    "origin_case_id": "illus_case_taco_rate",
+    "status_reason": null,
+    "required_capability": "policy.approve",
+    "application_count": 3
+   }
+  ],
+  "payouts": [
+   {
+    "id": "illus_payout_n1_taco",
+    "version": 5,
+    "logical_obligation_id": "illus_obl_n1_taco",
+    "idempotency_key": "illus_idem_payout_n1_taco",
+    "vendor_id": "ven_c309836b4f9601f2",
+    "business_date": "2026-10-16",
+    "beneficiary_version": 1,
+    "amount_cents": "72000",
+    "approval_ref": null,
+    "state": "CONFIRMED",
+    "provider_reference": "illus_simrail_taco_0001",
+    "payment_mode": "SIMULATED",
+    "batch_id": null,
+    "settlement_id": "illus_set_n1_taco",
+    "settlement_version": 2,
+    "run_id": "illus_run_n1",
+    "verified_beneficiary_version": 1,
+    "approval_required": false,
+    "required_capability": "payout.approve_above_limit",
+    "holds": [],
+    "outcome_detail": "Confirmed by the simulated rail.",
+    "reconciliation_case_id": null,
+    "gate": {
+     "evaluated_at": "2026-10-17T16:02:00Z",
+     "checks": [
+      {
+       "check": "SOURCES_VALID",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "Sources and current terms are valid.",
+       "case_id": null
+      },
+      {
+       "check": "RECONCILIATION_RESOLVED",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "No unresolved reconciliation discrepancy for this vendor/day.",
+       "case_id": null
+      },
+      {
+       "check": "POLICY_SCOPE_VALID",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "Every applied rule is ACTIVE and in scope.",
+       "case_id": null
+      },
+      {
+       "check": "BENEFICIARY_VERIFIED",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "Beneficiary details unchanged and verified.",
+       "case_id": null
+      },
+      {
+       "check": "CASH_RESERVED",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "Cash for this payout is reserved.",
+       "case_id": null
+      },
+      {
+       "check": "DAILY_AUTO_LIMIT",
+       "result": "PASS",
+       "hard_blocker": false,
+       "detail": "Within the $5,000 automatic daily limit for this vendor.",
+       "case_id": null
+      }
+     ],
+     "daily_limit": {
+      "limit_cents": "500000",
+      "prior_cumulative_cents": "0",
+      "cumulative_with_this_cents": "72000",
+      "exceeds_limit": false
+     }
+    },
+    "state_history": [
+     {
+      "state": "DRAFT",
+      "at": "2026-10-17T16:02:00Z",
+      "actor_ref": "system:payout-gate",
+      "note": null
+     },
+     {
+      "state": "APPROVED",
+      "at": "2026-10-17T16:02:30Z",
+      "actor_ref": "system:payout-gate",
+      "note": "All gate checks passed within the automatic limit."
+     },
+     {
+      "state": "DISPATCH_PENDING",
+      "at": "2026-10-17T17:00:00Z",
+      "actor_ref": "system:outbox",
+      "note": "Release window 10:00 AM Pacific."
+     },
+     {
+      "state": "SUBMITTED",
+      "at": "2026-10-17T17:00:04Z",
+      "actor_ref": "system:outbox",
+      "note": null
+     },
+     {
+      "state": "CONFIRMED",
+      "at": "2026-10-17T17:01:10Z",
+      "actor_ref": "system:simulated-rail",
+      "note": "Simulated rail confirmed. No real money moved."
+     }
+    ],
+    "updated_at": "2026-10-17T17:01:10Z"
+   },
+   {
+    "id": "illus_payout_n2_taco",
+    "version": 4,
+    "logical_obligation_id": "illus_obl_n2_taco",
+    "idempotency_key": "illus_idem_payout_n2_taco",
+    "vendor_id": "ven_c309836b4f9601f2",
+    "business_date": "2026-10-17",
+    "beneficiary_version": 1,
+    "amount_cents": "450000",
+    "approval_ref": null,
+    "state": "SUBMITTED",
+    "provider_reference": "illus_simrail_taco_0002",
+    "payment_mode": "SIMULATED",
+    "batch_id": null,
+    "settlement_id": "illus_set_n2_taco",
+    "settlement_version": 2,
+    "run_id": "illus_run_n2",
+    "verified_beneficiary_version": 1,
+    "approval_required": false,
+    "required_capability": "payout.approve_above_limit",
+    "holds": [],
+    "outcome_detail": "Submitted to the simulated rail; awaiting outcome.",
+    "reconciliation_case_id": null,
+    "gate": {
+     "evaluated_at": "2026-10-18T16:02:00Z",
+     "checks": [
+      {
+       "check": "SOURCES_VALID",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "Sources and current terms are valid.",
+       "case_id": null
+      },
+      {
+       "check": "RECONCILIATION_RESOLVED",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "No unresolved reconciliation discrepancy for this vendor/day.",
+       "case_id": null
+      },
+      {
+       "check": "POLICY_SCOPE_VALID",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "Every applied rule is ACTIVE and in scope.",
+       "case_id": null
+      },
+      {
+       "check": "BENEFICIARY_VERIFIED",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "Beneficiary details unchanged and verified.",
+       "case_id": null
+      },
+      {
+       "check": "CASH_RESERVED",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "Cash for this payout is reserved.",
+       "case_id": null
+      },
+      {
+       "check": "DAILY_AUTO_LIMIT",
+       "result": "PASS",
+       "hard_blocker": false,
+       "detail": "Within the $5,000 automatic daily limit for this vendor.",
+       "case_id": null
+      }
+     ],
+     "daily_limit": {
+      "limit_cents": "500000",
+      "prior_cumulative_cents": "0",
+      "cumulative_with_this_cents": "450000",
+      "exceeds_limit": false
+     }
+    },
+    "state_history": [
+     {
+      "state": "DRAFT",
+      "at": "2026-10-18T16:02:00Z",
+      "actor_ref": "system:payout-gate",
+      "note": null
+     },
+     {
+      "state": "APPROVED",
+      "at": "2026-10-18T16:02:30Z",
+      "actor_ref": "system:payout-gate",
+      "note": "All gate checks passed within the automatic limit."
+     },
+     {
+      "state": "DISPATCH_PENDING",
+      "at": "2026-10-18T17:00:00Z",
+      "actor_ref": "system:outbox",
+      "note": "Release window 10:00 AM Pacific."
+     },
+     {
+      "state": "SUBMITTED",
+      "at": "2026-10-18T17:00:04Z",
+      "actor_ref": "system:outbox",
+      "note": "Accepted by the simulated rail; outcome not yet confirmed."
+     }
+    ],
+    "updated_at": "2026-10-18T17:00:04Z"
+   },
+   {
+    "id": "illus_payout_n3_taco",
+    "version": 1,
+    "logical_obligation_id": "illus_obl_n3_taco",
+    "idempotency_key": "illus_idem_payout_n3_taco",
+    "vendor_id": "ven_c309836b4f9601f2",
+    "business_date": "2026-10-18",
+    "beneficiary_version": 1,
+    "amount_cents": "27000",
+    "approval_ref": null,
+    "state": "DRAFT",
+    "provider_reference": null,
+    "payment_mode": "SIMULATED",
+    "batch_id": null,
+    "settlement_id": "illus_set_n3_taco",
+    "settlement_version": 1,
+    "run_id": "illus_run_n3",
+    "verified_beneficiary_version": 1,
+    "approval_required": false,
+    "required_capability": "payout.approve_above_limit",
+    "holds": [],
+    "outcome_detail": null,
+    "reconciliation_case_id": null,
+    "gate": {
+     "evaluated_at": "2026-10-19T16:00:00Z",
+     "checks": [
+      {
+       "check": "SOURCES_VALID",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "Sources and current terms are valid.",
+       "case_id": null
+      },
+      {
+       "check": "RECONCILIATION_RESOLVED",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "No unresolved reconciliation discrepancy for this vendor/day.",
+       "case_id": null
+      },
+      {
+       "check": "POLICY_SCOPE_VALID",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "Every applied rule is ACTIVE and in scope.",
+       "case_id": null
+      },
+      {
+       "check": "BENEFICIARY_VERIFIED",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "Beneficiary details unchanged and verified.",
+       "case_id": null
+      },
+      {
+       "check": "CASH_RESERVED",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "Cash for this payout is reserved.",
+       "case_id": null
+      },
+      {
+       "check": "DAILY_AUTO_LIMIT",
+       "result": "PASS",
+       "hard_blocker": false,
+       "detail": "Within the $5,000 automatic daily limit for this vendor.",
+       "case_id": null
+      }
+     ],
+     "daily_limit": {
+      "limit_cents": "500000",
+      "prior_cumulative_cents": "0",
+      "cumulative_with_this_cents": "27000",
+      "exceeds_limit": false
+     }
+    },
+    "state_history": [
+     {
+      "state": "DRAFT",
+      "at": "2026-10-19T16:00:00Z",
+      "actor_ref": "system:payout-gate",
+      "note": "Waiting for the 10:00 AM Pacific release window."
+     }
+    ],
+    "updated_at": "2026-10-19T16:00:00Z"
+   }
+  ],
+  "journal_entries": [
+   {
+    "entry_id": "illus_je_n1_fee_taco",
+    "posting_rule_version": "illus-posting-rules-1",
+    "source_refs": [
+     {
+      "source_id": "src_6282cdeafdb52961",
+      "source_version": 1,
+      "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+      "locator_kind": "row",
+      "locator": "vendor_id=ven_c309836b4f9601f2"
+     }
+    ],
+    "correction_of": null,
+    "lines": [
+     {
+      "line_id": "illus_je_n1_fee_taco_l1",
+      "account": "2100",
+      "account_name": "Vendor funds payable",
+      "debit_cents": "8000",
+      "credit_cents": "0",
+      "memo": null,
+      "vendor_id": "ven_c309836b4f9601f2"
+     },
+     {
+      "line_id": "illus_je_n1_fee_taco_l2",
+      "account": "4000",
+      "account_name": "Organizer commission revenue",
+      "debit_cents": "0",
+      "credit_cents": "8000",
+      "memo": null,
+      "vendor_id": "ven_c309836b4f9601f2"
+     }
+    ],
+    "posted_at": "2026-10-17T16:05:00Z",
+    "business_date": "2026-10-16",
+    "description": "Taco Libre commission assessed, 2026-10-16",
+    "kind": "ORIGINAL",
+    "totals": {
+     "debit_cents": "8000",
+     "credit_cents": "8000",
+     "balanced": true
+    },
+    "corrected_by": [],
+    "origin_ref": "illus_set_n1_taco"
+   },
+   {
+    "entry_id": "illus_je_n2_fee_taco",
+    "posting_rule_version": "illus-posting-rules-1",
+    "source_refs": [
+     {
+      "source_id": "src_6282cdeafdb52961",
+      "source_version": 1,
+      "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+      "locator_kind": "row",
+      "locator": "vendor_id=ven_c309836b4f9601f2"
+     }
+    ],
+    "correction_of": null,
+    "lines": [
+     {
+      "line_id": "illus_je_n2_fee_taco_l1",
+      "account": "2100",
+      "account_name": "Vendor funds payable",
+      "debit_cents": "50000",
+      "credit_cents": "0",
+      "memo": null,
+      "vendor_id": "ven_c309836b4f9601f2"
+     },
+     {
+      "line_id": "illus_je_n2_fee_taco_l2",
+      "account": "4000",
+      "account_name": "Organizer commission revenue",
+      "debit_cents": "0",
+      "credit_cents": "50000",
+      "memo": null,
+      "vendor_id": "ven_c309836b4f9601f2"
+     }
+    ],
+    "posted_at": "2026-10-18T16:05:00Z",
+    "business_date": "2026-10-17",
+    "description": "Taco Libre commission assessed, 2026-10-17",
+    "kind": "ORIGINAL",
+    "totals": {
+     "debit_cents": "50000",
+     "credit_cents": "50000",
+     "balanced": true
+    },
+    "corrected_by": [],
+    "origin_ref": "illus_set_n2_taco"
+   }
+  ],
+  "source_documents": [
+   {
+    "id": "illus_src_taco_followup",
+    "version": 1,
+    "status": "ACTIVE",
+    "kind": "EMAIL_THREAD",
+    "title": "Re: Taco Libre booth terms (correction, ILLUSTRATIVE)",
+    "media_type": "message/rfc822",
+    "content_hash": "sha256:c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4",
+    "byte_length": 812,
+    "parser_version": null,
+    "vendor_id": null,
+    "received_at": "2026-10-19T16:40:00Z"
+   }
+  ]
+ },
+ "on_challenge": {
+  "policies": [
+   {
+    "id": "illus_pv_taco_rate_v1",
+    "policy_id": "illus_pol_taco_rate",
+    "version": 1,
+    "record_version": 3,
+    "status": "SUSPENDED",
+    "title": "Taco Libre: apply the producer email rate (10%) for this festival",
+    "scope": {
+     "festival_id": "fest_bf25e974c723d827",
+     "vendor_ids": [
+      "ven_c309836b4f9601f2"
+     ],
+     "business_date_from": "2026-10-16",
+     "business_date_to": "2026-10-18",
+     "description": "Taco Libre only, Golden Coast 2026 festival nights"
+    },
+    "predicates": [
+     {
+      "field": "contract.commission_bps",
+      "operator": "equals",
+      "value": "1500",
+      "description": "Signed contract version 1 still states 15%."
+     },
+     {
+      "field": "producer_email.commission_bps",
+      "operator": "equals",
+      "value": "1000",
+      "description": "The cited producer email still states 10%."
+     },
+     {
+      "field": "source_versions",
+      "operator": "unchanged",
+      "value": "src_4dcc7ce9f370b56b@1, src_1b532360bfaa3697@1",
+      "description": "Re-escalate if either source gets a new version."
+     }
+    ],
+    "effect": {
+     "kind": "SET_COMMISSION_BPS",
+     "description": "Use 10% commission for Taco Libre settlements in scope.",
+     "commission_bps": 1000
+    },
+    "evidence_refs": [
+     {
+      "source_id": "src_4dcc7ce9f370b56b",
+      "source_version": 1,
+      "content_hash": "sha256:95cdf9fef2d12e9874a9023440b8324939971416066fa3ca526463cffbf4f0c5",
+      "locator_kind": "span",
+      "locator": "chars=586-703",
+      "quoted_excerpt": "3.1 Commission: 15% of eligible festival sales. Eligible sales exclude sales tax and tips and are reduced by refunds."
+     },
+     {
+      "source_id": "src_1b532360bfaa3697",
+      "source_version": 1,
+      "content_hash": "sha256:7852507296d8ef4d2428b978272b508d4bc95959f7f6accd8e2df819ae6f77dc",
+      "locator_kind": "span",
+      "locator": "chars=718-972",
+      "quoted_excerpt": "Confirming what we discussed: for this year we agreed 10% commission for Taco Libre, with the same $500.00 festival minimum. I will ask finance to update the paperwork. Please just push this through on settlement night without waiting for a new contract."
+     }
+    ],
+    "evidence_hash": "sha256:3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c",
+    "approver_ref": "illus_appr_taco_policy",
+    "approval": {
+     "approval_id": "illus_appr_taco_policy",
+     "actor_id": "illus_actor_maya",
+     "capability": "policy.approve",
+     "decided_at": "2026-10-17T09:04:00Z"
+    },
+    "valid_from": "2026-10-16T07:00:00Z",
+    "valid_to": "2026-10-19T07:00:00Z",
+    "supersedes_version": null,
+    "origin_case_id": "illus_case_taco_rate",
+    "status_reason": "Use paused: challenged with superseding evidence. Not applied to new work until a correction is approved or the challenge is withdrawn.",
+    "required_capability": "policy.approve",
+    "application_count": 3
+   }
+  ],
+  "payouts": [
+   {
+    "id": "illus_payout_n3_taco",
+    "version": 2,
+    "logical_obligation_id": "illus_obl_n3_taco",
+    "idempotency_key": "illus_idem_payout_n3_taco",
+    "vendor_id": "ven_c309836b4f9601f2",
+    "business_date": "2026-10-18",
+    "beneficiary_version": 1,
+    "amount_cents": "27000",
+    "approval_ref": null,
+    "state": "DRAFT",
+    "provider_reference": null,
+    "payment_mode": "SIMULATED",
+    "batch_id": null,
+    "settlement_id": "illus_set_n3_taco",
+    "settlement_version": 1,
+    "run_id": "illus_run_n3",
+    "verified_beneficiary_version": 1,
+    "approval_required": false,
+    "required_capability": "payout.approve_above_limit",
+    "holds": [
+     {
+      "reason_code": "POLICY_UNDER_CHALLENGE",
+      "description": "An applied policy version is under challenge; release is paused until a correction is approved or the challenge is withdrawn.",
+      "blocking": true,
+      "case_id": null,
+      "since": "@NOW"
+     }
+    ],
+    "outcome_detail": null,
+    "reconciliation_case_id": null,
+    "gate": {
+     "evaluated_at": "@NOW",
+     "checks": [
+      {
+       "check": "SOURCES_VALID",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "Sources and current terms are valid.",
+       "case_id": null
+      },
+      {
+       "check": "RECONCILIATION_RESOLVED",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "No unresolved reconciliation discrepancy for this vendor/day.",
+       "case_id": null
+      },
+      {
+       "check": "POLICY_SCOPE_VALID",
+       "result": "FAIL",
+       "hard_blocker": true,
+       "detail": "Applied policy v1 is SUSPENDED (under challenge).",
+       "case_id": null
+      },
+      {
+       "check": "BENEFICIARY_VERIFIED",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "Beneficiary details unchanged and verified.",
+       "case_id": null
+      },
+      {
+       "check": "CASH_RESERVED",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "Cash for this payout is reserved.",
+       "case_id": null
+      },
+      {
+       "check": "DAILY_AUTO_LIMIT",
+       "result": "PASS",
+       "hard_blocker": false,
+       "detail": "Within the $5,000 automatic daily limit for this vendor.",
+       "case_id": null
+      }
+     ],
+     "daily_limit": {
+      "limit_cents": "500000",
+      "prior_cumulative_cents": "0",
+      "cumulative_with_this_cents": "27000",
+      "exceeds_limit": false
+     }
+    },
+    "state_history": [
+     {
+      "state": "DRAFT",
+      "at": "2026-10-19T16:00:00Z",
+      "actor_ref": "system:payout-gate",
+      "note": "Waiting for the 10:00 AM Pacific release window."
+     },
+     {
+      "state": "DRAFT",
+      "at": "@NOW",
+      "actor_ref": "system:payout-gate",
+      "note": "Held: applied policy under challenge."
+     }
+    ],
+    "updated_at": "@NOW"
+   }
+  ],
+  "vendor_runs": [
+   {
+    "id": "illus_vrun_n3_taco",
+    "version": 4,
+    "run_id": "illus_run_n3",
+    "vendor_id": "ven_c309836b4f9601f2",
+    "business_date": "2026-10-18",
+    "milestone": "CALCULATED",
+    "state": "HELD",
+    "holds": [
+     {
+      "reason_code": "POLICY_UNDER_CHALLENGE",
+      "description": "An applied policy version is under challenge; release is paused until a correction is approved or the challenge is withdrawn.",
+      "blocking": true,
+      "case_id": null,
+      "since": "@NOW"
+     }
+    ],
+    "case_ids": [],
+    "settlement_id": "illus_set_n3_taco",
+    "failure": null,
+    "updated_at": "@NOW"
+   }
+  ],
+  "runs": [
+   {
+    "id": "illus_run_n3",
+    "version": 5,
+    "status": "WAITING_REVIEW",
+    "business_date": "2026-10-18",
+    "branch_id": null,
+    "festival_id": "fest_bf25e974c723d827",
+    "started_at": "2026-10-19T08:00:00Z",
+    "completed_at": null,
+    "vendor_summary": {
+     "total": 1,
+     "active": 0,
+     "held": 1,
+     "failed": 0,
+     "completed": 0
+    }
+   }
+  ]
+ },
+ "after_correction": {
+  "policies": [
+   {
+    "id": "illus_pv_taco_rate_v1",
+    "policy_id": "illus_pol_taco_rate",
+    "version": 1,
+    "record_version": 4,
+    "status": "REVOKED",
+    "title": "Taco Libre: apply the producer email rate (10%) for this festival",
+    "scope": {
+     "festival_id": "fest_bf25e974c723d827",
+     "vendor_ids": [
+      "ven_c309836b4f9601f2"
+     ],
+     "business_date_from": "2026-10-16",
+     "business_date_to": "2026-10-18",
+     "description": "Taco Libre only, Golden Coast 2026 festival nights"
+    },
+    "predicates": [
+     {
+      "field": "contract.commission_bps",
+      "operator": "equals",
+      "value": "1500",
+      "description": "Signed contract version 1 still states 15%."
+     },
+     {
+      "field": "producer_email.commission_bps",
+      "operator": "equals",
+      "value": "1000",
+      "description": "The cited producer email still states 10%."
+     },
+     {
+      "field": "source_versions",
+      "operator": "unchanged",
+      "value": "src_4dcc7ce9f370b56b@1, src_1b532360bfaa3697@1",
+      "description": "Re-escalate if either source gets a new version."
+     }
+    ],
+    "effect": {
+     "kind": "SET_COMMISSION_BPS",
+     "description": "Use 10% commission for Taco Libre settlements in scope.",
+     "commission_bps": 1000
+    },
+    "evidence_refs": [
+     {
+      "source_id": "src_4dcc7ce9f370b56b",
+      "source_version": 1,
+      "content_hash": "sha256:95cdf9fef2d12e9874a9023440b8324939971416066fa3ca526463cffbf4f0c5",
+      "locator_kind": "span",
+      "locator": "chars=586-703",
+      "quoted_excerpt": "3.1 Commission: 15% of eligible festival sales. Eligible sales exclude sales tax and tips and are reduced by refunds."
+     },
+     {
+      "source_id": "src_1b532360bfaa3697",
+      "source_version": 1,
+      "content_hash": "sha256:7852507296d8ef4d2428b978272b508d4bc95959f7f6accd8e2df819ae6f77dc",
+      "locator_kind": "span",
+      "locator": "chars=718-972",
+      "quoted_excerpt": "Confirming what we discussed: for this year we agreed 10% commission for Taco Libre, with the same $500.00 festival minimum. I will ask finance to update the paperwork. Please just push this through on settlement night without waiting for a new contract."
+     }
+    ],
+    "evidence_hash": "sha256:3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c",
+    "approver_ref": "illus_appr_taco_policy",
+    "approval": {
+     "approval_id": "illus_appr_taco_policy",
+     "actor_id": "illus_actor_maya",
+     "capability": "policy.approve",
+     "decided_at": "2026-10-17T09:04:00Z"
+    },
+    "valid_from": "2026-10-16T07:00:00Z",
+    "valid_to": "@NOW",
+    "supersedes_version": null,
+    "origin_case_id": "illus_case_taco_rate",
+    "status_reason": "Revoked by an approved correction: superseding producer email confirms 15% for festival nights. History and prior applications are kept.",
+    "required_capability": "policy.approve",
+    "application_count": 3
+   }
+  ],
+  "settlements": [
+   {
+    "id": "illus_set_n1_taco",
+    "version": 3,
+    "status": "CALCULATED",
+    "vendor_id": "ven_c309836b4f9601f2",
+    "festival_id": "fest_bf25e974c723d827",
+    "business_date": "2026-10-16",
+    "calculation_version": "illus-calc-0.1",
+    "source_manifest_hash": "sha256:b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2",
+    "policy_refs": [],
+    "line_items": [
+     {
+      "line_id": "illus_set_n1_taco_li_sales",
+      "kind": "ELIGIBLE_SALES",
+      "label": "Eligible sales (excludes tax and tips, net of refunds)",
+      "amount_cents": "80000",
+      "treatment": "FEE_BASIS",
+      "source_refs": [
+       {
+        "source_id": "src_6282cdeafdb52961",
+        "source_version": 1,
+        "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+        "locator_kind": "row",
+        "locator": "vendor_id=ven_c309836b4f9601f2"
+       }
+      ],
+      "policy_version_id": null
+     },
+     {
+      "line_id": "illus_set_n1_taco_li_comm",
+      "kind": "COMMISSION",
+      "label": "Commission assessed at 15% (signed contract; policy v1 revoked)",
+      "amount_cents": "-12000",
+      "treatment": "FEE",
+      "source_refs": [
+       {
+        "source_id": "src_4dcc7ce9f370b56b",
+        "source_version": 1,
+        "content_hash": "sha256:95cdf9fef2d12e9874a9023440b8324939971416066fa3ca526463cffbf4f0c5",
+        "locator_kind": "span",
+        "locator": "chars=586-703",
+        "quoted_excerpt": "3.1 Commission: 15% of eligible festival sales. Eligible sales exclude sales tax and tips and are reduced by refunds."
+       },
+       {
+        "source_id": "illus_src_taco_followup",
+        "source_version": 1,
+        "content_hash": "sha256:c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4",
+        "locator_kind": "span",
+        "locator": "chars=301-512",
+        "quoted_excerpt": "Correction to my note from this afternoon: the 10% was only for the preview evening on Oct 15. Festival nights stay at the contract rate of 15%. Sorry for the confusion. (ILLUSTRATIVE)"
+       }
+      ],
+      "policy_version_id": null
+     },
+     {
+      "line_id": "illus_set_n1_taco_li_offset",
+      "kind": "OVERPAYMENT_OFFSET",
+      "label": "Already paid at the 10% rate: $40.00 overpayment offset against the Night 3 payout",
+      "amount_cents": "4000",
+      "treatment": "MEMO",
+      "source_refs": [],
+      "policy_version_id": null
+     },
+     {
+      "line_id": "illus_set_n1_taco_li_payout",
+      "kind": "PAYOUT",
+      "label": "Vendor payout payable",
+      "amount_cents": "68000",
+      "treatment": "PAYOUT",
+      "source_refs": [],
+      "policy_version_id": null
+     },
+     {
+      "line_id": "illus_set_n1_taco_li_tax",
+      "kind": "SALES_TAX",
+      "label": "Sales tax collected: organizer liability (DEMO rate), never used for fees",
+      "amount_cents": "7200",
+      "treatment": "PROTECTED",
+      "source_refs": [],
+      "policy_version_id": null
+     }
+    ],
+    "assessed_fee_cents": "12000",
+    "collected_fee_cents": "12000",
+    "payout_cents": "68000",
+    "unpaid_balance_cents": "0",
+    "holds": [],
+    "tips_passthrough_cents": "0",
+    "tax_collected_cents": "7200",
+    "phase": "INTERIM",
+    "statement_status": "ADJUSTED",
+    "statement_generated_at": "@NOW",
+    "applied_policies": [],
+    "run_id": "illus_run_n1"
+   },
+   {
+    "id": "illus_set_n2_taco",
+    "version": 3,
+    "status": "CALCULATED",
+    "vendor_id": "ven_c309836b4f9601f2",
+    "festival_id": "fest_bf25e974c723d827",
+    "business_date": "2026-10-17",
+    "calculation_version": "illus-calc-0.1",
+    "source_manifest_hash": "sha256:b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2",
+    "policy_refs": [],
+    "line_items": [
+     {
+      "line_id": "illus_set_n2_taco_li_sales",
+      "kind": "ELIGIBLE_SALES",
+      "label": "Eligible sales (excludes tax and tips, net of refunds)",
+      "amount_cents": "500000",
+      "treatment": "FEE_BASIS",
+      "source_refs": [
+       {
+        "source_id": "src_6282cdeafdb52961",
+        "source_version": 1,
+        "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+        "locator_kind": "row",
+        "locator": "vendor_id=ven_c309836b4f9601f2"
+       }
+      ],
+      "policy_version_id": null
+     },
+     {
+      "line_id": "illus_set_n2_taco_li_comm",
+      "kind": "COMMISSION",
+      "label": "Commission assessed at 15% (signed contract; policy v1 revoked)",
+      "amount_cents": "-75000",
+      "treatment": "FEE",
+      "source_refs": [
+       {
+        "source_id": "src_4dcc7ce9f370b56b",
+        "source_version": 1,
+        "content_hash": "sha256:95cdf9fef2d12e9874a9023440b8324939971416066fa3ca526463cffbf4f0c5",
+        "locator_kind": "span",
+        "locator": "chars=586-703",
+        "quoted_excerpt": "3.1 Commission: 15% of eligible festival sales. Eligible sales exclude sales tax and tips and are reduced by refunds."
+       },
+       {
+        "source_id": "illus_src_taco_followup",
+        "source_version": 1,
+        "content_hash": "sha256:c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4",
+        "locator_kind": "span",
+        "locator": "chars=301-512",
+        "quoted_excerpt": "Correction to my note from this afternoon: the 10% was only for the preview evening on Oct 15. Festival nights stay at the contract rate of 15%. Sorry for the confusion. (ILLUSTRATIVE)"
+       }
+      ],
+      "policy_version_id": null
+     },
+     {
+      "line_id": "illus_set_n2_taco_li_payout",
+      "kind": "PAYOUT",
+      "label": "Vendor payout payable",
+      "amount_cents": "425000",
+      "treatment": "PAYOUT",
+      "source_refs": [],
+      "policy_version_id": null
+     },
+     {
+      "line_id": "illus_set_n2_taco_li_tax",
+      "kind": "SALES_TAX",
+      "label": "Sales tax collected: organizer liability (DEMO rate), never used for fees",
+      "amount_cents": "45000",
+      "treatment": "PROTECTED",
+      "source_refs": [],
+      "policy_version_id": null
+     }
+    ],
+    "assessed_fee_cents": "75000",
+    "collected_fee_cents": "75000",
+    "payout_cents": "425000",
+    "unpaid_balance_cents": "0",
+    "holds": [],
+    "tips_passthrough_cents": "0",
+    "tax_collected_cents": "45000",
+    "phase": "INTERIM",
+    "statement_status": "ADJUSTED",
+    "statement_generated_at": "@NOW",
+    "applied_policies": [],
+    "run_id": "illus_run_n2"
+   },
+   {
+    "id": "illus_set_n3_taco",
+    "version": 2,
+    "status": "CALCULATED",
+    "vendor_id": "ven_c309836b4f9601f2",
+    "festival_id": "fest_bf25e974c723d827",
+    "business_date": "2026-10-18",
+    "calculation_version": "illus-calc-0.1",
+    "source_manifest_hash": "sha256:b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2",
+    "policy_refs": [],
+    "line_items": [
+     {
+      "line_id": "illus_set_n3_taco_li_sales",
+      "kind": "ELIGIBLE_SALES",
+      "label": "Eligible sales (excludes tax and tips, net of refunds)",
+      "amount_cents": "30000",
+      "treatment": "FEE_BASIS",
+      "source_refs": [
+       {
+        "source_id": "src_6282cdeafdb52961",
+        "source_version": 1,
+        "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+        "locator_kind": "row",
+        "locator": "vendor_id=ven_c309836b4f9601f2"
+       }
+      ],
+      "policy_version_id": null
+     },
+     {
+      "line_id": "illus_set_n3_taco_li_comm",
+      "kind": "COMMISSION",
+      "label": "Commission assessed at 15% (signed contract)",
+      "amount_cents": "-4500",
+      "treatment": "FEE",
+      "source_refs": [
+       {
+        "source_id": "src_4dcc7ce9f370b56b",
+        "source_version": 1,
+        "content_hash": "sha256:95cdf9fef2d12e9874a9023440b8324939971416066fa3ca526463cffbf4f0c5",
+        "locator_kind": "span",
+        "locator": "chars=586-703",
+        "quoted_excerpt": "3.1 Commission: 15% of eligible festival sales. Eligible sales exclude sales tax and tips and are reduced by refunds."
+       },
+       {
+        "source_id": "illus_src_taco_followup",
+        "source_version": 1,
+        "content_hash": "sha256:c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4",
+        "locator_kind": "span",
+        "locator": "chars=301-512",
+        "quoted_excerpt": "Correction to my note from this afternoon: the 10% was only for the preview evening on Oct 15. Festival nights stay at the contract rate of 15%. Sorry for the confusion. (ILLUSTRATIVE)"
+       }
+      ],
+      "policy_version_id": null
+     },
+     {
+      "line_id": "illus_set_n3_taco_li_offset",
+      "kind": "OVERPAYMENT_OFFSET",
+      "label": "Night 1 overpayment offset (linked correction)",
+      "amount_cents": "-4000",
+      "treatment": "DEDUCTION",
+      "source_refs": [],
+      "policy_version_id": null
+     },
+     {
+      "line_id": "illus_set_n3_taco_li_payout",
+      "kind": "PAYOUT",
+      "label": "Vendor payout payable",
+      "amount_cents": "21500",
+      "treatment": "PAYOUT",
+      "source_refs": [],
+      "policy_version_id": null
+     },
+     {
+      "line_id": "illus_set_n3_taco_li_tax",
+      "kind": "SALES_TAX",
+      "label": "Sales tax collected: organizer liability (DEMO rate), never used for fees",
+      "amount_cents": "2700",
+      "treatment": "PROTECTED",
+      "source_refs": [],
+      "policy_version_id": null
+     }
+    ],
+    "assessed_fee_cents": "4500",
+    "collected_fee_cents": "4500",
+    "payout_cents": "21500",
+    "unpaid_balance_cents": "0",
+    "holds": [],
+    "tips_passthrough_cents": "0",
+    "tax_collected_cents": "2700",
+    "phase": "FINAL",
+    "statement_status": "PROVISIONAL",
+    "statement_generated_at": "@NOW",
+    "applied_policies": [],
+    "run_id": "illus_run_n3"
+   }
+  ],
+  "payouts": [
+   {
+    "id": "illus_payout_n1_taco",
+    "version": 5,
+    "logical_obligation_id": "illus_obl_n1_taco",
+    "idempotency_key": "illus_idem_payout_n1_taco",
+    "vendor_id": "ven_c309836b4f9601f2",
+    "business_date": "2026-10-16",
+    "beneficiary_version": 1,
+    "amount_cents": "72000",
+    "approval_ref": null,
+    "state": "CONFIRMED",
+    "provider_reference": "illus_simrail_taco_0001",
+    "payment_mode": "SIMULATED",
+    "batch_id": null,
+    "settlement_id": "illus_set_n1_taco",
+    "settlement_version": 2,
+    "run_id": "illus_run_n1",
+    "verified_beneficiary_version": 1,
+    "approval_required": false,
+    "required_capability": "payout.approve_above_limit",
+    "holds": [],
+    "outcome_detail": "Confirmed by the simulated rail. Paid at the 10% rate; the $40.00 overpayment is offset against the Night 3 payout (correction). This payout is not reversed.",
+    "reconciliation_case_id": null,
+    "gate": {
+     "evaluated_at": "2026-10-17T16:02:00Z",
+     "checks": [
+      {
+       "check": "SOURCES_VALID",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "Sources and current terms are valid.",
+       "case_id": null
+      },
+      {
+       "check": "RECONCILIATION_RESOLVED",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "No unresolved reconciliation discrepancy for this vendor/day.",
+       "case_id": null
+      },
+      {
+       "check": "POLICY_SCOPE_VALID",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "Every applied rule is ACTIVE and in scope.",
+       "case_id": null
+      },
+      {
+       "check": "BENEFICIARY_VERIFIED",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "Beneficiary details unchanged and verified.",
+       "case_id": null
+      },
+      {
+       "check": "CASH_RESERVED",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "Cash for this payout is reserved.",
+       "case_id": null
+      },
+      {
+       "check": "DAILY_AUTO_LIMIT",
+       "result": "PASS",
+       "hard_blocker": false,
+       "detail": "Within the $5,000 automatic daily limit for this vendor.",
+       "case_id": null
+      }
+     ],
+     "daily_limit": {
+      "limit_cents": "500000",
+      "prior_cumulative_cents": "0",
+      "cumulative_with_this_cents": "72000",
+      "exceeds_limit": false
+     }
+    },
+    "state_history": [
+     {
+      "state": "DRAFT",
+      "at": "2026-10-17T16:02:00Z",
+      "actor_ref": "system:payout-gate",
+      "note": null
+     },
+     {
+      "state": "APPROVED",
+      "at": "2026-10-17T16:02:30Z",
+      "actor_ref": "system:payout-gate",
+      "note": "All gate checks passed within the automatic limit."
+     },
+     {
+      "state": "DISPATCH_PENDING",
+      "at": "2026-10-17T17:00:00Z",
+      "actor_ref": "system:outbox",
+      "note": "Release window 10:00 AM Pacific."
+     },
+     {
+      "state": "SUBMITTED",
+      "at": "2026-10-17T17:00:04Z",
+      "actor_ref": "system:outbox",
+      "note": null
+     },
+     {
+      "state": "CONFIRMED",
+      "at": "2026-10-17T17:01:10Z",
+      "actor_ref": "system:simulated-rail",
+      "note": "Simulated rail confirmed. No real money moved."
+     }
+    ],
+    "updated_at": "2026-10-17T17:01:10Z"
+   },
+   {
+    "id": "illus_payout_n2_taco",
+    "version": 6,
+    "logical_obligation_id": "illus_obl_n2_taco",
+    "idempotency_key": "illus_idem_payout_n2_taco",
+    "vendor_id": "ven_c309836b4f9601f2",
+    "business_date": "2026-10-17",
+    "beneficiary_version": 1,
+    "amount_cents": "450000",
+    "approval_ref": null,
+    "state": "CANCELLED",
+    "provider_reference": "illus_simrail_taco_0002",
+    "payment_mode": "SIMULATED",
+    "batch_id": null,
+    "settlement_id": "illus_set_n2_taco",
+    "settlement_version": 2,
+    "run_id": "illus_run_n2",
+    "verified_beneficiary_version": 1,
+    "approval_required": false,
+    "required_capability": "payout.approve_above_limit",
+    "holds": [],
+    "outcome_detail": "Cancellation confirmed by the simulated rail before release. Replaced by a new linked obligation (illus_payout_n2_taco_c1).",
+    "reconciliation_case_id": null,
+    "gate": {
+     "evaluated_at": "2026-10-18T16:02:00Z",
+     "checks": [
+      {
+       "check": "SOURCES_VALID",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "Sources and current terms are valid.",
+       "case_id": null
+      },
+      {
+       "check": "RECONCILIATION_RESOLVED",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "No unresolved reconciliation discrepancy for this vendor/day.",
+       "case_id": null
+      },
+      {
+       "check": "POLICY_SCOPE_VALID",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "Every applied rule is ACTIVE and in scope.",
+       "case_id": null
+      },
+      {
+       "check": "BENEFICIARY_VERIFIED",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "Beneficiary details unchanged and verified.",
+       "case_id": null
+      },
+      {
+       "check": "CASH_RESERVED",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "Cash for this payout is reserved.",
+       "case_id": null
+      },
+      {
+       "check": "DAILY_AUTO_LIMIT",
+       "result": "PASS",
+       "hard_blocker": false,
+       "detail": "Within the $5,000 automatic daily limit for this vendor.",
+       "case_id": null
+      }
+     ],
+     "daily_limit": {
+      "limit_cents": "500000",
+      "prior_cumulative_cents": "0",
+      "cumulative_with_this_cents": "450000",
+      "exceeds_limit": false
+     }
+    },
+    "state_history": [
+     {
+      "state": "DRAFT",
+      "at": "2026-10-18T16:02:00Z",
+      "actor_ref": "system:payout-gate",
+      "note": null
+     },
+     {
+      "state": "APPROVED",
+      "at": "2026-10-18T16:02:30Z",
+      "actor_ref": "system:payout-gate",
+      "note": "All gate checks passed within the automatic limit."
+     },
+     {
+      "state": "DISPATCH_PENDING",
+      "at": "2026-10-18T17:00:00Z",
+      "actor_ref": "system:outbox",
+      "note": "Release window 10:00 AM Pacific."
+     },
+     {
+      "state": "SUBMITTED",
+      "at": "2026-10-18T17:00:04Z",
+      "actor_ref": "system:outbox",
+      "note": "Accepted by the simulated rail; outcome not yet confirmed."
+     },
+     {
+      "state": "CANCEL_REQUESTED",
+      "at": "@NOW",
+      "actor_ref": "system:correction",
+      "note": "Cancellation requested by the approved correction."
+     },
+     {
+      "state": "CANCELLED",
+      "at": "@NOW",
+      "actor_ref": "system:simulated-rail",
+      "note": "Simulated rail confirmed the cancellation."
+     }
+    ],
+    "updated_at": "@NOW"
+   },
+   {
+    "id": "illus_payout_n2_taco_c1",
+    "version": 1,
+    "logical_obligation_id": "illus_obl_n2_taco_c1",
+    "idempotency_key": "illus_idem_payout_n2_taco_c1",
+    "vendor_id": "ven_c309836b4f9601f2",
+    "business_date": "2026-10-17",
+    "beneficiary_version": 1,
+    "amount_cents": "425000",
+    "approval_ref": null,
+    "state": "DRAFT",
+    "provider_reference": null,
+    "payment_mode": "SIMULATED",
+    "batch_id": null,
+    "settlement_id": "illus_set_n2_taco",
+    "settlement_version": 3,
+    "run_id": "illus_run_n2",
+    "verified_beneficiary_version": 1,
+    "approval_required": false,
+    "required_capability": "payout.approve_above_limit",
+    "holds": [],
+    "outcome_detail": "New linked obligation created by the approved correction; normal release gate applies.",
+    "reconciliation_case_id": null,
+    "gate": {
+     "evaluated_at": "@NOW",
+     "checks": [
+      {
+       "check": "SOURCES_VALID",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "Sources and current terms are valid.",
+       "case_id": null
+      },
+      {
+       "check": "RECONCILIATION_RESOLVED",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "No unresolved reconciliation discrepancy for this vendor/day.",
+       "case_id": null
+      },
+      {
+       "check": "POLICY_SCOPE_VALID",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "Every applied rule is ACTIVE and in scope.",
+       "case_id": null
+      },
+      {
+       "check": "BENEFICIARY_VERIFIED",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "Beneficiary details unchanged and verified.",
+       "case_id": null
+      },
+      {
+       "check": "CASH_RESERVED",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "Cash for this payout is reserved.",
+       "case_id": null
+      },
+      {
+       "check": "DAILY_AUTO_LIMIT",
+       "result": "PASS",
+       "hard_blocker": false,
+       "detail": "Within the $5,000 automatic daily limit for this vendor.",
+       "case_id": null
+      }
+     ],
+     "daily_limit": {
+      "limit_cents": "500000",
+      "prior_cumulative_cents": "0",
+      "cumulative_with_this_cents": "425000",
+      "exceeds_limit": false
+     }
+    },
+    "state_history": [
+     {
+      "state": "DRAFT",
+      "at": "@NOW",
+      "actor_ref": "system:correction",
+      "note": "Replacement for the cancelled Night 2 payout, at the corrected amount."
+     }
+    ],
+    "updated_at": "@NOW"
+   },
+   {
+    "id": "illus_payout_n3_taco",
+    "version": 3,
+    "logical_obligation_id": "illus_obl_n3_taco",
+    "idempotency_key": "illus_idem_payout_n3_taco",
+    "vendor_id": "ven_c309836b4f9601f2",
+    "business_date": "2026-10-18",
+    "beneficiary_version": 1,
+    "amount_cents": "21500",
+    "approval_ref": null,
+    "state": "DRAFT",
+    "provider_reference": null,
+    "payment_mode": "SIMULATED",
+    "batch_id": null,
+    "settlement_id": "illus_set_n3_taco",
+    "settlement_version": 2,
+    "run_id": "illus_run_n3",
+    "verified_beneficiary_version": 1,
+    "approval_required": false,
+    "required_capability": "payout.approve_above_limit",
+    "holds": [],
+    "outcome_detail": "Revised by the approved correction: 15% commission and the Night 1 offset.",
+    "reconciliation_case_id": null,
+    "gate": {
+     "evaluated_at": "@NOW",
+     "checks": [
+      {
+       "check": "SOURCES_VALID",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "Sources and current terms are valid.",
+       "case_id": null
+      },
+      {
+       "check": "RECONCILIATION_RESOLVED",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "No unresolved reconciliation discrepancy for this vendor/day.",
+       "case_id": null
+      },
+      {
+       "check": "POLICY_SCOPE_VALID",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "Every applied rule is ACTIVE and in scope.",
+       "case_id": null
+      },
+      {
+       "check": "BENEFICIARY_VERIFIED",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "Beneficiary details unchanged and verified.",
+       "case_id": null
+      },
+      {
+       "check": "CASH_RESERVED",
+       "result": "PASS",
+       "hard_blocker": true,
+       "detail": "Cash for this payout is reserved.",
+       "case_id": null
+      },
+      {
+       "check": "DAILY_AUTO_LIMIT",
+       "result": "PASS",
+       "hard_blocker": false,
+       "detail": "Within the $5,000 automatic daily limit for this vendor.",
+       "case_id": null
+      }
+     ],
+     "daily_limit": {
+      "limit_cents": "500000",
+      "prior_cumulative_cents": "0",
+      "cumulative_with_this_cents": "21500",
+      "exceeds_limit": false
+     }
+    },
+    "state_history": [
+     {
+      "state": "DRAFT",
+      "at": "2026-10-19T16:00:00Z",
+      "actor_ref": "system:payout-gate",
+      "note": "Waiting for the 10:00 AM Pacific release window."
+     },
+     {
+      "state": "DRAFT",
+      "at": "@NOW",
+      "actor_ref": "system:payout-gate",
+      "note": "Held: applied policy under challenge."
+     },
+     {
+      "state": "DRAFT",
+      "at": "@NOW",
+      "actor_ref": "system:correction",
+      "note": "Revised to $215.00 by the approved correction."
+     }
+    ],
+    "updated_at": "@NOW"
+   }
+  ],
+  "journal_entries": [
+   {
+    "entry_id": "illus_je_n1_fee_taco",
+    "posting_rule_version": "illus-posting-rules-1",
+    "source_refs": [
+     {
+      "source_id": "src_6282cdeafdb52961",
+      "source_version": 1,
+      "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+      "locator_kind": "row",
+      "locator": "vendor_id=ven_c309836b4f9601f2"
+     }
+    ],
+    "correction_of": null,
+    "lines": [
+     {
+      "line_id": "illus_je_n1_fee_taco_l1",
+      "account": "2100",
+      "account_name": "Vendor funds payable",
+      "debit_cents": "8000",
+      "credit_cents": "0",
+      "memo": null,
+      "vendor_id": "ven_c309836b4f9601f2"
+     },
+     {
+      "line_id": "illus_je_n1_fee_taco_l2",
+      "account": "4000",
+      "account_name": "Organizer commission revenue",
+      "debit_cents": "0",
+      "credit_cents": "8000",
+      "memo": null,
+      "vendor_id": "ven_c309836b4f9601f2"
+     }
+    ],
+    "posted_at": "2026-10-17T16:05:00Z",
+    "business_date": "2026-10-16",
+    "description": "Taco Libre commission assessed, 2026-10-16",
+    "kind": "ORIGINAL",
+    "totals": {
+     "debit_cents": "8000",
+     "credit_cents": "8000",
+     "balanced": true
+    },
+    "corrected_by": [
+     "illus_je_n1_fee_taco_rev",
+     "illus_je_n1_fee_taco_corr"
+    ],
+    "origin_ref": "illus_set_n1_taco"
+   },
+   {
+    "entry_id": "illus_je_n2_fee_taco",
+    "posting_rule_version": "illus-posting-rules-1",
+    "source_refs": [
+     {
+      "source_id": "src_6282cdeafdb52961",
+      "source_version": 1,
+      "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+      "locator_kind": "row",
+      "locator": "vendor_id=ven_c309836b4f9601f2"
+     }
+    ],
+    "correction_of": null,
+    "lines": [
+     {
+      "line_id": "illus_je_n2_fee_taco_l1",
+      "account": "2100",
+      "account_name": "Vendor funds payable",
+      "debit_cents": "50000",
+      "credit_cents": "0",
+      "memo": null,
+      "vendor_id": "ven_c309836b4f9601f2"
+     },
+     {
+      "line_id": "illus_je_n2_fee_taco_l2",
+      "account": "4000",
+      "account_name": "Organizer commission revenue",
+      "debit_cents": "0",
+      "credit_cents": "50000",
+      "memo": null,
+      "vendor_id": "ven_c309836b4f9601f2"
+     }
+    ],
+    "posted_at": "2026-10-18T16:05:00Z",
+    "business_date": "2026-10-17",
+    "description": "Taco Libre commission assessed, 2026-10-17",
+    "kind": "ORIGINAL",
+    "totals": {
+     "debit_cents": "50000",
+     "credit_cents": "50000",
+     "balanced": true
+    },
+    "corrected_by": [
+     "illus_je_n2_fee_taco_rev",
+     "illus_je_n2_fee_taco_corr"
+    ],
+    "origin_ref": "illus_set_n2_taco"
+   },
+   {
+    "entry_id": "illus_je_n1_fee_taco_rev",
+    "posting_rule_version": "illus-posting-rules-1",
+    "source_refs": [
+     {
+      "source_id": "src_6282cdeafdb52961",
+      "source_version": 1,
+      "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+      "locator_kind": "row",
+      "locator": "vendor_id=ven_c309836b4f9601f2"
+     }
+    ],
+    "correction_of": "illus_je_n1_fee_taco",
+    "lines": [
+     {
+      "line_id": "illus_je_n1_fee_taco_rev_l1",
+      "account": "4000",
+      "account_name": "Organizer commission revenue",
+      "debit_cents": "8000",
+      "credit_cents": "0",
+      "memo": null,
+      "vendor_id": "ven_c309836b4f9601f2"
+     },
+     {
+      "line_id": "illus_je_n1_fee_taco_rev_l2",
+      "account": "2100",
+      "account_name": "Vendor funds payable",
+      "debit_cents": "0",
+      "credit_cents": "8000",
+      "memo": null,
+      "vendor_id": "ven_c309836b4f9601f2"
+     }
+    ],
+    "posted_at": "@NOW",
+    "business_date": "2026-10-16",
+    "description": "Reversal of illus_je_n1_fee_taco (policy v1 revoked)",
+    "kind": "REVERSAL",
+    "totals": {
+     "debit_cents": "8000",
+     "credit_cents": "8000",
+     "balanced": true
+    },
+    "corrected_by": [],
+    "origin_ref": "illus_set_n1_taco"
+   },
+   {
+    "entry_id": "illus_je_n1_fee_taco_corr",
+    "posting_rule_version": "illus-posting-rules-1",
+    "source_refs": [
+     {
+      "source_id": "src_4dcc7ce9f370b56b",
+      "source_version": 1,
+      "content_hash": "sha256:95cdf9fef2d12e9874a9023440b8324939971416066fa3ca526463cffbf4f0c5",
+      "locator_kind": "span",
+      "locator": "chars=586-703",
+      "quoted_excerpt": "3.1 Commission: 15% of eligible festival sales. Eligible sales exclude sales tax and tips and are reduced by refunds."
+     }
+    ],
+    "correction_of": "illus_je_n1_fee_taco",
+    "lines": [
+     {
+      "line_id": "illus_je_n1_fee_taco_corr_l1",
+      "account": "2100",
+      "account_name": "Vendor funds payable",
+      "debit_cents": "12000",
+      "credit_cents": "0",
+      "memo": null,
+      "vendor_id": "ven_c309836b4f9601f2"
+     },
+     {
+      "line_id": "illus_je_n1_fee_taco_corr_l2",
+      "account": "4000",
+      "account_name": "Organizer commission revenue",
+      "debit_cents": "0",
+      "credit_cents": "12000",
+      "memo": null,
+      "vendor_id": "ven_c309836b4f9601f2"
+     }
+    ],
+    "posted_at": "@NOW",
+    "business_date": "2026-10-16",
+    "description": "Corrected Taco Libre commission at 15%, 2026-10-16",
+    "kind": "CORRECTION",
+    "totals": {
+     "debit_cents": "12000",
+     "credit_cents": "12000",
+     "balanced": true
+    },
+    "corrected_by": [],
+    "origin_ref": "illus_set_n1_taco"
+   },
+   {
+    "entry_id": "illus_je_n2_fee_taco_rev",
+    "posting_rule_version": "illus-posting-rules-1",
+    "source_refs": [
+     {
+      "source_id": "src_6282cdeafdb52961",
+      "source_version": 1,
+      "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+      "locator_kind": "row",
+      "locator": "vendor_id=ven_c309836b4f9601f2"
+     }
+    ],
+    "correction_of": "illus_je_n2_fee_taco",
+    "lines": [
+     {
+      "line_id": "illus_je_n2_fee_taco_rev_l1",
+      "account": "4000",
+      "account_name": "Organizer commission revenue",
+      "debit_cents": "50000",
+      "credit_cents": "0",
+      "memo": null,
+      "vendor_id": "ven_c309836b4f9601f2"
+     },
+     {
+      "line_id": "illus_je_n2_fee_taco_rev_l2",
+      "account": "2100",
+      "account_name": "Vendor funds payable",
+      "debit_cents": "0",
+      "credit_cents": "50000",
+      "memo": null,
+      "vendor_id": "ven_c309836b4f9601f2"
+     }
+    ],
+    "posted_at": "@NOW",
+    "business_date": "2026-10-17",
+    "description": "Reversal of illus_je_n2_fee_taco (policy v1 revoked)",
+    "kind": "REVERSAL",
+    "totals": {
+     "debit_cents": "50000",
+     "credit_cents": "50000",
+     "balanced": true
+    },
+    "corrected_by": [],
+    "origin_ref": "illus_set_n2_taco"
+   },
+   {
+    "entry_id": "illus_je_n2_fee_taco_corr",
+    "posting_rule_version": "illus-posting-rules-1",
+    "source_refs": [
+     {
+      "source_id": "src_4dcc7ce9f370b56b",
+      "source_version": 1,
+      "content_hash": "sha256:95cdf9fef2d12e9874a9023440b8324939971416066fa3ca526463cffbf4f0c5",
+      "locator_kind": "span",
+      "locator": "chars=586-703",
+      "quoted_excerpt": "3.1 Commission: 15% of eligible festival sales. Eligible sales exclude sales tax and tips and are reduced by refunds."
+     }
+    ],
+    "correction_of": "illus_je_n2_fee_taco",
+    "lines": [
+     {
+      "line_id": "illus_je_n2_fee_taco_corr_l1",
+      "account": "2100",
+      "account_name": "Vendor funds payable",
+      "debit_cents": "75000",
+      "credit_cents": "0",
+      "memo": null,
+      "vendor_id": "ven_c309836b4f9601f2"
+     },
+     {
+      "line_id": "illus_je_n2_fee_taco_corr_l2",
+      "account": "4000",
+      "account_name": "Organizer commission revenue",
+      "debit_cents": "0",
+      "credit_cents": "75000",
+      "memo": null,
+      "vendor_id": "ven_c309836b4f9601f2"
+     }
+    ],
+    "posted_at": "@NOW",
+    "business_date": "2026-10-17",
+    "description": "Corrected Taco Libre commission at 15%, 2026-10-17",
+    "kind": "CORRECTION",
+    "totals": {
+     "debit_cents": "75000",
+     "credit_cents": "75000",
+     "balanced": true
+    },
+    "corrected_by": [],
+    "origin_ref": "illus_set_n2_taco"
+   }
+  ],
+  "vendor_runs": [
+   {
+    "id": "illus_vrun_n3_taco",
+    "version": 5,
+    "run_id": "illus_run_n3",
+    "vendor_id": "ven_c309836b4f9601f2",
+    "business_date": "2026-10-18",
+    "milestone": "CALCULATED",
+    "state": "ACTIVE",
+    "holds": [],
+    "case_ids": [],
+    "settlement_id": "illus_set_n3_taco",
+    "failure": null,
+    "updated_at": "@NOW"
+   }
+  ],
+  "runs": [
+   {
+    "id": "illus_run_n3",
+    "version": 6,
+    "status": "RUNNING",
+    "business_date": "2026-10-18",
+    "branch_id": null,
+    "festival_id": "fest_bf25e974c723d827",
+    "started_at": "2026-10-19T08:00:00Z",
+    "completed_at": null,
+    "vendor_summary": {
+     "total": 1,
+     "active": 1,
+     "held": 0,
+     "failed": 0,
+     "completed": 0
+    }
+   }
+  ]
+ },
+ "events": [
+  {
+   "event_id": "illus_evt_0001",
+   "type": "source.ingested",
+   "schema_version": 1,
+   "cursor": "illus_cur_0001",
+   "stream_sequence": 1,
+   "stream_id": "illus_stream_production",
+   "category": "FACT",
+   "summary": "POS order-line export ingested (version 1; hash pinned before parsing).",
+   "aggregate_type": "SOURCE_DOCUMENT",
+   "aggregate_id": "src_6282cdeafdb52961",
+   "aggregate_version": 1,
+   "run_id": null,
+   "vendor_id": null,
+   "branch_id": null,
+   "business_date": "2026-10-16",
+   "occurred_at": "2026-10-17T07:05:00Z",
+   "recorded_at": "2026-10-17T07:06:10Z",
+   "backdated": false,
+   "causation_id": null,
+   "correlation_id": null,
+   "command_id": null,
+   "actor_ref": "system:ingest",
+   "actor_id": "system:ingest",
+   "actor_type": "SYSTEM",
+   "actor_label": null,
+   "capability": null,
+   "versions": {
+    "model": null,
+    "prompt": null,
+    "tool": "pos-parser@illus-2",
+    "config": "illus-config-1",
+    "calculation": null,
+    "posting_rule": null,
+    "policy_version_ids": []
+   },
+   "input_refs": [
+    {
+     "source_id": "src_6282cdeafdb52961",
+     "source_version": 1,
+     "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+     "locator_kind": "row",
+     "locator": "vendor_id=ven_c309836b4f9601f2"
+    }
+   ],
+   "links": [
+    {
+     "kind": "SOURCE_DOCUMENT",
+     "id": "src_6282cdeafdb52961",
+     "version": 1,
+     "label": "POS order-line export"
+    }
+   ],
+   "payload": {},
+   "previous_hash": null,
+   "hash": "sha256:7b54688c1ca47b8cdd946ec69dbe5756de6f4fecb0b914b5df3963a5e3b6ef90"
+  },
+  {
+   "event_id": "illus_evt_0002",
+   "type": "source.ingested",
+   "schema_version": 1,
+   "cursor": "illus_cur_0002",
+   "stream_sequence": 2,
+   "stream_id": "illus_stream_production",
+   "category": "FACT",
+   "summary": "Producer email thread ingested (version 1).",
+   "aggregate_type": "SOURCE_DOCUMENT",
+   "aggregate_id": "src_1b532360bfaa3697",
+   "aggregate_version": 1,
+   "run_id": null,
+   "vendor_id": null,
+   "branch_id": null,
+   "business_date": "2026-10-16",
+   "occurred_at": "2026-10-16T21:40:00Z",
+   "recorded_at": "2026-10-17T07:06:30Z",
+   "backdated": false,
+   "causation_id": null,
+   "correlation_id": null,
+   "command_id": null,
+   "actor_ref": "system:ingest",
+   "actor_id": "system:ingest",
+   "actor_type": "SYSTEM",
+   "actor_label": null,
+   "capability": null,
+   "versions": {
+    "model": null,
+    "prompt": null,
+    "tool": "email-parser@illus-1",
+    "config": "illus-config-1",
+    "calculation": null,
+    "posting_rule": null,
+    "policy_version_ids": []
+   },
+   "input_refs": [
+    {
+     "source_id": "src_1b532360bfaa3697",
+     "source_version": 1,
+     "content_hash": "sha256:7852507296d8ef4d2428b978272b508d4bc95959f7f6accd8e2df819ae6f77dc",
+     "locator_kind": "span",
+     "locator": "chars=718-972",
+     "quoted_excerpt": "Confirming what we discussed: for this year we agreed 10% commission for Taco Libre, with the same $500.00 festival minimum. I will ask finance to update the paperwork. Please just push this through on settlement night without waiting for a new contract."
+    }
+   ],
+   "links": [
+    {
+     "kind": "SOURCE_DOCUMENT",
+     "id": "src_1b532360bfaa3697",
+     "version": 1,
+     "label": "Re: Taco Libre booth terms"
+    }
+   ],
+   "payload": {},
+   "previous_hash": "sha256:7b54688c1ca47b8cdd946ec69dbe5756de6f4fecb0b914b5df3963a5e3b6ef90",
+   "hash": "sha256:cb638bd9cd2f8bb30ddea049a94e5c40002af5e2e56bacdc68ab5fcefd69dcdc"
+  },
+  {
+   "event_id": "illus_evt_0003",
+   "type": "run.started",
+   "schema_version": 1,
+   "cursor": "illus_cur_0003",
+   "stream_sequence": 3,
+   "stream_id": "illus_stream_production",
+   "category": "FACT",
+   "summary": "Close run started for business date 2026-10-16.",
+   "aggregate_type": "RUN",
+   "aggregate_id": "illus_run_n1",
+   "aggregate_version": 1,
+   "run_id": "illus_run_n1",
+   "vendor_id": null,
+   "branch_id": null,
+   "business_date": "2026-10-16",
+   "occurred_at": "2026-10-17T08:05:00Z",
+   "recorded_at": "2026-10-17T08:05:00Z",
+   "backdated": false,
+   "causation_id": null,
+   "correlation_id": null,
+   "command_id": null,
+   "actor_ref": "system:orchestrator",
+   "actor_id": "system:orchestrator",
+   "actor_type": "SYSTEM",
+   "actor_label": null,
+   "capability": null,
+   "versions": {
+    "model": null,
+    "prompt": null,
+    "tool": null,
+    "config": "illus-config-1",
+    "calculation": null,
+    "posting_rule": null,
+    "policy_version_ids": []
+   },
+   "input_refs": [],
+   "links": [
+    {
+     "kind": "RUN",
+     "id": "illus_run_n1",
+     "version": null,
+     "label": "Close run 2026-10-16"
+    }
+   ],
+   "payload": {},
+   "previous_hash": "sha256:cb638bd9cd2f8bb30ddea049a94e5c40002af5e2e56bacdc68ab5fcefd69dcdc",
+   "hash": "sha256:ac811df2cc26e79fe8d1f7992def530880794e3d2d724641971c06cafff78458"
+  },
+  {
+   "event_id": "illus_evt_0004",
+   "type": "case.opened",
+   "schema_version": 1,
+   "cursor": "illus_cur_0004",
+   "stream_sequence": 4,
+   "stream_id": "illus_stream_production",
+   "category": "FACT",
+   "summary": "Agent found a commission conflict for Taco Libre (contract 15%, producer email 10%) and opened a case. No option was proposed.",
+   "aggregate_type": "CASE",
+   "aggregate_id": "illus_case_taco_rate",
+   "aggregate_version": 1,
+   "run_id": "illus_run_n1",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "branch_id": null,
+   "business_date": "2026-10-16",
+   "occurred_at": "2026-10-17T08:21:00Z",
+   "recorded_at": "2026-10-17T08:21:00Z",
+   "backdated": false,
+   "causation_id": null,
+   "correlation_id": "illus_corr_n1_taco",
+   "command_id": null,
+   "actor_ref": "agent:terms-reviewer",
+   "actor_id": "agent:terms-reviewer",
+   "actor_type": "AGENT",
+   "actor_label": "Terms reviewer agent",
+   "capability": "case.open",
+   "versions": {
+    "model": "illus-model-placeholder (C00 not selected)",
+    "prompt": "terms-review@illus-3",
+    "tool": "source-reader@illus-1",
+    "config": "illus-config-1",
+    "calculation": null,
+    "posting_rule": null,
+    "policy_version_ids": []
+   },
+   "input_refs": [
+    {
+     "source_id": "src_4dcc7ce9f370b56b",
+     "source_version": 1,
+     "content_hash": "sha256:95cdf9fef2d12e9874a9023440b8324939971416066fa3ca526463cffbf4f0c5",
+     "locator_kind": "span",
+     "locator": "chars=586-703",
+     "quoted_excerpt": "3.1 Commission: 15% of eligible festival sales. Eligible sales exclude sales tax and tips and are reduced by refunds."
+    },
+    {
+     "source_id": "src_1b532360bfaa3697",
+     "source_version": 1,
+     "content_hash": "sha256:7852507296d8ef4d2428b978272b508d4bc95959f7f6accd8e2df819ae6f77dc",
+     "locator_kind": "span",
+     "locator": "chars=718-972",
+     "quoted_excerpt": "Confirming what we discussed: for this year we agreed 10% commission for Taco Libre, with the same $500.00 festival minimum. I will ask finance to update the paperwork. Please just push this through on settlement night without waiting for a new contract."
+    }
+   ],
+   "links": [
+    {
+     "kind": "CASE",
+     "id": "illus_case_taco_rate",
+     "version": null,
+     "label": "Commission rate conflict"
+    },
+    {
+     "kind": "VENDOR",
+     "id": "ven_c309836b4f9601f2",
+     "version": null,
+     "label": "Taco Libre"
+    },
+    {
+     "kind": "RUN",
+     "id": "illus_run_n1",
+     "version": null,
+     "label": null
+    }
+   ],
+   "payload": {},
+   "previous_hash": "sha256:ac811df2cc26e79fe8d1f7992def530880794e3d2d724641971c06cafff78458",
+   "hash": "sha256:e22e0d2ce65daaed6e12fb64c11aff9a14494c6f3bd4079a7a5ceca70a46c2f5"
+  },
+  {
+   "event_id": "illus_evt_0005",
+   "type": "agent.policy_candidate_drafted",
+   "schema_version": 1,
+   "cursor": "illus_cur_0005",
+   "stream_sequence": 5,
+   "stream_id": "illus_stream_production",
+   "category": "PROPOSAL",
+   "summary": "Agent drafted a reusable-policy candidate (10% for Taco Libre, this festival) for human review.",
+   "aggregate_type": "POLICY_VERSION",
+   "aggregate_id": "illus_pv_taco_rate_v1",
+   "aggregate_version": 1,
+   "run_id": "illus_run_n1",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "branch_id": null,
+   "business_date": "2026-10-16",
+   "occurred_at": "2026-10-17T08:30:00Z",
+   "recorded_at": "2026-10-17T08:30:00Z",
+   "backdated": false,
+   "causation_id": null,
+   "correlation_id": "illus_corr_n1_taco",
+   "command_id": null,
+   "actor_ref": "agent:terms-reviewer",
+   "actor_id": "agent:terms-reviewer",
+   "actor_type": "AGENT",
+   "actor_label": "Terms reviewer agent",
+   "capability": "policy.draft",
+   "versions": {
+    "model": "illus-model-placeholder (C00 not selected)",
+    "prompt": "terms-review@illus-3",
+    "tool": "source-reader@illus-1",
+    "config": "illus-config-1",
+    "calculation": null,
+    "posting_rule": null,
+    "policy_version_ids": []
+   },
+   "input_refs": [
+    {
+     "source_id": "src_4dcc7ce9f370b56b",
+     "source_version": 1,
+     "content_hash": "sha256:95cdf9fef2d12e9874a9023440b8324939971416066fa3ca526463cffbf4f0c5",
+     "locator_kind": "span",
+     "locator": "chars=586-703",
+     "quoted_excerpt": "3.1 Commission: 15% of eligible festival sales. Eligible sales exclude sales tax and tips and are reduced by refunds."
+    },
+    {
+     "source_id": "src_1b532360bfaa3697",
+     "source_version": 1,
+     "content_hash": "sha256:7852507296d8ef4d2428b978272b508d4bc95959f7f6accd8e2df819ae6f77dc",
+     "locator_kind": "span",
+     "locator": "chars=718-972",
+     "quoted_excerpt": "Confirming what we discussed: for this year we agreed 10% commission for Taco Libre, with the same $500.00 festival minimum. I will ask finance to update the paperwork. Please just push this through on settlement night without waiting for a new contract."
+    }
+   ],
+   "links": [
+    {
+     "kind": "POLICY_VERSION",
+     "id": "illus_pv_taco_rate_v1",
+     "version": 1,
+     "label": "Policy v1 (DRAFT)"
+    },
+    {
+     "kind": "CASE",
+     "id": "illus_case_taco_rate",
+     "version": null,
+     "label": null
+    }
+   ],
+   "payload": {},
+   "previous_hash": "sha256:e22e0d2ce65daaed6e12fb64c11aff9a14494c6f3bd4079a7a5ceca70a46c2f5",
+   "hash": "sha256:88aba26e17783849d61514c0c8242636838ba79984601ab0a3a327594b41a092"
+  },
+  {
+   "event_id": "illus_evt_0006",
+   "type": "case.resolved",
+   "schema_version": 1,
+   "cursor": "illus_cur_0006",
+   "stream_sequence": 6,
+   "stream_id": "illus_stream_production",
+   "category": "FACT",
+   "summary": "Human chose the producer email rate (10%) for Taco Libre on 2026-10-16 only (one-time resolution).",
+   "aggregate_type": "CASE",
+   "aggregate_id": "illus_case_taco_rate",
+   "aggregate_version": 4,
+   "run_id": "illus_run_n1",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "branch_id": null,
+   "business_date": "2026-10-16",
+   "occurred_at": "2026-10-17T09:02:00Z",
+   "recorded_at": "2026-10-17T09:02:00Z",
+   "backdated": false,
+   "causation_id": null,
+   "correlation_id": "illus_corr_n1_taco",
+   "command_id": "illus_cmd_0001",
+   "actor_ref": "illus_actor_maya",
+   "actor_id": "illus_actor_maya",
+   "actor_type": "HUMAN",
+   "actor_label": "Maya R. (finance lead, fictional)",
+   "capability": "case.resolve",
+   "versions": {
+    "model": null,
+    "prompt": null,
+    "tool": null,
+    "config": "illus-config-1",
+    "calculation": null,
+    "posting_rule": null,
+    "policy_version_ids": []
+   },
+   "input_refs": [
+    {
+     "source_id": "src_1b532360bfaa3697",
+     "source_version": 1,
+     "content_hash": "sha256:7852507296d8ef4d2428b978272b508d4bc95959f7f6accd8e2df819ae6f77dc",
+     "locator_kind": "span",
+     "locator": "chars=718-972",
+     "quoted_excerpt": "Confirming what we discussed: for this year we agreed 10% commission for Taco Libre, with the same $500.00 festival minimum. I will ask finance to update the paperwork. Please just push this through on settlement night without waiting for a new contract."
+    }
+   ],
+   "links": [
+    {
+     "kind": "CASE",
+     "id": "illus_case_taco_rate",
+     "version": null,
+     "label": null
+    },
+    {
+     "kind": "APPROVAL",
+     "id": "illus_appr_taco_case",
+     "version": null,
+     "label": "One-time resolution"
+    },
+    {
+     "kind": "ACTOR",
+     "id": "illus_actor_maya",
+     "version": null,
+     "label": "Maya R. (finance lead, fictional)"
+    }
+   ],
+   "payload": {},
+   "previous_hash": "sha256:88aba26e17783849d61514c0c8242636838ba79984601ab0a3a327594b41a092",
+   "hash": "sha256:42025d1901af6aae96eb84d95fcd34271e2b3bdfa29518a02db98e010a453cfa"
+  },
+  {
+   "event_id": "illus_evt_0007",
+   "type": "policy.approved",
+   "schema_version": 1,
+   "cursor": "illus_cur_0007",
+   "stream_sequence": 7,
+   "stream_id": "illus_stream_production",
+   "category": "FACT",
+   "summary": "Human approved reuse of policy v1 within scope: Taco Libre only, festival nights 2026-10-16 to 2026-10-18.",
+   "aggregate_type": "POLICY_VERSION",
+   "aggregate_id": "illus_pv_taco_rate_v1",
+   "aggregate_version": 2,
+   "run_id": "illus_run_n1",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "branch_id": null,
+   "business_date": "2026-10-16",
+   "occurred_at": "2026-10-17T09:04:00Z",
+   "recorded_at": "2026-10-17T09:04:00Z",
+   "backdated": false,
+   "causation_id": null,
+   "correlation_id": "illus_corr_n1_taco",
+   "command_id": "illus_cmd_0002",
+   "actor_ref": "illus_actor_maya",
+   "actor_id": "illus_actor_maya",
+   "actor_type": "HUMAN",
+   "actor_label": "Maya R. (finance lead, fictional)",
+   "capability": "policy.approve",
+   "versions": {
+    "model": null,
+    "prompt": null,
+    "tool": null,
+    "config": "illus-config-1",
+    "calculation": null,
+    "posting_rule": null,
+    "policy_version_ids": []
+   },
+   "input_refs": [
+    {
+     "source_id": "src_4dcc7ce9f370b56b",
+     "source_version": 1,
+     "content_hash": "sha256:95cdf9fef2d12e9874a9023440b8324939971416066fa3ca526463cffbf4f0c5",
+     "locator_kind": "span",
+     "locator": "chars=586-703",
+     "quoted_excerpt": "3.1 Commission: 15% of eligible festival sales. Eligible sales exclude sales tax and tips and are reduced by refunds."
+    },
+    {
+     "source_id": "src_1b532360bfaa3697",
+     "source_version": 1,
+     "content_hash": "sha256:7852507296d8ef4d2428b978272b508d4bc95959f7f6accd8e2df819ae6f77dc",
+     "locator_kind": "span",
+     "locator": "chars=718-972",
+     "quoted_excerpt": "Confirming what we discussed: for this year we agreed 10% commission for Taco Libre, with the same $500.00 festival minimum. I will ask finance to update the paperwork. Please just push this through on settlement night without waiting for a new contract."
+    }
+   ],
+   "links": [
+    {
+     "kind": "POLICY_VERSION",
+     "id": "illus_pv_taco_rate_v1",
+     "version": 1,
+     "label": "Policy v1"
+    },
+    {
+     "kind": "APPROVAL",
+     "id": "illus_appr_taco_policy",
+     "version": null,
+     "label": "Reusable policy approval"
+    },
+    {
+     "kind": "ACTOR",
+     "id": "illus_actor_maya",
+     "version": null,
+     "label": "Maya R. (finance lead, fictional)"
+    }
+   ],
+   "payload": {},
+   "previous_hash": "sha256:42025d1901af6aae96eb84d95fcd34271e2b3bdfa29518a02db98e010a453cfa",
+   "hash": "sha256:e30ed249632996323478ec9b571eafb1f5e67d105b9d43bbc8be379a28ec6df9"
+  },
+  {
+   "event_id": "illus_evt_0008",
+   "type": "settlement.calculated",
+   "schema_version": 1,
+   "cursor": "illus_cur_0008",
+   "stream_sequence": 8,
+   "stream_id": "illus_stream_production",
+   "category": "PROJECTION",
+   "summary": "Settlement calculated at 10% under policy v1: commission $80.00 on eligible sales $800.00.",
+   "aggregate_type": "SETTLEMENT",
+   "aggregate_id": "illus_set_n1_taco",
+   "aggregate_version": 1,
+   "run_id": "illus_run_n1",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "branch_id": null,
+   "business_date": "2026-10-16",
+   "occurred_at": "2026-10-17T09:10:00Z",
+   "recorded_at": "2026-10-17T09:10:00Z",
+   "backdated": false,
+   "causation_id": null,
+   "correlation_id": "illus_corr_n1_taco",
+   "command_id": null,
+   "actor_ref": "system:settlement-engine",
+   "actor_id": "system:settlement-engine",
+   "actor_type": "SYSTEM",
+   "actor_label": null,
+   "capability": null,
+   "versions": {
+    "model": null,
+    "prompt": null,
+    "tool": null,
+    "config": "illus-config-1",
+    "calculation": "illus-calc-0.1",
+    "posting_rule": null,
+    "policy_version_ids": [
+     "illus_pv_taco_rate_v1"
+    ]
+   },
+   "input_refs": [
+    {
+     "source_id": "src_6282cdeafdb52961",
+     "source_version": 1,
+     "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+     "locator_kind": "row",
+     "locator": "vendor_id=ven_c309836b4f9601f2"
+    },
+    {
+     "source_id": "src_1b532360bfaa3697",
+     "source_version": 1,
+     "content_hash": "sha256:7852507296d8ef4d2428b978272b508d4bc95959f7f6accd8e2df819ae6f77dc",
+     "locator_kind": "span",
+     "locator": "chars=718-972",
+     "quoted_excerpt": "Confirming what we discussed: for this year we agreed 10% commission for Taco Libre, with the same $500.00 festival minimum. I will ask finance to update the paperwork. Please just push this through on settlement night without waiting for a new contract."
+    }
+   ],
+   "links": [
+    {
+     "kind": "SETTLEMENT",
+     "id": "illus_set_n1_taco",
+     "version": null,
+     "label": "Statement 2026-10-16"
+    },
+    {
+     "kind": "POLICY_VERSION",
+     "id": "illus_pv_taco_rate_v1",
+     "version": null,
+     "label": null
+    }
+   ],
+   "payload": {},
+   "previous_hash": "sha256:e30ed249632996323478ec9b571eafb1f5e67d105b9d43bbc8be379a28ec6df9",
+   "hash": "sha256:cadabb70a856ffad15afd75dfa5a76e9abb7d106ea6bab0521d2fa9dbb25582a"
+  },
+  {
+   "event_id": "illus_evt_0009",
+   "type": "payout.gate_evaluated",
+   "schema_version": 1,
+   "cursor": "illus_cur_0009",
+   "stream_sequence": 9,
+   "stream_id": "illus_stream_production",
+   "category": "PROJECTION",
+   "summary": "Payout gate passed within the automatic limit ($720.00); approved by rule, no human amount approval needed.",
+   "aggregate_type": "PAYOUT",
+   "aggregate_id": "illus_payout_n1_taco",
+   "aggregate_version": 2,
+   "run_id": "illus_run_n1",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "branch_id": null,
+   "business_date": "2026-10-16",
+   "occurred_at": "2026-10-17T16:02:30Z",
+   "recorded_at": "2026-10-17T16:02:30Z",
+   "backdated": false,
+   "causation_id": null,
+   "correlation_id": null,
+   "command_id": null,
+   "actor_ref": "system:payout-gate",
+   "actor_id": "system:payout-gate",
+   "actor_type": "SYSTEM",
+   "actor_label": null,
+   "capability": null,
+   "versions": {
+    "model": null,
+    "prompt": null,
+    "tool": null,
+    "config": "illus-config-1",
+    "calculation": null,
+    "posting_rule": null,
+    "policy_version_ids": [
+     "illus_pv_taco_rate_v1"
+    ]
+   },
+   "input_refs": [],
+   "links": [
+    {
+     "kind": "PAYOUT",
+     "id": "illus_payout_n1_taco",
+     "version": null,
+     "label": "Payout 2026-10-16"
+    },
+    {
+     "kind": "SETTLEMENT",
+     "id": "illus_set_n1_taco",
+     "version": null,
+     "label": null
+    }
+   ],
+   "payload": {},
+   "previous_hash": "sha256:cadabb70a856ffad15afd75dfa5a76e9abb7d106ea6bab0521d2fa9dbb25582a",
+   "hash": "sha256:71893fd5c83bc95537f64387a007b8546cd3a41d3eb0e1f2ccff0b79ad8154f8"
+  },
+  {
+   "event_id": "illus_evt_0010",
+   "type": "journal.posted",
+   "schema_version": 1,
+   "cursor": "illus_cur_0010",
+   "stream_sequence": 10,
+   "stream_id": "illus_stream_production",
+   "category": "FACT",
+   "summary": "Commission $80.00 posted for Taco Libre, 2026-10-16.",
+   "aggregate_type": "JOURNAL_ENTRY",
+   "aggregate_id": "illus_je_n1_fee_taco",
+   "aggregate_version": 1,
+   "run_id": "illus_run_n1",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "branch_id": null,
+   "business_date": "2026-10-16",
+   "occurred_at": "2026-10-17T16:05:00Z",
+   "recorded_at": "2026-10-17T16:05:00Z",
+   "backdated": false,
+   "causation_id": null,
+   "correlation_id": null,
+   "command_id": null,
+   "actor_ref": "system:posting",
+   "actor_id": "system:posting",
+   "actor_type": "SYSTEM",
+   "actor_label": null,
+   "capability": null,
+   "versions": {
+    "model": null,
+    "prompt": null,
+    "tool": null,
+    "config": "illus-config-1",
+    "calculation": null,
+    "posting_rule": "illus-posting-rules-1",
+    "policy_version_ids": []
+   },
+   "input_refs": [
+    {
+     "source_id": "src_6282cdeafdb52961",
+     "source_version": 1,
+     "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+     "locator_kind": "row",
+     "locator": "vendor_id=ven_c309836b4f9601f2"
+    }
+   ],
+   "links": [
+    {
+     "kind": "JOURNAL_ENTRY",
+     "id": "illus_je_n1_fee_taco",
+     "version": null,
+     "label": "Commission entry"
+    },
+    {
+     "kind": "SETTLEMENT",
+     "id": "illus_set_n1_taco",
+     "version": null,
+     "label": null
+    }
+   ],
+   "payload": {},
+   "previous_hash": "sha256:71893fd5c83bc95537f64387a007b8546cd3a41d3eb0e1f2ccff0b79ad8154f8",
+   "hash": "sha256:5aed0a4edfbaed9f56e61a3a65d1d6a6cfe1ab228e51496e893fb956aace054b"
+  },
+  {
+   "event_id": "illus_evt_0011",
+   "type": "payout.dispatch_intent",
+   "schema_version": 1,
+   "cursor": "illus_cur_0011",
+   "stream_sequence": 11,
+   "stream_id": "illus_stream_production",
+   "category": "INTENT",
+   "summary": "Intent recorded before sending: $720.00 to the simulated rail with a stable idempotency key.",
+   "aggregate_type": "PAYOUT",
+   "aggregate_id": "illus_payout_n1_taco",
+   "aggregate_version": 3,
+   "run_id": "illus_run_n1",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "branch_id": null,
+   "business_date": "2026-10-16",
+   "occurred_at": "2026-10-17T17:00:00Z",
+   "recorded_at": "2026-10-17T17:00:00Z",
+   "backdated": false,
+   "causation_id": null,
+   "correlation_id": null,
+   "command_id": null,
+   "actor_ref": "system:outbox",
+   "actor_id": "system:outbox",
+   "actor_type": "SYSTEM",
+   "actor_label": null,
+   "capability": null,
+   "versions": {
+    "model": null,
+    "prompt": null,
+    "tool": null,
+    "config": "illus-config-1",
+    "calculation": null,
+    "posting_rule": null,
+    "policy_version_ids": []
+   },
+   "input_refs": [],
+   "links": [
+    {
+     "kind": "PAYOUT",
+     "id": "illus_payout_n1_taco",
+     "version": null,
+     "label": null
+    }
+   ],
+   "payload": {
+    "idempotency_key": "illus_idem_payout_n1_taco",
+    "amount_cents": "72000"
+   },
+   "previous_hash": "sha256:5aed0a4edfbaed9f56e61a3a65d1d6a6cfe1ab228e51496e893fb956aace054b",
+   "hash": "sha256:a3ec03a2155bda1f907ad2796aea5b19464d6098c5c7733ccd6da005a5289a29"
+  },
+  {
+   "event_id": "illus_evt_0012",
+   "type": "payout.confirmed",
+   "schema_version": 1,
+   "cursor": "illus_cur_0012",
+   "stream_sequence": 12,
+   "stream_id": "illus_stream_production",
+   "category": "EFFECT",
+   "summary": "Simulated rail confirmed the payout of $720.00 (SIMULATED: no real money moved).",
+   "aggregate_type": "PAYOUT",
+   "aggregate_id": "illus_payout_n1_taco",
+   "aggregate_version": 5,
+   "run_id": "illus_run_n1",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "branch_id": null,
+   "business_date": "2026-10-16",
+   "occurred_at": "2026-10-17T17:01:05Z",
+   "recorded_at": "2026-10-17T17:01:10Z",
+   "backdated": false,
+   "causation_id": null,
+   "correlation_id": null,
+   "command_id": null,
+   "actor_ref": "external:simulated-rail",
+   "actor_id": "external:simulated-rail",
+   "actor_type": "EXTERNAL",
+   "actor_label": "Simulated payment rail",
+   "capability": null,
+   "versions": {
+    "model": null,
+    "prompt": null,
+    "tool": "simulated-rail-client@illus-1",
+    "config": "illus-config-1",
+    "calculation": null,
+    "posting_rule": null,
+    "policy_version_ids": []
+   },
+   "input_refs": [],
+   "links": [
+    {
+     "kind": "PAYOUT",
+     "id": "illus_payout_n1_taco",
+     "version": null,
+     "label": null
+    }
+   ],
+   "payload": {
+    "provider_reference": "illus_simrail_taco_0001"
+   },
+   "previous_hash": "sha256:a3ec03a2155bda1f907ad2796aea5b19464d6098c5c7733ccd6da005a5289a29",
+   "hash": "sha256:c8e53c57991047524a29b2559d9789b18b3fd9443bf1c739165ac7ee86a42312"
+  },
+  {
+   "event_id": "illus_evt_0013",
+   "type": "run.started",
+   "schema_version": 1,
+   "cursor": "illus_cur_0013",
+   "stream_sequence": 13,
+   "stream_id": "illus_stream_production",
+   "category": "FACT",
+   "summary": "Close run started for business date 2026-10-17.",
+   "aggregate_type": "RUN",
+   "aggregate_id": "illus_run_n2",
+   "aggregate_version": 1,
+   "run_id": "illus_run_n2",
+   "vendor_id": null,
+   "branch_id": null,
+   "business_date": "2026-10-17",
+   "occurred_at": "2026-10-18T08:05:00Z",
+   "recorded_at": "2026-10-18T08:05:00Z",
+   "backdated": false,
+   "causation_id": null,
+   "correlation_id": null,
+   "command_id": null,
+   "actor_ref": "system:orchestrator",
+   "actor_id": "system:orchestrator",
+   "actor_type": "SYSTEM",
+   "actor_label": null,
+   "capability": null,
+   "versions": {
+    "model": null,
+    "prompt": null,
+    "tool": null,
+    "config": "illus-config-1",
+    "calculation": null,
+    "posting_rule": null,
+    "policy_version_ids": []
+   },
+   "input_refs": [],
+   "links": [
+    {
+     "kind": "RUN",
+     "id": "illus_run_n2",
+     "version": null,
+     "label": "Close run 2026-10-17"
+    }
+   ],
+   "payload": {},
+   "previous_hash": "sha256:c8e53c57991047524a29b2559d9789b18b3fd9443bf1c739165ac7ee86a42312",
+   "hash": "sha256:9fea73007ccb134fb30b4847050e4bfe71729af5c76483b707766e79d8ccc61f"
+  },
+  {
+   "event_id": "illus_evt_0014",
+   "type": "policy.applied",
+   "schema_version": 1,
+   "cursor": "illus_cur_0014",
+   "stream_sequence": 14,
+   "stream_id": "illus_stream_production",
+   "category": "FACT",
+   "summary": "The same conflict recurred; ACTIVE policy v1 resolved it automatically, citing the 2026-10-17 approval. No new approval was requested.",
+   "aggregate_type": "CASE",
+   "aggregate_id": "illus_case_taco_rate_n2",
+   "aggregate_version": 2,
+   "run_id": "illus_run_n2",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "branch_id": null,
+   "business_date": "2026-10-17",
+   "occurred_at": "2026-10-18T08:40:10Z",
+   "recorded_at": "2026-10-18T08:40:10Z",
+   "backdated": false,
+   "causation_id": null,
+   "correlation_id": "illus_corr_n2_taco",
+   "command_id": null,
+   "actor_ref": "system:policy-engine",
+   "actor_id": "system:policy-engine",
+   "actor_type": "SYSTEM",
+   "actor_label": null,
+   "capability": null,
+   "versions": {
+    "model": null,
+    "prompt": null,
+    "tool": null,
+    "config": "illus-config-1",
+    "calculation": null,
+    "posting_rule": null,
+    "policy_version_ids": [
+     "illus_pv_taco_rate_v1"
+    ]
+   },
+   "input_refs": [
+    {
+     "source_id": "src_4dcc7ce9f370b56b",
+     "source_version": 1,
+     "content_hash": "sha256:95cdf9fef2d12e9874a9023440b8324939971416066fa3ca526463cffbf4f0c5",
+     "locator_kind": "span",
+     "locator": "chars=586-703",
+     "quoted_excerpt": "3.1 Commission: 15% of eligible festival sales. Eligible sales exclude sales tax and tips and are reduced by refunds."
+    },
+    {
+     "source_id": "src_1b532360bfaa3697",
+     "source_version": 1,
+     "content_hash": "sha256:7852507296d8ef4d2428b978272b508d4bc95959f7f6accd8e2df819ae6f77dc",
+     "locator_kind": "span",
+     "locator": "chars=718-972",
+     "quoted_excerpt": "Confirming what we discussed: for this year we agreed 10% commission for Taco Libre, with the same $500.00 festival minimum. I will ask finance to update the paperwork. Please just push this through on settlement night without waiting for a new contract."
+    }
+   ],
+   "links": [
+    {
+     "kind": "CASE",
+     "id": "illus_case_taco_rate_n2",
+     "version": null,
+     "label": "Recurrence"
+    },
+    {
+     "kind": "POLICY_VERSION",
+     "id": "illus_pv_taco_rate_v1",
+     "version": 1,
+     "label": "Policy v1"
+    },
+    {
+     "kind": "APPROVAL",
+     "id": "illus_appr_taco_policy",
+     "version": null,
+     "label": null
+    }
+   ],
+   "payload": {},
+   "previous_hash": "sha256:9fea73007ccb134fb30b4847050e4bfe71729af5c76483b707766e79d8ccc61f",
+   "hash": "sha256:759a1f97224db0dc78beacab430c9e3dc9b35af3008c6e8c4ec0d9ebb606b55c"
+  },
+  {
+   "event_id": "illus_evt_0015",
+   "type": "settlement.calculated",
+   "schema_version": 1,
+   "cursor": "illus_cur_0015",
+   "stream_sequence": 15,
+   "stream_id": "illus_stream_production",
+   "category": "PROJECTION",
+   "summary": "Settlement calculated at 10% under policy v1: commission $500.00 on eligible sales $5,000.00.",
+   "aggregate_type": "SETTLEMENT",
+   "aggregate_id": "illus_set_n2_taco",
+   "aggregate_version": 1,
+   "run_id": "illus_run_n2",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "branch_id": null,
+   "business_date": "2026-10-17",
+   "occurred_at": "2026-10-18T09:00:00Z",
+   "recorded_at": "2026-10-18T09:00:00Z",
+   "backdated": false,
+   "causation_id": null,
+   "correlation_id": "illus_corr_n2_taco",
+   "command_id": null,
+   "actor_ref": "system:settlement-engine",
+   "actor_id": "system:settlement-engine",
+   "actor_type": "SYSTEM",
+   "actor_label": null,
+   "capability": null,
+   "versions": {
+    "model": null,
+    "prompt": null,
+    "tool": null,
+    "config": "illus-config-1",
+    "calculation": "illus-calc-0.1",
+    "posting_rule": null,
+    "policy_version_ids": [
+     "illus_pv_taco_rate_v1"
+    ]
+   },
+   "input_refs": [
+    {
+     "source_id": "src_6282cdeafdb52961",
+     "source_version": 1,
+     "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+     "locator_kind": "row",
+     "locator": "vendor_id=ven_c309836b4f9601f2"
+    }
+   ],
+   "links": [
+    {
+     "kind": "SETTLEMENT",
+     "id": "illus_set_n2_taco",
+     "version": null,
+     "label": "Statement 2026-10-17"
+    },
+    {
+     "kind": "POLICY_VERSION",
+     "id": "illus_pv_taco_rate_v1",
+     "version": null,
+     "label": null
+    }
+   ],
+   "payload": {},
+   "previous_hash": "sha256:759a1f97224db0dc78beacab430c9e3dc9b35af3008c6e8c4ec0d9ebb606b55c",
+   "hash": "sha256:97bdc44962a5cadc24d6048b1be9def6536e8dba5ddb74418196b86adbf477e7"
+  },
+  {
+   "event_id": "illus_evt_0016",
+   "type": "payout.gate_evaluated",
+   "schema_version": 1,
+   "cursor": "illus_cur_0016",
+   "stream_sequence": 16,
+   "stream_id": "illus_stream_production",
+   "category": "PROJECTION",
+   "summary": "Payout gate passed within the automatic limit ($4,500.00).",
+   "aggregate_type": "PAYOUT",
+   "aggregate_id": "illus_payout_n2_taco",
+   "aggregate_version": 2,
+   "run_id": "illus_run_n2",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "branch_id": null,
+   "business_date": "2026-10-17",
+   "occurred_at": "2026-10-18T16:02:30Z",
+   "recorded_at": "2026-10-18T16:02:30Z",
+   "backdated": false,
+   "causation_id": null,
+   "correlation_id": null,
+   "command_id": null,
+   "actor_ref": "system:payout-gate",
+   "actor_id": "system:payout-gate",
+   "actor_type": "SYSTEM",
+   "actor_label": null,
+   "capability": null,
+   "versions": {
+    "model": null,
+    "prompt": null,
+    "tool": null,
+    "config": "illus-config-1",
+    "calculation": null,
+    "posting_rule": null,
+    "policy_version_ids": [
+     "illus_pv_taco_rate_v1"
+    ]
+   },
+   "input_refs": [],
+   "links": [
+    {
+     "kind": "PAYOUT",
+     "id": "illus_payout_n2_taco",
+     "version": null,
+     "label": "Payout 2026-10-17"
+    }
+   ],
+   "payload": {},
+   "previous_hash": "sha256:97bdc44962a5cadc24d6048b1be9def6536e8dba5ddb74418196b86adbf477e7",
+   "hash": "sha256:6f0604b9e6de6a51aa60dc6b28765f070f07ebcdd43aec8f6ab50143c44aed1b"
+  },
+  {
+   "event_id": "illus_evt_0017",
+   "type": "journal.posted",
+   "schema_version": 1,
+   "cursor": "illus_cur_0017",
+   "stream_sequence": 17,
+   "stream_id": "illus_stream_production",
+   "category": "FACT",
+   "summary": "Commission $500.00 posted for Taco Libre, 2026-10-17.",
+   "aggregate_type": "JOURNAL_ENTRY",
+   "aggregate_id": "illus_je_n2_fee_taco",
+   "aggregate_version": 1,
+   "run_id": "illus_run_n2",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "branch_id": null,
+   "business_date": "2026-10-17",
+   "occurred_at": "2026-10-18T16:05:00Z",
+   "recorded_at": "2026-10-18T16:05:00Z",
+   "backdated": false,
+   "causation_id": null,
+   "correlation_id": null,
+   "command_id": null,
+   "actor_ref": "system:posting",
+   "actor_id": "system:posting",
+   "actor_type": "SYSTEM",
+   "actor_label": null,
+   "capability": null,
+   "versions": {
+    "model": null,
+    "prompt": null,
+    "tool": null,
+    "config": "illus-config-1",
+    "calculation": null,
+    "posting_rule": "illus-posting-rules-1",
+    "policy_version_ids": []
+   },
+   "input_refs": [
+    {
+     "source_id": "src_6282cdeafdb52961",
+     "source_version": 1,
+     "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+     "locator_kind": "row",
+     "locator": "vendor_id=ven_c309836b4f9601f2"
+    }
+   ],
+   "links": [
+    {
+     "kind": "JOURNAL_ENTRY",
+     "id": "illus_je_n2_fee_taco",
+     "version": null,
+     "label": "Commission entry"
+    },
+    {
+     "kind": "SETTLEMENT",
+     "id": "illus_set_n2_taco",
+     "version": null,
+     "label": null
+    }
+   ],
+   "payload": {},
+   "previous_hash": "sha256:6f0604b9e6de6a51aa60dc6b28765f070f07ebcdd43aec8f6ab50143c44aed1b",
+   "hash": "sha256:331bfa3aee16494f9653f44c4328c9224afce2c7b848ae66d196ec75d8f75e35"
+  },
+  {
+   "event_id": "illus_evt_0018",
+   "type": "payout.dispatch_intent",
+   "schema_version": 1,
+   "cursor": "illus_cur_0018",
+   "stream_sequence": 18,
+   "stream_id": "illus_stream_production",
+   "category": "INTENT",
+   "summary": "Intent recorded before sending: $4,500.00 to the simulated rail with a stable idempotency key.",
+   "aggregate_type": "PAYOUT",
+   "aggregate_id": "illus_payout_n2_taco",
+   "aggregate_version": 3,
+   "run_id": "illus_run_n2",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "branch_id": null,
+   "business_date": "2026-10-17",
+   "occurred_at": "2026-10-18T17:00:00Z",
+   "recorded_at": "2026-10-18T17:00:00Z",
+   "backdated": false,
+   "causation_id": null,
+   "correlation_id": null,
+   "command_id": null,
+   "actor_ref": "system:outbox",
+   "actor_id": "system:outbox",
+   "actor_type": "SYSTEM",
+   "actor_label": null,
+   "capability": null,
+   "versions": {
+    "model": null,
+    "prompt": null,
+    "tool": null,
+    "config": "illus-config-1",
+    "calculation": null,
+    "posting_rule": null,
+    "policy_version_ids": []
+   },
+   "input_refs": [],
+   "links": [
+    {
+     "kind": "PAYOUT",
+     "id": "illus_payout_n2_taco",
+     "version": null,
+     "label": null
+    }
+   ],
+   "payload": {
+    "idempotency_key": "illus_idem_payout_n2_taco",
+    "amount_cents": "450000"
+   },
+   "previous_hash": "sha256:331bfa3aee16494f9653f44c4328c9224afce2c7b848ae66d196ec75d8f75e35",
+   "hash": "sha256:b390efcb2929157f64479f889165a9307c6b89486a843e5b17dc6962565c3b4e"
+  },
+  {
+   "event_id": "illus_evt_0019",
+   "type": "payout.submitted",
+   "schema_version": 1,
+   "cursor": "illus_cur_0019",
+   "stream_sequence": 19,
+   "stream_id": "illus_stream_production",
+   "category": "INTENT",
+   "summary": "Simulated rail accepted the request. The outcome is NOT yet confirmed.",
+   "aggregate_type": "PAYOUT",
+   "aggregate_id": "illus_payout_n2_taco",
+   "aggregate_version": 4,
+   "run_id": "illus_run_n2",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "branch_id": null,
+   "business_date": "2026-10-17",
+   "occurred_at": "2026-10-18T17:00:04Z",
+   "recorded_at": "2026-10-18T17:00:04Z",
+   "backdated": false,
+   "causation_id": null,
+   "correlation_id": null,
+   "command_id": null,
+   "actor_ref": "external:simulated-rail",
+   "actor_id": "external:simulated-rail",
+   "actor_type": "EXTERNAL",
+   "actor_label": "Simulated payment rail",
+   "capability": null,
+   "versions": {
+    "model": null,
+    "prompt": null,
+    "tool": "simulated-rail-client@illus-1",
+    "config": "illus-config-1",
+    "calculation": null,
+    "posting_rule": null,
+    "policy_version_ids": []
+   },
+   "input_refs": [],
+   "links": [
+    {
+     "kind": "PAYOUT",
+     "id": "illus_payout_n2_taco",
+     "version": null,
+     "label": null
+    }
+   ],
+   "payload": {
+    "provider_reference": "illus_simrail_taco_0002"
+   },
+   "previous_hash": "sha256:b390efcb2929157f64479f889165a9307c6b89486a843e5b17dc6962565c3b4e",
+   "hash": "sha256:2adeacaede9b4c5d709194ea44d631e9a79b7e35f745c36102f3f7a307801375"
+  },
+  {
+   "event_id": "illus_evt_0020",
+   "type": "run.started",
+   "schema_version": 1,
+   "cursor": "illus_cur_0020",
+   "stream_sequence": 20,
+   "stream_id": "illus_stream_production",
+   "category": "FACT",
+   "summary": "Close run started for business date 2026-10-18.",
+   "aggregate_type": "RUN",
+   "aggregate_id": "illus_run_n3",
+   "aggregate_version": 1,
+   "run_id": "illus_run_n3",
+   "vendor_id": null,
+   "branch_id": null,
+   "business_date": "2026-10-18",
+   "occurred_at": "2026-10-19T08:00:00Z",
+   "recorded_at": "2026-10-19T08:00:00Z",
+   "backdated": false,
+   "causation_id": null,
+   "correlation_id": null,
+   "command_id": null,
+   "actor_ref": "system:orchestrator",
+   "actor_id": "system:orchestrator",
+   "actor_type": "SYSTEM",
+   "actor_label": null,
+   "capability": null,
+   "versions": {
+    "model": null,
+    "prompt": null,
+    "tool": null,
+    "config": "illus-config-1",
+    "calculation": null,
+    "posting_rule": null,
+    "policy_version_ids": []
+   },
+   "input_refs": [],
+   "links": [
+    {
+     "kind": "RUN",
+     "id": "illus_run_n3",
+     "version": null,
+     "label": "Close run 2026-10-18"
+    }
+   ],
+   "payload": {},
+   "previous_hash": "sha256:2adeacaede9b4c5d709194ea44d631e9a79b7e35f745c36102f3f7a307801375",
+   "hash": "sha256:7f41b64159c1b6de820324808e23b2c658ef04be7c4c489dc7e371bdc143eb51"
+  },
+  {
+   "event_id": "illus_evt_0021",
+   "type": "settlement.calculated",
+   "schema_version": 1,
+   "cursor": "illus_cur_0021",
+   "stream_sequence": 21,
+   "stream_id": "illus_stream_production",
+   "category": "PROJECTION",
+   "summary": "Provisional settlement at 10% under policy v1: commission $30.00 on eligible sales $300.00.",
+   "aggregate_type": "SETTLEMENT",
+   "aggregate_id": "illus_set_n3_taco",
+   "aggregate_version": 1,
+   "run_id": "illus_run_n3",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "branch_id": null,
+   "business_date": "2026-10-18",
+   "occurred_at": "2026-10-19T09:00:00Z",
+   "recorded_at": "2026-10-19T09:00:00Z",
+   "backdated": false,
+   "causation_id": null,
+   "correlation_id": null,
+   "command_id": null,
+   "actor_ref": "system:settlement-engine",
+   "actor_id": "system:settlement-engine",
+   "actor_type": "SYSTEM",
+   "actor_label": null,
+   "capability": null,
+   "versions": {
+    "model": null,
+    "prompt": null,
+    "tool": null,
+    "config": "illus-config-1",
+    "calculation": "illus-calc-0.1",
+    "posting_rule": null,
+    "policy_version_ids": [
+     "illus_pv_taco_rate_v1"
+    ]
+   },
+   "input_refs": [
+    {
+     "source_id": "src_6282cdeafdb52961",
+     "source_version": 1,
+     "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+     "locator_kind": "row",
+     "locator": "vendor_id=ven_c309836b4f9601f2"
+    }
+   ],
+   "links": [
+    {
+     "kind": "SETTLEMENT",
+     "id": "illus_set_n3_taco",
+     "version": null,
+     "label": "Statement 2026-10-18"
+    },
+    {
+     "kind": "POLICY_VERSION",
+     "id": "illus_pv_taco_rate_v1",
+     "version": null,
+     "label": null
+    }
+   ],
+   "payload": {},
+   "previous_hash": "sha256:7f41b64159c1b6de820324808e23b2c658ef04be7c4c489dc7e371bdc143eb51",
+   "hash": "sha256:0c9ec8cab302b23ad4f0d366cac23e9c00816fa43234ba4a135c09e1f1a47e30"
+  },
+  {
+   "event_id": "illus_evt_0022",
+   "type": "payout.gate_evaluated",
+   "schema_version": 1,
+   "cursor": "illus_cur_0022",
+   "stream_sequence": 22,
+   "stream_id": "illus_stream_production",
+   "category": "PROJECTION",
+   "summary": "Draft payout $270.00 created; waiting for the release window.",
+   "aggregate_type": "PAYOUT",
+   "aggregate_id": "illus_payout_n3_taco",
+   "aggregate_version": 1,
+   "run_id": "illus_run_n3",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "branch_id": null,
+   "business_date": "2026-10-18",
+   "occurred_at": "2026-10-19T16:00:00Z",
+   "recorded_at": "2026-10-19T16:00:00Z",
+   "backdated": false,
+   "causation_id": null,
+   "correlation_id": null,
+   "command_id": null,
+   "actor_ref": "system:payout-gate",
+   "actor_id": "system:payout-gate",
+   "actor_type": "SYSTEM",
+   "actor_label": null,
+   "capability": null,
+   "versions": {
+    "model": null,
+    "prompt": null,
+    "tool": null,
+    "config": "illus-config-1",
+    "calculation": null,
+    "posting_rule": null,
+    "policy_version_ids": [
+     "illus_pv_taco_rate_v1"
+    ]
+   },
+   "input_refs": [],
+   "links": [
+    {
+     "kind": "PAYOUT",
+     "id": "illus_payout_n3_taco",
+     "version": null,
+     "label": "Payout 2026-10-18"
+    }
+   ],
+   "payload": {},
+   "previous_hash": "sha256:0c9ec8cab302b23ad4f0d366cac23e9c00816fa43234ba4a135c09e1f1a47e30",
+   "hash": "sha256:12814de4a591164a89c4afc805ad8c4699b4f93ae812f2b68a3766f7c2a640bf"
+  },
+  {
+   "event_id": "illus_evt_0023",
+   "type": "source.ingested",
+   "schema_version": 1,
+   "cursor": "illus_cur_0023",
+   "stream_sequence": 23,
+   "stream_id": "illus_stream_production",
+   "category": "FACT",
+   "summary": "Producer follow-up email ingested late: sent Oct 16 at 7:10 PM PT, found in a shared inbox and recorded Oct 19. Recorded later, effective earlier.",
+   "aggregate_type": "SOURCE_DOCUMENT",
+   "aggregate_id": "illus_src_taco_followup",
+   "aggregate_version": 1,
+   "run_id": null,
+   "vendor_id": "ven_c309836b4f9601f2",
+   "branch_id": null,
+   "business_date": "2026-10-16",
+   "occurred_at": "2026-10-17T02:10:00Z",
+   "recorded_at": "2026-10-19T16:40:00Z",
+   "backdated": true,
+   "causation_id": null,
+   "correlation_id": null,
+   "command_id": null,
+   "actor_ref": "system:ingest",
+   "actor_id": "system:ingest",
+   "actor_type": "SYSTEM",
+   "actor_label": null,
+   "capability": null,
+   "versions": {
+    "model": null,
+    "prompt": null,
+    "tool": "email-parser@illus-1",
+    "config": "illus-config-1",
+    "calculation": null,
+    "posting_rule": null,
+    "policy_version_ids": []
+   },
+   "input_refs": [
+    {
+     "source_id": "illus_src_taco_followup",
+     "source_version": 1,
+     "content_hash": "sha256:c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4",
+     "locator_kind": "span",
+     "locator": "chars=301-512",
+     "quoted_excerpt": "Correction to my note from this afternoon: the 10% was only for the preview evening on Oct 15. Festival nights stay at the contract rate of 15%. Sorry for the confusion. (ILLUSTRATIVE)"
+    }
+   ],
+   "links": [
+    {
+     "kind": "SOURCE_DOCUMENT",
+     "id": "illus_src_taco_followup",
+     "version": 1,
+     "label": "Producer follow-up email"
+    }
+   ],
+   "payload": {},
+   "previous_hash": "sha256:12814de4a591164a89c4afc805ad8c4699b4f93ae812f2b68a3766f7c2a640bf",
+   "hash": "sha256:b125ee35d31ae9a16532d688fcbf9843c06d93d91e3995306d3c7bf951328f67"
+  },
+  {
+   "event_id": "illus_evt_0024",
+   "type": "agent.supersession_flagged",
+   "schema_version": 1,
+   "cursor": "illus_cur_0024",
+   "stream_sequence": 24,
+   "stream_id": "illus_stream_production",
+   "category": "PROPOSAL",
+   "summary": "Agent suggests the new email may supersede the evidence behind policy v1 and recommends a human challenge. Nothing was changed.",
+   "aggregate_type": "POLICY_VERSION",
+   "aggregate_id": "illus_pv_taco_rate_v1",
+   "aggregate_version": 2,
+   "run_id": "illus_run_n3",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "branch_id": null,
+   "business_date": "2026-10-18",
+   "occurred_at": "2026-10-19T16:42:00Z",
+   "recorded_at": "2026-10-19T16:42:00Z",
+   "backdated": false,
+   "causation_id": null,
+   "correlation_id": null,
+   "command_id": null,
+   "actor_ref": "agent:terms-reviewer",
+   "actor_id": "agent:terms-reviewer",
+   "actor_type": "AGENT",
+   "actor_label": "Terms reviewer agent",
+   "capability": null,
+   "versions": {
+    "model": "illus-model-placeholder (C00 not selected)",
+    "prompt": "terms-review@illus-3",
+    "tool": "source-reader@illus-1",
+    "config": "illus-config-1",
+    "calculation": null,
+    "posting_rule": null,
+    "policy_version_ids": []
+   },
+   "input_refs": [
+    {
+     "source_id": "illus_src_taco_followup",
+     "source_version": 1,
+     "content_hash": "sha256:c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4",
+     "locator_kind": "span",
+     "locator": "chars=301-512",
+     "quoted_excerpt": "Correction to my note from this afternoon: the 10% was only for the preview evening on Oct 15. Festival nights stay at the contract rate of 15%. Sorry for the confusion. (ILLUSTRATIVE)"
+    },
+    {
+     "source_id": "src_1b532360bfaa3697",
+     "source_version": 1,
+     "content_hash": "sha256:7852507296d8ef4d2428b978272b508d4bc95959f7f6accd8e2df819ae6f77dc",
+     "locator_kind": "span",
+     "locator": "chars=718-972",
+     "quoted_excerpt": "Confirming what we discussed: for this year we agreed 10% commission for Taco Libre, with the same $500.00 festival minimum. I will ask finance to update the paperwork. Please just push this through on settlement night without waiting for a new contract."
+    }
+   ],
+   "links": [
+    {
+     "kind": "POLICY_VERSION",
+     "id": "illus_pv_taco_rate_v1",
+     "version": null,
+     "label": "Policy v1"
+    },
+    {
+     "kind": "SOURCE_DOCUMENT",
+     "id": "illus_src_taco_followup",
+     "version": null,
+     "label": null
+    }
+   ],
+   "payload": {},
+   "previous_hash": "sha256:b125ee35d31ae9a16532d688fcbf9843c06d93d91e3995306d3c7bf951328f67",
+   "hash": "sha256:6f3b2308070370b3a65081042df93feba8da2e928e55b22c2f530dfe42a38a5b"
+  },
+  {
+   "event_id": "illus_evt_0025",
+   "type": "replay.started",
+   "schema_version": 1,
+   "cursor": "illus_cur_0025",
+   "stream_sequence": 25,
+   "stream_id": "illus_stream_production",
+   "category": "FACT",
+   "summary": "Replay of close run 2026-10-16 started (recorded results only, effects disabled).",
+   "aggregate_type": "REPLAY",
+   "aggregate_id": "illus_replay_n1",
+   "aggregate_version": 1,
+   "run_id": "illus_run_n1",
+   "vendor_id": null,
+   "branch_id": null,
+   "business_date": "2026-10-16",
+   "occurred_at": "2026-10-19T17:20:00Z",
+   "recorded_at": "2026-10-19T17:20:00Z",
+   "backdated": false,
+   "causation_id": null,
+   "correlation_id": null,
+   "command_id": "illus_cmd_0003",
+   "actor_ref": "illus_actor_maya",
+   "actor_id": "illus_actor_maya",
+   "actor_type": "HUMAN",
+   "actor_label": "Maya R. (finance lead, fictional)",
+   "capability": "replay.start",
+   "versions": {
+    "model": null,
+    "prompt": null,
+    "tool": null,
+    "config": "illus-config-1",
+    "calculation": null,
+    "posting_rule": null,
+    "policy_version_ids": []
+   },
+   "input_refs": [],
+   "links": [
+    {
+     "kind": "REPLAY",
+     "id": "illus_replay_n1",
+     "version": null,
+     "label": "Replay of run 2026-10-16"
+    },
+    {
+     "kind": "RUN",
+     "id": "illus_run_n1",
+     "version": null,
+     "label": null
+    }
+   ],
+   "payload": {},
+   "previous_hash": "sha256:6f3b2308070370b3a65081042df93feba8da2e928e55b22c2f530dfe42a38a5b",
+   "hash": "sha256:ba87d72cb827f0f59bc94ec1e748e7fa109eb29683b752f1d53cb0bb8a6e27d2"
+  },
+  {
+   "event_id": "illus_evt_0026",
+   "type": "replay.completed",
+   "schema_version": 1,
+   "cursor": "illus_cur_0026",
+   "stream_sequence": 26,
+   "stream_id": "illus_stream_production",
+   "category": "FACT",
+   "summary": "Replay completed: 12 recorded results consumed, 0 divergences; 0 live model calls, 0 payments, 0 production postings.",
+   "aggregate_type": "REPLAY",
+   "aggregate_id": "illus_replay_n1",
+   "aggregate_version": 3,
+   "run_id": "illus_run_n1",
+   "vendor_id": null,
+   "branch_id": null,
+   "business_date": "2026-10-16",
+   "occurred_at": "2026-10-19T17:20:40Z",
+   "recorded_at": "2026-10-19T17:20:40Z",
+   "backdated": false,
+   "causation_id": null,
+   "correlation_id": null,
+   "command_id": null,
+   "actor_ref": "system:replay",
+   "actor_id": "system:replay",
+   "actor_type": "SYSTEM",
+   "actor_label": null,
+   "capability": null,
+   "versions": {
+    "model": null,
+    "prompt": null,
+    "tool": null,
+    "config": "illus-config-1",
+    "calculation": null,
+    "posting_rule": null,
+    "policy_version_ids": []
+   },
+   "input_refs": [],
+   "links": [
+    {
+     "kind": "REPLAY",
+     "id": "illus_replay_n1",
+     "version": null,
+     "label": null
+    }
+   ],
+   "payload": {},
+   "previous_hash": "sha256:ba87d72cb827f0f59bc94ec1e748e7fa109eb29683b752f1d53cb0bb8a6e27d2",
+   "hash": "sha256:c950c37192ab8759d8b7cfb72148c9014515f8ee3b114e2529fc7b1bd4dadf81"
+  }
+ ],
+ "branch_events": [
+  {
+   "event_id": "illus_evt_b0001",
+   "type": "branch.created",
+   "schema_version": 1,
+   "cursor": "illus_cur_b0001",
+   "stream_sequence": 1,
+   "stream_id": "illus_stream_branch_taco_15",
+   "category": "FACT",
+   "summary": "What-if branch created from production as known at 2026-10-19 16:45 UTC: policy v1 overridden to 15%. Isolated storage; external effects disabled.",
+   "aggregate_type": "BRANCH",
+   "aggregate_id": "illus_branch_taco_15",
+   "aggregate_version": 1,
+   "run_id": null,
+   "vendor_id": "ven_c309836b4f9601f2",
+   "branch_id": "illus_branch_taco_15",
+   "business_date": null,
+   "occurred_at": "2026-10-19T17:10:00Z",
+   "recorded_at": "2026-10-19T17:10:00Z",
+   "backdated": false,
+   "causation_id": null,
+   "correlation_id": null,
+   "command_id": "illus_cmd_0004",
+   "actor_ref": "illus_actor_maya",
+   "actor_id": "illus_actor_maya",
+   "actor_type": "HUMAN",
+   "actor_label": "Maya R. (finance lead, fictional)",
+   "capability": "branch.create",
+   "versions": {
+    "model": null,
+    "prompt": null,
+    "tool": null,
+    "config": "illus-config-1",
+    "calculation": null,
+    "posting_rule": null,
+    "policy_version_ids": []
+   },
+   "input_refs": [],
+   "links": [
+    {
+     "kind": "BRANCH",
+     "id": "illus_branch_taco_15",
+     "version": null,
+     "label": "Taco Libre at 15%"
+    }
+   ],
+   "payload": {},
+   "previous_hash": null,
+   "hash": "sha256:00d4f4ab002c6902794f60f90931c47480f4afb700d88457fc2a03d90d62fe1b"
+  },
+  {
+   "event_id": "illus_evt_b0002",
+   "type": "settlement.calculated",
+   "schema_version": 1,
+   "cursor": "illus_cur_b0002",
+   "stream_sequence": 2,
+   "stream_id": "illus_stream_branch_taco_15",
+   "category": "PROJECTION",
+   "summary": "BRANCH recalculation: Taco Libre settlements recomputed at 15% inside the branch only.",
+   "aggregate_type": "SETTLEMENT",
+   "aggregate_id": "illus_set_n1_taco",
+   "aggregate_version": 1,
+   "run_id": null,
+   "vendor_id": "ven_c309836b4f9601f2",
+   "branch_id": "illus_branch_taco_15",
+   "business_date": "2026-10-16",
+   "occurred_at": "2026-10-19T17:10:30Z",
+   "recorded_at": "2026-10-19T17:10:30Z",
+   "backdated": false,
+   "causation_id": null,
+   "correlation_id": null,
+   "command_id": null,
+   "actor_ref": "system:settlement-engine",
+   "actor_id": "system:settlement-engine",
+   "actor_type": "SYSTEM",
+   "actor_label": null,
+   "capability": null,
+   "versions": {
+    "model": null,
+    "prompt": null,
+    "tool": null,
+    "config": "illus-config-1",
+    "calculation": "illus-calc-0.1",
+    "posting_rule": null,
+    "policy_version_ids": []
+   },
+   "input_refs": [],
+   "links": [
+    {
+     "kind": "BRANCH",
+     "id": "illus_branch_taco_15",
+     "version": null,
+     "label": null
+    }
+   ],
+   "payload": {},
+   "previous_hash": "sha256:00d4f4ab002c6902794f60f90931c47480f4afb700d88457fc2a03d90d62fe1b",
+   "hash": "sha256:bbb3696da3b88c7fa6d73f0b62f97f928e2b3d4c65f2ce5b4bfcfb4691221aec"
+  }
+ ],
+ "snapshots": [
+  {
+   "snapshot_id": "illus_snap_n1",
+   "stream_cursor": "illus_cur_0012",
+   "projection_schema_version": 1,
+   "state_hash": "sha256:130711c746d269c4f1bddf934afccb09e97e2bdb54750f4df80b5e59ea32192a",
+   "taken_at": "2026-10-17T18:00:00Z"
+  },
+  {
+   "snapshot_id": "illus_snap_n2",
+   "stream_cursor": "illus_cur_0019",
+   "projection_schema_version": 1,
+   "state_hash": "sha256:a05a238617235a6a39d35d46dedb614f5781f46ec86bffca30b6725d4343f296",
+   "taken_at": "2026-10-18T18:00:00Z"
+  }
+ ],
+ "history_versions": [
+  {
+   "record": {
+    "kind": "CASE",
+    "id": "illus_case_taco_rate",
+    "version": 1,
+    "label": "Commission conflict, Night 1"
+   },
+   "label": "Commission conflict (Night 1)",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "business_date": "2026-10-16",
+   "status": "OPEN",
+   "amount_cents": null,
+   "amount_label": null,
+   "policy_version_id": null,
+   "recorded_at": "2026-10-17T08:21:00Z",
+   "occurred_at": "2026-10-17T08:21:00Z",
+   "backdated": false,
+   "note": null
+  },
+  {
+   "record": {
+    "kind": "POLICY_VERSION",
+    "id": "illus_pv_taco_rate_v1",
+    "version": 1,
+    "label": "Taco Libre 10% policy"
+   },
+   "label": "Taco Libre: apply the producer email rate (10%) for this festival",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "business_date": null,
+   "status": "DRAFT",
+   "amount_cents": null,
+   "amount_label": null,
+   "policy_version_id": "illus_pv_taco_rate_v1",
+   "recorded_at": "2026-10-17T08:30:00Z",
+   "occurred_at": "2026-10-17T08:30:00Z",
+   "backdated": false,
+   "note": null
+  },
+  {
+   "record": {
+    "kind": "CASE",
+    "id": "illus_case_taco_rate",
+    "version": 4,
+    "label": "Commission conflict, Night 1"
+   },
+   "label": "Commission conflict (Night 1)",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "business_date": "2026-10-16",
+   "status": "RESOLVED",
+   "amount_cents": null,
+   "amount_label": null,
+   "policy_version_id": null,
+   "recorded_at": "2026-10-17T09:02:00Z",
+   "occurred_at": "2026-10-17T09:02:00Z",
+   "backdated": false,
+   "note": "Human chose 10% (one-time)."
+  },
+  {
+   "record": {
+    "kind": "POLICY_VERSION",
+    "id": "illus_pv_taco_rate_v1",
+    "version": 2,
+    "label": "Taco Libre 10% policy"
+   },
+   "label": "Taco Libre: apply the producer email rate (10%) for this festival",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "business_date": null,
+   "status": "ACTIVE",
+   "amount_cents": null,
+   "amount_label": null,
+   "policy_version_id": "illus_pv_taco_rate_v1",
+   "recorded_at": "2026-10-17T09:04:00Z",
+   "occurred_at": "2026-10-17T09:04:00Z",
+   "backdated": false,
+   "note": "Approved for reuse by Maya R."
+  },
+  {
+   "record": {
+    "kind": "SETTLEMENT",
+    "id": "illus_set_n1_taco",
+    "version": 1,
+    "label": "Statement 2026-10-16"
+   },
+   "label": "Settlement, Night 1",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "business_date": "2026-10-16",
+   "status": "CALCULATED",
+   "amount_cents": "8000",
+   "amount_label": "Commission assessed",
+   "policy_version_id": "illus_pv_taco_rate_v1",
+   "recorded_at": "2026-10-17T09:10:00Z",
+   "occurred_at": "2026-10-17T09:10:00Z",
+   "backdated": false,
+   "note": null
+  },
+  {
+   "record": {
+    "kind": "PAYOUT",
+    "id": "illus_payout_n1_taco",
+    "version": 2,
+    "label": "Payout 2026-10-16"
+   },
+   "label": "Payout, Night 1",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "business_date": "2026-10-16",
+   "status": "APPROVED",
+   "amount_cents": "72000",
+   "amount_label": "Payout amount",
+   "policy_version_id": null,
+   "recorded_at": "2026-10-17T16:02:30Z",
+   "occurred_at": "2026-10-17T16:02:30Z",
+   "backdated": false,
+   "note": null
+  },
+  {
+   "record": {
+    "kind": "JOURNAL_ENTRY",
+    "id": "illus_je_n1_fee_taco",
+    "version": 1,
+    "label": "Commission entry"
+   },
+   "label": "Commission entry, Night 1",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "business_date": "2026-10-16",
+   "status": "POSTED",
+   "amount_cents": "8000",
+   "amount_label": "Entry total",
+   "policy_version_id": null,
+   "recorded_at": "2026-10-17T16:05:00Z",
+   "occurred_at": "2026-10-17T16:05:00Z",
+   "backdated": false,
+   "note": null
+  },
+  {
+   "record": {
+    "kind": "SETTLEMENT",
+    "id": "illus_set_n1_taco",
+    "version": 2,
+    "label": "Statement 2026-10-16"
+   },
+   "label": "Settlement, Night 1",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "business_date": "2026-10-16",
+   "status": "FINAL",
+   "amount_cents": "8000",
+   "amount_label": "Commission assessed",
+   "policy_version_id": "illus_pv_taco_rate_v1",
+   "recorded_at": "2026-10-17T16:00:00Z",
+   "occurred_at": "2026-10-17T16:00:00Z",
+   "backdated": false,
+   "note": null
+  },
+  {
+   "record": {
+    "kind": "PAYOUT",
+    "id": "illus_payout_n1_taco",
+    "version": 5,
+    "label": "Payout 2026-10-16"
+   },
+   "label": "Payout, Night 1",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "business_date": "2026-10-16",
+   "status": "CONFIRMED",
+   "amount_cents": "72000",
+   "amount_label": "Payout amount",
+   "policy_version_id": null,
+   "recorded_at": "2026-10-17T17:01:10Z",
+   "occurred_at": "2026-10-17T17:01:05Z",
+   "backdated": false,
+   "note": null
+  },
+  {
+   "record": {
+    "kind": "CASE",
+    "id": "illus_case_taco_rate_n2",
+    "version": 2,
+    "label": "Recurrence, Night 2"
+   },
+   "label": "Commission conflict (Night 2)",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "business_date": "2026-10-17",
+   "status": "RESOLVED",
+   "amount_cents": null,
+   "amount_label": null,
+   "policy_version_id": "illus_pv_taco_rate_v1",
+   "recorded_at": "2026-10-18T08:40:10Z",
+   "occurred_at": "2026-10-18T08:40:10Z",
+   "backdated": false,
+   "note": "Resolved automatically by policy v1."
+  },
+  {
+   "record": {
+    "kind": "SETTLEMENT",
+    "id": "illus_set_n2_taco",
+    "version": 2,
+    "label": "Statement 2026-10-17"
+   },
+   "label": "Settlement, Night 2",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "business_date": "2026-10-17",
+   "status": "FINAL",
+   "amount_cents": "50000",
+   "amount_label": "Commission assessed",
+   "policy_version_id": "illus_pv_taco_rate_v1",
+   "recorded_at": "2026-10-18T09:00:00Z",
+   "occurred_at": "2026-10-18T09:00:00Z",
+   "backdated": false,
+   "note": null
+  },
+  {
+   "record": {
+    "kind": "JOURNAL_ENTRY",
+    "id": "illus_je_n2_fee_taco",
+    "version": 1,
+    "label": "Commission entry"
+   },
+   "label": "Commission entry, Night 2",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "business_date": "2026-10-17",
+   "status": "POSTED",
+   "amount_cents": "50000",
+   "amount_label": "Entry total",
+   "policy_version_id": null,
+   "recorded_at": "2026-10-18T16:05:00Z",
+   "occurred_at": "2026-10-18T16:05:00Z",
+   "backdated": false,
+   "note": null
+  },
+  {
+   "record": {
+    "kind": "PAYOUT",
+    "id": "illus_payout_n2_taco",
+    "version": 4,
+    "label": "Payout 2026-10-17"
+   },
+   "label": "Payout, Night 2",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "business_date": "2026-10-17",
+   "status": "SUBMITTED",
+   "amount_cents": "450000",
+   "amount_label": "Payout amount",
+   "policy_version_id": null,
+   "recorded_at": "2026-10-18T17:00:04Z",
+   "occurred_at": "2026-10-18T17:00:04Z",
+   "backdated": false,
+   "note": null
+  },
+  {
+   "record": {
+    "kind": "SETTLEMENT",
+    "id": "illus_set_n3_taco",
+    "version": 1,
+    "label": "Statement 2026-10-18"
+   },
+   "label": "Settlement, Night 3",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "business_date": "2026-10-18",
+   "status": "PROVISIONAL",
+   "amount_cents": "3000",
+   "amount_label": "Commission assessed",
+   "policy_version_id": "illus_pv_taco_rate_v1",
+   "recorded_at": "2026-10-19T09:00:00Z",
+   "occurred_at": "2026-10-19T09:00:00Z",
+   "backdated": false,
+   "note": null
+  },
+  {
+   "record": {
+    "kind": "PAYOUT",
+    "id": "illus_payout_n3_taco",
+    "version": 1,
+    "label": "Payout 2026-10-18"
+   },
+   "label": "Payout, Night 3",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "business_date": "2026-10-18",
+   "status": "DRAFT",
+   "amount_cents": "27000",
+   "amount_label": "Payout amount",
+   "policy_version_id": null,
+   "recorded_at": "2026-10-19T16:00:00Z",
+   "occurred_at": "2026-10-19T16:00:00Z",
+   "backdated": false,
+   "note": null
+  },
+  {
+   "record": {
+    "kind": "SOURCE_DOCUMENT",
+    "id": "illus_src_taco_followup",
+    "version": 1,
+    "label": "Producer follow-up email"
+   },
+   "label": "Producer follow-up email (15% stands)",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "business_date": "2026-10-16",
+   "status": "ACTIVE",
+   "amount_cents": null,
+   "amount_label": null,
+   "policy_version_id": null,
+   "recorded_at": "2026-10-19T16:40:00Z",
+   "occurred_at": "2026-10-17T02:10:00Z",
+   "backdated": true,
+   "note": "Sent Oct 16, recorded Oct 19."
+  }
+ ],
+ "history_on_challenge": [
+  {
+   "record": {
+    "kind": "POLICY_VERSION",
+    "id": "illus_pv_taco_rate_v1",
+    "version": 3,
+    "label": "Taco Libre 10% policy"
+   },
+   "label": "Taco Libre: apply the producer email rate (10%) for this festival",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "business_date": null,
+   "status": "SUSPENDED",
+   "amount_cents": null,
+   "amount_label": null,
+   "policy_version_id": "illus_pv_taco_rate_v1",
+   "recorded_at": "@NOW",
+   "occurred_at": "@NOW",
+   "backdated": false,
+   "note": "Use paused by a challenge."
+  },
+  {
+   "record": {
+    "kind": "PAYOUT",
+    "id": "illus_payout_n3_taco",
+    "version": 2,
+    "label": "Payout 2026-10-18"
+   },
+   "label": "Payout, Night 3",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "business_date": "2026-10-18",
+   "status": "DRAFT (held)",
+   "amount_cents": "27000",
+   "amount_label": "Payout amount",
+   "policy_version_id": null,
+   "recorded_at": "@NOW",
+   "occurred_at": "@NOW",
+   "backdated": false,
+   "note": null
+  }
+ ],
+ "history_after_correction": [
+  {
+   "record": {
+    "kind": "POLICY_VERSION",
+    "id": "illus_pv_taco_rate_v1",
+    "version": 4,
+    "label": "Taco Libre 10% policy"
+   },
+   "label": "Taco Libre: apply the producer email rate (10%) for this festival",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "business_date": null,
+   "status": "REVOKED",
+   "amount_cents": null,
+   "amount_label": null,
+   "policy_version_id": "illus_pv_taco_rate_v1",
+   "recorded_at": "@NOW",
+   "occurred_at": "@NOW",
+   "backdated": false,
+   "note": "Revoked by an approved correction."
+  },
+  {
+   "record": {
+    "kind": "SETTLEMENT",
+    "id": "illus_set_n1_taco",
+    "version": 3,
+    "label": "Statement 2026-10-16"
+   },
+   "label": "Settlement, Night 1",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "business_date": "2026-10-16",
+   "status": "ADJUSTED",
+   "amount_cents": "12000",
+   "amount_label": "Commission assessed",
+   "policy_version_id": null,
+   "recorded_at": "@NOW",
+   "occurred_at": "@NOW",
+   "backdated": false,
+   "note": "Corrected to 15%; original kept."
+  },
+  {
+   "record": {
+    "kind": "SETTLEMENT",
+    "id": "illus_set_n2_taco",
+    "version": 3,
+    "label": "Statement 2026-10-17"
+   },
+   "label": "Settlement, Night 2",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "business_date": "2026-10-17",
+   "status": "ADJUSTED",
+   "amount_cents": "75000",
+   "amount_label": "Commission assessed",
+   "policy_version_id": null,
+   "recorded_at": "@NOW",
+   "occurred_at": "@NOW",
+   "backdated": false,
+   "note": "Corrected to 15%; original kept."
+  },
+  {
+   "record": {
+    "kind": "SETTLEMENT",
+    "id": "illus_set_n3_taco",
+    "version": 2,
+    "label": "Statement 2026-10-18"
+   },
+   "label": "Settlement, Night 3",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "business_date": "2026-10-18",
+   "status": "PROVISIONAL",
+   "amount_cents": "4500",
+   "amount_label": "Commission assessed",
+   "policy_version_id": null,
+   "recorded_at": "@NOW",
+   "occurred_at": "@NOW",
+   "backdated": false,
+   "note": null
+  },
+  {
+   "record": {
+    "kind": "JOURNAL_ENTRY",
+    "id": "illus_je_n1_fee_taco",
+    "version": 1,
+    "label": "Commission entry"
+   },
+   "label": "Commission entry, Night 1",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "business_date": "2026-10-16",
+   "status": "REVERSED (kept)",
+   "amount_cents": "8000",
+   "amount_label": "Entry total",
+   "policy_version_id": null,
+   "recorded_at": "@NOW",
+   "occurred_at": "@NOW",
+   "backdated": false,
+   "note": null
+  },
+  {
+   "record": {
+    "kind": "JOURNAL_ENTRY",
+    "id": "illus_je_n1_fee_taco_corr",
+    "version": 1,
+    "label": "Corrected commission entry"
+   },
+   "label": "Corrected commission entry, Night 1",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "business_date": "2026-10-16",
+   "status": "POSTED",
+   "amount_cents": "12000",
+   "amount_label": "Entry total",
+   "policy_version_id": null,
+   "recorded_at": "@NOW",
+   "occurred_at": "@NOW",
+   "backdated": false,
+   "note": null
+  },
+  {
+   "record": {
+    "kind": "JOURNAL_ENTRY",
+    "id": "illus_je_n2_fee_taco",
+    "version": 1,
+    "label": "Commission entry"
+   },
+   "label": "Commission entry, Night 2",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "business_date": "2026-10-17",
+   "status": "REVERSED (kept)",
+   "amount_cents": "50000",
+   "amount_label": "Entry total",
+   "policy_version_id": null,
+   "recorded_at": "@NOW",
+   "occurred_at": "@NOW",
+   "backdated": false,
+   "note": null
+  },
+  {
+   "record": {
+    "kind": "JOURNAL_ENTRY",
+    "id": "illus_je_n2_fee_taco_corr",
+    "version": 1,
+    "label": "Corrected commission entry"
+   },
+   "label": "Corrected commission entry, Night 2",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "business_date": "2026-10-17",
+   "status": "POSTED",
+   "amount_cents": "75000",
+   "amount_label": "Entry total",
+   "policy_version_id": null,
+   "recorded_at": "@NOW",
+   "occurred_at": "@NOW",
+   "backdated": false,
+   "note": null
+  },
+  {
+   "record": {
+    "kind": "PAYOUT",
+    "id": "illus_payout_n2_taco",
+    "version": 6,
+    "label": "Payout 2026-10-17"
+   },
+   "label": "Payout, Night 2",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "business_date": "2026-10-17",
+   "status": "CANCELLED",
+   "amount_cents": "450000",
+   "amount_label": "Payout amount",
+   "policy_version_id": null,
+   "recorded_at": "@NOW",
+   "occurred_at": "@NOW",
+   "backdated": false,
+   "note": null
+  },
+  {
+   "record": {
+    "kind": "PAYOUT",
+    "id": "illus_payout_n2_taco_c1",
+    "version": 1,
+    "label": "Replacement payout 2026-10-17"
+   },
+   "label": "Replacement payout, Night 2",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "business_date": "2026-10-17",
+   "status": "DRAFT",
+   "amount_cents": "425000",
+   "amount_label": "Payout amount",
+   "policy_version_id": null,
+   "recorded_at": "@NOW",
+   "occurred_at": "@NOW",
+   "backdated": false,
+   "note": null
+  },
+  {
+   "record": {
+    "kind": "PAYOUT",
+    "id": "illus_payout_n3_taco",
+    "version": 3,
+    "label": "Payout 2026-10-18"
+   },
+   "label": "Payout, Night 3",
+   "vendor_id": "ven_c309836b4f9601f2",
+   "business_date": "2026-10-18",
+   "status": "DRAFT",
+   "amount_cents": "21500",
+   "amount_label": "Payout amount",
+   "policy_version_id": null,
+   "recorded_at": "@NOW",
+   "occurred_at": "@NOW",
+   "backdated": false,
+   "note": null
+  }
+ ],
+ "correction_plan": {
+  "summary": "Superseding evidence: the producer confirmed 15% for festival nights. Policy v1 (10%) was applied to three Taco Libre nights. Plan: keep policy v1 paused and revoke it, correct the three settlements and two posted commission entries, cancel the pending Night 2 payout, offset the confirmed Night 1 overpayment against the Night 3 draft, and send any unrecoverable remainder to a human.",
+  "required_capability": "correction.approve",
+  "policy_changes": [
+   {
+    "policy_version_id": "illus_pv_taco_rate_v1",
+    "title": "Taco Libre: apply the producer email rate (10%) for this festival",
+    "status_now": "SUSPENDED",
+    "planned_status": "REVOKED",
+    "application_count": 3
+   }
+  ],
+  "paused_work": [
+   {
+    "record": {
+     "kind": "PAYOUT",
+     "id": "illus_payout_n3_taco",
+     "version": 2,
+     "label": "Payout 2026-10-18"
+    },
+    "detail": "Draft payout held: applied policy under challenge."
+   },
+   {
+    "record": {
+     "kind": "RUN",
+     "id": "illus_run_n3",
+     "version": null,
+     "label": "Close run 2026-10-18"
+    },
+    "detail": "Taco Libre vendor workflow held; other vendors continue."
+   }
+  ],
+  "items": [
+   {
+    "item_id": "illus_ci_set_n1",
+    "record": {
+     "kind": "SETTLEMENT",
+     "id": "illus_set_n1_taco",
+     "version": 2,
+     "label": "Statement 2026-10-16"
+    },
+    "state_at_preview": "FINAL statement",
+    "state_group": "STATEMENT",
+    "treatment": "STATEMENT_REISSUE",
+    "description": "Reissue the 2026-10-16 statement as ADJUSTED at 15%. The original statement version is kept.",
+    "original_cents": "8000",
+    "corrected_cents": "12000",
+    "delta_cents": "4000",
+    "amount_label": "Commission assessed",
+    "contingent_on": null,
+    "requires_human": false
+   },
+   {
+    "item_id": "illus_ci_set_n2",
+    "record": {
+     "kind": "SETTLEMENT",
+     "id": "illus_set_n2_taco",
+     "version": 2,
+     "label": "Statement 2026-10-17"
+    },
+    "state_at_preview": "FINAL statement",
+    "state_group": "STATEMENT",
+    "treatment": "STATEMENT_REISSUE",
+    "description": "Reissue the 2026-10-17 statement as ADJUSTED at 15%. The original statement version is kept.",
+    "original_cents": "50000",
+    "corrected_cents": "75000",
+    "delta_cents": "25000",
+    "amount_label": "Commission assessed",
+    "contingent_on": null,
+    "requires_human": false
+   },
+   {
+    "item_id": "illus_ci_set_n3",
+    "record": {
+     "kind": "SETTLEMENT",
+     "id": "illus_set_n3_taco",
+     "version": 1,
+     "label": "Statement 2026-10-18"
+    },
+    "state_at_preview": "PROVISIONAL",
+    "state_group": "DRAFT",
+    "treatment": "DRAFT_REVISE",
+    "description": "Recalculate the provisional 2026-10-18 settlement at 15%.",
+    "original_cents": "3000",
+    "corrected_cents": "4500",
+    "delta_cents": "1500",
+    "amount_label": "Commission assessed",
+    "contingent_on": null,
+    "requires_human": false
+   },
+   {
+    "item_id": "illus_ci_pay_n3",
+    "record": {
+     "kind": "PAYOUT",
+     "id": "illus_payout_n3_taco",
+     "version": 2,
+     "label": "Payout 2026-10-18"
+    },
+    "state_at_preview": "DRAFT (held)",
+    "state_group": "DRAFT",
+    "treatment": "DRAFT_REVISE",
+    "description": "Revise the held draft payout: 15% commission, less the $40.00 Night 1 overpayment offset.",
+    "original_cents": "27000",
+    "corrected_cents": "21500",
+    "delta_cents": "-5500",
+    "amount_label": "Payout amount",
+    "contingent_on": null,
+    "requires_human": false
+   },
+   {
+    "item_id": "illus_ci_pay_n2",
+    "record": {
+     "kind": "PAYOUT",
+     "id": "illus_payout_n2_taco",
+     "version": 4,
+     "label": "Payout 2026-10-17"
+    },
+    "state_at_preview": "SUBMITTED (outcome not confirmed)",
+    "state_group": "PENDING",
+    "treatment": "PENDING_CANCEL_REQUEST",
+    "description": "Request cancellation and reconcile the actual outcome. If cancelled: issue a new linked payout of $4,250.00. If the payment completes first: treat it as completed and recover the $250.00.",
+    "original_cents": "450000",
+    "corrected_cents": "425000",
+    "delta_cents": "-25000",
+    "amount_label": "Payout amount",
+    "contingent_on": null,
+    "requires_human": false
+   },
+   {
+    "item_id": "illus_ci_pay_n1",
+    "record": {
+     "kind": "PAYOUT",
+     "id": "illus_payout_n1_taco",
+     "version": 5,
+     "label": "Payout 2026-10-16"
+    },
+    "state_at_preview": "CONFIRMED (SIMULATED)",
+    "state_group": "COMPLETED",
+    "treatment": "COMPLETED_RECOVERY_OFFSET",
+    "description": "Already paid. It is not reversed or \"unsent\": the $40.00 overpayment is offset against the Night 3 draft payout.",
+    "original_cents": "72000",
+    "corrected_cents": "68000",
+    "delta_cents": "-4000",
+    "amount_label": "Payout amount",
+    "contingent_on": null,
+    "requires_human": false
+   },
+   {
+    "item_id": "illus_ci_je_n1",
+    "record": {
+     "kind": "JOURNAL_ENTRY",
+     "id": "illus_je_n1_fee_taco",
+     "version": 1,
+     "label": "Commission entry 2026-10-16"
+    },
+    "state_at_preview": "POSTED",
+    "state_group": "POSTED",
+    "treatment": "POSTED_REVERSE_AND_CORRECT",
+    "description": "Post a linked reversing entry and a correcting entry at 15%. The original entry is never edited.",
+    "original_cents": "8000",
+    "corrected_cents": "12000",
+    "delta_cents": "4000",
+    "amount_label": "Entry total",
+    "contingent_on": null,
+    "requires_human": false
+   },
+   {
+    "item_id": "illus_ci_je_n2",
+    "record": {
+     "kind": "JOURNAL_ENTRY",
+     "id": "illus_je_n2_fee_taco",
+     "version": 1,
+     "label": "Commission entry 2026-10-17"
+    },
+    "state_at_preview": "POSTED",
+    "state_group": "POSTED",
+    "treatment": "POSTED_REVERSE_AND_CORRECT",
+    "description": "Post a linked reversing entry and a correcting entry at 15%. The original entry is never edited.",
+    "original_cents": "50000",
+    "corrected_cents": "75000",
+    "delta_cents": "25000",
+    "amount_label": "Entry total",
+    "contingent_on": null,
+    "requires_human": false
+   },
+   {
+    "item_id": "illus_ci_recovery",
+    "record": {
+     "kind": "VENDOR",
+     "id": "ven_c309836b4f9601f2",
+     "version": null,
+     "label": "Taco Libre (vendor receivable)"
+    },
+    "state_at_preview": "Not yet known",
+    "state_group": "NO_REMAINING_PAYOUT",
+    "treatment": "HUMAN_RECOVERY_OR_WAIVER",
+    "description": "Only if the Night 2 payment completes before cancellation: after offsetting the remaining Night 3 payout ($215.00), $35.00 would remain. There is no later Taco Libre payout this festival, so recovery or a waiver needs a human decision. Encore does not assume future funds.",
+    "original_cents": null,
+    "corrected_cents": null,
+    "delta_cents": "3500",
+    "amount_label": "Possible unrecovered overpayment",
+    "contingent_on": "illus_ci_pay_n2",
+    "requires_human": true
+   }
+  ],
+  "totals": {
+   "fee_delta_cents": "30500",
+   "overpaid_cents": "4000",
+   "human_recovery_max_cents": "3500"
+  },
+  "steps": [
+   {
+    "step_id": "recheck",
+    "label": "Recheck in-flight releases (policy v1 already suspended)"
+   },
+   {
+    "step_id": "cancel_n2",
+    "label": "Request cancellation of the Night 2 payout and reconcile its actual outcome"
+   },
+   {
+    "step_id": "revise_n3",
+    "label": "Recalculate the Night 3 settlement and revise the held draft payout"
+   },
+   {
+    "step_id": "journal",
+    "label": "Post linked reversing and correcting journal entries (originals preserved)"
+   },
+   {
+    "step_id": "statements",
+    "label": "Reissue Night 1 and Night 2 statements as ADJUSTED"
+   },
+   {
+    "step_id": "offset",
+    "label": "Record the Night 1 overpayment offset against Night 3"
+   },
+   {
+    "step_id": "revoke",
+    "label": "Revoke policy v1 (versions and prior applications kept)"
+   }
+  ],
+  "results": [
+   {
+    "item_id": "illus_ci_set_n1",
+    "original": {
+     "kind": "SETTLEMENT",
+     "id": "illus_set_n1_taco",
+     "version": 2,
+     "label": "Statement 2026-10-16"
+    },
+    "corrected": [
+     {
+      "kind": "SETTLEMENT",
+      "id": "illus_set_n1_taco",
+      "version": 3,
+      "label": "Adjusted statement 2026-10-16"
+     }
+    ],
+    "original_cents": "8000",
+    "corrected_cents": "12000",
+    "outcome": "Statement reissued as ADJUSTED; version 2 kept."
+   },
+   {
+    "item_id": "illus_ci_set_n2",
+    "original": {
+     "kind": "SETTLEMENT",
+     "id": "illus_set_n2_taco",
+     "version": 2,
+     "label": "Statement 2026-10-17"
+    },
+    "corrected": [
+     {
+      "kind": "SETTLEMENT",
+      "id": "illus_set_n2_taco",
+      "version": 3,
+      "label": "Adjusted statement 2026-10-17"
+     }
+    ],
+    "original_cents": "50000",
+    "corrected_cents": "75000",
+    "outcome": "Statement reissued as ADJUSTED; version 2 kept."
+   },
+   {
+    "item_id": "illus_ci_set_n3",
+    "original": {
+     "kind": "SETTLEMENT",
+     "id": "illus_set_n3_taco",
+     "version": 1,
+     "label": "Statement 2026-10-18"
+    },
+    "corrected": [
+     {
+      "kind": "SETTLEMENT",
+      "id": "illus_set_n3_taco",
+      "version": 2,
+      "label": "Statement 2026-10-18"
+     }
+    ],
+    "original_cents": "3000",
+    "corrected_cents": "4500",
+    "outcome": "Provisional settlement recalculated."
+   },
+   {
+    "item_id": "illus_ci_pay_n3",
+    "original": {
+     "kind": "PAYOUT",
+     "id": "illus_payout_n3_taco",
+     "version": 2,
+     "label": "Payout 2026-10-18"
+    },
+    "corrected": [
+     {
+      "kind": "PAYOUT",
+      "id": "illus_payout_n3_taco",
+      "version": 3,
+      "label": "Payout 2026-10-18"
+     }
+    ],
+    "original_cents": "27000",
+    "corrected_cents": "21500",
+    "outcome": "Draft revised; the normal release gate still applies."
+   },
+   {
+    "item_id": "illus_ci_pay_n2",
+    "original": {
+     "kind": "PAYOUT",
+     "id": "illus_payout_n2_taco",
+     "version": 4,
+     "label": "Payout 2026-10-17"
+    },
+    "corrected": [
+     {
+      "kind": "PAYOUT",
+      "id": "illus_payout_n2_taco",
+      "version": 6,
+      "label": "Cancelled payout"
+     },
+     {
+      "kind": "PAYOUT",
+      "id": "illus_payout_n2_taco_c1",
+      "version": 1,
+      "label": "Replacement payout"
+     }
+    ],
+    "original_cents": "450000",
+    "corrected_cents": "425000",
+    "outcome": "Cancellation confirmed by the simulated rail before release; replacement drafted as a new linked obligation."
+   },
+   {
+    "item_id": "illus_ci_pay_n1",
+    "original": {
+     "kind": "PAYOUT",
+     "id": "illus_payout_n1_taco",
+     "version": 5,
+     "label": "Payout 2026-10-16"
+    },
+    "corrected": [
+     {
+      "kind": "PAYOUT",
+      "id": "illus_payout_n3_taco",
+      "version": 3,
+      "label": "Offset on the Night 3 payout"
+     }
+    ],
+    "original_cents": "72000",
+    "corrected_cents": "68000",
+    "outcome": "Confirmed payout unchanged; $40.00 overpayment offset against Night 3."
+   },
+   {
+    "item_id": "illus_ci_je_n1",
+    "original": {
+     "kind": "JOURNAL_ENTRY",
+     "id": "illus_je_n1_fee_taco",
+     "version": 1,
+     "label": "Original entry (kept)"
+    },
+    "corrected": [
+     {
+      "kind": "JOURNAL_ENTRY",
+      "id": "illus_je_n1_fee_taco_rev",
+      "version": 1,
+      "label": "Reversing entry"
+     },
+     {
+      "kind": "JOURNAL_ENTRY",
+      "id": "illus_je_n1_fee_taco_corr",
+      "version": 1,
+      "label": "Correcting entry"
+     }
+    ],
+    "original_cents": "8000",
+    "corrected_cents": "12000",
+    "outcome": "Reversed and corrected; original kept."
+   },
+   {
+    "item_id": "illus_ci_je_n2",
+    "original": {
+     "kind": "JOURNAL_ENTRY",
+     "id": "illus_je_n2_fee_taco",
+     "version": 1,
+     "label": "Original entry (kept)"
+    },
+    "corrected": [
+     {
+      "kind": "JOURNAL_ENTRY",
+      "id": "illus_je_n2_fee_taco_rev",
+      "version": 1,
+      "label": "Reversing entry"
+     },
+     {
+      "kind": "JOURNAL_ENTRY",
+      "id": "illus_je_n2_fee_taco_corr",
+      "version": 1,
+      "label": "Correcting entry"
+     }
+    ],
+    "original_cents": "50000",
+    "corrected_cents": "75000",
+    "outcome": "Reversed and corrected; original kept."
+   },
+   {
+    "item_id": "illus_ci_recovery",
+    "original": {
+     "kind": "VENDOR",
+     "id": "ven_c309836b4f9601f2",
+     "version": null,
+     "label": "Taco Libre (vendor receivable)"
+    },
+    "corrected": [],
+    "original_cents": null,
+    "corrected_cents": null,
+    "outcome": "Not needed: the Night 2 cancellation succeeded, so no human recovery or waiver was opened."
+   }
+  ],
+  "completion_events": [
+   {
+    "type": "payout.cancel_requested",
+    "category": "INTENT",
+    "summary": "Cancellation requested for the Night 2 payout (outcome not yet known).",
+    "actor_type": "SYSTEM",
+    "actor_id": "system:correction",
+    "aggregate_type": "PAYOUT",
+    "aggregate_id": "illus_payout_n2_taco",
+    "aggregate_version": 5,
+    "vendor_id": "ven_c309836b4f9601f2",
+    "run_id": "illus_run_n2",
+    "business_date": "2026-10-17",
+    "links": [
+     {
+      "kind": "PAYOUT",
+      "id": "illus_payout_n2_taco",
+      "version": null,
+      "label": null
+     }
+    ]
+   },
+   {
+    "type": "payout.cancelled",
+    "category": "EFFECT",
+    "summary": "Simulated rail confirmed the cancellation: the Night 2 payment was not released.",
+    "actor_type": "EXTERNAL",
+    "actor_id": "external:simulated-rail",
+    "aggregate_type": "PAYOUT",
+    "aggregate_id": "illus_payout_n2_taco",
+    "aggregate_version": 6,
+    "vendor_id": "ven_c309836b4f9601f2",
+    "run_id": "illus_run_n2",
+    "business_date": "2026-10-17",
+    "links": [
+     {
+      "kind": "PAYOUT",
+      "id": "illus_payout_n2_taco",
+      "version": null,
+      "label": null
+     }
+    ]
+   },
+   {
+    "type": "payout.replacement_drafted",
+    "category": "FACT",
+    "summary": "Replacement Night 2 payout drafted at $4,250.00 as a new linked obligation.",
+    "actor_type": "SYSTEM",
+    "actor_id": "system:correction",
+    "aggregate_type": "PAYOUT",
+    "aggregate_id": "illus_payout_n2_taco_c1",
+    "aggregate_version": 1,
+    "vendor_id": "ven_c309836b4f9601f2",
+    "run_id": "illus_run_n2",
+    "business_date": "2026-10-17",
+    "links": [
+     {
+      "kind": "PAYOUT",
+      "id": "illus_payout_n2_taco_c1",
+      "version": null,
+      "label": null
+     },
+     {
+      "kind": "PAYOUT",
+      "id": "illus_payout_n2_taco",
+      "version": null,
+      "label": null
+     }
+    ]
+   },
+   {
+    "type": "settlement.recalculated",
+    "category": "PROJECTION",
+    "summary": "Night 3 settlement recalculated at 15%: commission $45.00.",
+    "actor_type": "SYSTEM",
+    "actor_id": "system:settlement-engine",
+    "aggregate_type": "SETTLEMENT",
+    "aggregate_id": "illus_set_n3_taco",
+    "aggregate_version": 2,
+    "vendor_id": "ven_c309836b4f9601f2",
+    "run_id": "illus_run_n3",
+    "business_date": "2026-10-18",
+    "links": [
+     {
+      "kind": "SETTLEMENT",
+      "id": "illus_set_n3_taco",
+      "version": null,
+      "label": null
+     }
+    ]
+   },
+   {
+    "type": "payout.revised",
+    "category": "FACT",
+    "summary": "Night 3 draft payout revised to $215.00 (15% and the $40.00 Night 1 offset).",
+    "actor_type": "SYSTEM",
+    "actor_id": "system:correction",
+    "aggregate_type": "PAYOUT",
+    "aggregate_id": "illus_payout_n3_taco",
+    "aggregate_version": 3,
+    "vendor_id": "ven_c309836b4f9601f2",
+    "run_id": "illus_run_n3",
+    "business_date": "2026-10-18",
+    "links": [
+     {
+      "kind": "PAYOUT",
+      "id": "illus_payout_n3_taco",
+      "version": null,
+      "label": null
+     },
+     {
+      "kind": "PAYOUT",
+      "id": "illus_payout_n1_taco",
+      "version": null,
+      "label": null
+     }
+    ]
+   },
+   {
+    "type": "journal.reversed",
+    "category": "FACT",
+    "summary": "Reversing entry posted for the Night 1 commission entry (original kept).",
+    "actor_type": "SYSTEM",
+    "actor_id": "system:posting",
+    "aggregate_type": "JOURNAL_ENTRY",
+    "aggregate_id": "illus_je_n1_fee_taco_rev",
+    "aggregate_version": 1,
+    "vendor_id": "ven_c309836b4f9601f2",
+    "run_id": null,
+    "business_date": "2026-10-16",
+    "links": [
+     {
+      "kind": "JOURNAL_ENTRY",
+      "id": "illus_je_n1_fee_taco_rev",
+      "version": null,
+      "label": null
+     },
+     {
+      "kind": "JOURNAL_ENTRY",
+      "id": "illus_je_n1_fee_taco",
+      "version": null,
+      "label": null
+     }
+    ]
+   },
+   {
+    "type": "journal.corrected",
+    "category": "FACT",
+    "summary": "Correcting entry posted: Night 1 commission $120.00.",
+    "actor_type": "SYSTEM",
+    "actor_id": "system:posting",
+    "aggregate_type": "JOURNAL_ENTRY",
+    "aggregate_id": "illus_je_n1_fee_taco_corr",
+    "aggregate_version": 1,
+    "vendor_id": "ven_c309836b4f9601f2",
+    "run_id": null,
+    "business_date": "2026-10-16",
+    "links": [
+     {
+      "kind": "JOURNAL_ENTRY",
+      "id": "illus_je_n1_fee_taco_corr",
+      "version": null,
+      "label": null
+     },
+     {
+      "kind": "JOURNAL_ENTRY",
+      "id": "illus_je_n1_fee_taco",
+      "version": null,
+      "label": null
+     }
+    ]
+   },
+   {
+    "type": "journal.reversed",
+    "category": "FACT",
+    "summary": "Reversing entry posted for the Night 2 commission entry (original kept).",
+    "actor_type": "SYSTEM",
+    "actor_id": "system:posting",
+    "aggregate_type": "JOURNAL_ENTRY",
+    "aggregate_id": "illus_je_n2_fee_taco_rev",
+    "aggregate_version": 1,
+    "vendor_id": "ven_c309836b4f9601f2",
+    "run_id": null,
+    "business_date": "2026-10-17",
+    "links": [
+     {
+      "kind": "JOURNAL_ENTRY",
+      "id": "illus_je_n2_fee_taco_rev",
+      "version": null,
+      "label": null
+     },
+     {
+      "kind": "JOURNAL_ENTRY",
+      "id": "illus_je_n2_fee_taco",
+      "version": null,
+      "label": null
+     }
+    ]
+   },
+   {
+    "type": "journal.corrected",
+    "category": "FACT",
+    "summary": "Correcting entry posted: Night 2 commission $750.00.",
+    "actor_type": "SYSTEM",
+    "actor_id": "system:posting",
+    "aggregate_type": "JOURNAL_ENTRY",
+    "aggregate_id": "illus_je_n2_fee_taco_corr",
+    "aggregate_version": 1,
+    "vendor_id": "ven_c309836b4f9601f2",
+    "run_id": null,
+    "business_date": "2026-10-17",
+    "links": [
+     {
+      "kind": "JOURNAL_ENTRY",
+      "id": "illus_je_n2_fee_taco_corr",
+      "version": null,
+      "label": null
+     },
+     {
+      "kind": "JOURNAL_ENTRY",
+      "id": "illus_je_n2_fee_taco",
+      "version": null,
+      "label": null
+     }
+    ]
+   },
+   {
+    "type": "settlement.statement_reissued",
+    "category": "FACT",
+    "summary": "Night 1 and Night 2 statements reissued as ADJUSTED; previous versions kept.",
+    "actor_type": "SYSTEM",
+    "actor_id": "system:statements",
+    "aggregate_type": "SETTLEMENT",
+    "aggregate_id": "illus_set_n1_taco",
+    "aggregate_version": 3,
+    "vendor_id": "ven_c309836b4f9601f2",
+    "run_id": null,
+    "business_date": "2026-10-16",
+    "links": [
+     {
+      "kind": "SETTLEMENT",
+      "id": "illus_set_n1_taco",
+      "version": null,
+      "label": null
+     },
+     {
+      "kind": "SETTLEMENT",
+      "id": "illus_set_n2_taco",
+      "version": null,
+      "label": null
+     }
+    ]
+   },
+   {
+    "type": "policy.revoked",
+    "category": "FACT",
+    "summary": "Policy v1 revoked by the approved correction. Versions and prior applications are kept.",
+    "actor_type": "SYSTEM",
+    "actor_id": "system:policy-engine",
+    "aggregate_type": "POLICY_VERSION",
+    "aggregate_id": "illus_pv_taco_rate_v1",
+    "aggregate_version": 4,
+    "vendor_id": "ven_c309836b4f9601f2",
+    "run_id": null,
+    "business_date": null,
+    "links": [
+     {
+      "kind": "POLICY_VERSION",
+      "id": "illus_pv_taco_rate_v1",
+      "version": null,
+      "label": null
+     }
+    ]
+   }
+  ]
+ },
+ "branch_scenarios": [
+  {
+   "overrides": [
+    {
+     "policy_version_id": "illus_pv_taco_rate_v1",
+     "commission_bps": 1500
+    }
+   ],
+   "comparison": [
+    {
+     "record": {
+      "kind": "SETTLEMENT",
+      "id": "illus_set_n1_taco",
+      "version": null,
+      "label": "Commission, 2026-10-16"
+     },
+     "label": "Commission assessed, Night 1",
+     "production_cents": "8000",
+     "branch_cents": "12000",
+     "delta_cents": "4000"
+    },
+    {
+     "record": {
+      "kind": "SETTLEMENT",
+      "id": "illus_set_n2_taco",
+      "version": null,
+      "label": "Commission, 2026-10-17"
+     },
+     "label": "Commission assessed, Night 2",
+     "production_cents": "50000",
+     "branch_cents": "75000",
+     "delta_cents": "25000"
+    },
+    {
+     "record": {
+      "kind": "SETTLEMENT",
+      "id": "illus_set_n3_taco",
+      "version": null,
+      "label": "Commission, 2026-10-18"
+     },
+     "label": "Commission assessed, Night 3",
+     "production_cents": "3000",
+     "branch_cents": "4500",
+     "delta_cents": "1500"
+    },
+    {
+     "record": {
+      "kind": "PAYOUT",
+      "id": "illus_payout_n1_taco",
+      "version": null,
+      "label": "Payout, 2026-10-16"
+     },
+     "label": "Payout entitlement, Night 1",
+     "production_cents": "72000",
+     "branch_cents": "68000",
+     "delta_cents": "-4000"
+    },
+    {
+     "record": {
+      "kind": "PAYOUT",
+      "id": "illus_payout_n2_taco",
+      "version": null,
+      "label": "Payout, 2026-10-17"
+     },
+     "label": "Payout entitlement, Night 2",
+     "production_cents": "450000",
+     "branch_cents": "425000",
+     "delta_cents": "-25000"
+    },
+    {
+     "record": {
+      "kind": "PAYOUT",
+      "id": "illus_payout_n3_taco",
+      "version": null,
+      "label": "Payout, 2026-10-18"
+     },
+     "label": "Payout entitlement, Night 3",
+     "production_cents": "27000",
+     "branch_cents": "25500",
+     "delta_cents": "-1500"
+    }
+   ],
+   "note": "Branch figures are recalculated in isolated storage. They are not production and changed nothing."
+  }
+ ],
+ "branches": [
+  {
+   "id": "illus_branch_taco_15",
+   "version": 2,
+   "status": "READY",
+   "label": "What if Taco Libre stayed at the contract 15%?",
+   "base_knowledge_cutoff": "2026-10-19T16:45:00Z",
+   "business_date": null,
+   "overrides": [
+    {
+     "policy_version_id": "illus_pv_taco_rate_v1",
+     "commission_bps": 1500
+    }
+   ],
+   "isolation": {
+    "storage": "ISOLATED",
+    "external_effects": "DISABLED",
+    "production_writes": "NONE"
+   },
+   "comparison": [
+    {
+     "record": {
+      "kind": "SETTLEMENT",
+      "id": "illus_set_n1_taco",
+      "version": null,
+      "label": "Commission, 2026-10-16"
+     },
+     "label": "Commission assessed, Night 1",
+     "production_cents": "8000",
+     "branch_cents": "12000",
+     "delta_cents": "4000"
+    },
+    {
+     "record": {
+      "kind": "SETTLEMENT",
+      "id": "illus_set_n2_taco",
+      "version": null,
+      "label": "Commission, 2026-10-17"
+     },
+     "label": "Commission assessed, Night 2",
+     "production_cents": "50000",
+     "branch_cents": "75000",
+     "delta_cents": "25000"
+    },
+    {
+     "record": {
+      "kind": "SETTLEMENT",
+      "id": "illus_set_n3_taco",
+      "version": null,
+      "label": "Commission, 2026-10-18"
+     },
+     "label": "Commission assessed, Night 3",
+     "production_cents": "3000",
+     "branch_cents": "4500",
+     "delta_cents": "1500"
+    },
+    {
+     "record": {
+      "kind": "PAYOUT",
+      "id": "illus_payout_n1_taco",
+      "version": null,
+      "label": "Payout, 2026-10-16"
+     },
+     "label": "Payout entitlement, Night 1",
+     "production_cents": "72000",
+     "branch_cents": "68000",
+     "delta_cents": "-4000"
+    },
+    {
+     "record": {
+      "kind": "PAYOUT",
+      "id": "illus_payout_n2_taco",
+      "version": null,
+      "label": "Payout, 2026-10-17"
+     },
+     "label": "Payout entitlement, Night 2",
+     "production_cents": "450000",
+     "branch_cents": "425000",
+     "delta_cents": "-25000"
+    },
+    {
+     "record": {
+      "kind": "PAYOUT",
+      "id": "illus_payout_n3_taco",
+      "version": null,
+      "label": "Payout, 2026-10-18"
+     },
+     "label": "Payout entitlement, Night 3",
+     "production_cents": "27000",
+     "branch_cents": "25500",
+     "delta_cents": "-1500"
+    }
+   ],
+   "note": "Branch figures are recalculated in isolated storage. They are not production and changed nothing.",
+   "created_by": "illus_actor_maya",
+   "created_at": "2026-10-19T17:10:00Z"
+  }
+ ],
+ "replays": [
+  {
+   "id": "illus_replay_n1",
+   "version": 3,
+   "status": "COMPLETED",
+   "mode": "RECORDED_RESULTS_ONLY",
+   "run_id": "illus_run_n1",
+   "from_sequence": 1,
+   "to_sequence": 12,
+   "effects": {
+    "live_model_calls": 0,
+    "payment_effects": 0,
+    "production_postings": 0
+   },
+   "processed": 12,
+   "total": 12,
+   "matching": 12,
+   "divergences": [],
+   "created_by": "illus_actor_maya",
+   "created_at": "2026-10-19T17:20:00Z",
+   "completed_at": "2026-10-19T17:20:40Z"
+  }
+ ],
+ "replay_totals": {
+  "illus_run_n1": 12,
+  "illus_run_n2": 7,
+  "illus_run_n3": 5
+ }
+}
