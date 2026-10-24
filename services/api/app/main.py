@@ -16,6 +16,7 @@ from app.routers import (
     cash_office,
     corrections,
     example,
+    festivals,
     finance,
     health,
     imports,
@@ -85,6 +86,7 @@ app.include_router(agents.router)
 app.include_router(orchestration.router)
 app.include_router(recorder.router)
 app.include_router(corrections.router)
+app.include_router(festivals.router)
 
 
 @app.get("/")
