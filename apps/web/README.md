@@ -1,6 +1,6 @@
 # Encore web (apps/web, lane B)
 
-Status: B03 foundation, **DRAFT**. Built against a lane-B transcription of CONTRACTS.md v0.1 (C01/C03/C04), which is not frozen. Owner: lane B.
+Status: B03 foundation + B04 core screens, **DRAFT**. B04 integration acceptance is **blocked on lane A endpoints (A03–A06)**; the screens have only run against the dev/test fixture transport. Built against a lane-B transcription of CONTRACTS.md v0.1 (C01/C03/C04), which is not frozen. Owner: lane B.
 
 This is a standalone React + TypeScript app. It has a light, number-first operator shell with a left sidebar, and placeholder routes for the finance screens that B04–B06 will fill. It also contains a typed API client generated from a draft OpenAPI document, a dev/test-only fixture mode, and these accessible primitives:
 - tables;
@@ -50,7 +50,9 @@ Fixture mode is dev/test-only. It is enforced in four places:
 
 Live mode never falls back to fixtures. API failures render the matching error state.
 
-The fixture transport serves **inputs only**: festival, vendors, orders, payments, bank entries, processor batches, cash counts and source documents. It does not fake backend outputs. Runs, settlements, cases, payouts, journal and the other output routes answer `501 FIXTURE_ROUTE_NOT_AVAILABLE`, and commands are refused. It never reads `tests/oracle/` or `dev_only/`. Only one test reads `dev_only/evidence_locators.json`, to exercise the evidence drawer.
+By default the fixture transport serves **inputs only**: festival, vendors, orders, payments, bank entries, processor batches, cash counts and source documents. Output routes answer `501 FIXTURE_ROUTE_NOT_AVAILABLE` and commands are refused. It never reads `tests/oracle/` or `dev_only/`. Only one test reads `dev_only/evidence_locators.json`, to exercise the evidence drawer.
+
+**ILLUSTRATIVE outputs (B04, opt-in).** `src/fixtures/illustrative/outputs_v1.json` holds a small set of hand-authored runs, vendor runs, settlements, cases, policy versions and match groups so the B04 screens can be developed. They are **not oracle-derived, not calculated from the inputs and not expected answers**; every id starts with `illus_`. `npm run dev:fixtures` and the B04 tests enable them (`createFixtureTransport({ illustrativeOutputs: true })`), and the UI labels them "ILLUSTRATIVE sample output". With outputs on, the transport also answers `POST /cases/{id}/resolve` and `POST /policies/{id}/approve` with the C03 HTTP semantics the UI must handle (Idempotency-Key replay and reuse 409, version 409 with `current_version`, capability 403, 422 for invalid transitions, evidence or scope mismatch). This is a UI stand-in, not lane A's rules. Payouts, journal and other B05/B06 outputs stay 501. The production bundle guard also scans for every `illus_` id.
 
 ## Environment variables (public only)
 
@@ -73,6 +75,26 @@ Everything prefixed `VITE_` is compiled into the browser bundle, so never put se
 - `errors.ts`: maps statuses to error kinds: 401 unauthenticated, 403 forbidden, 404, 409 conflict (with `current_version`), 422 invalid (with `field_errors`), 429 (with Retry-After), 503 unavailable, network and malformed. Non-contract error bodies are replaced with safe generic text.
 - `sse.ts`: a fetch-based SSE client for `/events/stream`. It resumes from the last cursor (query param plus `Last-Event-ID`) and deduplicates by `event_id` and `stream_sequence`. A sequence gap, a 410 expired cursor or an in-band `stream.resync_required` triggers `onResync`, which refetches projections; after 410 or a resync it reconnects without a cursor. Reconnects use exponential backoff with jitter and honour Retry-After. It stops on 401/403. Events only invalidate queries and never touch capabilities.
 - `capabilities.ts`: controls are driven by `GET /session` capabilities (a proposal, Q22). The server still enforces everything.
+
+## B04 screens
+
+| Route | Screen |
+|---|---|
+| `/` | Festival facts, recent close runs (selected run kept in `?run=`), server vendor counts, live vendor pipeline (C04 milestones, HELD/FAILED with reasons), exceptions waiting for a decision |
+| `/runs`, `/runs/:id` | Run projections and the per-vendor pipeline (filter `?state=`) |
+| `/reconciliation`, `/reconciliation/:id` | Match groups: members with matched amounts (DA39 pairing), variance, reason code, status, explanation, case link, source evidence |
+| `/settlements`, `/settlements/:id` | Server figures (fee assessed/collected, payout, unpaid), line items grouped by treatment, tax and tips shown as PROTECTED, holds with reason, provisional/held statement label, calculation version, manifest hash, applied-rule badges |
+| `/cases`, `/cases/:id` | Evidence, server impact, agent proposal (labelled as not an approval), state/version, required capability, decision on record, auto-resolution by policy with citation |
+| `/policies`, `/policies/:id` | Versions, scope, predicates, effect, validity, status, approval, origin case, version history, challenge entry point (stub link for B06) |
+
+Decisions (`src/hooks/useCommand.ts`, `Cases.tsx`, `Policies.tsx`):
+- **One-time case resolution** (`POST /cases/{id}/resolve`, payload `ResolveCasePayload`) and **reusable policy approval** (`POST /policies/{id}/approve`, payload `ApprovePolicyPayload`) are separate panels and separate commands. Neither implies the other.
+- Each decision has a review step that shows exactly what is sent: action, target, `expected_version` (case `version`, policy `record_version`), evidence hash and scope. The command id and Idempotency-Key are fixed when the review opens.
+- If the record's version or evidence hash changes during review, the prepared command is discarded and the user must review again.
+- While pending, the button is disabled and a double click sends one request. Success is shown only after a 200 with an authoritative version (or a SUCCEEDED job after a 202).
+- 409 refetches and shows the current version. 422 shows field errors. 403 reloads the session. Network, 429 and 5xx failures offer "Retry safely" with the same key and body.
+- Controls render only if `GET /session` grants the record's `required_capability`. The server still decides.
+- Refresh: the chosen option is kept in `?decision=`; confirmed decisions come back from the server.
 
 ## Money and dates
 
@@ -105,5 +127,6 @@ src/components/                      DataTable, EvidenceDrawer, FilterBar, Pagin
 src/fixtures/                        dev/test fixture transport (+ data-free production stub)
 src/hooks/                           useApiQuery, useListParams (URL-backed list state)
 src/lib/                             money and time formatting
-src/screens/                         Overview, Source records, placeholders
+src/screens/                         Overview, runs, reconciliation, settlements, cases, policies, source records, placeholders
+src/fixtures/illustrative/           ILLUSTRATIVE hand-authored outputs (dev/test only)
 ```
