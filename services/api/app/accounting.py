@@ -38,6 +38,7 @@ from sqlalchemy import func, select, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
+from app.effects_guard import assert_effects_allowed
 from app.models import _new_id
 from app.models_finance import Account, DailyClose, PostingRuleVersion
 from app.models_ledger import JournalEntry, JournalLine, Order, Payment, Vendor
@@ -144,6 +145,8 @@ def post_cumulative(
     """Make the journal family for `base_key` sum to `lines`. See module
     docstring. `lines` may be empty only when correcting an existing family
     back to zero (e.g. a fully credited invoice)."""
+    # A09: replay/what-if never post to the production books.
+    assert_effects_allowed("production_posting")
     ensure_chart(db)
     db.execute(text("SELECT pg_advisory_xact_lock(hashtext(:k))"), {"k": base_key})
     family = _family(db, base_key)

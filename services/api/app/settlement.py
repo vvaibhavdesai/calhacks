@@ -56,6 +56,7 @@ from domain.settlement import (
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.holds import active_vendor_hold
 from app.models_ledger import Order, Payment, Payout, Vendor, VendorContractTerm
 from app.models_reconciliation import BankEntry, MatchGroup, MatchGroupMember
 from app.models_settlement import Settlement, SettlementLineItem
@@ -326,20 +327,34 @@ def gather_cumulative_history(
     db: Session, vendor_id: str, festival_id: str, before_business_date: date
 ) -> tuple[int, int]:
     """Returns (cumulative_eligible_sales_cents, cumulative_commission_
-    assessed_prior_cents) summed over this vendor's ORIGINAL (correction_of
-    IS NULL), FINAL settlements for business dates strictly before
-    `before_business_date`."""
+    assessed_prior_cents) summed over the LIVE version of each of this
+    vendor's settlement chains for business dates strictly before
+    `before_business_date`.
+
+    A09 change: this used to sum only ORIGINAL (correction_of IS NULL)
+    FINAL rows. Once a correction exists (a late refund, or an approved
+    A09 rate correction), the original's assessed fee is no longer what the
+    vendor was charged for that night -- summing it would make the next
+    night's cumulative increment re-charge (or re-credit) the delta the
+    correction already booked. The live version of a chain is the row no
+    other row's `correction_of` points at."""
     rows = db.execute(
-        select(Settlement.eligible_sales_cents, Settlement.assessed_fee_cents).where(
+        select(
+            Settlement.id,
+            Settlement.correction_of,
+            Settlement.eligible_sales_cents,
+            Settlement.assessed_fee_cents,
+        ).where(
             Settlement.vendor_id == vendor_id,
             Settlement.festival_id == festival_id,
             Settlement.business_date < before_business_date,
-            Settlement.status == "FINAL",
-            Settlement.correction_of.is_(None),
+            Settlement.status.in_(("FINAL", "CORRECTION")),
         )
     ).all()
-    cumulative_eligible = sum(r[0] for r in rows)
-    cumulative_assessed = sum(r[1] for r in rows)
+    superseded = {r[1] for r in rows if r[1]}
+    live = [r for r in rows if r[0] not in superseded]
+    cumulative_eligible = sum(r[2] for r in live)
+    cumulative_assessed = sum(r[3] for r in live)
     return cumulative_eligible, cumulative_assessed
 
 
@@ -455,20 +470,42 @@ def calculate_and_record_settlement(
     )
 
     holds = [{"reason": r["reason"], **r} for r in facts.held_reasons]
+    # A09: while a challenge of this vendor's terms is open, a new
+    # calculation still runs (statements are due regardless) but is marked
+    # held, and app/payout_dispatch.py refuses to release against it.
+    vendor_hold = active_vendor_hold(db, vendor.id)
+    if vendor_hold is not None:
+        holds.append(
+            {
+                "reason": vendor_hold.reason_code,
+                "hold_id": vendor_hold.id,
+                "source_kind": vendor_hold.source_kind,
+                "source_id": vendor_hold.source_id,
+            }
+        )
 
     # Does a settlement already exist for this exact vendor/day with a
     # CONFIRMED payout? If so, route through the correction path.
-    prior_settlement = db.execute(
-        select(Settlement)
-        .where(
-            Settlement.vendor_id == vendor.id,
-            Settlement.festival_id == festival_id,
-            Settlement.business_date == business_date_,
-            Settlement.status == "FINAL",
+    # A09: the prior is the LIVE version of the chain (an earlier
+    # correction counts), so a second recalculation extends the chain
+    # instead of forking a second correction off the original.
+    same_day = (
+        db.execute(
+            select(Settlement)
+            .where(
+                Settlement.vendor_id == vendor.id,
+                Settlement.festival_id == festival_id,
+                Settlement.business_date == business_date_,
+                Settlement.status.in_(("FINAL", "CORRECTION")),
+            )
+            .order_by(Settlement.created_at.desc())
         )
-        .order_by(Settlement.created_at.desc())
-        .limit(1)
-    ).scalar_one_or_none()
+        .scalars()
+        .all()
+    )
+    superseded_ids = {s.correction_of for s in same_day if s.correction_of}
+    live_same_day = [s for s in same_day if s.id not in superseded_ids]
+    prior_settlement = live_same_day[0] if live_same_day else None
 
     is_correction = False
     adjustment = None
@@ -476,7 +513,13 @@ def calculate_and_record_settlement(
     amount_already_paid_cents = 0
 
     if prior_settlement is not None:
-        confirmed_payout = find_confirmed_payout(db, vendor.id, prior_settlement.id)
+        confirmed_payout = None
+        chain_node = prior_settlement
+        while chain_node is not None and confirmed_payout is None:
+            confirmed_payout = find_confirmed_payout(db, vendor.id, chain_node.id)
+            chain_node = (
+                db.get(Settlement, chain_node.correction_of) if chain_node.correction_of else None
+            )
         if confirmed_payout is not None:
             is_correction = True
             corrected_settlement_id = prior_settlement.id
@@ -584,6 +627,7 @@ def calculate_and_record_settlement(
             "business_date": business_date_.isoformat(),
             "is_final_period": is_final_period,
             "calculation_version": CALCULATION_VERSION,
+            "commission_bps_used": commission_bps,
             "assessed_fee_cents": result.fee_assessed_cents,
             "payout_cents": result.vendor_payout_cents,
             "unpaid_balance_cents": result.unpaid_balance_cents,

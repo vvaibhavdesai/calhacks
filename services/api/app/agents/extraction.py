@@ -41,6 +41,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
+from app.effects_guard import assert_effects_allowed
 from app.models_agents import DocumentClaim, DocumentExtraction
 from app.models_ledger import SourceDocument, SourceVersion, Vendor
 from app.storage.base import DocumentStorage
@@ -409,6 +410,8 @@ def extract_document(
 
 
 def make_client() -> anthropic.Anthropic:
+    # A09: replay/what-if never make a fresh model call (C06).
+    assert_effects_allowed("live_model_call")
     key = get_settings().anthropic_api_key
     if not key:
         raise RuntimeError("ANTHROPIC_API_KEY is not configured (server-side only)")

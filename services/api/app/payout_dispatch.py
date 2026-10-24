@@ -45,6 +45,7 @@ from sqlalchemy.orm import Session
 
 import app.accounting as accounting
 import app.rail_simulator as rail_simulator
+from app.holds import active_hold_for_payout
 from app.models import CAPABILITY_APPROVE_PAYOUT, CAPABILITY_FINANCE_LEAD
 from app.models_ledger import Case, OutboxIntent, Payout, Vendor
 from app.models_payout_dispatch import CashPool, PayoutApproval, VendorDayPayoutAggregate
@@ -168,8 +169,22 @@ def _append_payout_event(
         actor_capability=actor_capability,
         occurred_at=datetime.now(UTC),
         vendor_id=payout.vendor_id,
-        payload=payload,
-        lineage_refs=[{"ref_kind": "payout", "ref_id": payout.id}],
+        # A09: every payout event records the state and amount it left the
+        # payout in, so the flight recorder can rebuild payout history from
+        # events alone (app/history.py) instead of from the mutable row.
+        payload={
+            **payload,
+            "state_after": payout.state,
+            "amount_cents_after": payout.amount_cents,
+            "business_date": payout.business_date.isoformat(),
+            "settlement_id": payout.settlement_id,
+        },
+        lineage_refs=[{"ref_kind": "payout", "ref_id": payout.id}]
+        + (
+            [{"ref_kind": "settlement", "ref_id": payout.settlement_id}]
+            if payout.settlement_id
+            else []
+        ),
     )
 
 
@@ -542,6 +557,26 @@ def release_payout(
             actor_capability=actor_capability,
         )
 
+    # 3b. A09 work holds: an open challenge of the rule/result this vendor's
+    # money depends on, or an undecided vendor recovery, blocks release
+    # regardless of amount or approval.
+    hold = active_hold_for_payout(
+        db, vendor_id=payout.vendor_id, payout_id=payout.id, settlement_id=payout.settlement_id
+    )
+    if hold is not None:
+        _block(
+            db,
+            payout,
+            reason_code=hold.reason_code,
+            details={
+                "hold_id": hold.id,
+                "source_kind": hold.source_kind,
+                "source_id": hold.source_id,
+            },
+            actor_id=actor_id,
+            actor_capability=actor_capability,
+        )
+
     # 4. Beneficiary/vendor-terms version unchanged since approval.
     vendor = db.get(Vendor, payout.vendor_id)
     if vendor is None or vendor.version != payout.beneficiary_version:
@@ -642,6 +677,10 @@ def release_payout(
             "amount_cents": payout.amount_cents,
             "committed_prior_cents": check.committed_prior_cents,
             "projected_total_cents": check.projected_total_cents,
+            "state_after": payout.state,
+            "amount_cents_after": payout.amount_cents,
+            "business_date": payout.business_date.isoformat(),
+            "settlement_id": payout.settlement_id,
         },
         lineage_refs=[{"ref_kind": "payout", "ref_id": payout.id}],
     )
@@ -724,6 +763,28 @@ def dispatch_payout(
     if intent is None:
         raise RuntimeError(
             f"no outbox intent for payout {payout.id} -- release_payout must run first"
+        )
+
+    # A09 recheck at execution: a challenge that landed after release holds
+    # the dispatch too, as long as the rail has not been contacted yet (once
+    # it has, only cancellation/reconciliation can follow -- never a pretend
+    # "unsent").
+    hold = active_hold_for_payout(
+        db, vendor_id=payout.vendor_id, payout_id=payout.id, settlement_id=payout.settlement_id
+    )
+    if hold is not None and rail_simulator.lookup(db, payout.idempotency_key) is None:
+        _block(
+            db,
+            payout,
+            reason_code=hold.reason_code,
+            details={
+                "hold_id": hold.id,
+                "source_kind": hold.source_kind,
+                "source_id": hold.source_id,
+                "stage": "dispatch",
+            },
+            actor_id=actor_id,
+            actor_capability=actor_capability,
         )
 
     # Nothing on `db` is mutated above this line (only SELECTs/locks) --

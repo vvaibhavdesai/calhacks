@@ -9,12 +9,14 @@ from app.routers import (
     agents,
     auth,
     cases,
+    corrections,
     example,
     finance,
     health,
     imports,
     payouts,
     reconciliation,
+    recorder,
     settlement,
 )
 
@@ -44,6 +46,8 @@ app.include_router(payouts.cash_pool_router)
 app.include_router(payouts.vendors_router)
 app.include_router(finance.router)
 app.include_router(agents.router)
+app.include_router(recorder.router)
+app.include_router(corrections.router)
 
 
 @app.get("/")
