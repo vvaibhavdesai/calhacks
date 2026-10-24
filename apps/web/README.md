@@ -1,6 +1,6 @@
 # Encore web (apps/web, lane B)
 
-Status: B03 foundation + B04 core screens + B05 finance screens, **DRAFT**. B04 integration acceptance is **blocked on lane A endpoints (A03–A06)** and B05 on **A07/A08**; the screens have only run against the dev/test fixture transport. Built against a lane-B transcription of CONTRACTS.md v0.1 (C01/C03/C04), which is not frozen. Owner: lane B.
+Status: B03 foundation + B04 core screens + B05 finance screens + B06 recorder and correction UX, **DRAFT**. B04 integration acceptance is **blocked on lane A endpoints (A03–A06)**, B05 on **A07/A08** and B06 on **A02/A09**; the screens have only run against the dev/test fixture transport. Built against a lane-B transcription of CONTRACTS.md v0.1 (C01/C03/C04), which is not frozen. Owner: lane B.
 
 This is a standalone React + TypeScript app. It has a light, number-first operator shell with a left sidebar, and placeholder routes for the finance screens that B04–B06 will fill. It also contains a typed API client generated from a draft OpenAPI document, a dev/test-only fixture mode, and these accessible primitives:
 - tables;
@@ -19,7 +19,8 @@ Requires Node >= 18.18 (tested on v18.18.2) and npm 9. Versions are pinned exact
 ```sh
 cd apps/web
 npm ci
-npm run dev:fixtures   # dev server on compact_v1 fixture data (FIXTURE DATA banner)
+npm run dev:fixtures   # dev server on compact_v1 fixture data + ILLUSTRATIVE night3 story (FIXTURE DATA banner)
+npm run dev:fixtures:night1   # same, but the B04/B05 Night 1 illustrative data only (Taco Libre case still open)
 npm run dev            # dev server in live mode against /api/v1 (no backend exists yet)
 ```
 
@@ -54,7 +55,9 @@ By default the fixture transport serves **inputs only**: festival, vendors, orde
 
 **ILLUSTRATIVE outputs (B04, opt-in).** `src/fixtures/illustrative/outputs_v1.json` holds a small set of hand-authored runs, vendor runs, settlements, cases, policy versions and match groups so the B04 screens can be developed. They are **not oracle-derived, not calculated from the inputs and not expected answers**; every id starts with `illus_`. `npm run dev:fixtures` and the B04 tests enable them (`createFixtureTransport({ illustrativeOutputs: true })`), and the UI labels them "ILLUSTRATIVE sample output". With outputs on, the transport also answers `POST /cases/{id}/resolve` and `POST /policies/{id}/approve` with the C03 HTTP semantics the UI must handle (Idempotency-Key replay and reuse 409, version 409 with `current_version`, capability 403, 422 for invalid transitions, evidence or scope mismatch). This is a UI stand-in, not lane A's rules. The production bundle guard also scans for every `illus_` id.
 
-**ILLUSTRATIVE finance outputs (B05).** `src/fixtures/illustrative/finance_v1.json` adds hand-authored payouts and a release batch, a cash position with forecast, suppliers, POs, invoices/credit notes (one flagged duplicate), supplier payments, journal entries (including a reversal + correction pair), a DRAFT tax summary and three financial reports. Same rules: `illus_` ids, invented figures, no oracle/expected/dev_only/simulator inputs, SIMULATED payouts, DRAFT, NOT FILED tax. Its server-style totals are checked for internal consistency in `illustrativeOutputs.test.ts`. The transport also answers `POST /payouts/{id}/approve` (capability 403, version 409, `AMOUNT_MISMATCH`/`BENEFICIARY_CHANGED`/`TARGET_MISMATCH`/`INVALID_TRANSITION` 422); an approval satisfies only the daily-limit check and never clears a failing hard blocker. Flight-recorder (B06) outputs stay 501.
+**ILLUSTRATIVE finance outputs (B05).** `src/fixtures/illustrative/finance_v1.json` adds hand-authored payouts and a release batch, a cash position with forecast, suppliers, POs, invoices/credit notes (one flagged duplicate), supplier payments, journal entries (including a reversal + correction pair), a DRAFT tax summary and three financial reports. Same rules: `illus_` ids, invented figures, no oracle/expected/dev_only/simulator inputs, SIMULATED payouts, DRAFT, NOT FILED tax. Its server-style totals are checked for internal consistency in `illustrativeOutputs.test.ts`. The transport also answers `POST /payouts/{id}/approve` (capability 403, version 409, `AMOUNT_MISMATCH`/`BENEFICIARY_CHANGED`/`TARGET_MISMATCH`/`INVALID_TRANSITION` 422); an approval satisfies only the daily-limit check and never clears a failing hard blocker. Flight-recorder (B06) routes stay 501 unless the night3 story is enabled (below).
+
+**ILLUSTRATIVE night3 story (B06).** `src/fixtures/illustrative/recorder_v1.json` (hand-authored, `illus_` ids, SIMULATED, not oracle-derived) overlays the B04/B05 records with the Night 3 story: the Taco Libre 10% policy approved on Night 1, reused on Night 2, then a producer follow-up email (invented, `illus_src_taco_followup`) recorded late on Night 3. `createFixtureTransport({ story: 'night3' })` (default for `npm run dev:fixtures`, via `VITE_ENCORE_FIXTURE_STORY`) adds `src/fixtures/recorderTransport.ts`, a stand-in for A09: event list/detail with filters, pin and hash chain; historical projection by knowledge-time cutoff and business date; `POST /challenges` (pauses the policy, holds dependent drafts), `POST /corrections/preview`, `POST /corrections/{id}/approve` (202 + job that advances progress and appends linked corrections; originals kept, old settlement versions served via `?version=`); `POST /branches` (only the 15% Taco Libre scenario exists) and `POST /replays`. Same HTTP semantics as before (Idempotency-Key replay, 409 `current_version`, 403, 422 codes). It is a UI stand-in, not lane A's lineage engine.
 
 ## Environment variables (public only)
 
@@ -116,6 +119,26 @@ Decisions (`src/hooks/useCommand.ts`, `Cases.tsx`, `Policies.tsx`):
 **Live updates:** all screens read through `useApiQuery`, so every SSE event or resync refetches mounted projections without a reload (tested for payouts/batches and cash).
 
 **Money guard:** the chart needs bar lengths, so `src/lib/money.ts` gained two display-only helpers (`maxAbsCents`, `centsScaleRatio`); nothing else converts cents.
+
+## B06 screens
+
+| Route | Screen |
+|---|---|
+| `/recorder` | Flight-recorder timeline, newest first. Filters (category, actor type/id, event type, record kind/id, run, vendor, branch stream, correlation id, recorded from/to in Pacific time) live in the URL. Each event shows its category in words (Fact / Agent proposal — not an approval / Attempted action — not confirmed / Confirmed effect / Derived projection), recorded vs occurred time, "Recorded later, effective earlier" flag, actor + capability, record/version, run and vendor links; Details shows event/stream/sequence, correlation/causation/command ids, model/prompt/tool/config/calculation/posting versions, policy versions, hash/previous hash (with a display-only chain check), linked records and sources in the evidence drawer. |
+| `/recorder/events/:id` | One event, expanded. |
+| `/recorder/history` | Historical state: knowledge-time cutoff ("as known then") chosen separately from the business-date filter; labelled with the cutoff, snapshot (cursor, schema version, state hash) and events applied. Facts recorded after the cutoff but effective at or before it are listed separately, never merged. GET only. |
+| `/recorder/replays`, `/recorder/replays/:id` | SIDE-EFFECT-FREE label; explicit start (run, recorded-results-only), progress, server effect counters (non-zero = incident alert), divergences. No production controls. |
+| `/recorder/branches`, `/recorder/branches/:id` | "BRANCH — not production" labels; create (name, base cutoff, policy override in basis points); production vs branch comparison with server differences; no promote/merge/apply button, only a link to start a challenge in production. |
+| `/recorder/challenges/new?kind=&id=` | Challenge a policy version, settlement or payout with superseding evidence (source document + optional locator) and a reason, bound to the target's version. |
+| `/recorder/challenges/:id` | Challenge, superseding evidence, what was paused (policy SUSPENDED, held work), "Request impact preview". |
+| `/recorder/corrections/:id` | Server impact preview grouped by state (draft revise, pending cancel-request, completed offset/recovery, posted reversing/correcting entries, statements reissued, no remaining payout → human recovery/waiver), server totals, explicit approval bound to version + preview hash + evidence hash + item ids, progress, then original vs corrected with links. |
+| `/payouts/:id/trace` | Payout → the exact settlement version it pays (`settlement_version`, Q54) → applied policy versions and their human approval → the case where a human decided → source documents. |
+
+Entry points: policy detail "Challenge this policy version" (replaces the B04 stub), settlement and payout detail "Challenge", payout detail "Trace to sources".
+
+Correction/challenge commands follow the B04/B05 rules: nothing is sent before Confirm, one POST per intent (double click safe), a prepared approval is discarded if the correction's version/preview hash/evidence hash change, 409 refetches, 422 shows field errors, 403 reloads the session, and success is shown only from the server (a 202 reads "Accepted… not complete yet" until the job and the correction report COMPLETED). Capability names `challenge.create`, `correction.approve`, `branch.create`, `replay.start` are proposals (Q55); correction approval reads `Correction.required_capability`.
+
+**Live updates without jumping:** the timeline pins itself to the stream head (`?upto=`, from `EventList.head_sequence`); SSE invalidation refetches the same pinned page and counts newer matching events ("N new events — Show new events"), so scroll position, expanded details and filters stay put.
 
 ## Money and dates
 
