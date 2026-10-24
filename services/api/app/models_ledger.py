@@ -344,6 +344,94 @@ class Case(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
 
+    # --- A05 additive columns (migration 0006; 0001-0005 never edited in
+    # place). Everything below is additional state on the SAME `cases` row
+    # A02 created and A03 already produces -- not a parallel case table. ---
+
+    # `business_date` lets a per-night detector (see app/policy.py's
+    # `detect_contract_term_conflicts`) tell "the same underlying conflict,
+    # re-flagged on a LATER night" (a genuinely new Case row, one per night)
+    # apart from "the same night's detection re-run" (idempotent lookup by
+    # vendor_id+business_date+reason_code, no duplicate row). A02's Case
+    # schema had no date column at all; A03's cases don't need one (they
+    # already carry a business_date indirectly via their MatchGroup), but
+    # A05's own detector does its own case-opening directly, so it needs
+    # this to be idempotent per night.
+    business_date: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)
+
+    # The exact facts used to decide whether an ACTIVE policy's predicates
+    # match this case (domain.policy.CaseFacts.predicate_values, verbatim).
+    # Recorded at case-open time (whether the case ends up OPEN or
+    # auto-RESOLVED) so a later "approve reuse as policy" command can copy
+    # these into the new PolicyVersion's `predicates` field byte-for-byte,
+    # never re-typed/re-guessed by a human or by this code from free text.
+    predicate_values: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+
+    # --- Resolution (human OR policy-driven; never both at once) ---
+    # "approve" | "edit" | "reject" for a human decision; "auto_applied_by_
+    # policy" when `auto_resolved` is True. Never set by a fabricated actor.
+    resolution_decision: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    resolution_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # The concrete effect that was actually applied (e.g.
+    # {"commission_bps": 1000}) -- set once, by resolve_case() for a human
+    # decision or by the auto-resolve path for a policy-driven one, and
+    # copied verbatim (not re-derived) into a later PolicyVersion.effect by
+    # approve_case_policy().
+    resolution_effect: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    # The REAL authenticated user who resolved this case, or NULL when
+    # `auto_resolved` is True -- AGENT_HANDOFF.md: "record the actual
+    # person/capability, never fabricate distinct approvers." An
+    # auto-resolution is attributed to the cited policy_version, not to
+    # whichever operator happened to trigger that night's detection run.
+    resolved_by: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    resolved_capability: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # --- Recurrence / auto-resolution citation ---
+    auto_resolved: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    # `use_alter=True` + an explicit constraint name: `cases` and
+    # `policy_versions` reference each other (this column points at
+    # policy_versions.id; PolicyVersion.source_case_id below points back
+    # at cases.id), a genuine two-table FK cycle. Without `use_alter`,
+    # SQLAlchemy's `Base.metadata.create_all`/`drop_all` (used by
+    # services/api/tests/conftest.py for a fresh test schema) cannot
+    # topologically sort CREATE/DROP TABLE order and raises
+    # CircularDependencyError. `use_alter=True` defers this one
+    # constraint to a separate ALTER TABLE ADD/DROP CONSTRAINT step,
+    # breaking the cycle for metadata-driven schema creation. The actual
+    # Alembic migration (0006_case_policy_resolution) is unaffected --
+    # it already adds/drops columns in an explicit, non-metadata-sorted
+    # order -- but uses the SAME constraint name here for consistency.
+    applied_policy_version_id: Mapped[str | None] = mapped_column(
+        String(32),
+        ForeignKey(
+            "policy_versions.id",
+            ondelete="SET NULL",
+            use_alter=True,
+            name="fk_cases_applied_policy_version_id",
+        ),
+        nullable=True,
+        index=True,
+    )
+    # The earliest case whose human resolution led (via an explicit
+    # "approve reuse" command) to the policy cited above -- what a
+    # recurrence screen shows as "which original case ... resolved it"
+    # (AGENT_HANDOFF.md). NULL for that very first case itself.
+    origin_case_id: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("cases.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+
+    # --- Challenge hook (A09 builds the real workflow; this is only the
+    # data model/action hook the task asks A05 to provide) ---
+    challenge_status: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    challenged_by: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    challenged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    challenge_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+
 
 class PolicyVersion(Base):
     """One row per policy *version*. `policy_id` is the stable logical
@@ -371,6 +459,23 @@ class PolicyVersion(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+
+    # --- A05 additive columns (migration 0006) ---
+    # The case whose human resolution this policy makes reusable -- "a
+    # one-time resolution is never auto-promoted into a reusable rule";
+    # this column is the traceable link FROM the policy BACK to the one
+    # case/evidence that justified it, set only by the explicit, separate
+    # "approve reuse" command (app/policy.py's approve_case_policy),
+    # never by resolve_case() itself.
+    source_case_id: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("cases.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    # NULL while status == "DRAFT" (a policy this schema can represent but
+    # A05's own endpoints never create -- every policy this task writes is
+    # approved at creation time, same as A04's Settlement rows have no
+    # "DRAFT" status). Set once, at the moment a human capability-gated
+    # approval creates/activates this version.
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 # ---------------------------------------------------------------------------
