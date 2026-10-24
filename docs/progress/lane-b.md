@@ -702,3 +702,100 @@ Not run: Playwright/browser E2E, any real-API test, CI, integration with lane A.
 
 - Lane A: review Q38–Q45 and DA46–DA54 together with Q1–Q37. When A07/A08 endpoints exist, swap the draft contract (README procedure), run a real close run and a supplier payment locally, and check that every affected screen updates without reload and exports match the API. That test is the B05 acceptance and is still outstanding.
 - Next lane B task: **B06** (flight recorder and correction UX).
+
+## B06: recorder and correction UX
+
+| Field | Value |
+|---|---|
+| Task ID | B06 |
+| Owner | Lane B (experience/data) |
+| Branch | `lane-b` (pushed to `origin/lane-b`; nothing merged to `main`) |
+| Base commit | `45ad6df` (B05 handoff record) |
+| Commits | `37a7ed3` OpenAPI proposals Q46–Q53 + types · `0beac3a` illustrative night3 recorder fixture, transport stand-in, Q54 `settlement_version`, bundle guard, fixture/contract tests · `f70303e` components, Pacific datetime filters, styles · `6574665` screens, routes, dev story, tests · `5b8d4cc` visual-check fixes · `c0262f3` README · this record |
+| Status | **review — integration blocked on A02/A09.** Lane A has no event store, lineage, correction, branch or replay API. The B06 acceptance ("a reviewer can trace any shown payout back to sources and the original human instruction; history does not silently change when a later correction arrives") has been **demonstrated only on the dev/test fixture transport with ILLUSTRATIVE data**. It has not been met against a real backend and was not attempted. |
+| Reviewer / merge commit | none yet |
+
+### Files (only `apps/web/` and this note)
+
+- `contracts-draft/openapi.draft.yaml`: lane-B proposals Q46–Q54 (`x-encore-proposal`); `src/api/generated/schema.ts` regenerated with openapi-typescript 7.4.4; `operations.ts` and `types.ts` extended.
+- `src/fixtures/illustrative/recorder_v1.json` (new, **ILLUSTRATIVE**); `finance_v1.json` gained `settlement_version` on its 4 payouts; `recorderTransport.ts` (new A09 stand-in); `http.ts` (shared fixture HTTP helpers, moved out of `fixtureTransport.ts`); `fixtureTransport.ts` and `compactFixture.ts` (`story: 'night1' | 'night3'`); `scripts/check-prod-bundle.mjs` reads the recorder file and more keys (589 markers, up from 422).
+- `src/components/RecorderLabels.tsx` (category badge, record links, recorder tabs, replay/branch/history banners); `FilterBar.tsx` (text and Pacific datetime fields); `FixtureBanner.tsx`; `src/lib/time.ts` (`pacificLocalToUtc`, `utcToPacificLocal`); styles.
+- `src/screens/`: `Recorder.tsx`, `History.tsx`, `Replays.tsx`, `Branches.tsx`, `Corrections.tsx` (challenge new/detail, correction), `PayoutTrace.tsx`; links added to `Policies.tsx` (replaces the B04 challenge stub), `Settlements.tsx`, `Payouts.tsx`; routes in `src/app/App.tsx`; navigation marks the recorder implemented.
+- `src/main.tsx`, `src/vite-env.d.ts`, `.env.fixtures`, `.env.fixtures-night1` (public setting only), `package.json` script `dev:fixtures:night1`.
+- Tests: `src/screens/recorder.test.tsx` (17), `src/fixtures/recorderFixture.test.ts` (10), additions to `contract.test.ts` (2) and `time.test.ts` (2); helper `src/test/night3.ts`; `renderApp.tsx` gained `story` and an unrecorded `inner` transport; one B04 test updated for the new challenge link.
+- `README.md`.
+
+No dependencies added. No changes to packages/contracts, services, db, infra, data, tests/oracle, root config or planning docs.
+
+### How the illustrative recorder fixture was made (oracle isolation)
+
+- Typed by hand by lane B into a scratch authoring script (not committed) that wrote the JSON and computed event `hash`/`previous_hash` (sha256 over each fixture event) for a consistent chain. No file under `tests/oracle/`, `expected/`, `scripted_decisions*`, `dev_only/` or `simulator_only/` was opened during B06.
+- Reused only input references (Taco Libre vendor id, contract/email/POS source ids, hashes and the two B04 excerpts) and the B04/B05 illustrative records it overlays. All Night 2/3 figures (eligible sales $800 / $5,000 / $300, 10% vs 15%), the follow-up email, events, snapshots, the correction plan, branch comparison and replay totals are invented.
+- The existing isolation test (no oracle paths in fixture code or data) covers the new files; a new test checks ids, the hash chain, categories and overlay consistency.
+
+### Commands actually run (macOS, Node v18.18.2)
+
+| Command | Result |
+|---|---|
+| `npm run gen:api`, `npm run check:api` | `generated API types are up to date with contracts-draft/openapi.draft.yaml` |
+| `npm run check` (final run, after the last code change) | check:api, typecheck and lint clean; `Test Files 17 passed (17) · Tests 200 passed (200)`; Vite built 4 files (JS 456.35 kB, gzip 127.98 kB); `prod bundle check OK: 4 files, 589 fixture markers, 0 hits` |
+| `npx vitest run` twice in a row (before the final check) | 200/200 both times |
+| Planted `illus_payout_n1_taco` in `dist/`, ran the guard | exit 1, `1 hits`; removed, guard passed again |
+| Headless Chrome on `vite --mode fixtures` | `/recorder`, `/recorder/history?cutoff=…`, `/recorder/branches/illus_branch_taco_15`, `/payouts/illus_payout_n1_taco/trace` at 1280 px; `/recorder` and the branch at 500 px. Found and fixed: fixture banner did not mention the recorder story; amount labels ran into amounts in tables; replay audit events carried a business date and so appeared as "recorded later" facts in history. At 500 px wide tables scroll inside their focusable regions (by design). Not done: 375 px, screen reader, real mobile, a visual pass of the correction screens (covered by jsdom tests and axe only). |
+
+Not run: Playwright/browser E2E, any real-API test, CI, integration with lane A. No mutation test this round.
+
+### Tests added (fixture-only; NOT integration acceptance)
+
+- **Timeline:** every proposal says "not an approval", every intent "not confirmed" and neither says "Confirmed effect"; `payout.submitted` is an attempted action, only the provider confirmation is an effect; late email flagged "Recorded later, effective earlier"; C06 fields in details (command, correlation, hash + previous hash, display-only chain check both ways); actor/run links; sources in the evidence drawer; URL filters (category, actor type, Pacific time range sent as UTC) survive a remount; axe.
+- **Live SSE:** with the view pinned and a card expanded, another user's challenge + an SSE event shows "3 new events" without changing the list, the expanded card or the filter; "Show new events" puts them on top and keeps the filter.
+- **History:** cutoff and business date chosen separately and both sent; the past view shows the policy ACTIVE and lists the late email separately; the screen sends only GETs; after a full correction by another client and an SSE refetch, the table text is identical and the correction appears only under "Recorded after this cutoff"; axe.
+- **Replay/branch:** SIDE-EFFECT-FREE and BRANCH — not production labels; replay start is explicit, payload validates, progress reaches 7/7 with zero effect counters; no apply/promote/resend/merge/overwrite buttons; branch comparison shows server production/branch/difference; the only production path is a link to a challenge; branch creation sends one `CreateBranchPayload` with a Pacific → UTC cutoff; read-only sessions get no start control; axe.
+- **Night 3 flow:** policy page → challenge (envelope + `CreateChallengePayload` validate, `expected_version` 2, Idempotency-Key) → policy ACTIVE → SUSPENDED and draft payout held → preview grouped by all six state groups with server deltas → approval: double click + click sends one POST, "Submitting…" and no completion text while the server is held, payload binds version 1 and 9 items → "Accepted… Not complete yet" → progress → "correction completed (server confirmed)" → original vs corrected links (originals kept, reversing entries, replacement payout); 409 shows "Not applied … current version 2"; 422 shows the field error; sessions without `correction.approve` or `challenge.create` get no controls; axe on the preview.
+- **Payout trace:** Taco Libre Night 1 payout → settlement v2 (pinned) → policy v1 ACTIVE when applied → human reuse approval (actor, capability) → case decided by a human ("Apply the producer email rate (10%)") → contract, email and POS sources; after a correction the trace still shows what was paid, notes the later settlement version 3 and that the policy is now REVOKED; Kettle Corn (automatic gate + rule) and Late Bloom (no exception rule) traces; axe.
+- **Stand-in/contract:** events paging, pin, filters, 422s and 501 without the story; challenge 403/409/422 (`REASON_REQUIRED`, `UNKNOWN_EVIDENCE`, `CHALLENGE_ALREADY_OPEN`); approval 403/409/`PREVIEW_CHANGED`/`EVIDENCE_CHANGED`/`ITEMS_MISMATCH`/`INVALID_TRANSITION`, same-key replay; originals preserved and old settlement version served; history at a past cutoff byte-identical after a correction; history, branch and replay leave payouts/settlements/journal/policies unchanged; every new response validates against the draft schemas; payload schemas reject spoofed actors and a `promote_to_production` field.
+
+### Implemented vs fixture-only vs incomplete
+
+**Implemented (against the draft contract):** the recorder timeline with filters, pinning and live "new events" indication; event detail; historical state selector; replay and branch screens with their labels and no production-mutation controls; challenge → preview → approval → progress → original vs corrected; payout trace using existing reads plus `settlement_version`; capability gating from `/session` (and `Correction.required_capability`); no money arithmetic in UI code (lint guard passes).
+
+**Fixture-only:** every recorded event, historical projection, challenge effect, correction plan, progress step, result, branch comparison and replay outcome. The stand-in's rules are not A09 and only the Taco Libre policy has a correction plan.
+
+**Incomplete / not done:**
+- Integration with A02/A09 and the acceptance test against a real backend.
+- Playwright E2E (B07).
+- No challenge withdrawal, no "resolve the human recovery/waiver item" action (C03 names no command; Q55).
+- Branch overrides support only a commission rate; the fixture serves one scenario.
+- History table covers the records the server projects; there is no per-record "diff between two cutoffs" view.
+- The hash-chain check is display-only string comparison on the current page; verification is the server's job.
+- Live update targeting is still global invalidation (Q45).
+
+### New DRAFT assumptions
+
+- DA55: `GET /events` returns newest `stream_sequence` first; without `branch_id` only production events; `head_sequence` + `up_to_sequence` pin pages, `after_sequence` counts newer events.
+- DA56: the server sets `category` on every event; the UI never infers it from `type` and shows "Category not stated" if missing.
+- DA57: `backdated` is a server flag meaning "recorded after dependent results for its business date were recorded"; the UI does not compute it.
+- DA58: the historical projection includes undated records (e.g. policies) under any business-date filter; `recorded_later` lists events recorded after the cutoff that occurred at or before it or belong to a business date on or before the cutoff's festival date.
+- DA59: creating a challenge uses `expected_version` = the target's optimistic version (policy `record_version`, settlement/payout `version`) and itself pauses the affected policy and holds dependent unreleased work, changing no money.
+- DA60: requesting a preview is a command with `expected_version` = challenge version and the `challenge.create` capability; approval needs `Correction.required_capability`.
+- DA61: correction approval returns 202 + job; `GET /corrections/{id}` reports progress and, once COMPLETED, `results` linking originals to corrections.
+- DA62: a payout's `settlement_version` is the exact settlement version it pays; old settlement versions stay readable via `?version=`.
+- DA63: replay and branch creation send `expected_version: null`.
+
+### Contract questions for A (continuing; CONTRACTS.md not edited)
+
+46. **Event reads.** Add `GET /events/{id}` and filters `run_id`, `vendor_id`, `aggregate_id`, `aggregate_type`, `actor_type`, `actor_id`, `type`, `category`, `branch_id`, `correlation_id`, `recorded_from/to`, `up_to_sequence`, `after_sequence`, plus `EventList.head_sequence`? Newest-first order (DA55)?
+47. **Event fields.** Add the C06 fields missing from the C03 envelope (`stream_id`, `actor_id/type`, `capability`, `command_id`, versions, `previous_hash`/`hash`) and display fields `category`, `summary`, `aggregate_type`, `actor_label`, `business_date`, `backdated`, `input_refs`, `links: RecordRef[]`? Is the category enum FACT/PROPOSAL/INTENT/EFFECT/PROJECTION acceptable, and is a provider "submitted" an INTENT?
+48. **Historical projection.** `GET /history/projection?knowledge_cutoff=&business_date=&vendor_id=` → `HistoricalProjection {snapshot, events_applied, as_of_sequence, rows[], recorded_later[]}` (DA58)? Which projections will A reconstruct (settlements, payouts, policies, journal, cases)? Branch history?
+49. **Challenges.** `CreateChallengePayload {target {kind, id, version}, superseding_evidence[{source_id, source_version, content_hash, locator?}], reason}`, `Challenge` with `policy_effect {status_before, status_now, paused_at, paused_work[]}`, `GET /challenges?target_id=`, `GET /challenges/{id}`? One open challenge per policy version? Is there a withdraw command?
+50. **Correction preview.** `PreviewCorrectionPayload {challenge_id}` and `Correction` with `items[{record, state_at_preview, state_group, treatment, original/corrected/delta_cents, contingent_on, requires_human}]`, `policy_changes`, `paused_work`, `totals`, `progress[]`, `results[]` (shapes in the draft)? Are the six state groups and treatments the right vocabulary?
+51. **Correction approval.** `ApproveCorrectionPayload {correction_id, challenge_id, preview_hash, evidence_hash, item_ids}` with `expected_version` = correction version; 422 codes `PREVIEW_CHANGED`, `EVIDENCE_CHANGED`, `ITEMS_MISMATCH`, `INVALID_TRANSITION`; 202 + job? What happens to a `HUMAN_RECOVERY_OR_WAIVER` item — a new case?
+52. **Branches.** `CreateBranchPayload {label, base_knowledge_cutoff, business_date?, overrides[{policy_version_id, commission_bps}]}`, `Branch {isolation {storage, external_effects, production_writes}, comparison[]}`, branch event stream via `branch_id`? Which overrides will A support?
+53. **Replays.** `StartReplayPayload {run_id, mode: RECORDED_RESULTS_ONLY}`, `Replay {processed, total, effects {live_model_calls, payment_effects, production_postings}, matching, divergences[]}`, `GET /replays{/id}`?
+54. **Pinned versions.** Add `Payout.settlement_version` and `GET /settlements/{id}?version=` so a trace shows exactly what was paid?
+55. **Capabilities and commands.** Names for challenge, correction approval, branch and replay (`challenge.create`, `correction.approve`, `branch.create`, `replay.start` assumed)? Will there be commands for challenge withdrawal and for human recovery/waiver decisions, and SSE event types for challenges/corrections/replays?
+
+### Next
+
+- Lane A: review Q46–Q55 and DA55–DA63 with the open Q1–Q45. When A02/A09 endpoints exist, swap the draft contract (README procedure), run the Night 3 story against A's API and database, and check that a past-cutoff history view is unchanged after a real correction and that every payout traces to sources and a human decision. That is the B06 acceptance and is still outstanding.
+- Next lane B task: **B07** (integrated acceptance and release evidence).
