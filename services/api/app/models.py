@@ -149,6 +149,16 @@ CAPABILITY_RELEASE_SUPPLIER_PAYMENT = "release_supplier_payment"
 # F5: acknowledge a cash-forecast shortfall case.
 CAPABILITY_ACKNOWLEDGE_FORECAST = "acknowledge_forecast"
 
+# R1 (prevention extension): trigger the deterministic readiness-check
+# engine (POST /api/v1/readiness/recompute). Not one of X0.1's five named
+# capabilities (those gate the generic Approval mechanism's decision
+# actions) -- this follows the SAME precedent as every other "trigger a
+# deterministic engine" endpoint already has its own dedicated capability
+# (CAPABILITY_IMPORT_SOURCE, CAPABILITY_RUN_RECONCILIATION,
+# CAPABILITY_CALCULATE_SETTLEMENT): a judgment call, documented here and in
+# docs/progress/R1-handoff.md/PROGRESS.md's Deviations, not silently added.
+CAPABILITY_RUN_READINESS = "run_readiness"
+
 ALL_CAPABILITY_CODES = (
     CAPABILITY_ADMIN,
     CAPABILITY_RESOLVE_CASE,
@@ -166,4 +176,5 @@ ALL_CAPABILITY_CODES = (
     CAPABILITY_APPROVE_INVOICE_EXCEPTION,
     CAPABILITY_RELEASE_SUPPLIER_PAYMENT,
     CAPABILITY_ACKNOWLEDGE_FORECAST,
+    CAPABILITY_RUN_READINESS,
 )
