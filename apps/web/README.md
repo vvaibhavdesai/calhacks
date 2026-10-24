@@ -1,6 +1,6 @@
 # Encore web (apps/web, lane B)
 
-Status: B03 foundation + B04 core screens, **DRAFT**. B04 integration acceptance is **blocked on lane A endpoints (A03–A06)**; the screens have only run against the dev/test fixture transport. Built against a lane-B transcription of CONTRACTS.md v0.1 (C01/C03/C04), which is not frozen. Owner: lane B.
+Status: B03 foundation + B04 core screens + B05 finance screens, **DRAFT**. B04 integration acceptance is **blocked on lane A endpoints (A03–A06)** and B05 on **A07/A08**; the screens have only run against the dev/test fixture transport. Built against a lane-B transcription of CONTRACTS.md v0.1 (C01/C03/C04), which is not frozen. Owner: lane B.
 
 This is a standalone React + TypeScript app. It has a light, number-first operator shell with a left sidebar, and placeholder routes for the finance screens that B04–B06 will fill. It also contains a typed API client generated from a draft OpenAPI document, a dev/test-only fixture mode, and these accessible primitives:
 - tables;
@@ -52,7 +52,9 @@ Live mode never falls back to fixtures. API failures render the matching error s
 
 By default the fixture transport serves **inputs only**: festival, vendors, orders, payments, bank entries, processor batches, cash counts and source documents. Output routes answer `501 FIXTURE_ROUTE_NOT_AVAILABLE` and commands are refused. It never reads `tests/oracle/` or `dev_only/`. Only one test reads `dev_only/evidence_locators.json`, to exercise the evidence drawer.
 
-**ILLUSTRATIVE outputs (B04, opt-in).** `src/fixtures/illustrative/outputs_v1.json` holds a small set of hand-authored runs, vendor runs, settlements, cases, policy versions and match groups so the B04 screens can be developed. They are **not oracle-derived, not calculated from the inputs and not expected answers**; every id starts with `illus_`. `npm run dev:fixtures` and the B04 tests enable them (`createFixtureTransport({ illustrativeOutputs: true })`), and the UI labels them "ILLUSTRATIVE sample output". With outputs on, the transport also answers `POST /cases/{id}/resolve` and `POST /policies/{id}/approve` with the C03 HTTP semantics the UI must handle (Idempotency-Key replay and reuse 409, version 409 with `current_version`, capability 403, 422 for invalid transitions, evidence or scope mismatch). This is a UI stand-in, not lane A's rules. Payouts, journal and other B05/B06 outputs stay 501. The production bundle guard also scans for every `illus_` id.
+**ILLUSTRATIVE outputs (B04, opt-in).** `src/fixtures/illustrative/outputs_v1.json` holds a small set of hand-authored runs, vendor runs, settlements, cases, policy versions and match groups so the B04 screens can be developed. They are **not oracle-derived, not calculated from the inputs and not expected answers**; every id starts with `illus_`. `npm run dev:fixtures` and the B04 tests enable them (`createFixtureTransport({ illustrativeOutputs: true })`), and the UI labels them "ILLUSTRATIVE sample output". With outputs on, the transport also answers `POST /cases/{id}/resolve` and `POST /policies/{id}/approve` with the C03 HTTP semantics the UI must handle (Idempotency-Key replay and reuse 409, version 409 with `current_version`, capability 403, 422 for invalid transitions, evidence or scope mismatch). This is a UI stand-in, not lane A's rules. The production bundle guard also scans for every `illus_` id.
+
+**ILLUSTRATIVE finance outputs (B05).** `src/fixtures/illustrative/finance_v1.json` adds hand-authored payouts and a release batch, a cash position with forecast, suppliers, POs, invoices/credit notes (one flagged duplicate), supplier payments, journal entries (including a reversal + correction pair), a DRAFT tax summary and three financial reports. Same rules: `illus_` ids, invented figures, no oracle/expected/dev_only/simulator inputs, SIMULATED payouts, DRAFT, NOT FILED tax. Its server-style totals are checked for internal consistency in `illustrativeOutputs.test.ts`. The transport also answers `POST /payouts/{id}/approve` (capability 403, version 409, `AMOUNT_MISMATCH`/`BENEFICIARY_CHANGED`/`TARGET_MISMATCH`/`INVALID_TRANSITION` 422); an approval satisfies only the daily-limit check and never clears a failing hard blocker. Flight-recorder (B06) outputs stay 501.
 
 ## Environment variables (public only)
 
@@ -96,6 +98,25 @@ Decisions (`src/hooks/useCommand.ts`, `Cases.tsx`, `Policies.tsx`):
 - Controls render only if `GET /session` grants the record's `required_capability`. The server still decides.
 - Refresh: the chosen option is kept in `?decision=`; confirmed decisions come back from the server.
 
+## B05 screens
+
+| Route | Screen |
+|---|---|
+| `/payouts`, `/payouts/:id` | SIMULATED label; release batches with server counts/totals; payouts filterable by state/vendor/date/batch; all ten C04 states (UNKNOWN = "reconciliation required — not resent", no resend control); logical obligation id, stable idempotency key, beneficiary version, approval ref, provider reference; server gate checks (hard blocker vs approvable limit), server cumulative vendor/day figures against the $5,000 limit, why held, state history |
+| `/cash` | Available / pending / reserved / bank tiles; reservations marked not spendable (tax, tips, in-flight and UNKNOWN payouts); shortfalls; forecast horizon, method and assumptions; accessible SVG chart (labelled image with a text summary, per-bar tooltips, "Shortfall" text labels) plus an exact-values table; obligations linked to payouts/invoices/tax; ticket and sponsorship receipts |
+| `/payables`, `/payables/purchase-orders`, `/payables/invoices`, `/payables/payments`, `/payables/invoices/:id` | Suppliers with server outstanding, POs with invoiced amounts, invoices and credit notes with due dates, outstanding balances and duplicate flags, SIMULATED supplier payments; evidence drawer for sources |
+| `/journal`, `/journal/:id` | Entries with lines (account, debit, credit), server totals and server `balanced` flag (never summed in the UI), posting rule version, source refs, `correction_of`/`corrected_by` links with originals preserved |
+| `/tax`, `/tax/:id` | DRAFT, NOT FILED banner and badges, assumptions, config version, DEMO rate, liability owner per line, exempt items, refund tax; CSV/JSON export |
+| `/reports`, `/reports/:id` | Daily close, festival P&L and festival cash reports: headline figures, sections with server totals, journal and source links; CSV/JSON export |
+
+**Payout approval** (`POST /payouts/{id}/approve`, payload `ApprovePayoutPayload`, proposal Q39): shown only when the server says `approval_required` on a DRAFT payout and the session holds the payout's `required_capability`. The user ticks an explicit statement naming the exact amount, vendor, beneficiary version and date, then reviews what will be sent (version, amount, beneficiary version, logical obligation and "does not override hard blockers"). Failing hard blockers are listed as still blocking release. Same command guarantees as B04: one request per intent (double click safe), stale review discarded if version/amount/beneficiary change, 409 refetch, 422 field errors, 403 no permission, success only after the server responds.
+
+**Exports** (`src/lib/export.ts`, `src/lib/reportExports.ts`): JSON is `{export: {...meta}, data: <the served record verbatim>}`; CSV rows copy served integer-cent strings and include server totals as separate `*_SERVER` rows and source refs as `source_id@vN#locator (hash)`. Nothing is recomputed. Tests compare both exports with the served response.
+
+**Live updates:** all screens read through `useApiQuery`, so every SSE event or resync refetches mounted projections without a reload (tested for payouts/batches and cash).
+
+**Money guard:** the chart needs bar lengths, so `src/lib/money.ts` gained two display-only helpers (`maxAbsCents`, `centsScaleRatio`); nothing else converts cents.
+
 ## Money and dates
 
 - Money is handled in `src/lib/money.ts`. Wire values are canonical integer-cent strings (`^-?(0|[1-9][0-9]*)$`, no `-0`). They are parsed with BigInt and formatted as USD; tests check exactness past 2^53. This is the only module that may convert cents.
@@ -127,6 +148,6 @@ src/components/                      DataTable, EvidenceDrawer, FilterBar, Pagin
 src/fixtures/                        dev/test fixture transport (+ data-free production stub)
 src/hooks/                           useApiQuery, useListParams (URL-backed list state)
 src/lib/                             money and time formatting
-src/screens/                         Overview, runs, reconciliation, settlements, cases, policies, source records, placeholders
-src/fixtures/illustrative/           ILLUSTRATIVE hand-authored outputs (dev/test only)
+src/screens/                         Overview, runs, reconciliation, settlements, cases, policies, payouts, cash, payables, journal, tax, reports, source records, placeholder
+src/fixtures/illustrative/           ILLUSTRATIVE hand-authored outputs and finance (dev/test only)
 ```
