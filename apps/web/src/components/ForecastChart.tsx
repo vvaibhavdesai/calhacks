@@ -21,9 +21,17 @@ export function ForecastChart({ points, horizonDays }: { points: CashForecastPoi
 
   const values = points.map((p) => p.projected_available_cents);
   const scale = maxAbsCents(values);
-  const anyNegative = values.some((v) => centsSign(v) < 0);
-  const zeroY = anyNegative ? TOP + (BOTTOM - TOP) / 2 : BOTTOM;
-  const half = anyNegative ? (BOTTOM - TOP) / 2 : BOTTOM - TOP;
+  // Split the plot between the positive and negative extents (display geometry only),
+  // keeping room below the zero line for the "Shortfall" labels.
+  const posMax = maxAbsCents(values.filter((v) => centsSign(v) > 0));
+  const negMax = maxAbsCents(values.filter((v) => centsSign(v) < 0));
+  const posShare = centsScaleRatio(posMax, scale);
+  const negShare = centsScaleRatio(negMax, scale);
+  const plot = BOTTOM - TOP;
+  const negZone = negShare > 0 ? Math.max(0.2, negShare / (posShare + negShare)) : 0;
+  const zeroY = TOP + plot * (1 - negZone);
+  const posLen = (zeroY - TOP) / (posShare || 1);
+  const negLen = negShare > 0 ? (plot * negZone - 18) / negShare : 0;
   const slot = (W - LEFT - RIGHT) / points.length;
   const barW = Math.max(8, Math.min(56, slot - 12));
   const shortfalls = points.filter((p) => p.shortfall);
@@ -47,7 +55,7 @@ export function ForecastChart({ points, horizonDays }: { points: CashForecastPoi
         <line x1={LEFT} x2={W - RIGHT} y1={zeroY} y2={zeroY} className="chart-baseline" />
         {points.map((p, i) => {
           const sign = centsSign(p.projected_available_cents);
-          const len = Math.max(sign === 0 ? 0 : 2, centsScaleRatio(p.projected_available_cents, scale) * half);
+          const len = Math.max(sign === 0 ? 0 : 2, centsScaleRatio(p.projected_available_cents, scale) * (sign < 0 ? negLen : posLen));
           const x = LEFT + i * slot + (slot - barW) / 2;
           const y = sign < 0 ? zeroY : zeroY - len;
           const label = `${formatBusinessDate(p.date)}: ${formatUsd(p.projected_available_cents)}${p.shortfall ? ' (shortfall)' : ''}`;

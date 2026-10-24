@@ -9,8 +9,8 @@ export const DRAFT_TAX_TEXT = 'DRAFT, NOT FILED';
 export function SimulatedBanner({ what = 'Payments on this screen' }: { what?: string }) {
   return (
     <p className="label-banner label-simulated" role="note">
-      <strong>{SIMULATED_TEXT}.</strong> {what} go to a simulated rail. Nothing is sent to a bank, card network or real
-      vendor account.
+      <strong>{SIMULATED_TEXT}.</strong> {what}: sent only to a simulated rail. Nothing is sent to a bank, card network or
+      real vendor or supplier account.
     </p>
   );
 }

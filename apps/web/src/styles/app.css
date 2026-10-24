@@ -1032,10 +1032,10 @@ button.tab.is-active {
 }
 .chart-axis {
   fill: var(--muted);
-  font-size: 12px;
+  font-size: 15px;
 }
 .chart-label {
-  font-size: 12px;
+  font-size: 15px;
   fill: var(--ink);
 }
 .chart-label.is-shortfall {
