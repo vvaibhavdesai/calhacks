@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.logging_config import configure_logging
-from app.routers import auth, example, health, imports
+from app.routers import auth, example, health, imports, reconciliation
 
 configure_logging()
 
@@ -24,6 +24,7 @@ app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(example.router)
 app.include_router(imports.router)
+app.include_router(reconciliation.router)
 
 
 @app.get("/")
