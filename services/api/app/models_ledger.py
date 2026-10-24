@@ -148,6 +148,19 @@ class Vendor(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
 
+    # --- A07 additive column (migration 0007; 0001-0006 never edited in
+    # place). A minimal stand-in for real beneficiary/payout-destination
+    # data (bank account, routing info, etc. -- not modeled anywhere before
+    # this task). `version` above is bumped whenever this changes (see
+    # app/routers/payouts.py's PATCH /vendors/{id}/beneficiary), which is
+    # exactly the signal app/payout_dispatch.py's `release_payout` re-checks
+    # against `Payout.beneficiary_version` ("beneficiary ... version
+    # unchanged since approval"). A real beneficiary-management surface
+    # (change requests, verification, history) is out of scope for A07 --
+    # this is the minimal hook the required re-check needs, not a claim
+    # that vendor banking details are fully modeled.
+    beneficiary_details: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+
 
 class VendorContractTerm(Base):
     """One versioned contract/term record for a vendor (C02/C04 inputs).
@@ -515,6 +528,53 @@ class Payout(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
+
+    # --- A07 additive columns (migration 0007; 0001-0006 never edited in
+    # place). See services/api/app/payout_dispatch.py for the orchestration
+    # that reads/writes these. `state` already existed (A02); A07 is the
+    # first task to actually drive it through DRAFT -> APPROVED ->
+    # DISPATCH_PENDING -> SUBMITTED -> CONFIRMED (plus FAILED/CANCELLED/
+    # CANCEL_REQUESTED/UNKNOWN), per C04's payout state machine. ---
+
+    # Separate, idempotent confirmation events (C06: "Bank-debit
+    # confirmation and payout confirmation are tracked as separate
+    # events"). Each is set at most once; a later duplicate confirmation
+    # call is a pure no-op (see app/payout_dispatch.py's
+    # confirm_bank_debit/confirm_payout_rail -- no DB write at all on a
+    # repeat call, not merely "the same value written again").
+    bank_debit_confirmed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    payout_confirmed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    # Cancel-race handling (C04: "a payment may win the race and require
+    # recovery"; AGENT_HANDOFF.md Challenges: "Completed: approved offset or
+    # recovery workflow; do not pretend money was unsent"). `state` stays
+    # whatever the rail actually reported (e.g. SUBMITTED/CONFIRMED) when
+    # the rail wins the race -- it is NEVER forced to CANCELLED once money
+    # has moved; `recovery_required`/`recovery_reason` are the explicit,
+    # visible flag instead.
+    cancel_requested_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    cancel_requested_by: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    recovery_required: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    recovery_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Reservation bookkeeping: set exactly once, the first time this
+    # payout's cash-pool/vendor-day-aggregate reservation is released back
+    # (a genuine pre-acceptance cancel or a rail FAILED outcome). Guards
+    # app/payout_dispatch.py's `_release_reservation` against double-release
+    # if cancel/dispatch/reconcile ever race on an already-released payout.
+    reservation_released_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    dispatch_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
 
 # ---------------------------------------------------------------------------

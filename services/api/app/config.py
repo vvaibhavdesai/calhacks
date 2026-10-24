@@ -36,6 +36,13 @@ class Settings(BaseSettings):
 
     allowed_origins: str = Field(default="http://localhost:5173", alias="ALLOWED_ORIGINS")
 
+    # A07: C00 "PAYMENT_MODE is simulated for v1; reject unsupported real-
+    # payment mode." app/rail_simulator.py refuses to run unless this is
+    # exactly "simulated" -- there is no real-payment code path to fall
+    # back to, so this is a deliberate fail-closed guard against a
+    # misconfigured environment claiming to be production-ready.
+    payment_mode: str = Field(default="simulated", alias="PAYMENT_MODE")
+
     # Intentionally not required / not used in A01. A06 revisits with the user
     # before any live Claude call is made, because it spends real API credit.
     anthropic_api_key: str | None = Field(default=None, alias="ANTHROPIC_API_KEY")
