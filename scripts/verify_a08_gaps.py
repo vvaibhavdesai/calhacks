@@ -55,6 +55,7 @@ import os
 import sys
 import uuid
 from datetime import UTC, date, datetime
+from urllib.parse import urlsplit
 
 import httpx
 import psycopg
@@ -81,9 +82,26 @@ from verify_a08_finance import (  # noqa: E402  # noqa: E402
 API_BASE_URL = os.environ.get("API_BASE_URL", "http://127.0.0.1:8010")
 ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@example.com")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "LocalDevPassw0rd!")
-APP_ROLE_DSN = os.environ.get(
-    "ENCORE_APP_DSN", "postgresql://encore_app:encore_app_dev_password@localhost:5432/encore"
-)
+
+
+def _default_app_role_dsn() -> str:
+    """Follow DATABASE_URL's host/port/database and only swap in the app role.
+
+    A fixed default here is a footgun: this script writes fixtures, so a run
+    that forgets ENCORE_APP_DSN used to aim them at the shared `encore` dev
+    database no matter which database the API under test was using.
+    """
+    url = os.environ.get("DATABASE_URL")
+    if not url:
+        return "postgresql://encore_app:encore_app_dev_password@localhost:5432/encore_test"
+    parsed = urlsplit(url.replace("+psycopg", "", 1))
+    password = os.environ.get("ENCORE_APP_DB_PASSWORD", "encore_app_dev_password")
+    host = parsed.hostname or "localhost"
+    port = f":{parsed.port}" if parsed.port else ""
+    return f"postgresql://encore_app:{password}@{host}{port}{parsed.path}"
+
+
+APP_ROLE_DSN = os.environ.get("ENCORE_APP_DSN") or _default_app_role_dsn()
 RUN = uuid.uuid4().hex[:8]
 FEST = f"gcmf-2026-a08gaps-{RUN}"
 D0, D1, D2, D3 = date(2026, 10, 15), date(2026, 10, 16), date(2026, 10, 17), date(2026, 10, 18)
