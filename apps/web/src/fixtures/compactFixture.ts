@@ -20,6 +20,7 @@ import {
   type IllustrativeOutputs,
 } from './fixtureTransport';
 // ILLUSTRATIVE hand-authored sample outputs (not oracle-derived, not calculated). Dev/test only.
+import finance from './illustrative/finance_v1.json';
 import illustrative from './illustrative/outputs_v1.json';
 
 export const FIXTURE_ID = 'compact_v1';
@@ -32,6 +33,17 @@ export const illustrativeOutputs: IllustrativeOutputs = {
   cases: illustrative.cases,
   policies: illustrative.policies,
   match_groups: illustrative.match_groups,
+  // B05: ILLUSTRATIVE finance outputs (hand-authored; SIMULATED payouts, DRAFT tax).
+  payouts: finance.payouts,
+  payout_batches: finance.payout_batches,
+  cash_positions: finance.cash_positions,
+  suppliers: finance.suppliers,
+  purchase_orders: finance.purchase_orders,
+  supplier_invoices: finance.supplier_invoices,
+  supplier_payments: finance.supplier_payments,
+  journal_entries: finance.journal_entries,
+  tax_reports: finance.tax_reports,
+  reports: finance.reports,
 };
 
 export interface CompactFixtureOptions extends Omit<FixtureTransportOptions, 'outputs'> {

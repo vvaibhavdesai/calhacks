@@ -171,6 +171,22 @@ describe('fixture transport responses conform', () => {
     for (const c of (await out.list('listCases')).items) expectValid('Case', await out.get('getCase', { path: { id: c.id } }));
     for (const p of (await out.list('listPolicies')).items) expectValid('PolicyVersion', await out.get('getPolicyVersion', { path: { id: p.id } }));
     for (const g of (await out.list('listMatchGroups')).items) expectValid('MatchGroup', await out.get('getMatchGroup', { path: { id: g.id } }));
+    // B05 finance outputs (proposals Q38-Q44).
+    expectValid('PayoutList', await out.list('listPayouts'));
+    for (const p of (await out.list('listPayouts')).items) expectValid('Payout', await out.get('getPayout', { path: { id: p.id } }));
+    expectValid('PayoutBatchList', await out.list('listPayoutBatches'));
+    expectValid('CashPositionList', await out.list('listCashPositions'));
+    expectValid('SupplierList', await out.list('listSuppliers'));
+    expectValid('PurchaseOrderList', await out.list('listPurchaseOrders'));
+    expectValid('SupplierInvoiceList', await out.list('listSupplierInvoices'));
+    for (const i of (await out.list('listSupplierInvoices')).items) expectValid('SupplierInvoice', await out.get('getSupplierInvoice', { path: { id: i.id } }));
+    expectValid('SupplierPaymentList', await out.list('listSupplierPayments'));
+    expectValid('JournalEntryList', await out.list('listJournalEntries'));
+    for (const e of (await out.list('listJournalEntries')).items) expectValid('JournalEntry', await out.get('getJournalEntry', { path: { id: e.entry_id } }));
+    expectValid('TaxReportList', await out.list('listTaxReports'));
+    for (const t of (await out.list('listTaxReports')).items) expectValid('TaxReport', await out.get('getTaxReport', { path: { id: t.id } }));
+    expectValid('FinancialReportList', await out.list('listFinancialReports'));
+    for (const r of (await out.list('listFinancialReports')).items) expectValid('FinancialReport', await out.get('getFinancialReport', { path: { id: r.id } }));
   });
 
   it('decision payload schemas keep one-time resolution and policy approval distinct', () => {

@@ -14,7 +14,11 @@
  * semantics the UI must handle: Idempotency-Key replay, 409 version conflict
  * with current_version, 403 missing capability, 422 invalid transition. This is
  * a stand-in for exercising the UI, not an implementation of lane A's rules.
- * Payouts, journal and the other B05/B06 outputs stay 501.
+ * B05 adds ILLUSTRATIVE finance outputs (src/fixtures/illustrative/finance_v1.json):
+ * payouts and batches, cash position, suppliers/POs/invoices/supplier payments,
+ * journal, draft tax and financial reports, plus POST /payouts/{id}/approve with
+ * the same HTTP semantics (exact amount/beneficiary binding; an amount approval
+ * never clears a failing hard-blocker gate check). B06 outputs stay 501.
  *
  * Never imported by production code paths: it is reachable only through the
  * '@encore/fixture-data' alias, which a build replaces with ./disabled.ts.
@@ -48,6 +52,17 @@ export interface IllustrativeOutputs {
   cases: Row[];
   policies: Row[];
   match_groups: Row[];
+  // B05 finance outputs
+  payouts: Row[];
+  payout_batches: Row[];
+  cash_positions: Row[];
+  suppliers: Row[];
+  purchase_orders: Row[];
+  supplier_invoices: Row[];
+  supplier_payments: Row[];
+  journal_entries: Row[];
+  tax_reports: Row[];
+  reports: Row[];
 }
 
 export interface FixtureTransportOptions {
@@ -68,6 +83,8 @@ interface CollectionSpec {
   filters: string[];
   sortable: string[];
   defaultSort: string;
+  /** Identity field (default `id`; journal entries use `entry_id`). */
+  idField?: string;
 }
 
 const COLLECTIONS: Record<string, CollectionSpec> = {
@@ -126,6 +143,32 @@ const OUTPUT_COLLECTIONS: Record<string, CollectionSpec> = {
     sortable: ['business_date'],
     defaultSort: 'business_date',
   },
+  '/payouts': {
+    key: 'payouts',
+    filters: ['vendor_id', 'business_date', 'state', 'batch_id'],
+    sortable: ['business_date', 'amount_cents', 'vendor_id'],
+    defaultSort: 'vendor_id',
+  },
+  '/payout-batches': { key: 'payout_batches', filters: ['business_date'], sortable: ['business_date'], defaultSort: '-business_date' },
+  '/cash': { key: 'cash_positions', filters: [], sortable: ['as_of'], defaultSort: '-as_of' },
+  '/suppliers': { key: 'suppliers', filters: [], sortable: ['name'], defaultSort: 'name' },
+  '/purchase-orders': { key: 'purchase_orders', filters: ['supplier_id'], sortable: ['issued_date', 'po_number'], defaultSort: 'po_number' },
+  '/invoices': {
+    key: 'supplier_invoices',
+    filters: ['supplier_id', 'kind'],
+    sortable: ['due_date', 'invoice_date', 'outstanding_cents'],
+    defaultSort: 'due_date',
+  },
+  '/supplier-payments': { key: 'supplier_payments', filters: ['supplier_id'], sortable: ['scheduled_date'], defaultSort: 'scheduled_date' },
+  '/journal': {
+    key: 'journal_entries',
+    filters: ['business_date'],
+    sortable: ['posted_at', 'business_date'],
+    defaultSort: 'posted_at',
+    idField: 'entry_id',
+  },
+  '/reports/tax': { key: 'tax_reports', filters: [], sortable: ['period_from'], defaultSort: '-period_from' },
+  '/reports': { key: 'reports', filters: ['business_date', 'kind'], sortable: ['period_from', 'kind'], defaultSort: 'kind' },
 };
 
 const DETAIL: Record<string, CollectionKey> = {
@@ -139,6 +182,9 @@ const OUTPUT_DETAIL: Record<string, CollectionKey> = {
   cases: 'cases',
   policies: 'policies',
   reconciliation: 'match_groups',
+  payouts: 'payouts',
+  invoices: 'supplier_invoices',
+  reports: 'reports',
 };
 
 const DEFAULT_LIMIT = 25;
@@ -235,12 +281,18 @@ function listResponse(source: Row[], spec: CollectionSpec, params: URLSearchPara
     offset = decoded.o;
   }
 
+  const idField = spec.idField ?? 'id';
+  const matches = (r: Row, f: string, v: string) =>
+    // A report covers a period: business_date filters by period_from..period_to.
+    spec.key === 'reports' && f === 'business_date'
+      ? String(r.period_from) <= v && v <= String(r.period_to)
+      : String(r[f]) === v;
   const rows = source
-    .filter((r) => filters.every(([f, v]) => String(r[f]) === v))
+    .filter((r) => filters.every(([f, v]) => matches(r, f, v)))
     .slice()
     .sort((a, b) => {
       const c = compareValues(a[sortField], b[sortField]);
-      return (desc ? -c : c) || compareValues(a.id, b.id); // stable: ties by id
+      return (desc ? -c : c) || compareValues(a[idField], b[idField]); // stable: ties by id
     });
   const items = rows.slice(offset, offset + limit);
   const next = offset + limit < rows.length ? encodeCursor(offset + limit, fingerprint) : null;
@@ -308,6 +360,18 @@ export function createFixtureTransportFrom(data: FixtureData, options: FixtureTr
           { key: 'vendor_runs', filters: ['state'], sortable: ['vendor_id'], defaultSort: 'vendor_id' },
           u.searchParams,
         );
+      }
+    }
+
+    if (outputs) {
+      const special = /^\/(journal|reports\/tax)\/([^/]+)$/.exec(route);
+      if (special) {
+        const id = decodeURIComponent(special[2] ?? '');
+        const row =
+          special[1] === 'journal'
+            ? outputs.journal_entries.find((r) => r.entry_id === id)
+            : outputs.tax_reports.find((r) => r.id === id);
+        return row ? json(200, row) : error(404, 'NOT_FOUND', 'This record was not found.');
       }
     }
 
@@ -383,9 +447,10 @@ function handleCommand(
   capabilities: string[],
   actorId: string,
 ): Response | null {
-  const m = /^\/(cases|policies)\/([^/]+)\/(resolve|approve)$/.exec(route);
+  const m = /^\/(cases|policies|payouts)\/([^/]+)\/(resolve|approve)$/.exec(route);
   if (!m || (m[1] === 'cases') !== (m[3] === 'resolve')) return null;
   const isCase = m[1] === 'cases';
+  const isPayout = m[1] === 'payouts';
   const id = decodeURIComponent(m[2] ?? '');
 
   const key = header(init, 'Idempotency-Key');
@@ -414,6 +479,12 @@ function handleCommand(
     return error(422, 'INVALID_ENVELOPE', 'Expected {command_id, expected_version, payload}.');
   }
   const payload = envelope.payload;
+
+  if (isPayout) {
+    const result = approvePayout(id, envelope.command_id, envelope.expected_version, payload, outputs, capabilities, actorId);
+    if (result.status === 200) ledger.set(ledgerKey, body, 200, result.body);
+    return result.response;
+  }
 
   const collection = isCase ? outputs.cases : outputs.policies;
   const record = collection.find((r) => r.id === id);
@@ -489,4 +560,63 @@ function handleCommand(
   }
   ledger.set(ledgerKey, body, 200, response);
   return json(200, response);
+}
+
+/**
+ * ILLUSTRATIVE stand-in for POST /payouts/{id}/approve (proposal Q39): a
+ * finance-lead approval of exactly this amount, beneficiary version and
+ * logical obligation. It satisfies only the DAILY_AUTO_LIMIT check. If any hard
+ * blocker still FAILs, the approval is recorded but the payout stays DRAFT and
+ * held (C04: an amount approval does not waive unrelated controls).
+ */
+function approvePayout(
+  id: string,
+  commandId: string,
+  expectedVersion: unknown,
+  payload: Row,
+  outputs: IllustrativeOutputs,
+  capabilities: string[],
+  actorId: string,
+): { status: number; response: Response; body?: unknown } {
+  const fail = (response: Response) => ({ status: response.status, response });
+  const record = outputs.payouts.find((r) => r.id === id);
+  if (!record) return fail(error(404, 'NOT_FOUND', 'This record was not found.'));
+  const required = String(record.required_capability ?? '');
+  if (!required || !capabilities.includes(required)) {
+    return fail(error(403, 'FORBIDDEN', `This action requires the ${required || 'unknown'} capability.`));
+  }
+  const currentVersion = Number(record.version);
+  if (expectedVersion !== currentVersion) {
+    return fail(conflict('VERSION_CONFLICT', 'This payout changed since you loaded it.', currentVersion));
+  }
+  if (payload.action !== 'APPROVE_PAYOUT_ABOVE_LIMIT') {
+    return fail(error(422, 'INVALID_ACTION', 'Expected action APPROVE_PAYOUT_ABOVE_LIMIT.', [{ field: 'payload.action', message: 'invalid' }]));
+  }
+  if (payload.logical_obligation_id !== record.logical_obligation_id || payload.vendor_id !== record.vendor_id || payload.business_date !== record.business_date) {
+    return fail(error(422, 'TARGET_MISMATCH', 'The approval names a different obligation.', [{ field: 'payload.logical_obligation_id', message: 'does not match the target' }]));
+  }
+  if (payload.amount_cents !== record.amount_cents) {
+    return fail(error(422, 'AMOUNT_MISMATCH', 'The approved amount differs from the payout amount.', [{ field: 'payload.amount_cents', message: 'does not match the current amount' }]));
+  }
+  if (payload.beneficiary_version !== record.beneficiary_version) {
+    return fail(error(422, 'BENEFICIARY_CHANGED', 'The beneficiary details changed since review.', [{ field: 'payload.beneficiary_version', message: 'does not match the current beneficiary version' }]));
+  }
+  if (record.state !== 'DRAFT' || record.approval_required !== true || record.approval_ref) {
+    return fail(error(422, 'INVALID_TRANSITION', `No amount approval is pending for this ${String(record.state)} payout.`));
+  }
+  const at = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+  const gate = record.gate as { checks: Row[] } | null | undefined;
+  for (const c of gate?.checks ?? []) if (c.check === 'DAILY_AUTO_LIMIT') c.result = 'APPROVED';
+  const hardFail = (gate?.checks ?? []).some((c) => c.hard_blocker === true && c.result === 'FAIL');
+  record.approval_ref = `fixture-approval-${commandId}`;
+  record.version = currentVersion + 1;
+  record.approval_required = false;
+  record.holds = ((record.holds as Row[] | undefined) ?? []).filter((h) => h.reason_code !== 'PAYOUT_ABOVE_AUTO_LIMIT');
+  if (!hardFail) record.state = 'APPROVED';
+  const history = (record.state_history as Row[] | undefined) ?? [];
+  history.push({ state: record.state, at, actor_ref: actorId, note: `Amount approved with ${required}${hardFail ? '; still held by a hard blocker' : ''}.` });
+  record.state_history = history;
+  record.updated_at = at;
+  const body = { command_id: commandId, aggregate_id: id, version: record.version, status: record.state };
+  return { status: 200, response: json(200, body), body };
 }
