@@ -109,6 +109,10 @@ CAPABILITY_IMPORT_SOURCE = "import_source"
 # deterministic matching engine). Separate from CAPABILITY_ADMIN for the
 # same reason as CAPABILITY_IMPORT_SOURCE above.
 CAPABILITY_RUN_RECONCILIATION = "run_reconciliation"
+# A04: required to call POST /api/v1/settlements/calculate (triggers the
+# deterministic settlement engine). Separate from CAPABILITY_ADMIN for the
+# same reason as CAPABILITY_IMPORT_SOURCE/CAPABILITY_RUN_RECONCILIATION above.
+CAPABILITY_CALCULATE_SETTLEMENT = "calculate_settlement"
 
 ALL_CAPABILITY_CODES = (
     CAPABILITY_ADMIN,
@@ -118,4 +122,5 @@ ALL_CAPABILITY_CODES = (
     CAPABILITY_FINANCE_LEAD,
     CAPABILITY_IMPORT_SOURCE,
     CAPABILITY_RUN_RECONCILIATION,
+    CAPABILITY_CALCULATE_SETTLEMENT,
 )

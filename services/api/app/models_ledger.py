@@ -393,6 +393,16 @@ class Payout(Base):
     approval_ref: Mapped[str | None] = mapped_column(String(32), nullable=True)
     state: Mapped[str] = mapped_column(String(30), nullable=False, default="DRAFT")
     provider_reference: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    # A04 additive column (migration 0005; 0001-0004 are never edited in
+    # place). Which Settlement (app.models_settlement.Settlement) this
+    # payout pays out, if any -- lets app/settlement.py detect "a prior
+    # CONFIRMED payout already exists for this settlement" without A07's
+    # full dispatch machinery existing yet. Nullable because A02's original
+    # Payout shape predates settlements and A07 may still create payouts
+    # that aren't tied to one settlement row (e.g. a batched payout).
+    settlement_id: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("settlements.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
