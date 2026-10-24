@@ -135,35 +135,42 @@ def _round_half_up(value: Decimal) -> int:
     return int(value.quantize(Decimal("1"), rounding=ROUND_HALF_UP))
 
 
-def _latest_match_group_run_id(
+def _latest_order_capture_groups(
     db: Session, *, vendor_id: str, business_date_: date
-) -> tuple[str | None, bool]:
-    """The reconciliation run whose `order_capture` view of this
-    vendor/business_date is the current one, as (run_id, found_any).
+) -> list[MatchGroup]:
+    """This vendor/business_date's current `order_capture` view: the most
+    recently written group for each ORDER, one per order.
 
-    `match_groups` is append-only PER RUN: re-running reconciliation for a
-    night that was already reconciled leaves the earlier run's groups in
-    place and adds a fresh set. Picked by the newest row's `run_id`
-    (`created_at` is the run's transaction timestamp, so every group a run
-    wrote shares one value) rather than by joining `runs`, because
-    `MatchGroup.run_id` is nullable -- hand-built dev fixtures and groups
-    whose run row was deleted (ON DELETE SET NULL) have none, and those
-    form their own "run" here instead of being silently dropped.
-    `found_any` distinguishes "the latest groups carry run_id IS NULL"
-    from "this vendor/day has no groups at all"."""
-    row = db.execute(
-        select(MatchGroup.run_id)
+    `match_groups` is append-only per reconciliation run -- a re-run
+    re-classifies the vendor's orders and leaves the earlier run's groups
+    untouched -- so taking every group for the vendor/day counts each
+    order's sales once per run, doubling eligible sales, commission and
+    payout on the second run.
+
+    Newest-per-order rather than "everything from the newest run",
+    because a run does not necessarily cover every order:
+    app/orchestration/reconcile_day.py skips orders that already have a
+    group, so a later run can legitimately carry only the orders that were
+    new that night, and the earlier groups are still the current word on
+    the rest. Scoping to the newest run alone would make those orders'
+    sales disappear from the settlement entirely -- not even recorded as a
+    hold. `run_id` is deliberately not used at all: it is nullable
+    (hand-built dev fixtures, and ON DELETE SET NULL when a run row goes),
+    while `created_at` is always set."""
+    rows = db.execute(
+        select(MatchGroup, MatchGroupMember.member_id)
+        .join(MatchGroupMember, MatchGroupMember.match_group_id == MatchGroup.id)
         .where(
             MatchGroup.vendor_id == vendor_id,
             MatchGroup.match_type == "order_capture",
             MatchGroup.business_date == business_date_,
+            MatchGroupMember.member_kind == "order",
         )
-        .order_by(MatchGroup.created_at.desc(), MatchGroup.id.desc())
-        .limit(1)
-    ).first()
-    if row is None:
-        return None, False
-    return row[0], True
+        .order_by(MatchGroup.created_at.asc(), MatchGroup.id.asc())
+    ).all()
+    # Ascending, so the last write for an order wins.
+    latest: dict[str, MatchGroup] = {order_id: group for group, order_id in rows}
+    return list(latest.values())
 
 
 def gather_reconciled_day_facts(
@@ -174,34 +181,15 @@ def gather_reconciled_day_facts(
     from raw `orders`/`payments` directly, per the task's integration
     requirement with A03.
 
-    Scoped to the LATEST reconciliation run for this vendor/day: summing
-    every run's groups would add this vendor's sales once per
-    reconciliation run (a re-run after a fixed-up deposit or a corrected
-    order would double the night's eligible sales, and with it the
-    commission and the payout)."""
+    Reads each order's CURRENT classification only (the newest
+    `order_capture` group for that order -- see
+    `_latest_order_capture_groups`): reconciliation re-runs append a
+    second group per order, and counting both would double the night's
+    eligible sales, commission and payout."""
     facts = ReconciledDayFacts()
 
-    latest_run_id, has_groups = _latest_match_group_run_id(
+    order_groups = _latest_order_capture_groups(
         db, vendor_id=vendor.id, business_date_=business_date_
-    )
-    if not has_groups:
-        return facts
-
-    order_groups = (
-        db.execute(
-            select(MatchGroup).where(
-                MatchGroup.vendor_id == vendor.id,
-                MatchGroup.match_type == "order_capture",
-                MatchGroup.business_date == business_date_,
-                (
-                    MatchGroup.run_id.is_(None)
-                    if latest_run_id is None
-                    else MatchGroup.run_id == latest_run_id
-                ),
-            )
-        )
-        .scalars()
-        .all()
     )
 
     for group in order_groups:
