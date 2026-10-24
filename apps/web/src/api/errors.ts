@@ -103,12 +103,40 @@ export function safeMessage(kind: ApiErrorKind): string {
 function isErrorResponse(body: unknown): body is ErrorResponse {
   if (!body || typeof body !== 'object') return false;
   const b = body as Record<string, unknown>;
-  return (
-    typeof b.code === 'string' &&
-    typeof b.message === 'string' &&
-    typeof b.request_id === 'string' &&
-    typeof b.retryable === 'boolean'
-  );
+  // request_id and retryable are optional: the backend's error bodies carry
+  // code, message, retryable and field_errors but no request id (the id comes
+  // from the X-Request-ID header when the deployment sets one).
+  return typeof b.code === 'string' && typeof b.message === 'string';
+}
+
+/**
+ * The backend reports errors the FastAPI way: the body is {"detail": ...},
+ * where detail is the C03-shaped object {code, message, retryable,
+ * field_errors, current_version} for domain errors, a plain string for
+ * HTTPException, or the validation array for a 422. Unwrap all three so the
+ * UI keeps the server's own message, its field errors and - the one that
+ * matters for a decision - current_version on a 409 conflict.
+ */
+function unwrapDetail(body: unknown): unknown {
+  if (!body || typeof body !== 'object' || !('detail' in body)) return body;
+  const detail = (body as { detail: unknown }).detail;
+  if (typeof detail === 'string') return { ...body, code: 'ERROR', message: detail };
+  if (Array.isArray(detail)) {
+    return {
+      code: 'INVALID_REQUEST',
+      message: 'The request was rejected as invalid.',
+      field_errors: detail.map((e) => {
+        const item = (e ?? {}) as { loc?: unknown[]; msg?: unknown };
+        const loc = Array.isArray(item.loc) ? item.loc.filter((x) => typeof x === 'string' || typeof x === 'number') : [];
+        return {
+          field: loc.length > 1 ? loc.slice(1).join('.') : String(loc[0] ?? '(request)'),
+          message: typeof item.msg === 'string' ? item.msg : 'Invalid value.',
+        };
+      }),
+    };
+  }
+  if (detail && typeof detail === 'object') return detail;
+  return body;
 }
 
 function parseRetryAfter(header: string | null): number | null {
@@ -121,9 +149,10 @@ function parseRetryAfter(header: string | null): number | null {
 }
 
 /** Build an ApiError from a non-2xx response and its (possibly unparsable) body. */
-export function errorFromResponse(status: number, headers: Headers, body: unknown): ApiError {
+export function errorFromResponse(status: number, headers: Headers, rawBody: unknown): ApiError {
   const kind = kindForStatus(status);
   const retryAfterSeconds = parseRetryAfter(headers.get('Retry-After'));
+  const body = unwrapDetail(rawBody);
   if (!isErrorResponse(body)) {
     return new ApiError({
       kind,
@@ -144,8 +173,8 @@ export function errorFromResponse(status: number, headers: Headers, body: unknow
     code: body.code,
     // The server message is contractually user-safe (C03); still bound its length.
     message: body.message.slice(0, 500) || safeMessage(kind),
-    requestId: body.request_id,
-    retryable: body.retryable,
+    requestId: typeof body.request_id === 'string' ? body.request_id : headers.get('X-Request-ID'),
+    retryable: typeof body.retryable === 'boolean' ? body.retryable : kind === 'unavailable' || kind === 'rate_limited',
     fieldErrors: Array.isArray(body.field_errors) ? body.field_errors : [],
     currentVersion: typeof body.current_version === 'number' ? body.current_version : null,
     retryAfterSeconds,

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { RouterProvider, createBrowserRouter, createMemoryRouter, type RouteObject } from 'react-router-dom';
+import { isLive } from '../api/operations';
 import { EventStreamClient, liveStreamOpener } from '../api/sse';
 import { CaseDetail, CasesList } from '../screens/Cases';
 import { CashScreen } from '../screens/Cash';
@@ -87,15 +88,26 @@ export const routes: RouteObject[] = [
 /**
  * Starts the SSE notification stream in live mode. Every event or resync just
  * invalidates projections (refetch); events never change capabilities.
+ *
+ * The backend serves no /events/stream route yet (src/api/operations.ts
+ * classifies streamEvents as absent), so the stream is not opened: opening it
+ * would fail every few seconds and tell the operator "reconnecting" forever.
+ * The shell reports live updates as unavailable instead, and screens refresh
+ * on navigation, on a command's own refetch, or when the operator reloads.
  */
 function LiveUpdates() {
-  const { client, fixtureId, invalidateAll, setStreamStatus, config } = useApp();
+  const { client, fixtureId, invalidateAll, setStreamStatus, config, eventStream } = useApp();
   useEffect(() => {
     if (fixtureId) return; // no event stream in fixture mode
+    if (!(eventStream ?? isLive('streamEvents'))) {
+      setStreamStatus({ state: 'stopped', reason: 'unavailable' });
+      return;
+    }
     const stream = new EventStreamClient({
       open: liveStreamOpener(
         (cursor) => client.url('streamEvents', { query: { cursor } }),
         config.apiOrigin ? 'include' : 'same-origin',
+        () => client.authHeaders(),
       ),
       onEvent: () => invalidateAll(),
       onResync: () => invalidateAll(),
@@ -103,7 +115,7 @@ function LiveUpdates() {
     });
     void stream.start();
     return () => stream.stop();
-  }, [client, fixtureId, invalidateAll, setStreamStatus, config.apiOrigin]);
+  }, [client, fixtureId, invalidateAll, setStreamStatus, config.apiOrigin, eventStream]);
   return null;
 }
 

@@ -1,15 +1,32 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { fetchSession } from '../api/auth';
 import type { ApiClient } from '../api/client';
 import { isApiError } from '../api/errors';
 import type { CapabilitySnapshot } from '../api/capabilities';
 import type { StreamStatus } from '../api/sse';
 import type { AppConfig } from '../config/env';
 
+/**
+ * Sign-in against the backend's JWT bearer scheme. Live mode provides this
+ * (src/main.tsx); fixture mode has no credentials to exchange.
+ */
+export interface AuthService {
+  signIn: (email: string, password: string) => Promise<void>;
+  signOut: () => void;
+}
+
 export interface AppServices {
   config: AppConfig;
   client: ApiClient;
   /** Identifier of the dev/test fixture in use, or null in live mode. */
   fixtureId: string | null;
+  auth?: AuthService;
+  /**
+   * Open the SSE notification stream even though the operation table says the
+   * backend serves no /events/stream route. Used by the dev/test harness, and
+   * the single switch to flip when the backend ships the stream.
+   */
+  eventStream?: boolean;
 }
 
 interface AppContextValue extends AppServices {
@@ -20,6 +37,9 @@ interface AppContextValue extends AppServices {
   invalidateAll: () => void;
   streamStatus: StreamStatus;
   setStreamStatus: (s: StreamStatus) => void;
+  /** Exchange credentials for a bearer token, then reload the session. */
+  signIn: ((email: string, password: string) => Promise<void>) | null;
+  signOut: (() => void) | null;
 }
 
 const Ctx = createContext<AppContextValue | null>(null);
@@ -35,8 +55,7 @@ export function AppProvider({ services, children }: { services: AppServices; chi
     mounted.current = true;
     const ac = new AbortController();
     setCapabilities((c) => ({ ...c, status: 'loading' }));
-    services.client
-      .get('getSession', { signal: ac.signal })
+    fetchSession(services.client, ac.signal)
       .then((session) => {
         if (mounted.current) setCapabilities({ status: 'ready', session });
       })
@@ -56,6 +75,28 @@ export function AppProvider({ services, children }: { services: AppServices; chi
   const reloadSession = useCallback(() => setSessionNonce((n) => n + 1), []);
   const invalidateAll = useCallback(() => setInvalidation((n) => n + 1), []);
 
+  const auth = services.auth;
+  const signIn = useMemo(
+    () =>
+      auth
+        ? async (email: string, password: string) => {
+            await auth.signIn(email, password);
+            setSessionNonce((n) => n + 1);
+          }
+        : null,
+    [auth],
+  );
+  const signOut = useMemo(
+    () =>
+      auth
+        ? () => {
+            auth.signOut();
+            setSessionNonce((n) => n + 1);
+          }
+        : null,
+    [auth],
+  );
+
   const value = useMemo<AppContextValue>(
     () => ({
       ...services,
@@ -65,8 +106,10 @@ export function AppProvider({ services, children }: { services: AppServices; chi
       invalidateAll,
       streamStatus,
       setStreamStatus,
+      signIn,
+      signOut,
     }),
-    [services, capabilities, reloadSession, invalidation, invalidateAll, streamStatus],
+    [services, capabilities, reloadSession, invalidation, invalidateAll, streamStatus, signIn, signOut],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

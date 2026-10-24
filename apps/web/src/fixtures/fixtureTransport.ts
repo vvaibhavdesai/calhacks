@@ -330,11 +330,13 @@ export function createFixtureTransportFrom(data: FixtureData, options: FixtureTr
       return error(501, 'FIXTURE_READ_ONLY', 'Commands are not available in fixture mode.');
     }
 
-    if (route === '/session') {
+    // The real backend's session route (GET /api/v1/auth/me) and its shape, so
+    // fixture mode exercises the same session adapter as live mode.
+    if (route === '/auth/me') {
       return json(200, {
-        actor_id: options.actorId ?? 'fixture-actor',
+        id: options.actorId ?? 'fixture-actor',
+        email: 'fixture.viewer@example.invalid',
         display_name: 'Fixture viewer (dev only)',
-        workspace_id: 'fixture-workspace',
         capabilities,
       });
     }

@@ -102,7 +102,7 @@ export type StreamStatus =
   | { state: 'connecting'; attempt: number }
   | { state: 'open' }
   | { state: 'reconnecting'; attempt: number; delayMs: number; reason: ApiErrorKind | 'stream_ended' }
-  | { state: 'stopped'; reason: 'requested' | ApiErrorKind };
+  | { state: 'stopped'; reason: 'requested' | 'unavailable' | ApiErrorKind };
 
 export interface EventStreamOptions {
   /** Open the stream. `cursor` is null for "from now". Must honour `signal`. */
@@ -320,11 +320,16 @@ export class EventStreamClient {
 }
 
 /** Build the `open` function for the live API. */
-export function liveStreamOpener(url: (cursor: string | null) => string, credentials: RequestCredentials) {
+export function liveStreamOpener(
+  url: (cursor: string | null) => string,
+  credentials: RequestCredentials,
+  /** Authorization for the backend's bearer scheme (ApiClient.authHeaders). */
+  authHeaders: () => Record<string, string> = () => ({}),
+) {
   return (cursor: string | null, signal: AbortSignal) =>
     fetch(url(cursor), {
       method: 'GET',
-      headers: { Accept: 'text/event-stream', ...(cursor ? { 'Last-Event-ID': cursor } : {}) },
+      headers: { Accept: 'text/event-stream', ...authHeaders(), ...(cursor ? { 'Last-Event-ID': cursor } : {}) },
       credentials,
       signal,
       cache: 'no-store',
