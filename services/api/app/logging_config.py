@@ -38,7 +38,7 @@ _REDACT_KEY_FRAGMENTS = ("password", "secret", "token", "api_key", "credential",
 
 _BEARER_RE = re.compile(r"Bearer\s+[A-Za-z0-9\-_\.]+", re.IGNORECASE)
 # A10: Anthropic-style keys and credentials embedded in URLs
-# (postgresql+psycopg://user:PASSWORD@host/db) are scrubbed from free text.
+# (scheme://user:<password>@host/db) are scrubbed from free text.
 _ANTHROPIC_KEY_RE = re.compile(r"sk-ant-[A-Za-z0-9\-_]{8,}")
 _URL_CREDENTIALS_RE = re.compile(r"(?P<scheme>[a-z][a-z0-9+.\-]*://)(?P<user>[^:/@\s]+):[^@/\s]+@")
 _REDACTED = "[REDACTED]"

@@ -55,6 +55,13 @@ class Settings(BaseSettings):
     ops_outbox_stale_minutes: int = Field(default=10, ge=1, alias="OPS_OUTBOX_STALE_MINUTES")
     # Alert when more than this many intents are PENDING, regardless of age.
     ops_outbox_backlog_max: int = Field(default=100, ge=0, alias="OPS_OUTBOX_BACKLOG_MAX")
+    # Comma-separated outbox intent types that have NO dispatcher yet and so
+    # stay PENDING by design (A02's import notification has no consumer).
+    # Reported separately, excluded from the backlog alert. Remove a type
+    # from this list the moment a dispatcher for it ships.
+    ops_outbox_unconsumed_intent_types: str = Field(
+        default="source.imported.notify", alias="OPS_OUTBOX_UNCONSUMED_INTENT_TYPES"
+    )
     # Shared secret for scraping GET /metrics. Unset -> /metrics is disabled
     # (404), never open. Secret: inject from the environment only.
     ops_metrics_token: str | None = Field(default=None, alias="OPS_METRICS_TOKEN")
@@ -80,6 +87,10 @@ class Settings(BaseSettings):
     claude_max_concurrency: int = Field(default=4, ge=1, le=16, alias="CLAUDE_MAX_CONCURRENCY")
     # Per-API-process sliding-window limit on extraction batches started.
     claude_max_batches_per_hour: int = Field(default=20, ge=1, alias="CLAUDE_MAX_BATCHES_PER_HOUR")
+
+    @property
+    def outbox_unconsumed_intent_types(self) -> list[str]:
+        return [t.strip() for t in self.ops_outbox_unconsumed_intent_types.split(",") if t.strip()]
 
     @property
     def allowed_origins_list(self) -> list[str]:

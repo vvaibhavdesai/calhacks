@@ -73,14 +73,17 @@ services:
       migrate:
         condition: service_completed_successfully
 
+  # A10: same image as production (infra/web/Dockerfile): nginx serving the
+  # built SPA and proxying /api to the api service on one origin. (The old
+  # apps/web/Dockerfile build context could not see data/generator, which
+  # the production-bundle guard needs.) For hot-reload development use
+  # `npm run dev` in apps/web instead.
   web:
     build:
-      context: ../apps/web
-      dockerfile: Dockerfile
-    environment:
-      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
+      context: ..
+      dockerfile: infra/web/Dockerfile
     ports:
-      - "5173:5173"
+      - "5173:8080"
     depends_on:
       - api
 

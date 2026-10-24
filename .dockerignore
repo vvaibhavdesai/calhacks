@@ -1,0 +1,26 @@
+# A10: keep secrets, local state and evaluator-only material out of every
+# Docker build context (images are built from the repo root).
+.git
+.github
+**/.env
+**/.env.*
+!**/.env.example
+**/node_modules
+**/dist
+**/.vite
+**/__pycache__
+**/*.pyc
+.venv
+.pytest_cache
+.ruff_cache
+.data
+var
+# Lane B: evaluator answers and generated full datasets never enter an image
+# (lane-b.md contract question 12). The compact fixture (api/ + dev_only/) is
+# needed ONLY in the web image's discarded build stage, where the
+# production-bundle guard reads it to prove no fixture value leaked into
+# dist/; the final web image contains dist/ only, and the API/worker images
+# copy explicit source directories only.
+tests
+data/generator/out
+docs

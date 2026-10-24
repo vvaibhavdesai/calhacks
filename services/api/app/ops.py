@@ -20,7 +20,7 @@ import urllib.request
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, true
 from sqlalchemy.orm import Session
 
 from app.agents.limits import spent_last_24h_usd
@@ -46,6 +46,7 @@ class Signals:
     outbox_pending: int
     outbox_pending_stale: int
     outbox_oldest_pending_age_seconds: float | None
+    outbox_unconsumed_pending: int
     outbox_unknown: int
     outbox_failed: int
     payouts_unknown: int
@@ -80,16 +81,28 @@ def collect_signals(db: Session, settings: Settings, *, now: datetime | None = N
         .where(Run.status.in_(ACTIVE_RUN_STATES), Run.updated_at < stalled_before)
     )
 
+    # Intent types with no dispatcher yet (OPS_OUTBOX_UNCONSUMED_INTENT_TYPES)
+    # stay PENDING by design; they are counted separately so they cannot
+    # mask -- or permanently trip -- the backlog alert for real deliveries.
+    unconsumed = settings.outbox_unconsumed_intent_types
+    watched = OutboxIntent.intent_type.not_in(unconsumed) if unconsumed else true()
     outbox_by_status = dict(
-        db.execute(select(OutboxIntent.status, func.count()).group_by(OutboxIntent.status)).all()
+        db.execute(
+            select(OutboxIntent.status, func.count()).where(watched).group_by(OutboxIntent.status)
+        ).all()
+    )
+    outbox_unconsumed = db.scalar(
+        select(func.count())
+        .select_from(OutboxIntent)
+        .where(OutboxIntent.status == "PENDING", OutboxIntent.intent_type.in_(unconsumed))
     )
     outbox_pending_stale = db.scalar(
         select(func.count())
         .select_from(OutboxIntent)
-        .where(OutboxIntent.status == "PENDING", OutboxIntent.created_at < stale_before)
+        .where(watched, OutboxIntent.status == "PENDING", OutboxIntent.created_at < stale_before)
     )
     oldest_pending = db.scalar(
-        select(func.min(OutboxIntent.created_at)).where(OutboxIntent.status == "PENDING")
+        select(func.min(OutboxIntent.created_at)).where(watched, OutboxIntent.status == "PENDING")
     )
 
     payouts_unknown = db.scalar(
@@ -112,6 +125,7 @@ def collect_signals(db: Session, settings: Settings, *, now: datetime | None = N
         outbox_oldest_pending_age_seconds=(
             (now - oldest_pending).total_seconds() if oldest_pending else None
         ),
+        outbox_unconsumed_pending=int(outbox_unconsumed or 0),
         outbox_unknown=int(outbox_by_status.get("UNKNOWN", 0)),
         outbox_failed=int(outbox_by_status.get("FAILED", 0)),
         payouts_unknown=int(payouts_unknown or 0),
@@ -195,6 +209,7 @@ def signals_to_json(s: Signals) -> dict:
             "outbox_pending": s.outbox_pending,
             "outbox_pending_stale": s.outbox_pending_stale,
             "outbox_oldest_pending_age_seconds": s.outbox_oldest_pending_age_seconds,
+            "outbox_unconsumed_pending": s.outbox_unconsumed_pending,
             "outbox_unknown": s.outbox_unknown,
             "outbox_failed": s.outbox_failed,
             "payouts_unknown": s.payouts_unknown,
@@ -225,6 +240,11 @@ def signals_to_prometheus(s: Signals) -> str:
         "encore_outbox_oldest_pending_age_seconds",
         "Age of the oldest PENDING intent.",
         s.outbox_oldest_pending_age_seconds,
+    )
+    lines += g(
+        "encore_outbox_unconsumed_pending",
+        "PENDING intents of types with no dispatcher yet (not alerted).",
+        s.outbox_unconsumed_pending,
     )
     lines += g("encore_outbox_unknown", "Outbox intents with UNKNOWN result.", s.outbox_unknown)
     lines += g("encore_outbox_failed", "Outbox intents FAILED.", s.outbox_failed)

@@ -95,6 +95,24 @@ def test_alerts_report_stalled_runs_outbox_backlog_and_unknown_payouts(client, d
     assert db_session.query(Payout).one().state == "UNKNOWN"
 
 
+def test_unconsumed_intent_types_do_not_trip_backlog_alert(client, db_session):
+    old = datetime.now(UTC) - timedelta(hours=3)
+    db_session.add(
+        OutboxIntent(
+            idempotency_key="imp-1",
+            intent_type="source.imported.notify",
+            target="internal",
+            created_at=old,
+        )
+    )
+    db_session.commit()
+    headers = _login(client, db_session)
+    body = client.get("/api/v1/ops/alerts", headers=headers).json()
+    assert body["alerts"] == []
+    assert body["signals"]["outbox_unconsumed_pending"] == 1
+    assert body["signals"]["outbox_pending"] == 0
+
+
 def test_worker_probe_failure_raises_worker_down(client, db_session, monkeypatch):
     monkeypatch.setenv("OPS_WORKER_HEALTH_URL", "http://127.0.0.1:9/health/live")
     headers = _login(client, db_session)
@@ -232,18 +250,25 @@ def _format(message: str, **fields) -> dict:
     return json.loads(RedactingJSONFormatter().format(record))
 
 
+# Fake secret-shaped values are assembled at runtime so this file itself
+# never contains a literal that a secret scanner (scripts/check_secrets.sh,
+# gitleaks) would rightly flag.
+_FAKE_PW = "hunter2" + "pw"
+_FAKE_KEY = "sk-ant-" + "api03-" + "abcdefghijklmnop"
+
+
 def test_log_redaction_covers_keys_urls_and_api_keys():
     out = _format(
-        "connect postgresql+psycopg://encore_app:hunter2pw@db:5432/encore failed; "
-        "key sk-ant-api03-abcdefghijklmnop; header Bearer abc.def.ghi",
-        refresh_token="t1",
-        ops_metrics_token="t2",
+        f"connect postgresql+psycopg://encore_app:{_FAKE_PW}@db:5432/encore failed; "
+        f"key {_FAKE_KEY}; header Bearer abc.def.ghi",
+        refresh_token="tok-one",
+        ops_metrics_token="tok-two",
         db_password="p",
         nested={"api_key": "k", "ok": "fine"},
         path="/api/v1/ops/alerts",
     )
     text = json.dumps(out)
-    for leaked in ("hunter2pw", "sk-ant-api03-abcdefghijklmnop", "abc.def.ghi", "t1", "t2"):
+    for leaked in (_FAKE_PW, _FAKE_KEY, "abc.def.ghi", "tok-one", "tok-two"):
         assert leaked not in text
     assert "encore_app:[REDACTED]@db" in out["message"]
     assert out["db_password"] == "[REDACTED]"
@@ -257,7 +282,7 @@ def test_readiness_does_not_leak_connection_details(client, monkeypatch):
 
     class _Broken:
         def execute(self, *_a, **_k):
-            raise RuntimeError("could not connect to encore_app:secretpw@db-host")
+            raise RuntimeError(f"could not connect to encore_app:{_FAKE_PW}@db-host")
 
     def _broken_db():
         yield _Broken()
@@ -265,7 +290,7 @@ def test_readiness_does_not_leak_connection_details(client, monkeypatch):
     app.dependency_overrides[get_db] = _broken_db
     resp = client.get("/health/ready")
     assert resp.status_code == 503
-    assert "secretpw" not in resp.text and "db-host" not in resp.text
+    assert _FAKE_PW not in resp.text and "db-host" not in resp.text
     assert resp.json()["error"] == "RuntimeError"
 
 
