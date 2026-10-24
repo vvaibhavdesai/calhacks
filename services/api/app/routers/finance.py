@@ -19,6 +19,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 import app.accounting as accounting
+import app.cash_office as cash_office
 import app.finance_records as records
 import app.finance_reports as reports
 import app.payables as payables
@@ -32,6 +33,7 @@ from app.models import (
 )
 from app.models_finance import DailyClose, PurchaseOrder, VendorStatement
 from app.models_ledger import JournalEntry, Supplier, SupplierInvoice, Vendor
+from app.models_reconciliation import BankEntry
 from app.models_settlement import Settlement
 
 router = APIRouter(prefix="/api/v1", tags=["finance"])
@@ -277,6 +279,9 @@ def approve_variance(
 class PayIn(BaseModel):
     amount_cents: int
     business_date: date
+    # The bank debit that carried this payment, when known: it is cited in
+    # the journal so the unmatched-bank scan treats that debit as explained.
+    bank_entry_id: str | None = None
 
 
 @router.post("/invoices/{invoice_id}/pay")
@@ -287,6 +292,8 @@ def pay_invoice(
     db: Session = Depends(get_db),
     user: User = Depends(require_capability(CAPABILITY_MANAGE_PAYABLES)),
 ) -> dict:
+    if body.bank_entry_id is not None and db.get(BankEntry, body.bank_entry_id) is None:
+        raise HTTPException(status_code=404, detail="bank entry not found")
     try:
         payment, created = payables.pay_invoice(
             db,
@@ -294,6 +301,7 @@ def pay_invoice(
             amount_cents=body.amount_cents,
             idempotency_key=f"ap:{user.id}:{idempotency_key}",
             business_date=body.business_date,
+            bank_entry_id=body.bank_entry_id,
             actor_id=user.id,
             actor_capability=CAPABILITY_MANAGE_PAYABLES,
         )
@@ -545,7 +553,9 @@ def post_day(
     user: User = Depends(require_capability(CAPABILITY_CLOSE_BOOKS)),
 ) -> dict:
     """Posts (idempotently) the day's centrally collected sales net of
-    refunds/chargebacks, processor deposits and settlement commissions."""
+    refunds/chargebacks, processor deposits, settlement commissions,
+    cash-office deposits whose bank credit landed that day, and chargeback
+    fee recharges dated that day (re-evaluated against current terms)."""
     kw = dict(
         festival_id=body.festival_id,
         business_date=body.business_date,
@@ -557,6 +567,8 @@ def post_day(
             accounting.post_sales_for_day(db, **kw)
             + accounting.post_processor_deposits(db, **kw)
             + accounting.post_settlements_for_day(db, **kw)
+            + cash_office.post_cash_deposits(db, **kw)
+            + cash_office.post_chargeback_fees_for_day(db, **kw)
         )
     except _DOMAIN_ERRORS as exc:
         db.rollback()

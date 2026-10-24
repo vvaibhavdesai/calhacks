@@ -22,12 +22,18 @@ from domain import tax as tax_rules
 from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
+from app import cash_office
 from app.accounting import (
     balances_by_role,
     festival_balances,
     unbalanced_entry_count,
 )
 from app.finance_records import get_or_default_config, sponsor_received_cents
+from app.models_cash_office import (
+    CashDepositSlip,
+    CashOfficeCount,
+    ChargebackFee,
+)
 from app.models_finance import (
     DailyClose,
     Expense,
@@ -290,6 +296,15 @@ def cash_report(db: Session, *, festival_id: str, as_of: date) -> dict:
             ),
         }
     )
+    position["cash_office"] = {
+        "cash_office_cents": bal["1050"],
+        **cash_office.cash_office_summary(db, festival_id),
+    }
+    position["suspense"] = {
+        "suspense_cents": bal["1999"],
+        "items": cash_office.suspense_items(db, festival_id),
+        "note": "Unexplained bank activity held for a human decision; never income.",
+    }
     position["finance_config_version"] = cfg.version
     return position
 
@@ -328,6 +343,10 @@ _SOURCE_TABLES = (
     ("expense", Expense),
     ("opening_balance", OpeningBalance),
     ("payout", Payout),
+    ("cash_deposit_slip", CashDepositSlip),
+    ("cash_office_count", CashOfficeCount),
+    ("chargeback_fee", ChargebackFee),
+    ("case", Case),
 )
 
 
@@ -652,22 +671,44 @@ def close_checks(db: Session, *, festival_id: str, business_date: date) -> dict:
             )
         ).first()
     ]
+    unaccounted_bank = cash_office.unaccounted_bank_entries(db, festival_id, through=business_date)
+    unposted_slips = cash_office.unposted_cash_deposit_slips(db, festival_id, through=business_date)
+    open_cash_cases = [
+        c.id
+        for c in cash_office.festival_cases(
+            db,
+            festival_id,
+            (*cash_office.CASH_CASE_REASONS, cash_office.UNMATCHED_BANK_ENTRY),
+            status="OPEN",
+        )
+        if c.business_date is not None and c.business_date <= business_date
+    ]
     hard = {
         "trial_balance_balanced": tb["balanced"],
         "every_entry_balanced": unbalanced_entry_count(db, festival_id) == 0,
         "supplier_ap_matches_open_invoices": -bal["2300"] == ap["total_outstanding_cents"],
         "tax_source_totals_match_journal": tax["source_totals_match_journal"],
         "all_settlements_posted": not unposted,
+        # Bank activity is on the books: explained by a record or held in
+        # suspense (`POST /finance/bank-entries/scan`).
+        "bank_entries_accounted_for": not unaccounted_bank,
+        "cash_deposits_posted": not unposted_slips,
     }
     warnings = {
         "suspense_zero": bal["1999"] == 0,
         "statements_issued_for_all_settled_vendors": not unstated,
         "processor_clearing_zero": bal["1100"] == 0,
+        "cash_office_and_bank_cases_resolved": not open_cash_cases,
     }
     return {
         "hard": hard,
         "warnings": warnings,
         "unposted_settlement_ids": unposted,
+        "unaccounted_bank_entry_ids": unaccounted_bank,
+        "unposted_cash_deposit_slip_ids": unposted_slips,
+        "open_cash_and_bank_case_ids": open_cash_cases,
+        "cash_office_cents": bal["1050"],
+        "suspense_cents": bal["1999"],
         "vendors_without_statement": unstated,
         "processor_clearing_cents": bal["1100"],
         "open_case_count": db.execute(
@@ -777,6 +818,20 @@ def festival_report(db: Session, *, festival_id: str, as_of: date) -> dict:
         "payables": payables_summary(db, festival_id=festival_id, as_of=as_of),
         "sponsorship_receivables_memo": sponsorship_memo(db, festival_id),
         "tax": tax_summary(db, festival_id=festival_id),
+        "cash_office_and_bank_cases": [
+            cash_office.case_out(c)
+            for c in cash_office.festival_cases(
+                db,
+                festival_id,
+                (*cash_office.CASH_CASE_REASONS, cash_office.UNMATCHED_BANK_ENTRY),
+            )
+        ],
+        "chargeback_fees": [
+            cash_office.chargeback_fee_status(db, r)
+            for r in db.execute(
+                select(ChargebackFee).where(ChargebackFee.festival_id == festival_id)
+            ).scalars()
+        ],
         "journal_entry_counts_by_kind": dict(by_kind),
         "closed_business_dates": [d.isoformat() for d in closes],
         "labels": [

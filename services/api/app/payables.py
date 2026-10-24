@@ -596,6 +596,7 @@ def pay_invoice(
     business_date: date,
     actor_id: str,
     actor_capability: str,
+    bank_entry_id: str | None = None,
 ) -> tuple[SupplierPayment, bool]:
     inv = _lock_invoice(db, invoice_id)
 
@@ -645,7 +646,7 @@ def pay_invoice(
         business_date=business_date,
         kind="SUPPLIER_PAYMENT",
         lines=acct.supplier_payment(amount_cents),
-        source_record_ids=[payment_id, inv.id],
+        source_record_ids=[payment_id, inv.id] + ([bank_entry_id] if bank_entry_id else []),
         note="Simulated supplier payment. No real money moved.",
         actor_id=actor_id,
         actor_capability=actor_capability,

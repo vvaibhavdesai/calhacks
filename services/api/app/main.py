@@ -9,6 +9,7 @@ from app.routers import (
     agents,
     auth,
     cases,
+    cash_office,
     example,
     finance,
     health,
@@ -43,6 +44,7 @@ app.include_router(payouts.router)
 app.include_router(payouts.cash_pool_router)
 app.include_router(payouts.vendors_router)
 app.include_router(finance.router)
+app.include_router(cash_office.router)
 app.include_router(agents.router)
 
 

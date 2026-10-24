@@ -33,6 +33,51 @@ class Obligation:
     amount_cents: int
 
 
+@dataclass(frozen=True)
+class CountCheck:
+    """Counted cash vs what the POS says was collected centrally in cash."""
+
+    counted_cents: int
+    expected_cents: int
+
+    @property
+    def variance_cents(self) -> int:
+        """counted - expected: negative is a shortage, positive an overage."""
+        return self.counted_cents - self.expected_cents
+
+    @property
+    def status(self) -> str:
+        return "MATCHED" if self.variance_cents == 0 else "VARIANCE"
+
+
+@dataclass(frozen=True)
+class SlipCheck:
+    """A deposit slip: bags (each optionally tied to a count) vs the bank."""
+
+    bag_total_cents: int
+    stated_total_cents: int
+    bank_cents: int | None  # None while the bank credit has not landed
+    unlabelled_bag_count: int
+    bag_count_mismatches: int
+
+    @property
+    def bank_variance_cents(self) -> int | None:
+        return None if self.bank_cents is None else self.bank_cents - self.bag_total_cents
+
+    @property
+    def status(self) -> str:
+        if self.bank_cents is None:
+            return "AWAITING_BANK_CREDIT"
+        if (
+            self.bank_variance_cents
+            or self.unlabelled_bag_count
+            or self.bag_count_mismatches
+            or self.stated_total_cents != self.bag_total_cents
+        ):
+            return "CASE_REQUIRED"
+        return "MATCHED"
+
+
 def _liability(bal: dict[str, int], role: str) -> int:
     return -bal.get(role, 0)
 
