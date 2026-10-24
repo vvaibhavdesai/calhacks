@@ -24,6 +24,7 @@ import os
 import socket
 import sys
 import threading
+from collections.abc import Callable
 
 logger = logging.getLogger("worker.orchestration")
 
@@ -32,7 +33,12 @@ def worker_id() -> str:
     return os.environ.get("WORKER_ID") or f"{socket.gethostname()}:{os.getpid()}"
 
 
-def run_loop(stop: threading.Event, *, once: bool = False) -> int:
+def run_loop(
+    stop: threading.Event,
+    *,
+    once: bool = False,
+    on_beat: Callable[[], None] | None = None,
+) -> int:
     from app.orchestration.coordinator import work_once
 
     lease = float(os.environ.get("ORCHESTRATION_LEASE_SECONDS", "30"))
@@ -40,6 +46,8 @@ def run_loop(stop: threading.Event, *, once: bool = False) -> int:
     me = worker_id()
     logger.info(json.dumps({"event": "orchestration_worker_started", "worker_id": me}))
     while not stop.is_set():
+        if on_beat is not None:
+            on_beat()
         try:
             run_id = work_once(me, lease_seconds=lease)
         except Exception as exc:  # noqa: BLE001 -- keep the worker alive; state is durable

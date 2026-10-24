@@ -22,6 +22,8 @@ logger = logging.getLogger("worker")
 
 _shutdown = threading.Event()
 _started_at = datetime.now(UTC)
+_last_heartbeat_at: datetime | None = None
+_stale_after_seconds: float = 90.0
 
 
 class _HealthHandler(BaseHTTPRequestHandler):
@@ -30,18 +32,33 @@ class _HealthHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:  # noqa: N802 - stdlib handler naming
         if self.path in ("/health/live", "/health/ready"):
-            self.send_response(200)
+            body = health_status()
+            self.send_response(200 if body["status"] == "ok" else 503)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
-            body = {
-                "status": "ok",
-                "started_at": _started_at.isoformat(),
-                "uptime_seconds": (datetime.now(UTC) - _started_at).total_seconds(),
-            }
             self.wfile.write(json.dumps(body).encode("utf-8"))
         else:
             self.send_response(404)
             self.end_headers()
+
+
+def health_status(now: datetime | None = None) -> dict:
+    """A10 worker liveness: "the process answers HTTP" is not enough -- the
+    work loop itself must be making progress. Live means the loop recorded a
+    heartbeat within `_stale_after_seconds` (3x the heartbeat interval).
+    Before the loop's first beat (startup) the process counts as live."""
+    now = now or datetime.now(UTC)
+    last = _last_heartbeat_at
+    age = (now - last).total_seconds() if last else None
+    stale = age is not None and age > _stale_after_seconds
+    return {
+        "status": "stale" if stale else "ok",
+        "started_at": _started_at.isoformat(),
+        "uptime_seconds": (now - _started_at).total_seconds(),
+        "last_heartbeat_at": last.isoformat() if last else None,
+        "heartbeat_age_seconds": age,
+        "stale_after_seconds": _stale_after_seconds,
+    }
 
 
 def _run_health_server(port: int) -> ThreadingHTTPServer:
@@ -52,16 +69,15 @@ def _run_health_server(port: int) -> ThreadingHTTPServer:
     return server
 
 
+def _beat() -> None:
+    global _last_heartbeat_at
+    _last_heartbeat_at = datetime.now(UTC)
+    logger.info(json.dumps({"event": "worker_heartbeat", "ts": _last_heartbeat_at.isoformat()}))
+
+
 def _heartbeat_loop(interval_seconds: float) -> None:
     while not _shutdown.is_set():
-        logger.info(
-            json.dumps(
-                {
-                    "event": "worker_heartbeat",
-                    "ts": datetime.now(UTC).isoformat(),
-                }
-            )
-        )
+        _beat()
         _shutdown.wait(interval_seconds)
 
 
@@ -73,6 +89,8 @@ def _handle_signal(signum, frame) -> None:  # noqa: ANN001
 def main() -> int:
     port = int(os.environ.get("WORKER_HEALTH_PORT", "8100"))
     interval = float(os.environ.get("WORKER_HEARTBEAT_SECONDS", "30"))
+    global _stale_after_seconds
+    _stale_after_seconds = 3 * interval
 
     signal.signal(signal.SIGTERM, _handle_signal)
     signal.signal(signal.SIGINT, _handle_signal)
@@ -82,7 +100,12 @@ def main() -> int:
         if os.environ.get("ORCHESTRATION_WORKER_ENABLED") == "1":
             from worker.orchestration import run_loop
 
-            run_loop(_shutdown)
+            # The orchestration loop beats once per pass, and one pass may
+            # legitimately spend the whole LLM timeout inside a graph node, so
+            # the window has to cover a slow pass or a busy worker reads stale.
+            llm_timeout = float(os.environ.get("ORCHESTRATION_LLM_TIMEOUT_SECONDS", "60"))
+            _stale_after_seconds = max(_stale_after_seconds, 3 * llm_timeout)
+            run_loop(_shutdown, on_beat=_beat)
         else:
             _heartbeat_loop(interval)
     finally:
