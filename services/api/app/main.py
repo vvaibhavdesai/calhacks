@@ -25,6 +25,7 @@ from app.routers import (
     reconciliation,
     recorder,
     settlement,
+    terms,
 )
 
 _settings = get_settings()
@@ -85,6 +86,7 @@ app.include_router(agents.router)
 app.include_router(orchestration.router)
 app.include_router(recorder.router)
 app.include_router(corrections.router)
+app.include_router(terms.router)
 
 
 @app.get("/")
