@@ -1,8 +1,10 @@
 """A06: bounded batch runner for document extraction.
 
-Each document is extracted in its own DB session and committed on its own,
-so one failure never rolls back another and an interrupted batch resumes
-by simply running again (completed documents are REUSED, not re-called).
+Each document is extracted in its own DB session and committed on its own
+(by `extract_document`, which must not return before the record of a paid
+call is durable), so one failure never rolls back another and an interrupted
+batch resumes by simply running again (completed documents are REUSED, not
+re-called).
 Concurrency is a small fixed pool; the USD budget is checked between waves
 and the batch stops before starting a wave that could exceed it.
 """
@@ -67,9 +69,11 @@ def run_batch(
         db = factory()
         try:
             r = extract_document(db, storage, client, source_document_id=doc_id)
-            db.commit()
+            db.commit()  # no-op: extract_document commits the call itself
             return r
         except Exception as exc:  # never let one document take down the batch
+            # Only reachable before the model call (or if the DB itself is
+            # gone); a paid call is recorded inside extract_document.
             db.rollback()
             return ExtractResult(doc_id, "ERROR", None, note=f"{type(exc).__name__}: {exc}"[:300])
         finally:

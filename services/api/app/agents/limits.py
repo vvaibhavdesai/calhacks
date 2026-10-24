@@ -13,7 +13,10 @@ limits sit in front of that entry point, BEFORE a client is even built:
     is capped to what remains (and the response says so);
   - batch-start rate (CLAUDE_MAX_BATCHES_PER_HOUR) per API process -> 429;
   - one batch at a time per API process -> 409 (a second concurrent batch
-    would double the effective concurrency and make the budget check racy);
+    would double the effective concurrency and make the budget check racy).
+    Two API processes can still run a batch each: they cannot pay twice for
+    the same document, because app/agents/extraction.py serializes per
+    (source version, model, prompt version) on an advisory lock;
   - worker concurrency (CLAUDE_MAX_CONCURRENCY) passed to `run_batch`.
 
 The spend figure is an ESTIMATE from list prices (app/agents/extraction.py
