@@ -13,9 +13,31 @@ import processorBatches from '../../../../data/generator/fixtures/compact_v1/api
 import sourceDocuments from '../../../../data/generator/fixtures/compact_v1/api/source_documents.json';
 import vendors from '../../../../data/generator/fixtures/compact_v1/api/vendors.json';
 import type { Transport } from '../api/client';
-import { createFixtureTransportFrom, type FixtureData, type FixtureTransportOptions } from './fixtureTransport';
+import {
+  createFixtureTransportFrom,
+  type FixtureData,
+  type FixtureTransportOptions,
+  type IllustrativeOutputs,
+} from './fixtureTransport';
+// ILLUSTRATIVE hand-authored sample outputs (not oracle-derived, not calculated). Dev/test only.
+import illustrative from './illustrative/outputs_v1.json';
 
 export const FIXTURE_ID = 'compact_v1';
+export const ILLUSTRATIVE_ID = 'illustrative_outputs_v1';
+
+export const illustrativeOutputs: IllustrativeOutputs = {
+  runs: illustrative.runs,
+  vendor_runs: illustrative.vendor_runs,
+  settlements: illustrative.settlements,
+  cases: illustrative.cases,
+  policies: illustrative.policies,
+  match_groups: illustrative.match_groups,
+};
+
+export interface CompactFixtureOptions extends Omit<FixtureTransportOptions, 'outputs'> {
+  /** Also serve the ILLUSTRATIVE output records and decision commands. */
+  illustrativeOutputs?: boolean;
+}
 
 export const compactFixtureData: FixtureData = {
   festival,
@@ -31,6 +53,7 @@ export const compactFixtureData: FixtureData = {
   },
 };
 
-export function createFixtureTransport(options?: FixtureTransportOptions): Transport {
-  return createFixtureTransportFrom(compactFixtureData, options);
+export function createFixtureTransport(options: CompactFixtureOptions = {}): Transport {
+  const { illustrativeOutputs: withOutputs, ...rest } = options;
+  return createFixtureTransportFrom(compactFixtureData, withOutputs ? { ...rest, outputs: illustrativeOutputs } : rest);
 }

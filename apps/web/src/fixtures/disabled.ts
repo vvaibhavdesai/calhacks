@@ -4,10 +4,11 @@
  * silently serving fixtures.
  */
 import type { Transport } from '../api/client';
-import type { FixtureTransportOptions } from './fixtureTransport';
+import type { CompactFixtureOptions } from './compactFixture';
 
 export const FIXTURE_ID: string | null = null;
+export const ILLUSTRATIVE_ID: string | null = null;
 
-export function createFixtureTransport(_options?: FixtureTransportOptions): Transport {
+export function createFixtureTransport(_options?: CompactFixtureOptions): Transport {
   throw new Error('Fixture data is not included in production builds.');
 }

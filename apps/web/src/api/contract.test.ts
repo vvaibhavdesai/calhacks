@@ -158,6 +158,40 @@ describe('fixture transport responses conform', () => {
     } while (cursor && pages < 20);
   });
 
+  it('ILLUSTRATIVE output routes (dev/test fixture) validate against the draft schemas', async () => {
+    const out = new ApiClient({ transport: createFixtureTransport({ illustrativeOutputs: true }) });
+    expectValid('RunList', await out.list('listRuns'));
+    expectValid('Run', await out.get('getRun', { path: { id: 'illus_run_n1' } }));
+    expectValid('VendorRunList', await out.list('listRunVendors', { path: { id: 'illus_run_n1' } }));
+    expectValid('SettlementList', await out.list('listSettlements'));
+    expectValid('CaseList', await out.list('listCases'));
+    expectValid('PolicyVersionList', await out.list('listPolicies'));
+    expectValid('MatchGroupList', await out.list('listMatchGroups'));
+    for (const s of (await out.list('listSettlements')).items) expectValid('Settlement', await out.get('getSettlement', { path: { id: s.id } }));
+    for (const c of (await out.list('listCases')).items) expectValid('Case', await out.get('getCase', { path: { id: c.id } }));
+    for (const p of (await out.list('listPolicies')).items) expectValid('PolicyVersion', await out.get('getPolicyVersion', { path: { id: p.id } }));
+    for (const g of (await out.list('listMatchGroups')).items) expectValid('MatchGroup', await out.get('getMatchGroup', { path: { id: g.id } }));
+  });
+
+  it('decision payload schemas keep one-time resolution and policy approval distinct', () => {
+    const resolve = validator('ResolveCasePayload');
+    const approve = validator('ApprovePolicyPayload');
+    const r = { action: 'RESOLVE_CASE_ONE_TIME', decision: 'ACCEPT_OPTION', option_id: 'o', evidence_hash: 'h' };
+    expect(resolve(r)).toBe(true);
+    expect(approve(r)).toBe(false);
+    expect(resolve({ ...r, action: 'APPROVE_REUSABLE_POLICY' })).toBe(false);
+    expect(resolve({ ...r, actor_id: 'spoofed' })).toBe(false);
+    const a = {
+      action: 'APPROVE_REUSABLE_POLICY',
+      policy_id: 'p',
+      policy_version: 1,
+      evidence_hash: 'h',
+      scope: { festival_id: 'f', vendor_ids: [], description: 'd' },
+    };
+    expect(approve(a)).toBe(true);
+    expect(approve({ ...a, scope: undefined })).toBe(false);
+  });
+
   it('session, festival and errors validate', async () => {
     expectValid('Session', await client.get('getSession'));
     expectValid('Festival', await client.get('getFestival'));

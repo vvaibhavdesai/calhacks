@@ -3,10 +3,18 @@
  * compact fixture using the draft contract's HTTP semantics: list envelopes
  * {items, next_cursor}, opaque cursors, the common error shape, 404/422/501.
  *
- * It serves INPUT records only. Outputs (runs, settlements, cases, payouts,
- * journal...) are computed by lane A's backend and are deliberately not faked:
- * those routes answer 501 FIXTURE_ROUTE_NOT_AVAILABLE. Commands are not
- * accepted in fixture mode.
+ * By default it serves INPUT records only. Outputs (runs, settlements, cases,
+ * payouts, journal...) are computed by lane A's backend and are not faked:
+ * those routes answer 501 FIXTURE_ROUTE_NOT_AVAILABLE and commands are refused.
+ *
+ * Opt-in (`outputs`): a small set of ILLUSTRATIVE, hand-authored output records
+ * (src/fixtures/illustrative/outputs_v1.json; not oracle-derived, not calculated)
+ * is served for the B04 screens, and the two decision commands
+ * (/cases/{id}/resolve, /policies/{id}/approve) are answered with the C03 HTTP
+ * semantics the UI must handle: Idempotency-Key replay, 409 version conflict
+ * with current_version, 403 missing capability, 422 invalid transition. This is
+ * a stand-in for exercising the UI, not an implementation of lane A's rules.
+ * Payouts, journal and the other B05/B06 outputs stay 501.
  *
  * Never imported by production code paths: it is reachable only through the
  * '@encore/fixture-data' alias, which a build replaces with ./disabled.ts.
@@ -32,15 +40,31 @@ export interface FixtureData {
   };
 }
 
+/** ILLUSTRATIVE output records (dev/test only). Shapes follow the draft OpenAPI. */
+export interface IllustrativeOutputs {
+  runs: Row[];
+  vendor_runs: Row[];
+  settlements: Row[];
+  cases: Row[];
+  policies: Row[];
+  match_groups: Row[];
+}
+
 export interface FixtureTransportOptions {
   /** Artificial latency so loading states are visible in dev. */
   latencyMs?: number;
   /** Capabilities granted by the fixture session stub. Default: read-only. */
   capabilities?: string[];
+  /** Serve ILLUSTRATIVE outputs and decision commands. Default: off (inputs only). */
+  outputs?: IllustrativeOutputs;
+  /** Actor id recorded on fixture decisions. */
+  actorId?: string;
 }
 
+type CollectionKey = keyof FixtureData['collections'] | keyof IllustrativeOutputs;
+
 interface CollectionSpec {
-  key: keyof FixtureData['collections'];
+  key: CollectionKey;
   filters: string[];
   sortable: string[];
   defaultSort: string;
@@ -86,9 +110,35 @@ const COLLECTIONS: Record<string, CollectionSpec> = {
   },
 };
 
-const DETAIL: Record<string, keyof FixtureData['collections']> = {
+const OUTPUT_COLLECTIONS: Record<string, CollectionSpec> = {
+  '/runs': { key: 'runs', filters: ['business_date'], sortable: ['business_date', 'started_at'], defaultSort: '-business_date' },
+  '/settlements': {
+    key: 'settlements',
+    filters: ['vendor_id', 'business_date'],
+    sortable: ['business_date', 'payout_cents'],
+    defaultSort: 'business_date',
+  },
+  '/cases': { key: 'cases', filters: ['vendor_id', 'status'], sortable: ['opened_at'], defaultSort: '-opened_at' },
+  '/policies': { key: 'policies', filters: ['policy_id', 'status'], sortable: ['policy_id'], defaultSort: 'policy_id' },
+  '/reconciliation': {
+    key: 'match_groups',
+    filters: ['business_date', 'status'],
+    sortable: ['business_date'],
+    defaultSort: 'business_date',
+  },
+};
+
+const DETAIL: Record<string, CollectionKey> = {
   vendors: 'vendors',
   'source-documents': 'source_documents',
+};
+
+const OUTPUT_DETAIL: Record<string, CollectionKey> = {
+  runs: 'runs',
+  settlements: 'settlements',
+  cases: 'cases',
+  policies: 'policies',
+  reconciliation: 'match_groups',
 };
 
 const DEFAULT_LIMIT = 25;
@@ -146,7 +196,7 @@ function decodeCursor(cursor: string): { o: number; f: string } | null {
   return null;
 }
 
-function listResponse(data: FixtureData, spec: CollectionSpec, params: URLSearchParams): Response {
+function listResponse(source: Row[], spec: CollectionSpec, params: URLSearchParams): Response {
   const fieldErrors: { field: string; message: string }[] = [];
   const filters: [string, string][] = [];
   for (const f of spec.filters) {
@@ -185,7 +235,7 @@ function listResponse(data: FixtureData, spec: CollectionSpec, params: URLSearch
     offset = decoded.o;
   }
 
-  const rows = data.collections[spec.key]
+  const rows = source
     .filter((r) => filters.every(([f, v]) => String(r[f]) === v))
     .slice()
     .sort((a, b) => {
@@ -200,6 +250,18 @@ function listResponse(data: FixtureData, spec: CollectionSpec, params: URLSearch
 export function createFixtureTransportFrom(data: FixtureData, options: FixtureTransportOptions = {}): Transport {
   const latency = options.latencyMs ?? 0;
   const capabilities = options.capabilities ?? ['fixture.read'];
+  // Per-transport copy: commands mutate it, the imported JSON is never touched.
+  const outputs: IllustrativeOutputs | null = options.outputs
+    ? (JSON.parse(JSON.stringify(options.outputs)) as IllustrativeOutputs)
+    : null;
+  const commands = new CommandLedger();
+
+  const rowsOf = (key: CollectionKey): Row[] =>
+    key in data.collections
+      ? data.collections[key as keyof FixtureData['collections']]
+      : outputs
+        ? outputs[key as keyof IllustrativeOutputs]
+        : [];
 
   return async (url, init) => {
     if (latency > 0) await new Promise((r) => setTimeout(r, latency));
@@ -213,12 +275,16 @@ export function createFixtureTransportFrom(data: FixtureData, options: FixtureTr
     const method = (init.method ?? 'GET').toUpperCase();
 
     if (method !== 'GET') {
+      if (outputs && method === 'POST') {
+        const handled = handleCommand(route, init, outputs, commands, capabilities, options.actorId ?? 'fixture-actor');
+        if (handled) return handled;
+      }
       return error(501, 'FIXTURE_READ_ONLY', 'Commands are not available in fixture mode.');
     }
 
     if (route === '/session') {
       return json(200, {
-        actor_id: 'fixture-actor',
+        actor_id: options.actorId ?? 'fixture-actor',
         display_name: 'Fixture viewer (dev only)',
         workspace_id: 'fixture-workspace',
         capabilities,
@@ -228,14 +294,29 @@ export function createFixtureTransportFrom(data: FixtureData, options: FixtureTr
     if (route === '/business-config') return json(200, data.businessConfig);
 
     const spec = COLLECTIONS[route];
-    if (spec) return listResponse(data, spec, u.searchParams);
+    if (spec) return listResponse(rowsOf(spec.key), spec, u.searchParams);
+
+    if (outputs) {
+      const outSpec = OUTPUT_COLLECTIONS[route];
+      if (outSpec) return listResponse(rowsOf(outSpec.key), outSpec, u.searchParams);
+      const runVendors = /^\/runs\/([^/]+)\/vendors$/.exec(route);
+      if (runVendors) {
+        const runId = decodeURIComponent(runVendors[1] ?? '');
+        if (!outputs.runs.some((r) => r.id === runId)) return error(404, 'NOT_FOUND', 'This record was not found.');
+        return listResponse(
+          outputs.vendor_runs.filter((r) => r.run_id === runId),
+          { key: 'vendor_runs', filters: ['state'], sortable: ['vendor_id'], defaultSort: 'vendor_id' },
+          u.searchParams,
+        );
+      }
+    }
 
     const detail = /^\/([a-z-]+)\/([^/]+)$/.exec(route);
     if (detail) {
-      const key = DETAIL[detail[1] ?? ''];
+      const key = DETAIL[detail[1] ?? ''] ?? (outputs ? OUTPUT_DETAIL[detail[1] ?? ''] : undefined);
       if (key) {
         const id = decodeURIComponent(detail[2] ?? '');
-        const row = data.collections[key].find((r) => r.id === id);
+        const row = rowsOf(key).find((r) => r.id === id);
         return row ? json(200, row) : error(404, 'NOT_FOUND', 'This record was not found.');
       }
     }
@@ -246,4 +327,166 @@ export function createFixtureTransportFrom(data: FixtureData, options: FixtureTr
       'Not available in fixture mode: the compact fixture contains source inputs only; this data is produced by the backend.',
     );
   };
+}
+
+// ----------------------------------------------------------- commands (ILLUSTRATIVE)
+
+/** Idempotency-Key ledger: same key + same body replays; same key + other body is 409 (C03). */
+class CommandLedger {
+  private readonly byKey = new Map<string, { body: string; status: number; response: unknown }>();
+  get(key: string) {
+    return this.byKey.get(key);
+  }
+  set(key: string, body: string, status: number, response: unknown) {
+    this.byKey.set(key, { body, status, response });
+  }
+}
+
+function header(init: RequestInit, name: string): string | null {
+  const h = init.headers;
+  if (!h) return null;
+  if (h instanceof Headers) return h.get(name);
+  if (Array.isArray(h)) return h.find(([k]) => k.toLowerCase() === name.toLowerCase())?.[1] ?? null;
+  const rec = h as Record<string, string>;
+  const k = Object.keys(rec).find((x) => x.toLowerCase() === name.toLowerCase());
+  return k ? (rec[k] ?? null) : null;
+}
+
+function conflict(code: string, message: string, currentVersion: number | null): Response {
+  requestCounter += 1;
+  return json(409, {
+    code,
+    message,
+    request_id: `fixture-req-${requestCounter}`,
+    retryable: false,
+    field_errors: [],
+    current_version: currentVersion,
+  });
+}
+
+/** Canonical JSON (sorted keys) for comparing echoed scopes. */
+function canonical(v: unknown): string {
+  if (v === null || typeof v !== 'object') return JSON.stringify(v);
+  if (Array.isArray(v)) return `[${v.map(canonical).join(',')}]`;
+  return `{${Object.entries(v as Row)
+    .filter(([, x]) => x !== undefined)
+    .sort(([a], [b]) => (a < b ? -1 : 1))
+    .map(([k, x]) => `${JSON.stringify(k)}:${canonical(x)}`)
+    .join(',')}}`;
+}
+
+function handleCommand(
+  route: string,
+  init: RequestInit,
+  outputs: IllustrativeOutputs,
+  ledger: CommandLedger,
+  capabilities: string[],
+  actorId: string,
+): Response | null {
+  const m = /^\/(cases|policies)\/([^/]+)\/(resolve|approve)$/.exec(route);
+  if (!m || (m[1] === 'cases') !== (m[3] === 'resolve')) return null;
+  const isCase = m[1] === 'cases';
+  const id = decodeURIComponent(m[2] ?? '');
+
+  const key = header(init, 'Idempotency-Key');
+  if (!key || key.length < 8) {
+    return error(422, 'IDEMPOTENCY_KEY_REQUIRED', 'Idempotency-Key header is required.', [
+      { field: 'Idempotency-Key', message: 'required, 8-200 characters' },
+    ]);
+  }
+  const body = typeof init.body === 'string' ? init.body : '';
+  const ledgerKey = `${route}|${key}`;
+  const prior = ledger.get(ledgerKey);
+  if (prior) {
+    if (prior.body !== body) {
+      return conflict('IDEMPOTENCY_KEY_REUSED', 'This Idempotency-Key was already used with a different request.', null);
+    }
+    return json(prior.status, prior.response);
+  }
+
+  let envelope: { command_id?: unknown; expected_version?: unknown; payload?: Row };
+  try {
+    envelope = JSON.parse(body) as typeof envelope;
+  } catch {
+    return error(422, 'INVALID_BODY', 'The request body is not valid JSON.');
+  }
+  if (typeof envelope.command_id !== 'string' || typeof envelope.payload !== 'object' || envelope.payload === null) {
+    return error(422, 'INVALID_ENVELOPE', 'Expected {command_id, expected_version, payload}.');
+  }
+  const payload = envelope.payload;
+
+  const collection = isCase ? outputs.cases : outputs.policies;
+  const record = collection.find((r) => r.id === id);
+  if (!record) return error(404, 'NOT_FOUND', 'This record was not found.');
+
+  const required = String(record.required_capability ?? '');
+  if (!required || !capabilities.includes(required)) {
+    return error(403, 'FORBIDDEN', `This action requires the ${required || 'unknown'} capability.`);
+  }
+
+  const currentVersion = Number(isCase ? record.version : record.record_version);
+  if (envelope.expected_version !== currentVersion) {
+    return conflict('VERSION_CONFLICT', 'This record changed since you loaded it.', currentVersion);
+  }
+  if (payload.evidence_hash !== record.evidence_hash) {
+    return error(422, 'EVIDENCE_CHANGED', 'The evidence this decision was bound to is no longer current.', [
+      { field: 'payload.evidence_hash', message: 'does not match the current evidence' },
+    ]);
+  }
+
+  const decidedAt = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+  let response: Row;
+  if (isCase) {
+    if (payload.action !== 'RESOLVE_CASE_ONE_TIME') {
+      return error(422, 'INVALID_ACTION', 'Expected action RESOLVE_CASE_ONE_TIME.', [{ field: 'payload.action', message: 'invalid' }]);
+    }
+    if (record.status !== 'OPEN' && record.status !== 'IN_REVIEW') {
+      return error(422, 'INVALID_TRANSITION', `A ${String(record.status)} case cannot be resolved.`);
+    }
+    const options = (record.resolution_options as Row[] | undefined) ?? [];
+    if (payload.decision === 'ACCEPT_OPTION' && !options.some((o) => o.option_id === payload.option_id)) {
+      return error(422, 'UNKNOWN_OPTION', 'Choose one of the offered options.', [{ field: 'payload.option_id', message: 'unknown option' }]);
+    }
+    if (payload.decision !== 'ACCEPT_OPTION' && payload.decision !== 'REJECT') {
+      return error(422, 'INVALID_DECISION', 'Unknown decision.', [{ field: 'payload.decision', message: 'invalid' }]);
+    }
+    record.version = currentVersion + 1;
+    record.status = payload.decision === 'REJECT' ? 'REJECTED' : 'RESOLVED';
+    record.resolution = {
+      decision: payload.decision === 'REJECT' ? 'REJECTED' : 'RESOLVED_ONE_TIME',
+      option_id: payload.decision === 'REJECT' ? null : payload.option_id,
+      approval_id: `fixture-approval-${envelope.command_id}`,
+      actor_id: actorId,
+      capability: required,
+      decided_at: decidedAt,
+      policy_version_id: null,
+    };
+    response = { command_id: envelope.command_id, aggregate_id: id, version: record.version, status: record.status };
+  } else {
+    if (payload.action !== 'APPROVE_REUSABLE_POLICY') {
+      return error(422, 'INVALID_ACTION', 'Expected action APPROVE_REUSABLE_POLICY.', [{ field: 'payload.action', message: 'invalid' }]);
+    }
+    if (record.status !== 'DRAFT') {
+      return error(422, 'INVALID_TRANSITION', `A ${String(record.status)} policy version cannot be approved.`);
+    }
+    if (payload.policy_id !== record.policy_id || payload.policy_version !== record.version) {
+      return error(422, 'TARGET_MISMATCH', 'The approval names a different policy version.', [
+        { field: 'payload.policy_version', message: 'does not match the target' },
+      ]);
+    }
+    if (canonical(payload.scope) !== canonical(record.scope)) {
+      return error(422, 'SCOPE_MISMATCH', 'The approved scope differs from the policy version scope.', [
+        { field: 'payload.scope', message: 'does not match the current scope' },
+      ]);
+    }
+    record.record_version = currentVersion + 1;
+    record.status = 'ACTIVE';
+    const approvalId = `fixture-approval-${envelope.command_id}`;
+    record.approver_ref = approvalId;
+    record.approval = { approval_id: approvalId, actor_id: actorId, capability: required, decided_at: decidedAt };
+    record.status_reason = null;
+    response = { command_id: envelope.command_id, aggregate_id: id, version: record.record_version, status: record.status };
+  }
+  ledger.set(ledgerKey, body, 200, response);
+  return json(200, response);
 }
