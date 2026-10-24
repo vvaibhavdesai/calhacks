@@ -9,13 +9,21 @@ Branch: `prevention-extension` (local only, based off `origin/integration`
 ## Status legend
 not started · in progress · blocked · review · done
 
+**X0 (shared foundations) is now fully complete, except the deliberately
+deferred X0.4** — X0.1, X0.2, and X0.3 are all `review (verified)`. Per
+CONTEXT.md's build order, the next ticket is **R1 (readiness records and
+checks)**, whose real dependency is X0.2 (term provenance/precedence), not
+X0.3 — see X0.3-handoff.md's "Next ticket" section for the exact
+dependency reasoning (X0.3's `contract_obligation`/`obligation_link`
+tables are F1's and S1's dependency, not R-track's).
+
 ## Ticket status
 
 | Ticket | Tier | Status | Branch commits | Handoff doc |
 |---|---|---|---|---|
 | X0.1 generalize cases/approvals | must | review (verified) | migration 0010; see handoff for commit list | [X0.1-handoff.md](../progress/X0.1-handoff.md) |
 | X0.2 term provenance/precedence | must | review (verified) | migration 0011; see handoff for commit list | [X0.2-handoff.md](../progress/X0.2-handoff.md) |
-| X0.3 contract obligations/links | must | not started | — | — |
+| X0.3 contract obligations/links | must | review (verified) | migration 0012; see handoff for commit list | [X0.3-handoff.md](../progress/X0.3-handoff.md) |
 | X0.4 generator additions | must | **deferred** (collision risk with teammate's live `data/generator`/`tests/oracle` work — see CONTEXT.md) | — | — |
 | R1 readiness records/checks | must | not started | — | — |
 | R2 readiness cases/decisions | must | not started | — | — |
@@ -80,6 +88,14 @@ not started · in progress · blocked · review · done
    enforcement. Consistent with this codebase's existing convention
    (invariants enforced in service functions, not ORM/DB-level), but worth
    knowing before any future ticket adds a new term-creation call site.
+9. **X0.3's `counterparty_id`/`obligation_links.subject_id` are loose
+   string references, not foreign keys**, and nothing in
+   `app/contract_obligations.py` currently checks the referenced row
+   actually exists before writing a link/obligation citing it — the same
+   trust boundary X0.1 already flagged for `Case`/`Approval`'s own
+   subject pair. A future ticket wiring a real endpoint on top of X0.3
+   should add that existence check at the endpoint/service boundary. See
+   X0.3-handoff.md's "Open risks."
 
 ## Deviations from `TICKET_SPEC.md` (running log)
 
@@ -117,6 +133,51 @@ not started · in progress · blocked · review · done
   database and real SQLAlchemy sessions, just without an HTTP hop (unlike
   `verify_x01_*`, which does drive real HTTP calls because X0.1 added a
   real endpoint). See X0.2-handoff.md.
+- **X0.3: compute-on-read, not a stored running balance, for
+  invoiced/paid/credited/remaining.** TICKET_SPEC.md explicitly invited
+  either approach and asked for the choice to be justified. `contract_
+  obligation.amount_cents` is written once at creation and never again;
+  every derived total is recomputed fresh from `obligation_link` rows on
+  every read via a pure function
+  (`packages/domain/domain/contract_obligations.py`'s
+  `compute_obligation_totals`), deliberately NOT following
+  `SupplierInvoice`'s own row-locked running-balance precedent in
+  `app/payables.py`. Full three-part reasoning (spec wording, volume/
+  contention difference, "true by construction") in X0.3-handoff.md's
+  "Design, in brief."
+- **X0.3: a new `subject_type`, `"contract_obligation"`, added to
+  `domain.case_routing.SUBJECT_TYPES`** — not one of X0.1's original five.
+  "An overpayment opens a case" (TICKET_SPEC.md) has no honest fit among
+  `vendor_run`/`vendor_readiness`/`supplier_readiness`/`supplier_invoice`/
+  `forecast_snapshot`. Routed to `finance_lead` (same owner as
+  `INVOICE_EXCEEDS_PO`). Documented inline in `case_routing.py`, in
+  X0.3-handoff.md, and here, per the explicit instruction not to silently
+  invent a subject_type. This is the exact kind of addition X0.1's own
+  handoff anticipated ("a later ticket may add a real FK for one specific
+  subject_type... nothing here blocks that") — here it's a new vocabulary
+  value, not a new FK, but the same "documented, not silent" discipline
+  applies.
+- **X0.3: "cancelled" is reachable from proposed/approved/committed, not
+  only from "invoiced."** TICKET_SPEC.md's literal arrow notation
+  ("invoiced -> paid | cancelled") read fully literally would make an
+  obligation uncancellable before any invoice exists, which does not match
+  real deal-falls-through scenarios. `paid` remains the only state nothing
+  can be cancelled FROM (money already simulated as moved). See
+  X0.3-handoff.md.
+- **X0.3: no new HTTP endpoint.** TICKET_SPEC.md's shared "API additions"
+  list names none for X0.3 specifically; every acceptance criterion is
+  verified through direct, real-database Python calls instead (same
+  precedent as X0.2's own non-HTTP verification). R1/F1/S1 are the natural
+  first real callers of an eventual endpoint. See X0.3-handoff.md.
+- **X0.3: added `contract_totals` (an aggregation across every obligation
+  sharing one `contract_id`), beyond the literal per-row schema
+  TICKET_SPEC.md's bullet list describes.** The flagship "Done when"
+  scenario (a $20,000 contract made of a $5,000 deposit + $15,000 final)
+  only resolves correctly read at the CONTRACT level, across two separate
+  `contract_obligation` rows (one per `kind`) — a single combined row
+  would abuse the `kind` enum. Cancelled obligations are excluded from
+  this aggregate (a cancelled commitment is no longer a real one). See
+  X0.3-handoff.md.
 
 ## Capabilities added by X0.1 (new, beyond A01-A08's existing set)
 
