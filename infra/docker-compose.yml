@@ -35,7 +35,12 @@ services:
       context: ..
       dockerfile: services/api/Dockerfile
     environment:
-      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-encore}:${POSTGRES_PASSWORD:-encore_dev_password}@postgres:5432/${POSTGRES_DB:-encore}
+      # NOTE: deliberately the restricted `encore_app` role (A02, migration
+      # 0003_app_role_privileges), not the schema-owning ${POSTGRES_USER}
+      # role the `migrate` service below uses. encore_app cannot UPDATE or
+      # DELETE business_events/source_versions/journal_entries/journal_lines
+      # -- see docs/notes/audit-trust-boundary.md.
+      DATABASE_URL: postgresql+psycopg://encore_app:${ENCORE_APP_DB_PASSWORD:-encore_app_dev_password}@postgres:5432/${POSTGRES_DB:-encore}
       AUTH_JWT_SECRET: ${AUTH_JWT_SECRET}
       AUTH_TOKEN_TTL_MINUTES: ${AUTH_TOKEN_TTL_MINUTES:-60}
       DOCUMENT_STORAGE_BACKEND: ${DOCUMENT_STORAGE_BACKEND:-local}
