@@ -79,6 +79,25 @@ Postgres 16 (own database `encore_web`), migrated to head, `seed_admin.py`,
 - `GET /history/projection?knowledge_cutoff=...` answers **422
   FESTIVAL_REQUIRED** although the document declares `festival_id`
   optional. That is why `getHistoricalProjection` is not marked live.
+- `GET /events` returned real events (the backend records its own activity),
+  and they carry every field the UI's `EventEnvelope` requires, with
+  `category`, `actor_type` and `aggregate_type` values inside the UI's
+  enumerations. `GET /events/{event_id}` returns the same envelope, and
+  `?limit=1` returned `next_cursor: "2"`, so cursor paging works.
+- Those events exposed one real break: the backend sends
+  `occurred_at: "2026-10-24T22:31:23.147739+00:00"`, not `"...Z"`, and the
+  client's instant validator required the Z, so every timestamp on the live
+  recorder timeline would have shown "Invalid time". Fixed on the client;
+  the draft `Instant` pattern was widened to match what the backend emits.
+- In a browser (Vite dev server in live mode, `ENCORE_DEV_API_PROXY` to the
+  API), the app loads, renders and issues exactly the expected calls:
+  `/auth/me` 401 without a token, and the gap routes (`/festival`,
+  `/vendors`, `/runs`, `/events/stream`) 404 rather than being faked. The
+  sign-in form could not be driven from automation (the extension could not
+  inject into the dev page), so **the form itself was not clicked through a
+  browser**; the requests it makes (`POST /auth/login` -> bearer ->
+  `/auth/me` -> live reads with the mapped query parameters) were replayed
+  through the same dev proxy and all answered 200.
 
 No command round-trip (challenge, correction approval, replay) was run
 against live data: that needs a seeded festival and a completed close run.
