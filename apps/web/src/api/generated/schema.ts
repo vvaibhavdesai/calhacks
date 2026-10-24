@@ -935,7 +935,7 @@ export interface components {
         BusinessDate: string;
         /**
          * Format: date-time
-         * @description UTC RFC3339 instant.
+         * @description UTC RFC3339 instant. The backend emits both "...Z" and Python's "...+00:00" (datetime.isoformat on a UTC datetime); a non-zero offset is not an instant on this wire.
          */
         Instant: string;
         Version: number;

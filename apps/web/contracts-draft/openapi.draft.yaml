@@ -1219,8 +1219,11 @@ components:
     Instant:
       type: string
       format: date-time
-      pattern: 'Z$'
-      description: UTC RFC3339 instant.
+      pattern: '(Z|[+-]00:00)$'
+      description: >-
+        UTC RFC3339 instant. The backend emits both "...Z" and Python's
+        "...+00:00" (datetime.isoformat on a UTC datetime); a non-zero offset is
+        not an instant on this wire.
     Version:
       type: integer
       minimum: 1
