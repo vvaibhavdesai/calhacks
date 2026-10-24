@@ -250,6 +250,31 @@ export function PolicyApprovalPanel({ p, onServerChange, headingLevel = 2 }: { p
   );
 }
 
+/** Challenge entry point (B06) and any challenges recorded against this version. */
+function PolicyChallenges({ p }: { p: PolicyVersion }) {
+  const { client } = useApp();
+  const challenges = useApiQuery(`policy-challenges:${p.id}`, (signal) => client.list('listChallenges', { signal, query: { target_id: p.id, limit: 20 } }));
+  return (
+    <div className="challenge-entry">
+      <p>
+        <Link to={`/recorder/challenges/new?kind=POLICY_VERSION&id=${encodeURIComponent(p.id)}`}>Challenge this policy version</Link>{' '}
+        <span className="muted">with superseding evidence: preview the impact, then approve a correction explicitly.</span>
+      </p>
+      {challenges.status === 'success' && challenges.data.items.length > 0 ? (
+        <ul>
+          {challenges.data.items.map((c) => (
+            <li key={c.id}>
+              <Link to={`/recorder/challenges/${encodeURIComponent(c.id)}`}>Challenge {c.id}</Link> <StatusBadge status={c.status} />{' '}
+              <Instant value={c.created_at} />
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {challenges.status === 'error' ? <p className="field-hint">Challenges for this version could not be loaded.</p> : null}
+    </div>
+  );
+}
+
 export function PoliciesList() {
   const { client } = useApp();
   const { params, setFilters, goToCursor, canGoBack, back } = useListParams(['status']);
@@ -394,10 +419,7 @@ export function PolicyDetail() {
                 </span>
               ) : null}
             </p>
-            <p className="challenge-stub">
-              <Link to={`/recorder?challenge=${encodeURIComponent(p.id)}`}>Challenge this policy version</Link>{' '}
-              <span className="muted">(challenge, impact preview and correction arrive in B06)</span>
-            </p>
+            <PolicyChallenges p={p} />
           </section>
           <PolicyApprovalPanel p={p} onServerChange={result.refetch} />
           <section className="panel" aria-labelledby="hist-heading">

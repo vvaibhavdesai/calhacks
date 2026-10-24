@@ -6,6 +6,12 @@ import { CashScreen } from '../screens/Cash';
 import { JournalDetail, JournalList } from '../screens/Journal';
 import { InvoiceDetail, PayablesScreen } from '../screens/Payables';
 import { PayoutDetail, PayoutsList } from '../screens/Payouts';
+import { PayoutTrace } from '../screens/PayoutTrace';
+import { BranchDetail, BranchesScreen } from '../screens/Branches';
+import { ChallengeDetail, ChallengeNew, CorrectionDetail } from '../screens/Corrections';
+import { HistoryScreen } from '../screens/History';
+import { EventDetail, RecorderTimeline } from '../screens/Recorder';
+import { ReplayDetail, ReplaysScreen } from '../screens/Replays';
 import { ReportDetail, ReportsList } from '../screens/Reports';
 import { TaxDetail, TaxList } from '../screens/Tax';
 import { Overview } from '../screens/Overview';
@@ -47,6 +53,7 @@ export const routes: RouteObject[] = [
       // B05 finance screens
       { path: 'payouts', element: <PayoutsList /> },
       { path: 'payouts/:payoutId', element: <PayoutDetail /> },
+      { path: 'payouts/:payoutId/trace', element: <PayoutTrace /> },
       { path: 'cash', element: <CashScreen /> },
       { path: 'payables', element: <PayablesScreen key="sup" tab="" /> },
       { path: 'payables/purchase-orders', element: <PayablesScreen key="po" tab="purchase-orders" /> },
@@ -59,6 +66,17 @@ export const routes: RouteObject[] = [
       { path: 'tax/:taxId', element: <TaxDetail /> },
       { path: 'reports', element: <ReportsList /> },
       { path: 'reports/:reportId', element: <ReportDetail /> },
+      // B06 flight recorder, history, replays, branches, challenges and corrections
+      { path: 'recorder', element: <RecorderTimeline /> },
+      { path: 'recorder/events/:eventId', element: <EventDetail /> },
+      { path: 'recorder/history', element: <HistoryScreen /> },
+      { path: 'recorder/replays', element: <ReplaysScreen /> },
+      { path: 'recorder/replays/:replayId', element: <ReplayDetail /> },
+      { path: 'recorder/branches', element: <BranchesScreen /> },
+      { path: 'recorder/branches/:branchId', element: <BranchDetail /> },
+      { path: 'recorder/challenges/new', element: <ChallengeNew /> },
+      { path: 'recorder/challenges/:challengeId', element: <ChallengeDetail /> },
+      { path: 'recorder/corrections/:correctionId', element: <CorrectionDetail /> },
       ...PLACEHOLDERS.map((item) => ({ path: item.path.slice(1), element: <PlaceholderScreen item={item} /> })),
       { path: 'records/:collection', element: <SourceRecords /> },
       { path: '*', element: <NotFound /> },

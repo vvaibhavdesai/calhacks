@@ -4,6 +4,8 @@ interface ImportMetaEnv {
   readonly VITE_ENCORE_DATA_MODE?: 'live' | 'fixture';
   readonly VITE_ENCORE_API_ORIGIN?: string;
   readonly VITE_ENCORE_AUTH_LOGIN_URL?: string;
+  /** Dev fixture mode only: 'night3' (default) or 'night1'. */
+  readonly VITE_ENCORE_FIXTURE_STORY?: 'night1' | 'night3';
 }
 
 interface ImportMeta {

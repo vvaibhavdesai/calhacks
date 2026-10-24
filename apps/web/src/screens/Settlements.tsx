@@ -135,6 +135,12 @@ export function SettlementDetail() {
   return (
     <>
       <PageHeader title="Vendor statement" qualifier={MONEY_QUALIFIER}>
+        <Link to={`/recorder/challenges/new?kind=SETTLEMENT&id=${encodeURIComponent(settlementId)}`} className="button button-quiet">
+          Challenge
+        </Link>
+        <Link to={`/recorder?aggregate_id=${encodeURIComponent(settlementId)}`} className="button button-quiet">
+          Events
+        </Link>
         <Link to="/settlements" className="button button-quiet">
           All settlements
         </Link>

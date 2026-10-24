@@ -17,10 +17,16 @@ async function bootstrap() {
     // Inputs from compact_v1 plus ILLUSTRATIVE hand-authored outputs for the B04/B05 screens.
     // The dev session holds the decision capabilities so the workflow can be exercised;
     // the transport still enforces them per record, as the real server would.
+    // B06: VITE_ENCORE_FIXTURE_STORY=night3 (default in .env.fixtures) overlays the illustrative
+    // Night 3 story and enables the flight-recorder/correction stand-in; night1 keeps B04/B05 data only.
     transport = fixtures.createFixtureTransport({
       latencyMs: 200,
       illustrativeOutputs: true,
-      capabilities: ['fixture.read', 'case.resolve', 'policy.approve', 'payout.approve_above_limit'],
+      story: import.meta.env.VITE_ENCORE_FIXTURE_STORY === 'night1' ? 'night1' : 'night3',
+      capabilities: [
+        'fixture.read', 'case.resolve', 'policy.approve', 'payout.approve_above_limit',
+        'challenge.create', 'correction.approve', 'branch.create', 'replay.start',
+      ],
     });
     fixtureId = fixtures.FIXTURE_ID;
   } else {

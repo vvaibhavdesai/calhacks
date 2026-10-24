@@ -42,7 +42,7 @@ export const NAV: NavGroup[] = [
   {
     label: 'Audit',
     items: [
-      { path: '/recorder', label: 'Flight recorder', task: 'B06', summary: 'Event history, lineage, challenges, corrections and replay.' },
+      { path: '/recorder', label: 'Flight recorder', task: 'B06', summary: 'Event history, lineage, challenges, corrections and replay.', implemented: true },
       { path: '/records/vendors', label: 'Source records', task: 'B03', summary: 'Imported input records exactly as served by the API.' },
     ],
   },

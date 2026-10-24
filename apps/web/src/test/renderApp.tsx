@@ -30,9 +30,10 @@ export function headersOf(init: RequestInit): Record<string, string> {
   return out;
 }
 
-export function makeServer(options: { capabilities?: string[]; intercept?: Interceptor } = {}) {
+export function makeServer(options: { capabilities?: string[]; intercept?: Interceptor; story?: 'night1' | 'night3' } = {}) {
   const inner = createFixtureTransport({
     illustrativeOutputs: true,
+    story: options.story ?? 'night1',
     capabilities: options.capabilities ?? ['fixture.read'],
     actorId: 'test-actor',
   });
@@ -51,7 +52,8 @@ export function makeServer(options: { capabilities?: string[]; intercept?: Inter
     return scripted ?? forward();
   };
   const commands = () => requests.filter((r) => r.method === 'POST');
-  return { transport, requests, commands };
+  /** Unrecorded access to the same server state (as another user or tab would act). */
+  return { transport, requests, commands, inner };
 }
 
 export const fixtureConfig: AppConfig = { dataMode: 'fixture', apiOrigin: '', authLoginUrl: null };

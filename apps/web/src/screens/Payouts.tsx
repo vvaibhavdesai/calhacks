@@ -180,6 +180,12 @@ export function PayoutDetail() {
   return (
     <>
       <PageHeader title="Payout" qualifier={QUALIFIER}>
+        <Link to={`/payouts/${encodeURIComponent(payoutId)}/trace`} className="button">
+          Trace to sources
+        </Link>
+        <Link to={`/recorder/challenges/new?kind=PAYOUT&id=${encodeURIComponent(payoutId)}`} className="button button-quiet">
+          Challenge
+        </Link>
         <Link to="/payouts" className="button button-quiet">
           All payouts
         </Link>

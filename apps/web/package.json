@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "vite",
     "dev:fixtures": "vite --mode fixtures",
+    "dev:fixtures:night1": "vite --mode fixtures-night1",
     "gen:api": "openapi-typescript contracts-draft/openapi.draft.yaml -o src/api/generated/schema.ts",
     "check:api": "node scripts/check-generated.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",

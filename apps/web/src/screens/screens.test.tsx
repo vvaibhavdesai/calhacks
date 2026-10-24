@@ -206,7 +206,7 @@ describe('cases and policies (read views)', () => {
     expect(screen.getByText(/cash_count.location equals ORGANIZER_CASH_OFFICE/)).toBeInTheDocument();
     expect(screen.getByText('ATTRIBUTE_CASH_TO_PRIOR_NIGHT')).toBeInTheDocument();
     expect(screen.getByText('illus-actor-finance')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Challenge this policy version' })).toHaveAttribute('href', '/recorder?challenge=illus_pv_kettle_bag_v2');
+    expect(screen.getByRole('link', { name: 'Challenge this policy version' })).toHaveAttribute('href', '/recorder/challenges/new?kind=POLICY_VERSION&id=illus_pv_kettle_bag_v2');
     expect(screen.getByText(/only a DRAFT version can be approved/)).toBeInTheDocument();
     expect(await axeViolations(container)).toEqual([]);
   });
