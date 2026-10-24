@@ -491,15 +491,33 @@ def calculate_and_record_settlement(
     Does NOT call db.commit() -- the caller commits exactly once, same
     atomicity pattern as app/reconciliation.py's reconcile_festival.
 
-    Correction routing: if a prior settlement already exists for this
-    EXACT vendor/business_date with a CONFIRMED payout linked to it, this
-    call does not overwrite that settlement. It computes the new result
-    from current facts, records a NEW Settlement row with
-    `correction_of` pointing at the prior one, and the financial delta is
-    computed via `domain.settlement.calculate_settlement_adjustment`
-    (never a negative payout -- an overpayment becomes a recovery amount,
-    an underpayment becomes additional_payout_cents on the correction row
-    itself).
+    Supersession: `settlements` is append-only (migration 0005 revokes
+    UPDATE from `encore_app`), so a recalculation never overwrites the
+    prior row -- it inserts a new one whose `correction_of` points at the
+    prior LIVE row for this vendor/business_date. That pointer is the
+    single supersession mechanism the whole codebase reads: the live
+    version of a chain is the row no other row's `correction_of` names
+    (`gather_cumulative_history` here, `_live_settlements` in
+    app/corrections.py, app/accounting.py's posting, app/whatif.py,
+    app/finance_reports.py), and app/payout_dispatch.py refuses both to
+    create an obligation for, and to release a payout against, a
+    settlement a later row supersedes.
+
+    It is therefore set whether or not anything was paid out yet:
+
+      - a CONFIRMED payout exists on the prior chain -> this is a genuine
+        CORRECTION. `status="CORRECTION"`, and the financial delta is
+        computed via `domain.settlement.calculate_settlement_adjustment`
+        (never a negative payout -- an overpayment becomes a recovery
+        amount, an underpayment becomes additional_payout_cents on the
+        correction row itself).
+      - nothing confirmed yet -> this is still an ordinary calculation,
+        `status="FINAL"` with no adjustment lines, but it must still
+        supersede the row it replaces. Leaving `correction_of` NULL here
+        left two live FINAL rows for one vendor/night: every later night's
+        cumulative festival-to-date figures counted that night twice (so
+        commission was assessed twice on it), and the stale row's payout
+        stayed releasable alongside a second payout for the new row.
     """
     commission_bps, minimum_fee_cents, processor_fee_deductible, term = resolve_vendor_terms(
         db, vendor.id, business_date_
@@ -567,6 +585,10 @@ def calculate_and_record_settlement(
 
     is_correction = False
     adjustment = None
+    # Set for ANY recalculation over a live prior row for this
+    # vendor/day, not just a post-payout correction -- see the docstring:
+    # `correction_of` is what marks the prior row superseded.
+    superseded_settlement_id = prior_settlement.id if prior_settlement is not None else None
     corrected_settlement_id = None
     amount_already_paid_cents = 0
 
@@ -638,11 +660,16 @@ def calculate_and_record_settlement(
         minimum_applied=result.minimum_applied,
         holds=holds,
         policy_refs=[],
-        correction_of=corrected_settlement_id if is_correction else None,
+        correction_of=superseded_settlement_id,
         correction_reason=(
             "recalculated after a confirmed payout already existed for this vendor/day"
             if is_correction
-            else None
+            else (
+                "recalculated before any payout was confirmed; supersedes the prior "
+                "calculation for this vendor/day"
+                if superseded_settlement_id is not None
+                else None
+            )
         ),
         status="CORRECTION" if is_correction else "FINAL",
     )
