@@ -1,2 +1,4 @@
 __pycache__/
 *.pyc
+# B02: full-scale generated datasets are rebuilt locally, never committed
+out/

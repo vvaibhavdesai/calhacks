@@ -1,0 +1,8 @@
+{
+  "extends": "full_v1.json",
+  "fixture_id": "full_v1_train",
+  "split": "train",
+  "seed": 20251017,
+  "scenario_assignment": "shuffled",
+  "split_note": "TRAINING/HISTORY split: same rules and scenario types as full_v1, different seed; tiers, booths and scenario roles are reshuffled across vendors. Developers may inspect its expected answers (generated locally under tests/oracle/generated/full_v1_train/) to debug; runtime agents never see them."
+}

@@ -1,0 +1,8 @@
+{
+  "extends": "full_v1.json",
+  "fixture_id": "full_v1_heldout",
+  "split": "heldout",
+  "seed": 20270611,
+  "scenario_assignment": "shuffled",
+  "split_note": "HELD-OUT split: different seed, reshuffled tiers/booths/scenario roles. Its scenario manifest and expected answers are generated only under tests/oracle/generated/full_v1_heldout/ (gitignored) and must stay evaluator-only: do not use them for development, prompts, retrieval or tuning."
+}
