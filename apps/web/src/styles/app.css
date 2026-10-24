@@ -1139,3 +1139,4 @@ button.tab.is-active {
 .trace > li { position: relative; }
 .challenge-entry { margin-top: 12px; }
 progress { vertical-align: middle; }
+.data-table .field-hint { display: block; }
