@@ -11,6 +11,15 @@ monitoring probe should do.
 `collect_signals` is the single source for both `GET /api/v1/ops/alerts`
 (JSON for humans and the UI) and `GET /metrics` (Prometheus text for a
 scraper), so the two can never disagree.
+
+The audit hash chain contributes one signal here: the SQL-only
+`audit_chain.head_consistency` cross-check of `stream_heads` against the
+events that exist. The full recomputation of every event's hash is NOT on
+this path on purpose -- it is O(all history) and this function runs on
+every scrape. It lives behind `GET /api/v1/ops/audit-chain` and
+`scripts/verify_audit_chain.py` instead. So a clean `audit_chain_head`
+signal means "the chain's mutable pointers agree with the log", not "the
+chain has been verified".
 """
 
 from __future__ import annotations
@@ -24,6 +33,7 @@ from sqlalchemy import func, select, true
 from sqlalchemy.orm import Session
 
 from app.agents.limits import spent_last_24h_usd
+from app.audit_chain import head_consistency
 from app.config import Settings
 from app.models_ledger import OutboxIntent, Payout, Run
 
@@ -54,6 +64,11 @@ class Signals:
     claude_spent_24h_usd: float
     claude_daily_budget_usd: float
     worker_up: bool | None  # None = not configured, so not checked
+    # Streams whose stream_heads pointer disagrees with the events that
+    # exist, and the first few findings for the alert detail. NOT a full
+    # hash recomputation -- see the module docstring.
+    audit_chain_head_mismatches: int = 0
+    audit_chain_head_streams: list[str] = field(default_factory=list)
     alerts: list[Alert] = field(default_factory=list)
 
 
@@ -116,6 +131,8 @@ def collect_signals(db: Session, settings: Settings, *, now: datetime | None = N
         _probe_worker(settings.ops_worker_health_url) if settings.ops_worker_health_url else None
     )
 
+    head_findings = head_consistency(db)
+
     s = Signals(
         checked_at=now,
         runs_active=int(runs_active or 0),
@@ -133,6 +150,8 @@ def collect_signals(db: Session, settings: Settings, *, now: datetime | None = N
         claude_spent_24h_usd=round(spent_last_24h_usd(db, now=now), 4),
         claude_daily_budget_usd=settings.claude_daily_budget_usd,
         worker_up=worker_up,
+        audit_chain_head_mismatches=len(head_findings),
+        audit_chain_head_streams=sorted({f.stream_id for f in head_findings})[:10],
     )
 
     if s.runs_stalled:
@@ -193,6 +212,17 @@ def collect_signals(db: Session, settings: Settings, *, now: datetime | None = N
                 f"${s.claude_daily_budget_usd:.2f} rolling-24h budget",
             )
         )
+    if s.audit_chain_head_mismatches:
+        s.alerts.append(
+            Alert(
+                "AUDIT_CHAIN_HEAD_MISMATCH",
+                "critical",
+                s.audit_chain_head_mismatches,
+                "stream_heads disagrees with business_events on "
+                f"{', '.join(s.audit_chain_head_streams)}; verify with "
+                "GET /api/v1/ops/audit-chain and do not repair the log",
+            )
+        )
     if s.worker_up is False:
         s.alerts.append(Alert("WORKER_DOWN", "critical", 1, "worker health probe failed"))
     return s
@@ -217,6 +247,8 @@ def signals_to_json(s: Signals) -> dict:
             "claude_spent_24h_usd_estimate": s.claude_spent_24h_usd,
             "claude_daily_budget_usd": s.claude_daily_budget_usd,
             "worker_up": s.worker_up,
+            "audit_chain_head_mismatches": s.audit_chain_head_mismatches,
+            "audit_chain_head_streams": s.audit_chain_head_streams,
         },
     }
 
@@ -263,6 +295,12 @@ def signals_to_prometheus(s: Signals) -> str:
         "encore_claude_daily_budget_usd",
         "Configured rolling-24h budget.",
         s.claude_daily_budget_usd,
+    )
+    lines += g(
+        "encore_audit_chain_head_mismatches",
+        "Streams whose stream_heads pointer disagrees with business_events "
+        "(cheap check; not a full hash recomputation).",
+        s.audit_chain_head_mismatches,
     )
     if s.worker_up is not None:
         lines += g("encore_worker_up", "Worker health probe (1 = live).", int(s.worker_up))
