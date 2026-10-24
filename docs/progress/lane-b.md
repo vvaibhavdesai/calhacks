@@ -604,3 +604,101 @@ Not run: any browser E2E, Playwright or real-API tests (none added); integration
 
 - Lane A: review Q30–Q37 and DA39–DA45 together with the open Q1–Q29. When A03–A06 endpoints exist, swap the draft contract (README procedure), run the screens against A's API and database locally, and add the real-API browser test for one complete vendor flow. That test is the B04 acceptance and is still outstanding.
 - Next lane B task: **B05** (remaining finance screens: payouts including finance-lead approval, cash, payables, journal, tax drafts, reports).
+
+## B05: remaining finance screens
+
+| Field | Value |
+|---|---|
+| Task ID | B05 |
+| Owner | Lane B (experience/data) |
+| Branch | `lane-b` (pushed to `origin/lane-b`; nothing merged to `main`) |
+| Base commit | `94a7099` (B04 handoff record) |
+| Commits | `080b25c` OpenAPI proposals Q38–Q44 + types · `7a7f221` illustrative finance fixture + transport + bundle guard + fixture/contract tests · `8a793d1` components (labels, payout states, export, chart) · `3e5ffa1` screens + tests · `aedd821` visual-check fixes · `b0a74f2` README · this record |
+| Status | **review — integration blocked on A07/A08.** Lane A has no payouts/payables/books/cash/tax API yet, so the B05 acceptance ("a real run and supplier-payment scenario update every affected screen without reload; export figures match API") **has not been met and was not attempted**. Everything below ran only on the dev/test fixture transport. |
+| Reviewer / merge commit | none yet |
+
+### Files (only `apps/web/` and this note)
+
+- `contracts-draft/openapi.draft.yaml`: lane-B proposals Q38–Q44 (`x-encore-proposal`); `src/api/generated/schema.ts` regenerated with openapi-typescript 7.4.4; `operations.ts` and `types.ts` extended.
+- `src/fixtures/illustrative/finance_v1.json` (new, **ILLUSTRATIVE**), `fixtureTransport.ts`, `compactFixture.ts`; `scripts/check-prod-bundle.mjs` now reads both illustrative files and more id keys (422 markers, up from 285).
+- `src/components/`: FinanceLabels (SIMULATED / DRAFT, NOT FILED), PayoutStateBadge, ExportButtons, ForecastChart; StatusBadge tones.
+- `src/lib/export.ts`, `src/lib/reportExports.ts`; `src/lib/money.ts` gained `maxAbsCents` and `centsScaleRatio` (chart geometry only).
+- `src/screens/`: Payouts, Cash, Payables, Journal, Tax, Reports; `src/app/` routes and navigation; `src/main.tsx` dev session adds `payout.approve_above_limit`; `FixtureBanner` text; styles.
+- Tests: `src/screens/finance.test.tsx` (new, 23), additions to `illustrativeOutputs.test.ts`, `contract.test.ts`, `money.test.ts`, `App.test.tsx`.
+- `README.md`.
+
+No dependencies added. No changes to packages/contracts, services, db, infra, data, tests/oracle, root config or planning docs.
+
+### How the illustrative finance fixture was made (oracle isolation)
+
+- Figures were typed by hand by lane B into a scratch authoring script (not committed) that wrote the JSON and filled in derived server-style totals (journal totals, section totals, forecast chain). No file under `tests/oracle/`, `expected/`, `scripted_decisions*`, `dev_only/` or `simulator_only/` was opened during B05.
+- Payout amounts reuse the B04 illustrative settlement figures; journal, tax and report figures are consistent with those illustrative settlements, not with any engine.
+- Only input references were reused: compact vendor ids, the POS export and bank statement source ids/hashes. Supplier documents, their ids and hashes (`sha256:a1a1…`) are invented and `illus_`-prefixed.
+- Invented scenarios: Churro Cart's unverified beneficiary change and the Coastal Ice duplicate invoice / wrong-account posting exist only in this fixture.
+- The existing isolation test (no oracle paths in fixture code or data) covers the new file; a new test checks the fixture's server-style totals are internally consistent.
+
+### Commands actually run (macOS, Node v18.18.2)
+
+| Command | Result |
+|---|---|
+| `npm run gen:api`, `npm run check:api` | `generated API types are up to date with contracts-draft/openapi.draft.yaml` |
+| `npm run check` (final run, after the last code change) | check:api, typecheck and lint clean; `Test Files 15 passed (15) · Tests 169 passed (169)`; Vite built 4 files (JS 380.82 kB, gzip 110.09 kB); `prod bundle check OK: 4 files, 422 fixture markers, 0 hits` |
+| Planted `illus_payout_n1_sunrise PO-ICE-001` in `dist/`, ran the guard | exit 1, `2 hits`; removed, guard passed again |
+| Mutation: removed the stale-review discard in `PayoutApproval` | the 409 test failed as expected; file restored (verified) |
+| Headless Chrome on `vite --mode fixtures` | `/payouts/:id`, `/cash`, `/reports/:id`, `/journal` at 1280 px; `/cash` and `/payouts` at 500 px. Found and fixed: forecast chart wasted half its height below zero and axis labels were too small at 500 px; fixture banner still said payouts/books were unavailable; banner grammar. Wide tables scroll inside their focusable regions at 500 px (by design). Not done: 375 px, screen reader, real mobile. |
+
+Not run: Playwright/browser E2E, any real-API test, CI, integration with lane A.
+
+### Tests added (fixture-only; NOT integration acceptance)
+
+- **Payouts:** batch total shown from the server; all states; filter by state and batch via the URL; all ten C04 states labelled (UNKNOWN reads "reconciliation required — not resent"); UNKNOWN detail has no resend/retry/release control and shows the stable key; gate checks, server limit figures ($5,000 / $0 / $7,470) and hold reason; read-only session gets no controls; a failing hard blocker is listed as still blocking release; a blocked below-limit payout offers no approval; axe on list, UNKNOWN, detail and review.
+- **Approval command:** nothing sent before Confirm; envelope and payload validate against `CommandEnvelope` / `ApprovePayoutPayload` with an `Idempotency-Key`; exact body (version 2, `747000`, beneficiary 1, obligation, date, vendor); success only after the server (APPROVED v3); double click plus click sends one POST and shows no success while pending; 409 refetches and the next review binds version 4; 422 field errors; 403 no permission.
+- **Cash:** tiles, five not-spendable reservations, shortfalls, obligation links, receipts; chart has a text alternative naming the shortfall; the table's exact values equal the served projection; 503 shows an error, never sample data.
+- **Payables:** supplier outstanding, duplicate and credit-note flags, evidence drawer, duplicate warning on detail, journal links, SIMULATED supplier payments with stable keys; axe.
+- **Journal:** server totals and balance flags; reversal links; original shows it is preserved and corrected; a served `balanced: false` is shown; missing totals say "not provided" and nothing is summed; axe.
+- **Tax/reports:** DRAFT, NOT FILED banner/badges, config version, assumptions, liability owner, exempt items, refund tax; tax and report CSV/JSON exports equal the served data (lines, server totals, source refs; JSON `data` deep-equals the response); report kind filter; section totals and journal links; axe.
+- **Live:** an SSE event refetches payouts and batches; another refetches cash (no reload).
+- **Fixture/contract:** every finance list/detail validates against the draft schemas; payout approval semantics (403, 409, AMOUNT_MISMATCH, BENEFICIARY_CHANGED, INVALID_TRANSITION).
+
+### Implemented vs fixture-only vs incomplete
+
+**Implemented (against the draft contract):** the six finance screens above, the payout approval command UI, exports, the accessible forecast chart, live refetch through the existing SSE client, SIMULATED / DRAFT, NOT FILED labels in every mode, empty/error/permission states, capability gating from `/session` plus each payout's `required_capability`. No money arithmetic in UI code (lint guard passes).
+
+**Fixture-only:** all rendered finance data and all payout-approval outcomes. The transport's approval rules are a stand-in, not A07.
+
+**Incomplete / not done:**
+- Integration with A07/A08 and the acceptance scenario (real run + supplier payment updating every screen; exports matched against the real API).
+- Playwright E2E.
+- No supplier-payment approval or invoice-payment command (C03 names none; see Q45).
+- No cancel/recovery actions for payouts (CANCEL_REQUESTED etc. are display-only; B06/A09).
+- Exports are client-side serializations of served JSON; a server-side export endpoint would be more authoritative (Q44).
+- SSE invalidation is global (every event refetches every mounted projection); per-event-type targeting waits for A's event catalog (Q45).
+- No dark mode (the app is light-only by design); chart validated visually only, no palette validator run (single series using the existing accent and negative tokens, with text labels).
+
+### New DRAFT assumptions
+
+- DA46: a payout's `idempotency_key` is stable for its logical obligation across every retry; the UI only displays it and never generates one for a payout.
+- DA47: an amount approval satisfies only `DAILY_AUTO_LIMIT`. With a failing hard blocker it is recorded but the payout stays DRAFT and held.
+- DA48: `GET /cash` lists positions newest `as_of` first; the Cash screen shows the first item.
+- DA49: `GET /reports?business_date=` matches reports whose period covers that date.
+- DA50: journal detail is addressed by `entry_id` (`/journal/{entry_id}`); there is no separate `id`.
+- DA51: credit notes carry negative `gross/net_cents` and `outstanding_cents = 0` once applied; the invoice's `outstanding_cents` is already net of applied credit (server value).
+- DA52: supplier payments reuse the C04 payout state enum.
+- DA53: report and tax exports may be produced client-side from the served record without recomputation, until A provides export endpoints.
+- DA54: the illustrative capability name for payout approval is `payout.approve_above_limit`; the UI reads it from `Payout.required_capability`.
+
+### Contract questions for A (continuing; CONTRACTS.md not edited)
+
+38. **Payouts.** Add `GET /payouts/{id}`, `GET /payout-batches` and `state`/`batch_id` filters? Add to Payout: `payment_mode`, `batch_id`, `settlement_id`, `run_id`, `verified_beneficiary_version`, `approval_required`, `required_capability`, `gate {evaluated_at, checks[{check, result, hard_blocker, detail, case_id}], daily_limit {limit_cents, prior_cumulative_cents, cumulative_with_this_cents, exceeds_limit}}`, `holds[]`, `state_history[]`, `outcome_detail`, `reconciliation_case_id`, `updated_at`? Does `prior_cumulative_cents` include UNKNOWN and in-flight payouts (assumed yes) and tips (DA29)?
+39. **Payout approval payload.** `ApprovePayoutPayload {action: APPROVE_PAYOUT_ABOVE_LIMIT, logical_obligation_id, amount_cents, beneficiary_version, business_date, vendor_id, note}` with `expected_version` = payout `version`. 422 codes `AMOUNT_MISMATCH`, `BENEFICIARY_CHANGED`, `TARGET_MISMATCH`, `INVALID_TRANSITION`? Is the approval accepted while a hard blocker fails (DA47), or rejected with 422?
+40. **Cash position.** Shape: `bank_balance_cents`, `pending_cents`, `reserved_cents`, `reservations[{kind, label, amount_cents, spendable}]`, `obligations[]`, `shortfalls[]`, `receipts[]` (tickets/sponsorship), `forecast {horizon_days, horizon_end, method, assumptions, points[{date, opening, inflows, outflows, projected_available, shortfall}]}`, `config_version`, `source_refs`. What forecast horizon will A configure (illustrative uses 7 days)?
+41. **Payables.** Supplier (`category`, `payment_terms_days`, `outstanding_cents`, `beneficiary_version`, `status`, `source_refs`), PurchaseOrder (`po_number`, `issued_date`, `status`, `description`, `invoiced_cents`, `invoice_ids`, `source_refs`), SupplierInvoice additions (`kind`, `applies_to_invoice_id`, `duplicate_of_invoice_id`, `duplicate_reason`, `payment_ids`, `journal_entry_ids`), `GET /invoices/{id}`, `GET /supplier-payments`, `supplier_id`/`kind` filters. Matches B02's `supplier_payments` input shape?
+42. **Journal.** Add `business_date`, `description`, `kind ORIGINAL|REVERSAL|CORRECTION`, server `totals {debit_cents, credit_cents, balanced}`, `corrected_by[]`, `origin_ref`, line `line_id`/`account_name`/`memo`/`vendor_id`, and `GET /journal/{entry_id}`?
+43. **Tax drafts.** `TaxReport` fields: `period_from/to`, `config_version`, `tax_rate`, `assumptions[]`, taxable/exempt/refund totals, organizer/vendor liability, `lines[{liability_owner, vendor_id, taxable, exempt, refunds_tax, tax, source_refs}]`, `exempt_items[]`, `generated_at`, `GET /reports/tax/{id}`. Status value `DRAFT_NOT_FILED`?
+44. **Financial reports.** New `GET /reports` (`kind`, `business_date`) and `GET /reports/{id}`: `FinancialReport {kind DAILY_CLOSE|FESTIVAL_PNL|FESTIVAL_CASH, title, status, period, generated_at, basis_note, headline[], sections[{lines[{amount_cents, account, journal_entry_ids, source_refs}], total_cents}], config_version, source_refs}`. Will A also serve authoritative CSV/JSON exports (e.g. `GET /reports/{id}/export?format=csv`) so exports are server-generated?
+45. **Capabilities and events.** Capability names for payout amount approval, supplier-payment approval and exports? Will there be a supplier-payment approval command? Which SSE event types will A emit for payouts, supplier payments, cash and journal, so invalidation can be targeted instead of global?
+
+### Next
+
+- Lane A: review Q38–Q45 and DA46–DA54 together with Q1–Q37. When A07/A08 endpoints exist, swap the draft contract (README procedure), run a real close run and a supplier payment locally, and check that every affected screen updates without reload and exports match the API. That test is the B05 acceptance and is still outstanding.
+- Next lane B task: **B06** (flight recorder and correction UX).
