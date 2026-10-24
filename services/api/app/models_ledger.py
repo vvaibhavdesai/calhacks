@@ -261,6 +261,12 @@ class OrderLine(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
+    # --- A08 additive column (migration 0008) ---
+    # Taxability category, read against the active FinanceConfig's DEMO
+    # rates to recalculate expected tax. NULL = unknown category: the line's
+    # supplied tax is still reported, but no recalculation is claimed for it.
+    tax_category: Mapped[str | None] = mapped_column(String(60), nullable=True)
+
     order: Mapped[Order] = relationship(back_populates="lines")
 
 
@@ -592,6 +598,10 @@ class Supplier(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
+    # --- A08 additive columns (migration 0008) ---
+    festival_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    category: Mapped[str | None] = mapped_column(String(100), nullable=True)
+
 
 class SupplierInvoice(Base):
     __tablename__ = "supplier_invoices"
@@ -618,6 +628,29 @@ class SupplierInvoice(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
+    # --- A08 additive columns (migration 0008) ---
+    # A08 statuses: OPEN | PAID | PAYMENT_BLOCKED | CREDIT_NOTE. `status`,
+    # `outstanding_cents`, `credited_cents`, `paid_cents` are a row-locked
+    # running balance maintained by app/payables.py; the journal (AP 2300)
+    # is the independent cross-check reported by the payables summary.
+    festival_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    kind: Mapped[str] = mapped_column(String(20), nullable=False, default="INVOICE")
+    applies_to_invoice_id: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("supplier_invoices.id", ondelete="RESTRICT"), nullable=True
+    )
+    received_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    credited_cents: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    paid_cents: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    po_excess_cents: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    variance_approved_by: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    variance_approved_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    journal_entry_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+
 
 # ---------------------------------------------------------------------------
 # 7. Journals (balanced, immutable once posted)
@@ -638,6 +671,20 @@ class JournalEntry(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
+    # --- A08 additive columns (migration 0008) ---
+    # `entry_key` is the deterministic natural key of the business fact
+    # being posted (e.g. "SALES:<vendor>:<date>:1100"); unique, so posting
+    # the same fact twice is a no-op, never a second entry.
+    festival_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    entry_key: Mapped[str | None] = mapped_column(String(200), nullable=True, unique=True)
+    business_date: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)
+    kind: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    source_record_ids: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    posted_by: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+
     lines: Mapped[list[JournalLine]] = relationship(
         back_populates="entry", cascade="all, delete-orphan"
     )
@@ -651,6 +698,8 @@ class JournalLine(Base):
         String(32), ForeignKey("journal_entries.id", ondelete="CASCADE"), nullable=False, index=True
     )
     account_code: Mapped[str] = mapped_column(String(100), nullable=False)
+    # --- A08 additive column (migration 0008) ---
+    account_role: Mapped[str | None] = mapped_column(String(60), nullable=True)
     debit_cents: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
     credit_cents: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
     created_at: Mapped[datetime] = mapped_column(

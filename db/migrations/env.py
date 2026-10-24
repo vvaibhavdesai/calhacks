@@ -15,6 +15,7 @@ if _SERVICES_API not in sys.path:
 
 from app import (  # noqa: E402,F401
     models,
+    models_finance,
     models_ledger,
     models_payout_dispatch,
     models_reconciliation,

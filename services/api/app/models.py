@@ -113,6 +113,13 @@ CAPABILITY_RUN_RECONCILIATION = "run_reconciliation"
 # deterministic settlement engine). Separate from CAPABILITY_ADMIN for the
 # same reason as CAPABILITY_IMPORT_SOURCE/CAPABILITY_RUN_RECONCILIATION above.
 CAPABILITY_CALCULATE_SETTLEMENT = "calculate_settlement"
+# A08: record POs/invoices/credit notes and approve simulated supplier
+# payments. Separate from CAPABILITY_APPROVE_PAYOUT (vendor payouts) so
+# payables and vendor-payout authority can be split later.
+CAPABILITY_MANAGE_PAYABLES = "manage_payables"
+# A08: post journals, change finance (tax/schedule) configuration, issue
+# vendor statements and run the daily close.
+CAPABILITY_CLOSE_BOOKS = "close_books"
 
 ALL_CAPABILITY_CODES = (
     CAPABILITY_ADMIN,
@@ -123,4 +130,6 @@ ALL_CAPABILITY_CODES = (
     CAPABILITY_IMPORT_SOURCE,
     CAPABILITY_RUN_RECONCILIATION,
     CAPABILITY_CALCULATE_SETTLEMENT,
+    CAPABILITY_MANAGE_PAYABLES,
+    CAPABILITY_CLOSE_BOOKS,
 )
