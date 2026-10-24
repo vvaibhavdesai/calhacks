@@ -390,6 +390,73 @@ def _next_term_version(db: Session, vendor_id: str) -> int:
     return (max_version or 0) + 1
 
 
+def _contract_processor_fee_deductible(db: Session, case: Case, commission_bps: int) -> bool:
+    """The processor-fee clause of the contract candidate a decision
+    actually chose.
+
+    These cases are a disagreement about `commission_bps` ALONE -- nobody
+    disputed whether the vendor's contract lets the organizer recharge the
+    processor fee. Hard-coding that flag on the term a resolution writes
+    would quietly rewrite a clause no human decided, in either direction
+    (a vendor stops being charged a fee its contract permits, or starts
+    being charged one it does not).
+
+    Preference order: the candidate term whose rate is the one chosen,
+    then the signed-contract candidate, then any candidate the case cites.
+    False only when no candidate term is readable at all -- the same
+    conservative fallback app/corrections.py uses when it cannot find the
+    term it is superseding."""
+    refs = [
+        r
+        for r in (case.evidence_refs or [])
+        if isinstance(r, dict) and r.get("ref_kind") == "vendor_contract_term" and r.get("ref_id")
+    ]
+    terms = [t for t in (db.get(VendorContractTerm, r["ref_id"]) for r in refs) if t is not None]
+    if not terms:
+        return False
+    chosen = next((t for t in terms if t.commission_bps == commission_bps), None)
+    if chosen is None:
+        role_by_id = {r["ref_id"]: r.get("role") for r in refs}
+        chosen = next((t for t in terms if role_by_id.get(t.id) == "contract_rate"), terms[0])
+    return chosen.processor_fee_deductible
+
+
+def _activate_resolved_term(
+    db: Session,
+    *,
+    case: Case,
+    commission_bps: int,
+    minimum_fee_cents: int | None,
+    source_refs: list,
+    approved_by: str | None,
+) -> VendorContractTerm:
+    """Activate a chosen commission rate for the case's OWN business_date
+    and not one night longer.
+
+    `effective_from == effective_to == case.business_date`. An open-ended
+    term here would let every remaining night of the festival bill at a
+    rate no human decided for it and no policy covers -- silently, because
+    A04's `resolve_vendor_terms` just takes the highest-version active
+    term covering the night. Each later night earns its own single-day
+    term the same way: its own case, resolved by a human or auto-resolved
+    against an ACTIVE policy."""
+    term = VendorContractTerm(
+        vendor_id=case.vendor_id,
+        version=_next_term_version(db, case.vendor_id),
+        commission_bps=commission_bps,
+        minimum_fee_cents=minimum_fee_cents,
+        processor_fee_deductible=_contract_processor_fee_deductible(db, case, commission_bps),
+        effective_from=case.business_date,
+        effective_to=case.business_date,
+        status="active",
+        source_refs=source_refs,
+        approved_by=approved_by,
+    )
+    db.add(term)
+    db.flush()
+    return term
+
+
 def resolve_case(
     db: Session,
     uow: UnitOfWork,
@@ -411,14 +478,18 @@ def resolve_case(
 
     For a `vendor_contract_term_conflict` case, "approve"/"edit" activates
     exactly one new VendorContractTerm for this vendor (status="active"),
-    effective from the case's own business_date through `effective_to`
-    (None = open-ended, i.e. the rest of the festival) -- this is what
-    makes A04's `resolve_vendor_terms` pick up the resolved rate for every
-    later night without A05 touching app/settlement.py at all. "approve"
-    is expected to pass the LOWER (producer-email) rate the case proposed;
-    "edit" lets the human choose any rate at all, including neither
-    conflicting candidate -- both are the same code path here, since both
-    are an explicit human decision, not a default.
+    covering the case's own business_date and NOTHING beyond it -- a
+    one-time decision is policy for exactly one night. Later nights pick
+    up the rate only through the separate, explicit `approve_case_policy`
+    call below: their own detection then auto-resolves against that ACTIVE
+    policy and activates their own single-day term. `effective_to`, if
+    passed at all, must equal that business_date; a wider window is
+    refused rather than silently written, so no caller walks away
+    believing a one-time resolution bought a festival-long rate.
+    "approve" is expected to pass the LOWER (producer-email) rate the case
+    proposed; "edit" lets the human choose any rate at all, including
+    neither conflicting candidate -- both are the same code path here,
+    since both are an explicit human decision, not a default.
     """
     if case.status != "OPEN":
         raise ValueError(f"case {case.id} is not OPEN (status={case.status}); cannot resolve it")
@@ -433,20 +504,26 @@ def resolve_case(
                 raise ValueError(
                     "resolving a vendor_contract_term_conflict case requires commission_bps"
                 )
-            new_term = VendorContractTerm(
-                vendor_id=case.vendor_id,
-                version=_next_term_version(db, case.vendor_id),
+            if case.business_date is None:
+                raise ValueError(
+                    f"case {case.id} has no business_date; a contract-term resolution has to be "
+                    "scoped to the night it decides"
+                )
+            if effective_to is not None and effective_to != case.business_date:
+                raise ValueError(
+                    f"a one-time resolution of case {case.id} covers only its own business_date "
+                    f"({case.business_date.isoformat()}); approve it as a reusable policy "
+                    f"(POST /cases/{{id}}/approve-policy) to cover later nights instead of "
+                    f"widening effective_to to {effective_to.isoformat()}"
+                )
+            new_term = _activate_resolved_term(
+                db,
+                case=case,
                 commission_bps=commission_bps,
                 minimum_fee_cents=minimum_fee_cents,
-                processor_fee_deductible=False,
-                effective_from=case.business_date,
-                effective_to=effective_to,
-                status="active",
                 source_refs=case.evidence_refs,
                 approved_by=actor_id,
             )
-            db.add(new_term)
-            db.flush()
             new_term_id = new_term.id
             resolution_effect = {
                 "commission_bps": commission_bps,
