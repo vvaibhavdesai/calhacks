@@ -136,8 +136,14 @@ def _lock_cash_pool(db: Session, festival_id: str) -> CashPool | None:
 
 
 def _lock_payout(db: Session, payout_id: str) -> Payout | None:
+    # populate_existing: a row already in the identity map (e.g. re-locked
+    # after rail_simulator committed this session) must be overwritten with
+    # what the lock actually read, never served from a stale cached copy.
     return db.execute(
-        select(Payout).where(Payout.id == payout_id).with_for_update()
+        select(Payout)
+        .where(Payout.id == payout_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
     ).scalar_one_or_none()
 
 
@@ -367,6 +373,50 @@ def approve_payout(
         raise PayoutNotFoundError(f"payout {payout_id} not found")
     if expected_version is not None and payout.version != expected_version:
         raise PayoutVersionConflictError(expected_version, payout.version)
+
+    if payout.state == "APPROVED" and CAPABILITY_FINANCE_LEAD in user_capability_codes:
+        # Escalation: an ordinary approval that release later blocked with
+        # exceeds_daily_automatic_limit_requires_finance_lead (because other
+        # releases pushed the vendor/day total over the limit in between)
+        # must be able to receive the finance-lead approval release looks
+        # for -- otherwise the payout is stuck in APPROVED forever.
+        has_finance_lead = db.execute(
+            select(PayoutApproval.id).where(
+                PayoutApproval.payout_id == payout.id,
+                PayoutApproval.capability == CAPABILITY_FINANCE_LEAD,
+                PayoutApproval.decision == "APPROVED",
+            )
+        ).first()
+        if has_finance_lead is not None:
+            return payout
+        agg = _lock_vendor_day_aggregate(db, payout.vendor_id, payout.business_date)
+        check = check_cumulative_limit(agg.committed_cents, payout.amount_cents)
+        if not check.exceeds_limit:
+            return payout  # nothing to escalate; ordinary approval suffices
+        db.add(
+            PayoutApproval(
+                payout_id=payout.id,
+                actor_id=actor_id,
+                capability=CAPABILITY_FINANCE_LEAD,
+                decision="APPROVED",
+                amount_cents=payout.amount_cents,
+                note=note,
+            )
+        )
+        payout.version += 1
+        _append_payout_event(
+            db,
+            payout,
+            event_type="payout.finance_lead_escalation_approved",
+            actor_id=actor_id,
+            actor_capability=CAPABILITY_FINANCE_LEAD,
+            payload={
+                "amount_cents": payout.amount_cents,
+                "committed_prior_cents": check.committed_prior_cents,
+                "projected_total_cents": check.projected_total_cents,
+            },
+        )
+        return payout
 
     if payout.state != "DRAFT":
         # Idempotent: already approved (or further along) -- a repeat
@@ -614,17 +664,21 @@ def release_payout(
 
 
 def _release_reservation(db: Session, payout: Payout) -> None:
+    """Only call for a payout that release_payout actually reserved (state
+    was DISPATCH_PENDING or later). Locks in the SAME order release_payout
+    does -- vendor/day aggregate, then cash pool -- so a concurrent release
+    and cancel/fail on the same vendor cannot deadlock."""
     if payout.reservation_released_at is not None:
         return  # already released -- never double-release (idempotency guard)
+    agg = _lock_vendor_day_aggregate(db, payout.vendor_id, payout.business_date)
     vendor = db.get(Vendor, payout.vendor_id)
     pool = _lock_cash_pool(db, vendor.festival_id) if vendor is not None else None
+    agg.committed_cents = max(0, agg.committed_cents - payout.amount_cents)
+    agg.version += 1
     if pool is not None:
         pool.available_cents += payout.amount_cents
         pool.reserved_cents -= payout.amount_cents
         pool.version += 1
-    agg = _lock_vendor_day_aggregate(db, payout.vendor_id, payout.business_date)
-    agg.committed_cents = max(0, agg.committed_cents - payout.amount_cents)
-    agg.version += 1
     payout.reservation_released_at = datetime.now(UTC)
 
 
@@ -681,6 +735,24 @@ def dispatch_payout(
         simulate_outcome=simulate_outcome,
     )
 
+    # submit_payment may have committed this session (a genuinely new
+    # submission), which released the row lock taken above. Re-lock and
+    # re-check before converging: a concurrent dispatcher/cancel may have
+    # acted on the payout in the gap.
+    payout = _lock_payout(db, payout_id)
+    if payout.state not in ("DISPATCH_PENDING", "UNKNOWN"):
+        # Another dispatcher converged the payout in the gap; this call may
+        # still be the one that actually submitted to the rail.
+        return DispatchOutcome(
+            payout=payout,
+            outcome=record.outcome,
+            changed=False,
+            newly_submitted=newly_submitted,
+        )
+    intent = db.execute(
+        select(OutboxIntent).where(OutboxIntent.idempotency_key == payout.idempotency_key)
+    ).scalar_one()
+
     payout.dispatch_attempts += 1
     outcome = record.outcome
 
@@ -728,6 +800,12 @@ def dispatch_payout(
 # ---------------------------------------------------------------------------
 
 
+# A confirmation (bank debit or payout) is only meaningful once the rail has
+# accepted the payment. UNKNOWN is deliberately excluded: it resolves only
+# through reconcile_unknown_payout, never through a confirmation side door.
+_RAIL_ACCEPTED_STATES = ("SUBMITTED", "CONFIRMED")
+
+
 def confirm_bank_debit(
     db: Session, *, payout_id: str, actor_id: str | None, actor_capability: str | None
 ) -> tuple[Payout, bool]:
@@ -740,6 +818,9 @@ def confirm_bank_debit(
     if payout.bank_debit_confirmed_at is not None:
         db.rollback()
         return payout, False
+    if payout.state not in _RAIL_ACCEPTED_STATES:
+        db.rollback()
+        raise PayoutBlockedError("rail_has_not_accepted", {"current_state": payout.state})
     payout.bank_debit_confirmed_at = datetime.now(UTC)
     _append_payout_event(
         db,
@@ -765,6 +846,9 @@ def confirm_payout_rail(
     if payout.payout_confirmed_at is not None:
         db.rollback()
         return payout, False
+    if payout.state not in _RAIL_ACCEPTED_STATES:
+        db.rollback()
+        raise PayoutBlockedError("rail_has_not_accepted", {"current_state": payout.state})
     payout.payout_confirmed_at = datetime.now(UTC)
     if payout.state == "SUBMITTED":
         payout.state = "CONFIRMED"
@@ -793,33 +877,79 @@ def reconcile_unknown_payout(
     actor_id: str,
     actor_capability: str,
 ) -> Payout:
-    """The ONLY path that moves a payout out of UNKNOWN. Never invents a
-    new idempotency key or calls `submit_payment` again -- it transitions
-    the EXISTING RailSimulatorRecord via `resolve_outcome` (simulating the
-    provider eventually reporting what really happened) and then applies
-    the exact same outcome-handling as `dispatch_payout`."""
+    """The ONLY path that moves a payout out of an unresolved rail outcome:
+    UNKNOWN, DISPATCH_PENDING whose rail record is DELAYED (re-dispatch
+    only ever reads back the same DELAYED record, by design), or
+    CANCEL_REQUESTED (a cancel that landed while the rail outcome was
+    DELAYED/UNKNOWN). Never invents a new idempotency key or calls
+    `submit_payment` again -- it transitions the EXISTING
+    RailSimulatorRecord via `resolve_outcome` (simulating the provider
+    eventually reporting what really happened) and then applies that
+    outcome to our domain state.
+
+    For CANCEL_REQUESTED: FAILED means the money never moved, so the
+    cancel completes (CANCELLED, reservation released); ACCEPTED means the
+    payment won the race -- the payout becomes SUBMITTED with
+    recovery_required set, never CANCELLED."""
     payout = _lock_payout(db, payout_id)
     if payout is None:
         raise PayoutNotFoundError(f"payout {payout_id} not found")
-    if payout.state != "UNKNOWN":
-        raise PayoutBlockedError("nothing_to_reconcile", {"current_state": payout.state})
 
+    existing = rail_simulator.lookup(db, payout.idempotency_key)
+    reconcilable = payout.state in ("UNKNOWN", "CANCEL_REQUESTED") or (
+        payout.state == "DISPATCH_PENDING"
+        and existing is not None
+        and existing.outcome == "DELAYED"
+    )
+    if not reconcilable:
+        raise PayoutBlockedError("nothing_to_reconcile", {"current_state": payout.state})
+    if existing is None:
+        raise RuntimeError(f"no rail_simulator_record for payout {payout.id} -- cannot reconcile")
+
+    prior_state = payout.state
     record = rail_simulator.resolve_outcome(
         db, payout.idempotency_key, new_outcome=resolved_outcome
     )
-    if record is None:
-        raise RuntimeError(f"no rail_simulator_record for payout {payout.id} -- cannot reconcile")
+    # resolve_outcome committed this session (its own external-system
+    # boundary), releasing the row lock -- re-lock before mutating.
+    payout = _lock_payout(db, payout_id)
+    if payout.state != prior_state:
+        # A concurrent reconcile/cancel already moved it; the rail record is
+        # the source of truth and the other call applied it.
+        return payout
+    intent = db.execute(
+        select(OutboxIntent).where(OutboxIntent.idempotency_key == payout.idempotency_key)
+    ).scalar_one_or_none()
 
+    cancel_pending = prior_state == "CANCEL_REQUESTED"
     if resolved_outcome == "ACCEPTED":
         payout.state = "SUBMITTED"
         payout.provider_reference = record.provider_reference
+        if intent is not None:
+            intent.status = "DISPATCHED"
+            intent.dispatched_at = datetime.now(UTC)
+        if cancel_pending:
+            payout.recovery_required = True
+            payout.recovery_reason = (
+                "cancellation was pending when the simulated rail reported the payout "
+                "accepted -- funds moved and require a recovery/offset workflow, not a "
+                "pretended cancellation"
+            )
     elif resolved_outcome == "FAILED":
-        payout.state = "FAILED"
+        payout.state = "CANCELLED" if cancel_pending else "FAILED"
+        if intent is not None:
+            intent.status = "FAILED"
         _release_reservation(db, payout)
     elif resolved_outcome == "DELAYED":
-        payout.state = "DISPATCH_PENDING"
+        if not cancel_pending:
+            payout.state = "DISPATCH_PENDING"
+            if intent is not None:
+                intent.status = "PENDING"
     elif resolved_outcome == "UNKNOWN":
-        pass  # still unknown -- a reconciliation attempt that didn't resolve it
+        if not cancel_pending:
+            payout.state = "UNKNOWN"
+            if intent is not None:
+                intent.status = "UNKNOWN"
     payout.version += 1
     _append_payout_event(
         db,
@@ -827,7 +957,12 @@ def reconcile_unknown_payout(
         event_type="payout.reconciled",
         actor_id=actor_id,
         actor_capability=actor_capability,
-        payload={"resolved_outcome": resolved_outcome},
+        payload={
+            "resolved_outcome": resolved_outcome,
+            "prior_state": prior_state,
+            "new_state": payout.state,
+            "recovery_required": payout.recovery_required,
+        },
     )
     return payout
 
@@ -878,6 +1013,9 @@ def cancel_payout(
     if payout.state in _TERMINAL_STATES:
         db.rollback()
         return CancelOutcome(payout=payout, result="no_op_terminal_state")
+    if payout.state == "CANCEL_REQUESTED":
+        db.rollback()  # repeat cancel: already pending, no second event
+        return CancelOutcome(payout=payout, result="cancel_requested_pending")
 
     record = rail_simulator.lookup(db, payout.idempotency_key)
 
@@ -933,9 +1071,14 @@ def cancel_payout(
         return CancelOutcome(payout=payout, result="cancel_requested_pending")
 
     # No rail record at all -- never dispatched (or dispatch hasn't run
-    # yet): a genuinely clean cancel, nothing to recover.
+    # yet): a genuinely clean cancel, nothing to recover. Only a payout that
+    # release_payout actually reserved (DISPATCH_PENDING) gives cash and
+    # daily-limit headroom back; DRAFT/APPROVED never reserved anything, and
+    # "releasing" for them would mint cash that was never set aside.
+    was_reserved = payout.state not in ("DRAFT", "APPROVED")
     payout.state = "CANCELLED"
-    _release_reservation(db, payout)
+    if was_reserved:
+        _release_reservation(db, payout)
     payout.cancel_requested_at = datetime.now(UTC)
     payout.cancel_requested_by = actor_id
     payout.version += 1

@@ -197,7 +197,11 @@ def seed(db: Session) -> dict:
     # === Scenario C: insufficient available cash, atomically checked ======
     cash_vendor = get_or_create_vendor(db, festival_id=FESTIVAL_CASH, name="A07 Cash Vendor")
     cash_settlement = make_settlement(
-        db, vendor=cash_vendor, business_date_=D1, payout_cents=100_000, label="cash"  # $1,000
+        db,
+        vendor=cash_vendor,
+        business_date_=D1,
+        payout_cents=100_000,
+        label="cash",  # $1,000
     )
     ids["cash_vendor_id"] = cash_vendor.id
     ids["cash_settlement_id"] = cash_settlement.id

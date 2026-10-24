@@ -21,6 +21,7 @@ function without any change here) -- see docs/progress/A07-handoff.md.
 from __future__ import annotations
 
 from datetime import date
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -233,8 +234,11 @@ def release(
 # ---------------------------------------------------------------------------
 
 
+RailOutcome = Literal["ACCEPTED", "DELAYED", "FAILED", "UNKNOWN"]
+
+
 class DispatchRequest(BaseModel):
-    simulate_outcome: str = "ACCEPTED"
+    simulate_outcome: RailOutcome = "ACCEPTED"
 
 
 class DispatchResponse(BaseModel):
@@ -257,7 +261,7 @@ def dispatch(
             payout_id=payout_id,
             actor_id=user.id,
             actor_capability=CAPABILITY_APPROVE_PAYOUT,
-            simulate_outcome=body.simulate_outcome,  # type: ignore[arg-type]
+            simulate_outcome=body.simulate_outcome,
         )
     except payout_dispatch.PayoutNotFoundError as exc:
         raise _http_error_for(exc) from exc
@@ -285,7 +289,7 @@ def confirm_bank_debit(
         payout, _newly = payout_dispatch.confirm_bank_debit(
             db, payout_id=payout_id, actor_id=user.id, actor_capability=CAPABILITY_APPROVE_PAYOUT
         )
-    except payout_dispatch.PayoutNotFoundError as exc:
+    except (payout_dispatch.PayoutNotFoundError, payout_dispatch.PayoutBlockedError) as exc:
         raise _http_error_for(exc) from exc
     db.commit()
     return _to_out(payout)
@@ -301,19 +305,19 @@ def confirm_payout(
         payout, _newly = payout_dispatch.confirm_payout_rail(
             db, payout_id=payout_id, actor_id=user.id, actor_capability=CAPABILITY_APPROVE_PAYOUT
         )
-    except payout_dispatch.PayoutNotFoundError as exc:
+    except (payout_dispatch.PayoutNotFoundError, payout_dispatch.PayoutBlockedError) as exc:
         raise _http_error_for(exc) from exc
     db.commit()
     return _to_out(payout)
 
 
 # ---------------------------------------------------------------------------
-# Reconciliation (the only path out of UNKNOWN)
+# Reconciliation (the only path out of UNKNOWN / DELAYED / CANCEL_REQUESTED)
 # ---------------------------------------------------------------------------
 
 
 class ReconcileRequest(BaseModel):
-    resolved_outcome: str
+    resolved_outcome: RailOutcome
 
 
 @router.post("/{payout_id}/reconcile", response_model=PayoutOut)
@@ -327,7 +331,7 @@ def reconcile(
         payout = payout_dispatch.reconcile_unknown_payout(
             db,
             payout_id=payout_id,
-            resolved_outcome=body.resolved_outcome,  # type: ignore[arg-type]
+            resolved_outcome=body.resolved_outcome,
             actor_id=user.id,
             actor_capability=CAPABILITY_APPROVE_PAYOUT,
         )
