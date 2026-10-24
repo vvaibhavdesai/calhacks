@@ -94,6 +94,14 @@ Every required configuration name used by A01 is listed in `.env.example`
   any code path in A01**. `ANTHROPIC_MODEL` is set to the literal string
   `TBD-pending-user-authorization` in `.env.example` and must stay that way
   until the user explicitly authorizes a specific model/spend in A06.
+  **2026-10-24 update:** the user has pre-selected `claude-sonnet-5` as the
+  model to record once A06 is actually started, but has NOT yet provided an
+  `ANTHROPIC_API_KEY` and explicitly chose to defer A06 (live Claude/LangGraph
+  execution) until credentials are available, continuing with A07+ in the
+  meantime. Do not set `ANTHROPIC_MODEL` to a real value or make any live
+  call anywhere in the codebase until A06 is actually picked up with a key in
+  hand -- this line records the decision, it is not itself an authorization
+  to start A06.
 - The frontend (`apps/web`) receives exactly one env var,
   `VITE_API_BASE_URL`, which is a public origin, not a secret. No database
   URL, JWT secret, or Anthropic key is ever referenced from `apps/web`.
