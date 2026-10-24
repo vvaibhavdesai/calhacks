@@ -1,14 +1,9 @@
 """Minimal worker process entrypoint.
 
-No LangGraph/Claude logic yet -- that lands in A06. A01's job is just to
-prove the worker is a real, independently deployable process with its own
-health check, so infra/CI can exercise "start worker, confirm liveness"
-before any workflow logic exists.
-
-The worker runs a tiny stdlib HTTP health server on WORKER_HEALTH_PORT and a
-background loop that, for now, only logs a heartbeat. Later tasks replace the
-heartbeat loop with durable LangGraph dispatch (A06) without changing the
-health-check contract other processes depend on.
+The worker runs a tiny stdlib HTTP health server on WORKER_HEALTH_PORT and,
+when ORCHESTRATION_WORKER_ENABLED=1, the A06 nightly-close loop
+(worker/orchestration.py: lease-claimed LangGraph runs). Otherwise it only
+logs a heartbeat, as in A01. The health-check contract is unchanged.
 """
 
 from __future__ import annotations
@@ -84,7 +79,12 @@ def main() -> int:
 
     server = _run_health_server(port)
     try:
-        _heartbeat_loop(interval)
+        if os.environ.get("ORCHESTRATION_WORKER_ENABLED") == "1":
+            from worker.orchestration import run_loop
+
+            run_loop(_shutdown)
+        else:
+            _heartbeat_loop(interval)
     finally:
         server.shutdown()
     return 0

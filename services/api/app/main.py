@@ -13,6 +13,7 @@ from app.routers import (
     finance,
     health,
     imports,
+    orchestration,
     payouts,
     reconciliation,
     settlement,
@@ -44,6 +45,7 @@ app.include_router(payouts.cash_pool_router)
 app.include_router(payouts.vendors_router)
 app.include_router(finance.router)
 app.include_router(agents.router)
+app.include_router(orchestration.router)
 
 
 @app.get("/")
