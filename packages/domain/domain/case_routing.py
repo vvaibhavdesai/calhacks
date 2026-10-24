@@ -32,6 +32,17 @@ night" assumption A02-A05 baked in):
                             `subject_id` is a loose string reference (no
                             FK), deliberately, so X0.1 does not block on
                             F1's schema. See the X0.1 handoff doc.
+  - "contract_obligation" -- X0.3 ADDITION, not one of the original five
+                            above. TICKET_SPEC.md X0.3: "An overpayment
+                            opens a case" -- a case about one specific
+                            over-linked `contract_obligation` row has no
+                            honest fit among the original five (it is not
+                            a vendor's night, not a readiness check, not a
+                            supplier invoice itself, not a forecast
+                            snapshot). Documented here, in docs/progress/
+                            X0.3-handoff.md, and in PROGRESS.md's
+                            "Deviations" log, per X0.3's own instruction not
+                            to silently add a subject_type without a trace.
 
 `case_kind` is a short, stable label for "what this case is actually
 about" *within* a subject_type -- NOT the same thing as `Case.reason_code`
@@ -52,6 +63,9 @@ SUBJECT_TYPES: tuple[str, ...] = (
     "supplier_readiness",
     "supplier_invoice",
     "forecast_snapshot",
+    # X0.3 addition -- see module docstring's "contract_obligation" entry
+    # above for why this wasn't in X0.1's original five.
+    "contract_obligation",
 )
 
 # (subject_type, case_kind) -> owner capability code. A KeyError (wrapped
@@ -77,6 +91,12 @@ _ROUTING_TABLE: dict[tuple[str, str], str] = {
     ("supplier_invoice", "INVOICE_EXCEEDS_PO"): "finance_lead",
     # --- supplier_invoice: new S2/S4 exception kind --------------------------
     ("supplier_invoice", "invoice_exception"): "approve_invoice_exception",
+    # --- contract_obligation: new X0.3 kind ----------------------------------
+    # Reuses finance_lead, the same owner already configured for
+    # ("supplier_invoice", "INVOICE_EXCEEDS_PO") above -- an overpaid
+    # contract commitment is the same class of "a financial variance needs
+    # a finance-lead decision" problem, not a payables-clerk one.
+    ("contract_obligation", "obligation_overpaid"): "finance_lead",
     # --- forecast_snapshot: new F5 kind --------------------------------------
     ("forecast_snapshot", "shortfall"): "acknowledge_forecast",
 }
