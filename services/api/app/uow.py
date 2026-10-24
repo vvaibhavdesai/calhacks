@@ -29,13 +29,19 @@ commits, then sees the updated last_sequence/last_hash and continues from
 there. This is proven for real in
 services/api/tests/test_concurrent_append.py using real separate DB
 connections/threads against the live Postgres instance, not a mock.
+
+Verifying the chain: `app/audit_chain.py` recomputes it from the stored
+rows using `event_hash_input`/`compute_event_hash` below -- the same two
+functions this module hashes with, so the write path and the verifier
+cannot drift apart. It is reachable as `GET /api/v1/ops/audit-chain`, as
+gauges on `/metrics`, and as `scripts/verify_audit_chain.py`.
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import select
@@ -54,16 +60,109 @@ GENESIS_HASH = hashlib.sha256(b"encore-stream-genesis-v1").hexdigest()
 
 def _canonical_json(data: dict[str, Any]) -> str:
     """Deterministic JSON encoding used as hash input: sorted keys, no
-    whitespace ambiguity, ISO datetimes. Must stay stable -- changing this
-    function changes future hashes, not past ones (past hashes were already
-    computed and stored)."""
+    whitespace ambiguity, ISO datetimes normalized to UTC. Must stay stable
+    -- changing this function changes future hashes, not past ones (past
+    hashes were already computed and stored).
+
+    Why the `.astimezone(UTC)`: `occurred_at` is a `timestamptz`, so the
+    value Postgres hands back is rendered in the *reading session's*
+    TimeZone. The same instant therefore reaches a verifier as
+    `...+00:00` under a UTC session and `...-07:00` under
+    America/Los_Angeles -- two different `isoformat()` strings, two
+    different SHA-256s, for one unchanged row. Normalizing here makes the
+    hash input a function of the instant only, so a recomputation agrees
+    with the original write whatever timezone the verifying session is in.
+
+    Does this invalidate hashes already stored? No, for one checkable
+    reason: every writer passes an aware UTC datetime (`datetime.now(UTC)`
+    at every `append_event` call site; `app/ingestion.py` passes
+    `received_at`, which defaults to `datetime.now(UTC)` and which no
+    caller overrides; the dev fixtures build `datetime(..., tzinfo=UTC)`).
+    For an aware UTC datetime `d.astimezone(UTC).isoformat() ==
+    d.isoformat()` byte for byte, so this function produces exactly the
+    bytes it produced before for every input the writers actually produce.
+    It changes the bytes only for an input that was never written: a
+    datetime carrying a non-UTC offset.
+
+    A naive datetime is refused rather than guessed at. Postgres would
+    interpret one on the way in using the writing session's TimeZone, so
+    the stored instant -- and hence any later recomputation -- would depend
+    on a setting the hash input does not record. There is no call site that
+    passes one today; refusing keeps it that way instead of minting an
+    event whose hash can never be reproduced."""
 
     def _default(value: Any) -> Any:
         if isinstance(value, datetime):
-            return value.isoformat()
+            if value.tzinfo is None:
+                raise ValueError(
+                    "refusing to hash a naive datetime: the instant it denotes would depend "
+                    "on the session timezone, so the hash could not be reproduced"
+                )
+            return value.astimezone(UTC).isoformat()
         raise TypeError(f"not JSON-serializable for hashing: {type(value)!r}")
 
     return json.dumps(data, sort_keys=True, separators=(",", ":"), default=_default)
+
+
+def event_hash_input(
+    *,
+    event_id: str,
+    stream_id: str,
+    sequence: int,
+    schema_version: int,
+    event_type: str,
+    actor_id: str | None,
+    actor_type: str,
+    actor_capability: str | None,
+    occurred_at: datetime,
+    aggregate_id: str,
+    aggregate_version: int,
+    run_id: str | None,
+    vendor_id: str | None,
+    branch_id: str | None,
+    correlation_id: str | None,
+    causation_id: str | None,
+    command_id: str | None,
+    payload: dict[str, Any],
+    versions: dict[str, Any] | None,
+    previous_hash: str | None,
+) -> dict[str, Any]:
+    """The exact, ordered set of fields that go into an event's hash.
+
+    Defined once, here, because there are now two callers that must agree
+    byte for byte forever: `append_event` below (which computes the hash at
+    write time) and `app/audit_chain.recompute_event_hash` (which
+    recomputes it from the stored row). Every argument is keyword-only and
+    required so a caller cannot silently omit a field and still get a hash.
+    Adding, removing or renaming a key here changes every future hash --
+    don't, without a schema_version bump and a documented migration."""
+    return {
+        "event_id": event_id,
+        "stream_id": stream_id,
+        "sequence": sequence,
+        "schema_version": schema_version,
+        "event_type": event_type,
+        "actor_id": actor_id,
+        "actor_type": actor_type,
+        "actor_capability": actor_capability,
+        "occurred_at": occurred_at,
+        "aggregate_id": aggregate_id,
+        "aggregate_version": aggregate_version,
+        "run_id": run_id,
+        "vendor_id": vendor_id,
+        "branch_id": branch_id,
+        "correlation_id": correlation_id,
+        "causation_id": causation_id,
+        "command_id": command_id,
+        "payload": payload,
+        "versions": versions,
+        "previous_hash": previous_hash,
+    }
+
+
+def compute_event_hash(hashable: dict[str, Any]) -> str:
+    """SHA-256 of the canonical encoding of `event_hash_input(...)`."""
+    return hashlib.sha256(_canonical_json(hashable).encode("utf-8")).hexdigest()
 
 
 class UnitOfWork:
@@ -116,29 +215,30 @@ class UnitOfWork:
 
         next_sequence = head.last_sequence + 1
         event_id = _new_id()
-        hashable = {
-            "event_id": event_id,
-            "stream_id": stream_id,
-            "sequence": next_sequence,
-            "schema_version": schema_version,
-            "event_type": event_type,
-            "actor_id": actor_id,
-            "actor_type": actor_type,
-            "actor_capability": actor_capability,
-            "occurred_at": occurred_at,
-            "aggregate_id": aggregate_id,
-            "aggregate_version": aggregate_version,
-            "run_id": run_id,
-            "vendor_id": vendor_id,
-            "branch_id": branch_id,
-            "correlation_id": correlation_id,
-            "causation_id": causation_id,
-            "command_id": command_id,
-            "payload": payload,
-            "versions": versions,
-            "previous_hash": head.last_hash,
-        }
-        new_hash = hashlib.sha256(_canonical_json(hashable).encode("utf-8")).hexdigest()
+        new_hash = compute_event_hash(
+            event_hash_input(
+                event_id=event_id,
+                stream_id=stream_id,
+                sequence=next_sequence,
+                schema_version=schema_version,
+                event_type=event_type,
+                actor_id=actor_id,
+                actor_type=actor_type,
+                actor_capability=actor_capability,
+                occurred_at=occurred_at,
+                aggregate_id=aggregate_id,
+                aggregate_version=aggregate_version,
+                run_id=run_id,
+                vendor_id=vendor_id,
+                branch_id=branch_id,
+                correlation_id=correlation_id,
+                causation_id=causation_id,
+                command_id=command_id,
+                payload=payload,
+                versions=versions,
+                previous_hash=head.last_hash,
+            )
+        )
 
         event = BusinessEvent(
             event_id=event_id,
