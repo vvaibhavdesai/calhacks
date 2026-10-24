@@ -81,3 +81,28 @@ export function formatBasisPoints(bps: number): string {
   const frac = (bps % 100).toString().padStart(2, '0').replace(/0+$/, '');
   return frac ? `${whole}.${frac}%` : `${whole}%`;
 }
+
+/**
+ * Chart geometry only (B05 accessible charts): the largest absolute value of a
+ * set of server amounts, used as the axis scale. Not a total and never shown as
+ * a figure; exact values are always shown as text next to the chart.
+ */
+export function maxAbsCents(values: string[]): string {
+  let max = 0n;
+  for (const v of values) {
+    const c = parseCents(v);
+    const abs = c < 0n ? -c : c;
+    if (abs > max) max = abs;
+  }
+  return max.toString();
+}
+
+/** Chart geometry only: |value| / scale in [0, 1] for bar lengths. Display-only, never money. */
+export function centsScaleRatio(value: string, scale: string): number {
+  const v = parseCents(value);
+  const s = parseCents(scale);
+  if (s <= 0n) return 0;
+  const abs = v < 0n ? -v : v;
+  // 4 decimal places of precision is plenty for pixels and avoids float division of huge values.
+  return Math.min(1, Number((abs * 10000n) / s) / 10000);
+}

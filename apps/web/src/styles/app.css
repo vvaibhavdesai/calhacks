@@ -931,3 +931,129 @@ button.tab {
 button.tab.is-active {
   border-bottom-color: var(--accent);
 }
+
+/* ---------- B05 finance screens ---------- */
+.label-banner {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  font-size: 0.9rem;
+}
+.label-simulated {
+  border-color: #8fb8ad;
+  background: var(--accent-soft);
+  color: var(--brand);
+}
+.label-draft {
+  border-color: var(--warn-line);
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+}
+.panel-alert {
+  border-left: 4px solid var(--negative);
+}
+.link-button {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.inline-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+.timeline {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 6px;
+}
+.stat-tiles {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+.stat-tile {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+}
+.stat-label {
+  font-size: 0.8rem;
+  color: var(--ink-2);
+}
+.stat-value {
+  font-size: 1.35rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.shortfall-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+.chart {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+.chart-svg {
+  width: 100%;
+  height: auto;
+  max-height: 280px;
+  background: var(--surface);
+}
+.chart-baseline {
+  stroke: var(--ink-2);
+  stroke-width: 1;
+}
+.chart-bar {
+  fill: var(--accent);
+}
+.chart-bar.is-shortfall {
+  fill: var(--negative);
+}
+.chart-axis {
+  fill: var(--muted);
+  font-size: 12px;
+}
+.chart-label {
+  font-size: 12px;
+  fill: var(--ink);
+}
+.chart-label.is-shortfall {
+  fill: var(--negative);
+  font-weight: 600;
+}
+.export-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.export-note {
+  font-size: 0.8rem;
+}
+.section-total {
+  text-align: right;
+  font-weight: 600;
+  margin: 8px 0 0;
+}

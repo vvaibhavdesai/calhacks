@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ariaUsd, compareCents, formatBasisPoints, formatUsd, isCanonicalCents, MoneyFormatError, parseCents } from './money';
+import { ariaUsd, centsScaleRatio, compareCents, formatBasisPoints, formatUsd, isCanonicalCents, maxAbsCents, MoneyFormatError, parseCents } from './money';
 
 describe('money (C01 integer-cent strings)', () => {
   it('formats cents strings as USD', () => {
@@ -38,5 +38,16 @@ describe('money (C01 integer-cent strings)', () => {
     expect(formatBasisPoints(1250)).toBe('12.5%');
     expect(formatBasisPoints(1005)).toBe('10.05%');
     expect(() => formatBasisPoints(1.5)).toThrow();
+  });
+});
+
+describe('chart geometry helpers (display-only)', () => {
+  it('scale by the largest absolute server value, exact past 2^53', () => {
+    expect(maxAbsCents(['100', '-306200', '243800'])).toBe('306200');
+    expect(maxAbsCents([])).toBe('0');
+    expect(centsScaleRatio('-153100', '306200')).toBe(0.5);
+    expect(centsScaleRatio('5', '0')).toBe(0);
+    expect(centsScaleRatio('90071992547409930', '90071992547409930')).toBe(1);
+    expect(() => maxAbsCents(['1.5'])).toThrow();
   });
 });

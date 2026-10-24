@@ -36,6 +36,30 @@ const TONES: Record<string, Tone> = {
   CASE_REQUIRED: 'bad',
   DUPLICATE_IGNORED: 'neutral',
   CALCULATED: 'info',
+  // payouts / supplier payments (C04)
+  APPROVED: 'ok',
+  DISPATCH_PENDING: 'info',
+  SUBMITTED: 'info',
+  CONFIRMED: 'ok',
+  UNKNOWN: 'bad',
+  CANCEL_REQUESTED: 'warn',
+  // gate checks (Q38)
+  PASS: 'ok',
+  FAIL: 'bad',
+  REQUIRES_APPROVAL: 'warn',
+  NOT_EVALUATED: 'neutral',
+  // payables / reports / tax (Q40-Q44)
+  PAID: 'ok',
+  APPLIED: 'neutral',
+  DUPLICATE_FLAGGED: 'bad',
+  PAYMENT_IN_FLIGHT: 'info',
+  PARTIALLY_INVOICED: 'info',
+  INVOICED: 'info',
+  CLOSED: 'neutral',
+  DRAFT_NOT_FILED: 'warn',
+  ORIGINAL: 'neutral',
+  REVERSAL: 'warn',
+  CORRECTION: 'info',
 };
 
 export function toneFor(status: string): Tone {
