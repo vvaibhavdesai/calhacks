@@ -498,6 +498,16 @@ paths:
         - $ref: '#/components/parameters/Limit'
         - $ref: '#/components/parameters/VendorId'
         - $ref: '#/components/parameters/BusinessDate'
+        - name: state
+          in: query
+          required: false
+          x-encore-proposal: Q38
+          schema: { $ref: '#/components/schemas/PayoutState' }
+        - name: batch_id
+          in: query
+          required: false
+          x-encore-proposal: Q38
+          schema: { type: string }
       responses:
         '200':
           description: Payouts (simulated money movement in v1).
@@ -511,11 +521,49 @@ paths:
     post:
       tags: [commands]
       operationId: approvePayout
+      description: >-
+        payload is ApprovePayoutPayload (proposal Q39). Finance-lead approval of an amount above the
+        automatic daily limit, bound to the exact payout version, amount and beneficiary version. It
+        never waives hard blockers (unresolved discrepancy, changed beneficiary, insufficient cash).
       parameters:
         - $ref: '#/components/parameters/PathId'
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody: { $ref: '#/components/requestBodies/Command' }
       responses: *commandResponses
+  /payouts/{id}:
+    get:
+      tags: [proposals]
+      x-encore-proposal: Q38
+      operationId: getPayout
+      parameters: [{ $ref: '#/components/parameters/PathId' }]
+      responses:
+        '200':
+          description: Payout with gate checks, limit status and state history (SIMULATED money movement).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Payout' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /payout-batches:
+    get:
+      tags: [proposals]
+      x-encore-proposal: Q38
+      operationId: listPayoutBatches
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/BusinessDate'
+      responses:
+        '200':
+          description: Payout release batches with server counts and totals (SIMULATED).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PayoutBatchList' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/Invalid' }
+        '503': { $ref: '#/components/responses/Unavailable' }
   /reconciliation:
     get:
       tags: [reads]
@@ -576,6 +624,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/Cursor'
         - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/SupplierId'
       responses:
         '200':
           description: Purchase orders.
@@ -591,6 +640,12 @@ paths:
       parameters:
         - $ref: '#/components/parameters/Cursor'
         - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/SupplierId'
+        - name: kind
+          in: query
+          required: false
+          x-encore-proposal: Q41
+          schema: { $ref: '#/components/schemas/SupplierInvoiceKind' }
       responses:
         '200':
           description: Supplier invoices.
@@ -599,6 +654,40 @@ paths:
               schema: { $ref: '#/components/schemas/SupplierInvoiceList' }
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403': { $ref: '#/components/responses/Forbidden' }
+  /invoices/{id}:
+    get:
+      tags: [proposals]
+      x-encore-proposal: Q41
+      operationId: getSupplierInvoice
+      parameters: [{ $ref: '#/components/parameters/PathId' }]
+      responses:
+        '200':
+          description: Supplier invoice or credit note.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SupplierInvoice' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /supplier-payments:
+    get:
+      tags: [proposals]
+      x-encore-proposal: Q41
+      operationId: listSupplierPayments
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/SupplierId'
+      responses:
+        '200':
+          description: Supplier payments (SIMULATED money movement).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SupplierPaymentList' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/Invalid' }
+        '503': { $ref: '#/components/responses/Unavailable' }
   /journal:
     get:
       tags: [reads]
@@ -615,6 +704,21 @@ paths:
               schema: { $ref: '#/components/schemas/JournalEntryList' }
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403': { $ref: '#/components/responses/Forbidden' }
+  /journal/{id}:
+    get:
+      tags: [proposals]
+      x-encore-proposal: Q42
+      operationId: getJournalEntry
+      parameters: [{ $ref: '#/components/parameters/PathId' }]
+      responses:
+        '200':
+          description: Journal entry by entry_id, with server totals and correction links.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JournalEntry' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
   /reports/tax:
     get:
       tags: [reads]
@@ -630,6 +734,59 @@ paths:
               schema: { $ref: '#/components/schemas/TaxReportList' }
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403': { $ref: '#/components/responses/Forbidden' }
+  /reports/tax/{id}:
+    get:
+      tags: [proposals]
+      x-encore-proposal: Q43
+      operationId: getTaxReport
+      parameters: [{ $ref: '#/components/parameters/PathId' }]
+      responses:
+        '200':
+          description: DRAFT, NOT FILED tax summary.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TaxReport' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /reports:
+    get:
+      tags: [proposals]
+      x-encore-proposal: Q44
+      operationId: listFinancialReports
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/BusinessDate'
+        - name: kind
+          in: query
+          required: false
+          schema: { $ref: '#/components/schemas/FinancialReportKind' }
+      responses:
+        '200':
+          description: Daily close and festival P&L/cash reports (server figures).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FinancialReportList' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/Invalid' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /reports/{id}:
+    get:
+      tags: [proposals]
+      x-encore-proposal: Q44
+      operationId: getFinancialReport
+      parameters: [{ $ref: '#/components/parameters/PathId' }]
+      responses:
+        '200':
+          description: Financial report with sections, server totals and source links.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FinancialReport' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
   /cash:
     get:
       tags: [reads]
@@ -771,6 +928,12 @@ components:
       in: query
       required: false
       schema: { $ref: '#/components/schemas/BusinessDate' }
+    SupplierId:
+      name: supplier_id
+      in: query
+      required: false
+      x-encore-proposal: Q41
+      schema: { type: string }
     PathId:
       name: id
       in: path
@@ -1570,6 +1733,61 @@ components:
         scope: { type: string }
         expiry: { $ref: '#/components/schemas/Instant' }
         decision: { type: string }
+    PayoutGateCheckName:
+      type: string
+      x-encore-proposal: Q38
+      description: C04 automatic gate checks. DAILY_AUTO_LIMIT is the only check a finance-lead amount approval can satisfy.
+      enum: [SOURCES_VALID, RECONCILIATION_RESOLVED, POLICY_SCOPE_VALID, BENEFICIARY_VERIFIED, CASH_RESERVED, DAILY_AUTO_LIMIT]
+    PayoutGateCheckResult:
+      type: string
+      x-encore-proposal: Q38
+      enum: [PASS, FAIL, REQUIRES_APPROVAL, APPROVED, NOT_EVALUATED]
+    PayoutGateCheck:
+      type: object
+      x-encore-proposal: Q38
+      required: [check, result, hard_blocker, detail]
+      properties:
+        check: { $ref: '#/components/schemas/PayoutGateCheckName' }
+        result: { $ref: '#/components/schemas/PayoutGateCheckResult' }
+        hard_blocker:
+          type: boolean
+          description: True when a FAIL blocks release regardless of any amount approval (C04).
+        detail: { type: string, description: User-safe server explanation. }
+        case_id: { type: [string, 'null'] }
+    PayoutDailyLimit:
+      type: object
+      x-encore-proposal: Q38
+      description: >-
+        Server-computed cumulative vendor/business-day position against the automatic limit (C04,
+        DA29). The UI displays these figures; it never adds them.
+      required: [limit_cents, prior_cumulative_cents, cumulative_with_this_cents, exceeds_limit]
+      properties:
+        limit_cents: { $ref: '#/components/schemas/MoneyCents' }
+        prior_cumulative_cents: { $ref: '#/components/schemas/MoneyCents', description: Already released, in flight or UNKNOWN for this vendor/day before this payout. }
+        cumulative_with_this_cents: { $ref: '#/components/schemas/MoneyCents' }
+        exceeds_limit: { type: boolean }
+    PayoutGate:
+      type: object
+      x-encore-proposal: Q38
+      required: [evaluated_at, checks, daily_limit]
+      properties:
+        evaluated_at: { $ref: '#/components/schemas/Instant' }
+        checks: { type: array, items: { $ref: '#/components/schemas/PayoutGateCheck' } }
+        daily_limit: { $ref: '#/components/schemas/PayoutDailyLimit' }
+    PayoutStateTransition:
+      type: object
+      x-encore-proposal: Q38
+      required: [state, at]
+      properties:
+        state: { $ref: '#/components/schemas/PayoutState' }
+        at: { $ref: '#/components/schemas/Instant' }
+        actor_ref: { type: [string, 'null'] }
+        note: { type: [string, 'null'] }
+    PaymentMode:
+      type: string
+      x-encore-proposal: Q38
+      description: v1 supports SIMULATED only (C00 PAYMENT_MODE). No real money moves.
+      enum: [SIMULATED]
     Payout:
       type: object
       required: [id, version, logical_obligation_id, idempotency_key, vendor_id, business_date, beneficiary_version, amount_cents, state]
@@ -1577,7 +1795,7 @@ components:
         id: { type: string }
         version: { $ref: '#/components/schemas/Version' }
         logical_obligation_id: { type: string }
-        idempotency_key: { type: string }
+        idempotency_key: { type: string, description: Stable for this logical obligation across every retry (C06). }
         vendor_id: { type: string }
         business_date: { $ref: '#/components/schemas/BusinessDate' }
         beneficiary_version: { $ref: '#/components/schemas/Version' }
@@ -1585,6 +1803,57 @@ components:
         approval_ref: { type: [string, 'null'] }
         state: { $ref: '#/components/schemas/PayoutState' }
         provider_reference: { type: [string, 'null'] }
+        payment_mode: { $ref: '#/components/schemas/PaymentMode', x-encore-proposal: Q38 }
+        batch_id: { type: [string, 'null'], x-encore-proposal: Q38 }
+        settlement_id: { type: [string, 'null'], x-encore-proposal: Q38 }
+        run_id: { type: [string, 'null'], x-encore-proposal: Q38 }
+        verified_beneficiary_version: { anyOf: [{ $ref: '#/components/schemas/Version' }, { type: 'null' }], x-encore-proposal: Q38, description: Latest verified beneficiary version on the vendor; differs from beneficiary_version when details changed. }
+        approval_required: { type: boolean, x-encore-proposal: Q38, description: Server says a finance-lead amount approval is needed (above the automatic limit). }
+        required_capability: { $ref: '#/components/schemas/Capability', x-encore-proposal: Q38 }
+        gate: { anyOf: [{ $ref: '#/components/schemas/PayoutGate' }, { type: 'null' }], x-encore-proposal: Q38 }
+        holds: { type: array, items: { $ref: '#/components/schemas/Hold' }, x-encore-proposal: Q38 }
+        state_history: { type: array, items: { $ref: '#/components/schemas/PayoutStateTransition' }, x-encore-proposal: Q38 }
+        outcome_detail: { type: [string, 'null'], x-encore-proposal: Q38, description: User-safe provider/simulator outcome (failure reason, unknown-outcome note). }
+        reconciliation_case_id: { type: [string, 'null'], x-encore-proposal: Q38, description: Case tracking reconciliation of an UNKNOWN outcome. }
+        updated_at: { $ref: '#/components/schemas/Instant', x-encore-proposal: Q38 }
+    ApprovePayoutPayload:
+      type: object
+      x-encore-proposal: Q39
+      description: >-
+        payload of POST /payouts/{id}/approve. Finance-lead approval of exactly this amount for this
+        logical obligation and beneficiary version. Does not waive hard blockers.
+      additionalProperties: false
+      required: [action, logical_obligation_id, amount_cents, beneficiary_version, business_date, vendor_id]
+      properties:
+        action: { const: APPROVE_PAYOUT_ABOVE_LIMIT }
+        logical_obligation_id: { type: string }
+        amount_cents: { $ref: '#/components/schemas/MoneyCents' }
+        beneficiary_version: { $ref: '#/components/schemas/Version' }
+        business_date: { $ref: '#/components/schemas/BusinessDate' }
+        vendor_id: { type: string }
+        note: { type: string, maxLength: 2000 }
+    PayoutBatchStateCount:
+      type: object
+      x-encore-proposal: Q38
+      required: [state, count, amount_cents]
+      properties:
+        state: { $ref: '#/components/schemas/PayoutState' }
+        count: { type: integer, minimum: 0 }
+        amount_cents: { $ref: '#/components/schemas/MoneyCents' }
+    PayoutBatch:
+      type: object
+      x-encore-proposal: Q38
+      required: [id, version, business_date, release_at, payment_mode, payout_count, total_cents, by_state]
+      properties:
+        id: { type: string }
+        version: { $ref: '#/components/schemas/Version' }
+        business_date: { $ref: '#/components/schemas/BusinessDate' }
+        release_at: { $ref: '#/components/schemas/Instant', description: Configured simulated release window (C05, 10 AM Pacific). }
+        payment_mode: { $ref: '#/components/schemas/PaymentMode' }
+        payout_count: { type: integer, minimum: 0 }
+        total_cents: { $ref: '#/components/schemas/MoneyCents', description: Server total of the batch. }
+        by_state: { type: array, items: { $ref: '#/components/schemas/PayoutBatchStateCount' } }
+        run_id: { type: [string, 'null'] }
     JournalLine:
       type: object
       required: [account, debit_cents, credit_cents]
@@ -1592,6 +1861,23 @@ components:
         account: { type: string }
         debit_cents: { $ref: '#/components/schemas/NonNegativeMoneyCents' }
         credit_cents: { $ref: '#/components/schemas/NonNegativeMoneyCents' }
+        line_id: { type: string, x-encore-proposal: Q42 }
+        account_name: { type: string, x-encore-proposal: Q42 }
+        memo: { type: [string, 'null'], x-encore-proposal: Q42 }
+        vendor_id: { type: [string, 'null'], x-encore-proposal: Q42 }
+    JournalTotals:
+      type: object
+      x-encore-proposal: Q42
+      description: Server-computed entry totals. The UI shows these and never sums lines.
+      required: [debit_cents, credit_cents, balanced]
+      properties:
+        debit_cents: { $ref: '#/components/schemas/NonNegativeMoneyCents' }
+        credit_cents: { $ref: '#/components/schemas/NonNegativeMoneyCents' }
+        balanced: { type: boolean }
+    JournalEntryKind:
+      type: string
+      x-encore-proposal: Q42
+      enum: [ORIGINAL, REVERSAL, CORRECTION]
     JournalEntry:
       type: object
       required: [entry_id, posting_rule_version, source_refs, correction_of, lines, posted_at]
@@ -1602,23 +1888,46 @@ components:
         correction_of: { type: [string, 'null'] }
         lines: { type: array, items: { $ref: '#/components/schemas/JournalLine' } }
         posted_at: { $ref: '#/components/schemas/Instant' }
+        business_date: { $ref: '#/components/schemas/BusinessDate', x-encore-proposal: Q42 }
+        description: { type: string, x-encore-proposal: Q42 }
+        kind: { $ref: '#/components/schemas/JournalEntryKind', x-encore-proposal: Q42 }
+        totals: { $ref: '#/components/schemas/JournalTotals', x-encore-proposal: Q42 }
+        corrected_by: { type: array, items: { type: string }, x-encore-proposal: Q42, description: Entry ids that reverse or correct this one. Originals are never edited. }
+        origin_ref: { type: [string, 'null'], x-encore-proposal: Q42, description: Domain record that produced the entry (settlement, payout, invoice...). }
     Supplier:
       type: object
-      x-encore-unspecified: true
+      x-encore-proposal: Q41
       required: [id, version, name]
       properties:
         id: { type: string }
         version: { $ref: '#/components/schemas/Version' }
         name: { type: string }
+        category: { type: string }
+        payment_terms_days: { type: integer, minimum: 0 }
+        outstanding_cents: { $ref: '#/components/schemas/MoneyCents', description: Server total outstanding across open invoices net of credit notes. }
+        beneficiary_version: { $ref: '#/components/schemas/Version' }
+        status: { type: string }
+        source_refs: { type: array, items: { $ref: '#/components/schemas/SourceRef' } }
     PurchaseOrder:
       type: object
-      x-encore-unspecified: true
+      x-encore-proposal: Q41
       required: [id, version, supplier_id]
       properties:
         id: { type: string }
         version: { $ref: '#/components/schemas/Version' }
         supplier_id: { type: string }
         amount_cents: { $ref: '#/components/schemas/MoneyCents' }
+        po_number: { type: string }
+        issued_date: { $ref: '#/components/schemas/BusinessDate' }
+        status: { type: string }
+        description: { type: string }
+        invoiced_cents: { $ref: '#/components/schemas/MoneyCents', description: Server total invoiced against this PO. }
+        invoice_ids: { type: array, items: { type: string } }
+        source_refs: { type: array, items: { $ref: '#/components/schemas/SourceRef' } }
+    SupplierInvoiceKind:
+      type: string
+      x-encore-proposal: Q41
+      enum: [INVOICE, CREDIT_NOTE]
     SupplierInvoice:
       type: object
       required: [id, version, status, supplier_id, po_refs, invoice_number, invoice_date, currency, gross_cents, tax_cents, net_cents, due_date, outstanding_cents, source_refs]
@@ -1637,9 +1946,55 @@ components:
         due_date: { $ref: '#/components/schemas/BusinessDate' }
         outstanding_cents: { $ref: '#/components/schemas/MoneyCents' }
         source_refs: { type: array, items: { $ref: '#/components/schemas/SourceRef' } }
+        kind: { $ref: '#/components/schemas/SupplierInvoiceKind', x-encore-proposal: Q41 }
+        applies_to_invoice_id: { type: [string, 'null'], x-encore-proposal: Q41, description: For a CREDIT_NOTE, the invoice it reduces. }
+        duplicate_of_invoice_id: { type: [string, 'null'], x-encore-proposal: Q41, description: Server duplicate-detection flag; a flagged duplicate is never posted or paid. }
+        duplicate_reason: { type: [string, 'null'], x-encore-proposal: Q41 }
+        payment_ids: { type: array, items: { type: string }, x-encore-proposal: Q41 }
+        journal_entry_ids: { type: array, items: { type: string }, x-encore-proposal: Q41 }
+    SupplierPayment:
+      type: object
+      x-encore-proposal: Q41
+      required: [id, version, supplier_id, invoice_ids, amount_cents, state, idempotency_key, payment_mode]
+      properties:
+        id: { type: string }
+        version: { $ref: '#/components/schemas/Version' }
+        supplier_id: { type: string }
+        invoice_ids: { type: array, items: { type: string } }
+        amount_cents: { $ref: '#/components/schemas/MoneyCents' }
+        state: { $ref: '#/components/schemas/PayoutState' }
+        idempotency_key: { type: string }
+        payment_mode: { $ref: '#/components/schemas/PaymentMode' }
+        scheduled_date: { anyOf: [{ $ref: '#/components/schemas/BusinessDate' }, { type: 'null' }] }
+        approval_ref: { type: [string, 'null'] }
+        provider_reference: { type: [string, 'null'] }
+        outcome_detail: { type: [string, 'null'] }
+        updated_at: { $ref: '#/components/schemas/Instant' }
+    TaxReportLine:
+      type: object
+      x-encore-proposal: Q43
+      required: [line_id, label, liability_owner, taxable_cents, exempt_cents, tax_cents, source_refs]
+      properties:
+        line_id: { type: string }
+        label: { type: string }
+        liability_owner: { type: string, enum: [ORGANIZER, VENDOR], description: Who holds/remits this tax under the configured DEMO assumptions (C05, DA02). }
+        vendor_id: { type: [string, 'null'] }
+        taxable_cents: { $ref: '#/components/schemas/MoneyCents' }
+        exempt_cents: { $ref: '#/components/schemas/MoneyCents' }
+        refunds_tax_cents: { $ref: '#/components/schemas/MoneyCents' }
+        tax_cents: { $ref: '#/components/schemas/MoneyCents' }
+        source_refs: { type: array, items: { $ref: '#/components/schemas/SourceRef' } }
+    TaxExemptItem:
+      type: object
+      x-encore-proposal: Q43
+      required: [item, reason, exempt_cents]
+      properties:
+        item: { type: string }
+        reason: { type: string }
+        exempt_cents: { $ref: '#/components/schemas/MoneyCents' }
     TaxReport:
       type: object
-      x-encore-unspecified: true
+      x-encore-proposal: Q43
       required: [id, version, status, label]
       properties:
         id: { type: string }
@@ -1647,14 +2002,142 @@ components:
         status: { type: string, description: Always labelled DRAFT, NOT FILED in v1. }
         label: { type: string }
         tax_collected_cents: { $ref: '#/components/schemas/MoneyCents' }
+        period_from: { $ref: '#/components/schemas/BusinessDate' }
+        period_to: { $ref: '#/components/schemas/BusinessDate' }
+        config_version: { type: string, description: C05 tax configuration version the figures were computed with. }
+        tax_rate: { $ref: '#/components/schemas/DecimalString' }
+        assumptions: { type: array, items: { type: string } }
+        taxable_sales_cents: { $ref: '#/components/schemas/MoneyCents' }
+        exempt_sales_cents: { $ref: '#/components/schemas/MoneyCents' }
+        refunds_tax_cents: { $ref: '#/components/schemas/MoneyCents' }
+        organizer_liability_cents: { $ref: '#/components/schemas/MoneyCents' }
+        vendor_liability_cents: { $ref: '#/components/schemas/MoneyCents' }
+        lines: { type: array, items: { $ref: '#/components/schemas/TaxReportLine' } }
+        exempt_items: { type: array, items: { $ref: '#/components/schemas/TaxExemptItem' } }
+        generated_at: { $ref: '#/components/schemas/Instant' }
+        source_refs: { type: array, items: { $ref: '#/components/schemas/SourceRef' } }
+    CashReservation:
+      type: object
+      x-encore-proposal: Q40
+      required: [kind, label, amount_cents, spendable]
+      properties:
+        kind: { type: string, description: e.g. SALES_TAX, TIPS, PAYOUTS_IN_FLIGHT, PAYOUTS_UNKNOWN, SUPPLIER_PAYMENTS. }
+        label: { type: string }
+        amount_cents: { $ref: '#/components/schemas/MoneyCents' }
+        spendable: { type: boolean, description: Always false for reserved tax and tips. }
+    CashObligation:
+      type: object
+      x-encore-proposal: Q40
+      required: [id, kind, label, due_date, amount_cents, status]
+      properties:
+        id: { type: string }
+        kind: { type: string, description: e.g. VENDOR_PAYOUT, SUPPLIER_INVOICE, TAX_REMITTANCE. }
+        label: { type: string }
+        due_date: { $ref: '#/components/schemas/BusinessDate' }
+        amount_cents: { $ref: '#/components/schemas/MoneyCents' }
+        status: { type: string }
+        ref_id: { type: [string, 'null'], description: Payout, invoice or report id. }
+    CashForecastPoint:
+      type: object
+      x-encore-proposal: Q40
+      required: [date, opening_cents, inflows_cents, outflows_cents, projected_available_cents, shortfall]
+      properties:
+        date: { $ref: '#/components/schemas/BusinessDate' }
+        opening_cents: { $ref: '#/components/schemas/MoneyCents' }
+        inflows_cents: { $ref: '#/components/schemas/MoneyCents' }
+        outflows_cents: { $ref: '#/components/schemas/MoneyCents' }
+        projected_available_cents: { $ref: '#/components/schemas/MoneyCents' }
+        shortfall: { type: boolean }
+    CashForecast:
+      type: object
+      x-encore-proposal: Q40
+      required: [horizon_days, horizon_end, method, points]
+      properties:
+        horizon_days: { type: integer, minimum: 1 }
+        horizon_end: { $ref: '#/components/schemas/BusinessDate' }
+        method: { type: string, description: Documented forecast basis (which inflows/outflows count). }
+        assumptions: { type: array, items: { type: string } }
+        points: { type: array, items: { $ref: '#/components/schemas/CashForecastPoint' } }
+    CashShortfall:
+      type: object
+      x-encore-proposal: Q40
+      required: [date, amount_cents, description]
+      properties:
+        date: { $ref: '#/components/schemas/BusinessDate' }
+        amount_cents: { $ref: '#/components/schemas/MoneyCents' }
+        description: { type: string }
+        affected_ids: { type: array, items: { type: string } }
+    CashReceipt:
+      type: object
+      x-encore-proposal: Q40
+      required: [kind, label, received_cents, pending_cents]
+      properties:
+        kind: { type: string, description: e.g. TICKETS, SPONSORSHIP. }
+        label: { type: string }
+        received_cents: { $ref: '#/components/schemas/MoneyCents' }
+        pending_cents: { $ref: '#/components/schemas/MoneyCents' }
+        recognition_note: { type: [string, 'null'] }
     CashPosition:
       type: object
-      x-encore-unspecified: true
+      x-encore-proposal: Q40
       required: [id, as_of, available_cents]
       properties:
         id: { type: string }
         as_of: { $ref: '#/components/schemas/Instant' }
-        available_cents: { $ref: '#/components/schemas/MoneyCents' }
+        available_cents: { $ref: '#/components/schemas/MoneyCents', description: Freely spendable after reservations. }
+        version: { $ref: '#/components/schemas/Version' }
+        bank_balance_cents: { $ref: '#/components/schemas/MoneyCents' }
+        pending_cents: { $ref: '#/components/schemas/MoneyCents', description: Expected but not yet in the bank (timing items, processor deposits). Not available. }
+        reserved_cents: { $ref: '#/components/schemas/MoneyCents' }
+        reservations: { type: array, items: { $ref: '#/components/schemas/CashReservation' } }
+        obligations: { type: array, items: { $ref: '#/components/schemas/CashObligation' } }
+        shortfalls: { type: array, items: { $ref: '#/components/schemas/CashShortfall' } }
+        receipts: { type: array, items: { $ref: '#/components/schemas/CashReceipt' } }
+        forecast: { $ref: '#/components/schemas/CashForecast' }
+        config_version: { type: string }
+        source_refs: { type: array, items: { $ref: '#/components/schemas/SourceRef' } }
+    FinancialReportKind:
+      type: string
+      x-encore-proposal: Q44
+      enum: [DAILY_CLOSE, FESTIVAL_PNL, FESTIVAL_CASH]
+    FinancialReportLine:
+      type: object
+      x-encore-proposal: Q44
+      required: [line_id, label, amount_cents, source_refs]
+      properties:
+        line_id: { type: string }
+        label: { type: string }
+        amount_cents: { $ref: '#/components/schemas/MoneyCents' }
+        account: { type: [string, 'null'] }
+        source_refs: { type: array, items: { $ref: '#/components/schemas/SourceRef' } }
+        journal_entry_ids: { type: array, items: { type: string } }
+    FinancialReportSection:
+      type: object
+      x-encore-proposal: Q44
+      required: [section_id, title, lines, total_cents]
+      properties:
+        section_id: { type: string }
+        title: { type: string }
+        lines: { type: array, items: { $ref: '#/components/schemas/FinancialReportLine' } }
+        total_cents: { $ref: '#/components/schemas/MoneyCents', description: Server total for the section. }
+    FinancialReport:
+      type: object
+      x-encore-proposal: Q44
+      required: [id, version, kind, title, status, period_from, period_to, generated_at, sections]
+      properties:
+        id: { type: string }
+        version: { $ref: '#/components/schemas/Version' }
+        kind: { $ref: '#/components/schemas/FinancialReportKind' }
+        title: { type: string }
+        status: { type: string, enum: [PROVISIONAL, FINAL, ADJUSTED] }
+        period_from: { $ref: '#/components/schemas/BusinessDate' }
+        period_to: { $ref: '#/components/schemas/BusinessDate' }
+        generated_at: { $ref: '#/components/schemas/Instant' }
+        basis_note: { type: [string, 'null'] }
+        sections: { type: array, items: { $ref: '#/components/schemas/FinancialReportSection' } }
+        headline: { type: array, items: { $ref: '#/components/schemas/FinancialReportLine' }, description: Key server figures (e.g. net income, closing cash). }
+        config_version: { type: [string, 'null'] }
+        source_refs: { type: array, items: { $ref: '#/components/schemas/SourceRef' } }
 
     # ---------------------------------------------------------- C03 events
     EventEnvelope:
@@ -1810,6 +2293,27 @@ components:
       required: [items, next_cursor]
       properties:
         items: { type: array, items: { $ref: '#/components/schemas/CashPosition' } }
+        next_cursor: { $ref: '#/components/schemas/NextCursor' }
+    PayoutBatchList:
+      type: object
+      x-encore-proposal: Q38
+      required: [items, next_cursor]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/PayoutBatch' } }
+        next_cursor: { $ref: '#/components/schemas/NextCursor' }
+    SupplierPaymentList:
+      type: object
+      x-encore-proposal: Q41
+      required: [items, next_cursor]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/SupplierPayment' } }
+        next_cursor: { $ref: '#/components/schemas/NextCursor' }
+    FinancialReportList:
+      type: object
+      x-encore-proposal: Q44
+      required: [items, next_cursor]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/FinancialReport' } }
         next_cursor: { $ref: '#/components/schemas/NextCursor' }
     EventList:
       type: object

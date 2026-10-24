@@ -418,7 +418,40 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @description payload is ApprovePayoutPayload (proposal Q39). Finance-lead approval of an amount above the automatic daily limit, bound to the exact payout version, amount and beneficiary version. It never waives hard blockers (unresolved discrepancy, changed beneficiary, insufficient cash). */
         post: operations["approvePayout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/payouts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getPayout"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/payout-batches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listPayoutBatches"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -505,6 +538,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/invoices/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getSupplierInvoice"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/supplier-payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listSupplierPayments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/journal": {
         parameters: {
             query?: never;
@@ -521,6 +586,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/journal/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getJournalEntry"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/reports/tax": {
         parameters: {
             query?: never;
@@ -529,6 +610,54 @@ export interface paths {
             cookie?: never;
         };
         get: operations["listTaxReports"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reports/tax/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getTaxReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listFinancialReports"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reports/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getFinancialReport"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1243,10 +1372,51 @@ export interface components {
             expiry: components["schemas"]["Instant"];
             decision: string;
         };
+        /**
+         * @description C04 automatic gate checks. DAILY_AUTO_LIMIT is the only check a finance-lead amount approval can satisfy.
+         * @enum {string}
+         */
+        PayoutGateCheckName: "SOURCES_VALID" | "RECONCILIATION_RESOLVED" | "POLICY_SCOPE_VALID" | "BENEFICIARY_VERIFIED" | "CASH_RESERVED" | "DAILY_AUTO_LIMIT";
+        /** @enum {string} */
+        PayoutGateCheckResult: "PASS" | "FAIL" | "REQUIRES_APPROVAL" | "APPROVED" | "NOT_EVALUATED";
+        PayoutGateCheck: {
+            check: components["schemas"]["PayoutGateCheckName"];
+            result: components["schemas"]["PayoutGateCheckResult"];
+            /** @description True when a FAIL blocks release regardless of any amount approval (C04). */
+            hard_blocker: boolean;
+            /** @description User-safe server explanation. */
+            detail: string;
+            case_id?: string | null;
+        };
+        /** @description Server-computed cumulative vendor/business-day position against the automatic limit (C04, DA29). The UI displays these figures; it never adds them. */
+        PayoutDailyLimit: {
+            limit_cents: components["schemas"]["MoneyCents"];
+            /** @description Already released */
+            prior_cumulative_cents: components["schemas"]["MoneyCents"];
+            cumulative_with_this_cents: components["schemas"]["MoneyCents"];
+            exceeds_limit: boolean;
+        };
+        PayoutGate: {
+            evaluated_at: components["schemas"]["Instant"];
+            checks: components["schemas"]["PayoutGateCheck"][];
+            daily_limit: components["schemas"]["PayoutDailyLimit"];
+        };
+        PayoutStateTransition: {
+            state: components["schemas"]["PayoutState"];
+            at: components["schemas"]["Instant"];
+            actor_ref?: string | null;
+            note?: string | null;
+        };
+        /**
+         * @description v1 supports SIMULATED only (C00 PAYMENT_MODE). No real money moves.
+         * @enum {string}
+         */
+        PaymentMode: "SIMULATED";
         Payout: {
             id: string;
             version: components["schemas"]["Version"];
             logical_obligation_id: string;
+            /** @description Stable for this logical obligation across every retry (C06). */
             idempotency_key: string;
             vendor_id: string;
             business_date: components["schemas"]["BusinessDate"];
@@ -1255,12 +1425,70 @@ export interface components {
             approval_ref?: string | null;
             state: components["schemas"]["PayoutState"];
             provider_reference?: string | null;
+            payment_mode?: components["schemas"]["PaymentMode"];
+            batch_id?: string | null;
+            settlement_id?: string | null;
+            run_id?: string | null;
+            /** @description Latest verified beneficiary version on the vendor; differs from beneficiary_version when details changed. */
+            verified_beneficiary_version?: components["schemas"]["Version"] | null;
+            /** @description Server says a finance-lead amount approval is needed (above the automatic limit). */
+            approval_required?: boolean;
+            required_capability?: components["schemas"]["Capability"];
+            gate?: components["schemas"]["PayoutGate"] | null;
+            holds?: components["schemas"]["Hold"][];
+            state_history?: components["schemas"]["PayoutStateTransition"][];
+            /** @description User-safe provider/simulator outcome (failure reason */
+            outcome_detail?: string | null;
+            /** @description Case tracking reconciliation of an UNKNOWN outcome. */
+            reconciliation_case_id?: string | null;
+            updated_at?: components["schemas"]["Instant"];
+        };
+        /** @description payload of POST /payouts/{id}/approve. Finance-lead approval of exactly this amount for this logical obligation and beneficiary version. Does not waive hard blockers. */
+        ApprovePayoutPayload: {
+            /** @constant */
+            action: "APPROVE_PAYOUT_ABOVE_LIMIT";
+            logical_obligation_id: string;
+            amount_cents: components["schemas"]["MoneyCents"];
+            beneficiary_version: components["schemas"]["Version"];
+            business_date: components["schemas"]["BusinessDate"];
+            vendor_id: string;
+            note?: string;
+        };
+        PayoutBatchStateCount: {
+            state: components["schemas"]["PayoutState"];
+            count: number;
+            amount_cents: components["schemas"]["MoneyCents"];
+        };
+        PayoutBatch: {
+            id: string;
+            version: components["schemas"]["Version"];
+            business_date: components["schemas"]["BusinessDate"];
+            /** @description Configured simulated release window (C05 */
+            release_at: components["schemas"]["Instant"];
+            payment_mode: components["schemas"]["PaymentMode"];
+            payout_count: number;
+            /** @description Server total of the batch. */
+            total_cents: components["schemas"]["MoneyCents"];
+            by_state: components["schemas"]["PayoutBatchStateCount"][];
+            run_id?: string | null;
         };
         JournalLine: {
             account: string;
             debit_cents: components["schemas"]["NonNegativeMoneyCents"];
             credit_cents: components["schemas"]["NonNegativeMoneyCents"];
+            line_id?: string;
+            account_name?: string;
+            memo?: string | null;
+            vendor_id?: string | null;
         };
+        /** @description Server-computed entry totals. The UI shows these and never sums lines. */
+        JournalTotals: {
+            debit_cents: components["schemas"]["NonNegativeMoneyCents"];
+            credit_cents: components["schemas"]["NonNegativeMoneyCents"];
+            balanced: boolean;
+        };
+        /** @enum {string} */
+        JournalEntryKind: "ORIGINAL" | "REVERSAL" | "CORRECTION";
         JournalEntry: {
             entry_id: string;
             posting_rule_version: string;
@@ -1268,18 +1496,43 @@ export interface components {
             correction_of: string | null;
             lines: components["schemas"]["JournalLine"][];
             posted_at: components["schemas"]["Instant"];
+            business_date?: components["schemas"]["BusinessDate"];
+            description?: string;
+            kind?: components["schemas"]["JournalEntryKind"];
+            totals?: components["schemas"]["JournalTotals"];
+            /** @description Entry ids that reverse or correct this one. Originals are never edited. */
+            corrected_by?: string[];
+            /** @description Domain record that produced the entry (settlement */
+            origin_ref?: string | null;
         };
         Supplier: {
             id: string;
             version: components["schemas"]["Version"];
             name: string;
+            category?: string;
+            payment_terms_days?: number;
+            /** @description Server total outstanding across open invoices net of credit notes. */
+            outstanding_cents?: components["schemas"]["MoneyCents"];
+            beneficiary_version?: components["schemas"]["Version"];
+            status?: string;
+            source_refs?: components["schemas"]["SourceRef"][];
         };
         PurchaseOrder: {
             id: string;
             version: components["schemas"]["Version"];
             supplier_id: string;
             amount_cents?: components["schemas"]["MoneyCents"];
+            po_number?: string;
+            issued_date?: components["schemas"]["BusinessDate"];
+            status?: string;
+            description?: string;
+            /** @description Server total invoiced against this PO. */
+            invoiced_cents?: components["schemas"]["MoneyCents"];
+            invoice_ids?: string[];
+            source_refs?: components["schemas"]["SourceRef"][];
         };
+        /** @enum {string} */
+        SupplierInvoiceKind: "INVOICE" | "CREDIT_NOTE";
         SupplierInvoice: {
             id: string;
             version: components["schemas"]["Version"];
@@ -1295,6 +1548,49 @@ export interface components {
             due_date: components["schemas"]["BusinessDate"];
             outstanding_cents: components["schemas"]["MoneyCents"];
             source_refs: components["schemas"]["SourceRef"][];
+            kind?: components["schemas"]["SupplierInvoiceKind"];
+            /** @description For a CREDIT_NOTE */
+            applies_to_invoice_id?: string | null;
+            /** @description Server duplicate-detection flag; a flagged duplicate is never posted or paid. */
+            duplicate_of_invoice_id?: string | null;
+            duplicate_reason?: string | null;
+            payment_ids?: string[];
+            journal_entry_ids?: string[];
+        };
+        SupplierPayment: {
+            id: string;
+            version: components["schemas"]["Version"];
+            supplier_id: string;
+            invoice_ids: string[];
+            amount_cents: components["schemas"]["MoneyCents"];
+            state: components["schemas"]["PayoutState"];
+            idempotency_key: string;
+            payment_mode: components["schemas"]["PaymentMode"];
+            scheduled_date?: components["schemas"]["BusinessDate"] | null;
+            approval_ref?: string | null;
+            provider_reference?: string | null;
+            outcome_detail?: string | null;
+            updated_at?: components["schemas"]["Instant"];
+        };
+        TaxReportLine: {
+            line_id: string;
+            label: string;
+            /**
+             * @description Who holds/remits this tax under the configured DEMO assumptions (C05
+             * @enum {string}
+             */
+            liability_owner: "ORGANIZER" | "VENDOR";
+            vendor_id?: string | null;
+            taxable_cents: components["schemas"]["MoneyCents"];
+            exempt_cents: components["schemas"]["MoneyCents"];
+            refunds_tax_cents?: components["schemas"]["MoneyCents"];
+            tax_cents: components["schemas"]["MoneyCents"];
+            source_refs: components["schemas"]["SourceRef"][];
+        };
+        TaxExemptItem: {
+            item: string;
+            reason: string;
+            exempt_cents: components["schemas"]["MoneyCents"];
         };
         TaxReport: {
             id: string;
@@ -1303,11 +1599,122 @@ export interface components {
             status: string;
             label: string;
             tax_collected_cents?: components["schemas"]["MoneyCents"];
+            period_from?: components["schemas"]["BusinessDate"];
+            period_to?: components["schemas"]["BusinessDate"];
+            /** @description C05 tax configuration version the figures were computed with. */
+            config_version?: string;
+            tax_rate?: components["schemas"]["DecimalString"];
+            assumptions?: string[];
+            taxable_sales_cents?: components["schemas"]["MoneyCents"];
+            exempt_sales_cents?: components["schemas"]["MoneyCents"];
+            refunds_tax_cents?: components["schemas"]["MoneyCents"];
+            organizer_liability_cents?: components["schemas"]["MoneyCents"];
+            vendor_liability_cents?: components["schemas"]["MoneyCents"];
+            lines?: components["schemas"]["TaxReportLine"][];
+            exempt_items?: components["schemas"]["TaxExemptItem"][];
+            generated_at?: components["schemas"]["Instant"];
+            source_refs?: components["schemas"]["SourceRef"][];
+        };
+        CashReservation: {
+            /** @description e.g. SALES_TAX */
+            kind: string;
+            label: string;
+            amount_cents: components["schemas"]["MoneyCents"];
+            /** @description Always false for reserved tax and tips. */
+            spendable: boolean;
+        };
+        CashObligation: {
+            id: string;
+            /** @description e.g. VENDOR_PAYOUT */
+            kind: string;
+            label: string;
+            due_date: components["schemas"]["BusinessDate"];
+            amount_cents: components["schemas"]["MoneyCents"];
+            status: string;
+            /** @description Payout */
+            ref_id?: string | null;
+        };
+        CashForecastPoint: {
+            date: components["schemas"]["BusinessDate"];
+            opening_cents: components["schemas"]["MoneyCents"];
+            inflows_cents: components["schemas"]["MoneyCents"];
+            outflows_cents: components["schemas"]["MoneyCents"];
+            projected_available_cents: components["schemas"]["MoneyCents"];
+            shortfall: boolean;
+        };
+        CashForecast: {
+            horizon_days: number;
+            horizon_end: components["schemas"]["BusinessDate"];
+            /** @description Documented forecast basis (which inflows/outflows count). */
+            method: string;
+            assumptions?: string[];
+            points: components["schemas"]["CashForecastPoint"][];
+        };
+        CashShortfall: {
+            date: components["schemas"]["BusinessDate"];
+            amount_cents: components["schemas"]["MoneyCents"];
+            description: string;
+            affected_ids?: string[];
+        };
+        CashReceipt: {
+            /** @description e.g. TICKETS */
+            kind: string;
+            label: string;
+            received_cents: components["schemas"]["MoneyCents"];
+            pending_cents: components["schemas"]["MoneyCents"];
+            recognition_note?: string | null;
         };
         CashPosition: {
             id: string;
             as_of: components["schemas"]["Instant"];
+            /** @description Freely spendable after reservations. */
             available_cents: components["schemas"]["MoneyCents"];
+            version?: components["schemas"]["Version"];
+            bank_balance_cents?: components["schemas"]["MoneyCents"];
+            /** @description Expected but not yet in the bank (timing items */
+            pending_cents?: components["schemas"]["MoneyCents"];
+            reserved_cents?: components["schemas"]["MoneyCents"];
+            reservations?: components["schemas"]["CashReservation"][];
+            obligations?: components["schemas"]["CashObligation"][];
+            shortfalls?: components["schemas"]["CashShortfall"][];
+            receipts?: components["schemas"]["CashReceipt"][];
+            forecast?: components["schemas"]["CashForecast"];
+            config_version?: string;
+            source_refs?: components["schemas"]["SourceRef"][];
+        };
+        /** @enum {string} */
+        FinancialReportKind: "DAILY_CLOSE" | "FESTIVAL_PNL" | "FESTIVAL_CASH";
+        FinancialReportLine: {
+            line_id: string;
+            label: string;
+            amount_cents: components["schemas"]["MoneyCents"];
+            account?: string | null;
+            source_refs: components["schemas"]["SourceRef"][];
+            journal_entry_ids?: string[];
+        };
+        FinancialReportSection: {
+            section_id: string;
+            title: string;
+            lines: components["schemas"]["FinancialReportLine"][];
+            /** @description Server total for the section. */
+            total_cents: components["schemas"]["MoneyCents"];
+        };
+        FinancialReport: {
+            id: string;
+            version: components["schemas"]["Version"];
+            kind: components["schemas"]["FinancialReportKind"];
+            title: string;
+            /** @enum {string} */
+            status: "PROVISIONAL" | "FINAL" | "ADJUSTED";
+            period_from: components["schemas"]["BusinessDate"];
+            period_to: components["schemas"]["BusinessDate"];
+            generated_at: components["schemas"]["Instant"];
+            basis_note?: string | null;
+            sections: components["schemas"]["FinancialReportSection"][];
+            /** @description Key server figures (e.g. net income */
+            headline?: components["schemas"]["FinancialReportLine"][];
+            config_version?: string | null;
+            source_refs?: components["schemas"]["SourceRef"][];
         };
         EventEnvelope: {
             event_id: string;
@@ -1412,6 +1819,18 @@ export interface components {
             items: components["schemas"]["CashPosition"][];
             next_cursor: components["schemas"]["NextCursor"];
         };
+        PayoutBatchList: {
+            items: components["schemas"]["PayoutBatch"][];
+            next_cursor: components["schemas"]["NextCursor"];
+        };
+        SupplierPaymentList: {
+            items: components["schemas"]["SupplierPayment"][];
+            next_cursor: components["schemas"]["NextCursor"];
+        };
+        FinancialReportList: {
+            items: components["schemas"]["FinancialReport"][];
+            next_cursor: components["schemas"]["NextCursor"];
+        };
         EventList: {
             items: components["schemas"]["EventEnvelope"][];
             next_cursor: components["schemas"]["NextCursor"];
@@ -1491,6 +1910,7 @@ export interface components {
         Sort: string;
         VendorId: string;
         BusinessDate: components["schemas"]["BusinessDate"];
+        SupplierId: string;
         PathId: string;
         /** @description Required for effectful commands; scoped by workspace/action. Same key + same canonical payload returns the original result; same key + different payload returns 409. */
         IdempotencyKey: string;
@@ -2251,6 +2671,8 @@ export interface operations {
                 limit?: components["parameters"]["Limit"];
                 vendor_id?: components["parameters"]["VendorId"];
                 business_date?: components["parameters"]["BusinessDate"];
+                state?: components["schemas"]["PayoutState"];
+                batch_id?: string;
             };
             header?: never;
             path?: never;
@@ -2309,6 +2731,60 @@ export interface operations {
             409: components["responses"]["Conflict"];
             422: components["responses"]["Invalid"];
             429: components["responses"]["RateLimited"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    getPayout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PathId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Payout with gate checks, limit status and state history (SIMULATED money movement). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Payout"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listPayoutBatches: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from a previous next_cursor. Never parsed by clients. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+                business_date?: components["parameters"]["BusinessDate"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Payout release batches with server counts and totals (SIMULATED). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayoutBatchList"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["Invalid"];
             503: components["responses"]["Unavailable"];
         };
     };
@@ -2399,6 +2875,7 @@ export interface operations {
                 /** @description Opaque cursor from a previous next_cursor. Never parsed by clients. */
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];
+                supplier_id?: components["parameters"]["SupplierId"];
             };
             header?: never;
             path?: never;
@@ -2425,6 +2902,8 @@ export interface operations {
                 /** @description Opaque cursor from a previous next_cursor. Never parsed by clients. */
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];
+                supplier_id?: components["parameters"]["SupplierId"];
+                kind?: components["schemas"]["SupplierInvoiceKind"];
             };
             header?: never;
             path?: never;
@@ -2443,6 +2922,60 @@ export interface operations {
             };
             401: components["responses"]["Unauthenticated"];
             403: components["responses"]["Forbidden"];
+        };
+    };
+    getSupplierInvoice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PathId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Supplier invoice or credit note. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplierInvoice"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listSupplierPayments: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from a previous next_cursor. Never parsed by clients. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+                supplier_id?: components["parameters"]["SupplierId"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Supplier payments (SIMULATED money movement). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplierPaymentList"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["Invalid"];
+            503: components["responses"]["Unavailable"];
         };
     };
     listJournalEntries: {
@@ -2472,6 +3005,31 @@ export interface operations {
             403: components["responses"]["Forbidden"];
         };
     };
+    getJournalEntry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PathId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Journal entry by entry_id, with server totals and correction links. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JournalEntry"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
     listTaxReports: {
         parameters: {
             query?: {
@@ -2496,6 +3054,86 @@ export interface operations {
             };
             401: components["responses"]["Unauthenticated"];
             403: components["responses"]["Forbidden"];
+        };
+    };
+    getTaxReport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PathId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description DRAFT, NOT FILED tax summary. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaxReport"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listFinancialReports: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from a previous next_cursor. Never parsed by clients. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+                business_date?: components["parameters"]["BusinessDate"];
+                kind?: components["schemas"]["FinancialReportKind"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Daily close and festival P&L/cash reports (server figures). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinancialReportList"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["Invalid"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    getFinancialReport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PathId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Financial report with sections, server totals and source links. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinancialReport"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
     listCashPositions: {

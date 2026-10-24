@@ -48,6 +48,27 @@ export type PolicyScope = Schemas['PolicyScope'];
 export type ResolveCasePayload = Schemas['ResolveCasePayload'];
 export type ApprovePolicyPayload = Schemas['ApprovePolicyPayload'];
 
+// B05 finance outputs (C03 records + lane-B proposals Q38-Q44).
+export type Payout = Schemas['Payout'];
+export type PayoutState = Schemas['PayoutState'];
+export type PayoutGate = Schemas['PayoutGate'];
+export type PayoutGateCheck = Schemas['PayoutGateCheck'];
+export type PayoutBatch = Schemas['PayoutBatch'];
+export type ApprovePayoutPayload = Schemas['ApprovePayoutPayload'];
+export type CashPosition = Schemas['CashPosition'];
+export type CashForecastPoint = Schemas['CashForecastPoint'];
+export type Supplier = Schemas['Supplier'];
+export type PurchaseOrder = Schemas['PurchaseOrder'];
+export type SupplierInvoice = Schemas['SupplierInvoice'];
+export type SupplierPayment = Schemas['SupplierPayment'];
+export type JournalEntry = Schemas['JournalEntry'];
+export type JournalLine = Schemas['JournalLine'];
+export type TaxReport = Schemas['TaxReport'];
+export type TaxReportLine = Schemas['TaxReportLine'];
+export type FinancialReport = Schemas['FinancialReport'];
+export type FinancialReportSection = Schemas['FinancialReportSection'];
+export type FinancialReportLine = Schemas['FinancialReportLine'];
+
 export type OperationId = keyof operations;
 
 type JsonOf<R> = R extends { content: { 'application/json': infer B } } ? B : never;
