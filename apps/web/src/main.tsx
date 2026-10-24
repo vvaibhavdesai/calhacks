@@ -14,7 +14,14 @@ async function bootstrap() {
     // Dev/test only. In a build this alias resolves to src/fixtures/disabled.ts
     // and vite.config.ts refuses fixture mode, so no fixture data can ship.
     const fixtures = await import('@encore/fixture-data');
-    transport = fixtures.createFixtureTransport({ latencyMs: 200 });
+    // Inputs from compact_v1 plus ILLUSTRATIVE hand-authored outputs for the B04 screens.
+    // The dev session holds the decision capabilities so the workflow can be exercised;
+    // the transport still enforces them per record, as the real server would.
+    transport = fixtures.createFixtureTransport({
+      latencyMs: 200,
+      illustrativeOutputs: true,
+      capabilities: ['fixture.read', 'case.resolve', 'policy.approve'],
+    });
     fixtureId = fixtures.FIXTURE_ID;
   } else {
     // Live mode never falls back to fixtures: API failures surface as error states.

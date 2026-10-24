@@ -1,7 +1,12 @@
 import { useEffect, useState } from 'react';
 import { RouterProvider, createBrowserRouter, createMemoryRouter, type RouteObject } from 'react-router-dom';
 import { EventStreamClient, liveStreamOpener } from '../api/sse';
+import { CaseDetail, CasesList } from '../screens/Cases';
 import { Overview } from '../screens/Overview';
+import { PoliciesList, PolicyDetail } from '../screens/Policies';
+import { MatchGroupDetail, ReconciliationList } from '../screens/Reconciliation';
+import { RunDetail, RunsList } from '../screens/Runs';
+import { SettlementDetail, SettlementsList } from '../screens/Settlements';
 import { NotFound } from '../screens/NotFound';
 import { PlaceholderScreen } from '../screens/PlaceholderScreen';
 import { SourceRecords } from '../screens/SourceRecords';
@@ -23,6 +28,16 @@ export const routes: RouteObject[] = [
     element: <Layout />,
     children: [
       { index: true, element: <Overview /> },
+      { path: 'runs', element: <RunsList /> },
+      { path: 'runs/:runId', element: <RunDetail /> },
+      { path: 'reconciliation', element: <ReconciliationList /> },
+      { path: 'reconciliation/:groupId', element: <MatchGroupDetail /> },
+      { path: 'settlements', element: <SettlementsList /> },
+      { path: 'settlements/:settlementId', element: <SettlementDetail /> },
+      { path: 'cases', element: <CasesList /> },
+      { path: 'cases/:caseId', element: <CaseDetail /> },
+      { path: 'policies', element: <PoliciesList /> },
+      { path: 'policies/:policyVersionId', element: <PolicyDetail /> },
       ...PLACEHOLDERS.map((item) => ({ path: item.path.slice(1), element: <PlaceholderScreen item={item} /> })),
       { path: 'records/:collection', element: <SourceRecords /> },
       { path: '*', element: <NotFound /> },

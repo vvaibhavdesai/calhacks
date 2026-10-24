@@ -7,6 +7,8 @@ export interface NavItem {
   summary: string;
   /** Required qualifier shown on the screen (simulated money / draft tax). */
   qualifier?: string;
+  /** True once the screen is built (no placeholder route). */
+  implemented?: boolean;
 }
 
 export interface NavGroup {
@@ -19,11 +21,11 @@ export const NAV: NavGroup[] = [
     label: 'Close',
     items: [
       { path: '/', label: 'Overview', task: 'B04', summary: 'Festival status and the live close-run vendor pipeline.' },
-      { path: '/runs', label: 'Close runs', task: 'B04', summary: 'Run projections (QUEUED → COMPLETED) and per-vendor milestones.' },
-      { path: '/reconciliation', label: 'Reconciliation', task: 'B04', summary: 'Match groups, variances and reason codes, with evidence.' },
-      { path: '/settlements', label: 'Settlements', task: 'B04', summary: 'Server-calculated vendor settlements, line items, holds and statements.' },
-      { path: '/cases', label: 'Exceptions', task: 'B04', summary: 'Cases with evidence, financial impact, proposed resolution and required capability.' },
-      { path: '/policies', label: 'Policies', task: 'B04', summary: 'Policy versions, scope, approvals and applied-rule badges.' },
+      { path: '/runs', label: 'Close runs', task: 'B04', summary: 'Run projections (QUEUED → COMPLETED) and per-vendor milestones.', implemented: true },
+      { path: '/reconciliation', label: 'Reconciliation', task: 'B04', summary: 'Match groups, variances and reason codes, with evidence.', implemented: true },
+      { path: '/settlements', label: 'Settlements', task: 'B04', summary: 'Server-calculated vendor settlements, line items, holds and statements.', implemented: true },
+      { path: '/cases', label: 'Exceptions', task: 'B04', summary: 'Cases with evidence, financial impact, proposed resolution and required capability.', implemented: true },
+      { path: '/policies', label: 'Policies', task: 'B04', summary: 'Policy versions, scope, approvals and applied-rule badges.', implemented: true },
     ],
   },
   {
@@ -47,5 +49,5 @@ export const NAV: NavGroup[] = [
 ];
 
 export const PLACEHOLDERS: NavItem[] = NAV.flatMap((g) => g.items).filter(
-  (i) => i.path !== '/' && !i.path.startsWith('/records'),
+  (i) => i.path !== '/' && !i.path.startsWith('/records') && !i.implemented,
 );

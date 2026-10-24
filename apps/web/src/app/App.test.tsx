@@ -127,17 +127,20 @@ describe('live mode error states (no fixture fallback)', () => {
   it('401 shows sign-in, not fixture data', async () => {
     liveApp(async () => err(401, 'UNAUTHENTICATED', 'Sign in.'));
     expect(await screen.findByRole('heading', { name: 'Overview' })).toBeInTheDocument();
-    expect(await screen.findByText('Sign in required')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', 'https://auth.example/login');
+    // Every panel on the overview (festival, latest run, exceptions) shows its own sign-in state.
+    expect((await screen.findAllByText('Sign in required')).length).toBeGreaterThan(0);
+    for (const link of screen.getAllByRole('link', { name: 'Sign in' })) {
+      expect(link).toHaveAttribute('href', 'https://auth.example/login');
+    }
     expect(screen.queryByText('Golden Coast Music Festival')).not.toBeInTheDocument();
     expect(screen.queryByText(/FIXTURE DATA/)).not.toBeInTheDocument();
   });
 
   it('403 shows the permission state without a retry button', async () => {
     liveApp(async () => err(403, 'FORBIDDEN', 'You lack festival.read.'));
-    expect(await screen.findByText('No permission')).toBeInTheDocument();
-    expect(screen.getByText('You lack festival.read.')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument();
+    expect((await screen.findAllByText('No permission')).length).toBeGreaterThan(0);
+    expect(screen.getAllByText('You lack festival.read.').length).toBeGreaterThan(0);
+    expect(screen.queryAllByRole('button', { name: 'Try again' })).toHaveLength(0);
   });
 
   it('503 shows a retryable unavailable state with request id', async () => {
@@ -147,11 +150,12 @@ describe('live mode error states (no fixture fallback)', () => {
       if (url.endsWith('/festival')) calls += 1;
       return err(503, 'DEPENDENCY_DOWN', 'Database unavailable.');
     });
-    expect(await screen.findByText('Service unavailable')).toBeInTheDocument();
-    expect(screen.getByText('req-9')).toBeInTheDocument();
+    expect((await screen.findAllByText('Service unavailable')).length).toBeGreaterThan(0);
+    expect(screen.getAllByText('req-9').length).toBeGreaterThan(0);
     const before = calls;
     await act(async () => {
-      await user.click(screen.getByRole('button', { name: 'Try again' }));
+      // The first retry button belongs to the festival panel.
+      await user.click(screen.getAllByRole('button', { name: 'Try again' })[0]!);
     });
     await waitFor(() => expect(calls).toBeGreaterThan(before));
   });
