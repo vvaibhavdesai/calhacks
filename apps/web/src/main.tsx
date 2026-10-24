@@ -1,7 +1,9 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { createTokenStore, login } from './api/auth';
 import { ApiClient, liveTransport, type Transport } from './api/client';
 import { App } from './app/App';
+import type { AuthService } from './app/AppContext';
 import { readConfig } from './config/env';
 import './styles/app.css';
 
@@ -9,6 +11,7 @@ async function bootstrap() {
   const config = readConfig();
   let transport: Transport;
   let fixtureId: string | null = null;
+  let auth: AuthService | undefined;
 
   if (config.dataMode === 'fixture') {
     // Dev/test only. In a build this alias resolves to src/fixtures/disabled.ts
@@ -34,12 +37,28 @@ async function bootstrap() {
     transport = liveTransport();
   }
 
-  const client = new ApiClient({ transport, origin: config.apiOrigin });
+  // Live mode authenticates with the backend's JWT bearer token (there is no
+  // cookie session), so every request carries Authorization from the store.
+  const tokens = createTokenStore();
+  if (config.dataMode !== 'fixture') {
+    auth = {
+      signIn: async (email, password) => {
+        tokens.set(await login(transport, config.apiOrigin, { email, password }));
+      },
+      signOut: () => tokens.set(null),
+    };
+  }
+
+  const client = new ApiClient({
+    transport,
+    origin: config.apiOrigin,
+    ...(config.dataMode === 'fixture' ? {} : { token: tokens.get, credentials: 'omit' as RequestCredentials }),
+  });
   const root = document.getElementById('root');
   if (!root) throw new Error('#root missing');
   createRoot(root).render(
     <StrictMode>
-      <App services={{ config, client, fixtureId }} />
+      <App services={{ config, client, fixtureId, ...(auth ? { auth } : {}) }} />
     </StrictMode>,
   );
 }

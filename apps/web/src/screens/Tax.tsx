@@ -8,6 +8,7 @@ import { EvidenceDrawer } from '../components/EvidenceDrawer';
 import { ExportButtons } from '../components/ExportButtons';
 import { DRAFT_TAX_TEXT, DraftTaxBanner } from '../components/FinanceLabels';
 import { BusinessDate, Code, Instant, Money } from '../components/Formatted';
+import { BackendGapNote } from '../components/BackendGapNote';
 import { IllustrativeNote } from '../components/IllustrativeNote';
 import { PageHeader } from '../components/PageHeader';
 import { Pagination } from '../components/Pagination';
@@ -49,6 +50,7 @@ export function TaxList() {
       <PageHeader title="Tax (draft)" qualifier={QUALIFIER} />
       <DraftTaxBanner />
       <IllustrativeNote />
+      <BackendGapNote ops={['listTaxReports']} />
       <section className="panel" aria-labelledby="tax-heading">
         <h2 id="tax-heading" className="panel-title">
           Draft tax summaries
@@ -100,6 +102,7 @@ export function TaxDetail() {
       </PageHeader>
       <DraftTaxBanner />
       <IllustrativeNote />
+      <BackendGapNote ops={['getTaxReport']} />
       {result.status === 'loading' ? <Loading label="Loading tax draft" /> : null}
       {result.status === 'error' ? <ErrorState error={result.error} onRetry={result.refetch} /> : null}
       {t ? (

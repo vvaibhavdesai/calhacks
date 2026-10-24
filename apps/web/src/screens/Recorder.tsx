@@ -6,6 +6,7 @@ import { EvidenceButton } from '../components/EvidenceButton';
 import { EvidenceDrawer } from '../components/EvidenceDrawer';
 import { FilterBar } from '../components/FilterBar';
 import { BusinessDate, Code, Instant } from '../components/Formatted';
+import { BackendGapNote } from '../components/BackendGapNote';
 import { IllustrativeNote } from '../components/IllustrativeNote';
 import { PageHeader } from '../components/PageHeader';
 import { Pagination } from '../components/Pagination';
@@ -331,6 +332,7 @@ export function RecorderTimeline() {
       <PageHeader title="Flight recorder" qualifier={QUALIFIER} />
       <RecorderTabs />
       <IllustrativeNote />
+      <BackendGapNote ops={['listEvents', 'listRuns', 'listBranches']} />
       <section className="panel" aria-labelledby="tl-heading">
         <h2 id="tl-heading" className="panel-title">
           Event timeline
@@ -410,7 +412,7 @@ export function EventDetail() {
   const { client } = useApp();
   const { lookups, describeSource } = useLookups();
   const [evidence, setEvidence] = useState<Evidence>(null);
-  const result = useApiQuery(`event:${eventId}`, (signal) => client.get('getEvent', { signal, path: { id: eventId } }));
+  const result = useApiQuery(`event:${eventId}`, (signal) => client.get('getEvent', { signal, path: { event_id: eventId } }));
   const e = result.data;
   return (
     <>
@@ -421,6 +423,7 @@ export function EventDetail() {
       </PageHeader>
       <RecorderTabs />
       <IllustrativeNote />
+      <BackendGapNote ops={['getEvent']} />
       {result.status === 'loading' ? <Loading label="Loading event" /> : null}
       {result.status === 'error' ? <ErrorState error={result.error} onRetry={result.refetch} /> : null}
       {e ? (

@@ -5,6 +5,7 @@ import { DataTable, type Column } from '../components/DataTable';
 import { FilterBar } from '../components/FilterBar';
 import { BusinessDate, Code, Instant } from '../components/Formatted';
 import { HoldList } from '../components/HoldList';
+import { BackendGapNote } from '../components/BackendGapNote';
 import { IllustrativeNote } from '../components/IllustrativeNote';
 import { MilestoneTrack } from '../components/MilestoneTrack';
 import { PageHeader } from '../components/PageHeader';
@@ -212,6 +213,7 @@ export function RunsList() {
     <>
       <PageHeader title="Close runs" qualifier="Run projections from the server (C04). Holds are vendor-local." />
       <IllustrativeNote />
+      <BackendGapNote ops={['listRuns']} />
       <section className="panel" aria-labelledby="runs-heading">
         <h2 id="runs-heading" className="panel-title">
           Runs
@@ -254,6 +256,7 @@ export function RunDetail() {
         </Link>
       </PageHeader>
       <IllustrativeNote />
+      <BackendGapNote ops={['getRun', 'listRunVendors']} />
       <section className="panel" aria-labelledby="run-heading">
         <h2 id="run-heading" className="panel-title">
           Run status

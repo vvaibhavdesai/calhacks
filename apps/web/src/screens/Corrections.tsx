@@ -17,6 +17,7 @@ import { DataTable, type Column } from '../components/DataTable';
 import { EvidenceButton } from '../components/EvidenceButton';
 import { EvidenceDrawer } from '../components/EvidenceDrawer';
 import { Code, Instant, Money } from '../components/Formatted';
+import { BackendGapNote } from '../components/BackendGapNote';
 import { IllustrativeNote } from '../components/IllustrativeNote';
 import { PageHeader } from '../components/PageHeader';
 import { ErrorState, Loading } from '../components/QueryState';
@@ -48,7 +49,7 @@ function useTarget(kind: TargetKind | null, id: string) {
   return useApiQuery<TargetInfo | null>(`challenge-target:${kind}:${id}`, async (signal) => {
     if (!kind || !id) return null;
     if (kind === 'POLICY_VERSION') {
-      const p = await client.get('getPolicyVersion', { signal, path: { id } });
+      const p = await client.get('getPolicyVersion', { signal, path: { policy_version_id: id } });
       return {
         kind, id, version: p.record_version ?? null, link: `/policies/${encodeURIComponent(id)}`,
         title: `${p.title ?? p.policy_id} · v${p.version}`,
@@ -71,7 +72,7 @@ function useTarget(kind: TargetKind | null, id: string) {
         ),
       };
     }
-    const p = await client.get('getPayout', { signal, path: { id } });
+    const p = await client.get('getPayout', { signal, path: { payout_id: id } });
     return {
       kind, id, version: p.version, link: `/payouts/${encodeURIComponent(id)}`,
       title: <>Payout {p.business_date} · {lookups.vendorName(p.vendor_id)}</>,
@@ -253,6 +254,7 @@ export function ChallengeNew() {
       <PageHeader title="Challenge" qualifier="Superseding evidence → impact preview → explicit correction approval" />
       <RecorderTabs />
       <IllustrativeNote />
+      <BackendGapNote ops={['listChallenges', 'listSourceDocuments', 'createChallenge']} />
       {t ? (
         <section className="panel" aria-labelledby="target-heading">
           <h2 id="target-heading" className="panel-title">
@@ -289,7 +291,7 @@ export function ChallengeDetail() {
   const { describeSource } = useLookups();
   const navigate = useNavigate();
   const [evidence, setEvidence] = useState<{ title: string; refs: SourceRef[] } | null>(null);
-  const result = useApiQuery(`challenge:${challengeId}`, (signal) => client.get('getChallenge', { signal, path: { id: challengeId } }));
+  const result = useApiQuery(`challenge:${challengeId}`, (signal) => client.get('getChallenge', { signal, path: { challenge_id: challengeId } }));
   const c = result.data;
   const cmd = useCommand('previewCorrection', {}, { onServerChange: result.refetch });
   const { state } = cmd;
@@ -302,6 +304,7 @@ export function ChallengeDetail() {
       <PageHeader title="Challenge" qualifier={challengeId} />
       <RecorderTabs />
       <IllustrativeNote />
+      <BackendGapNote ops={['getChallenge', 'previewCorrection']} />
       {result.status === 'loading' ? <Loading label="Loading challenge" /> : null}
       {result.status === 'error' ? <ErrorState error={result.error} onRetry={result.refetch} /> : null}
       {c ? (
@@ -453,7 +456,7 @@ function itemColumns(items: CorrectionItem[]): Column<CorrectionItem>[] {
 
 function CorrectionApproval({ c, onServerChange }: { c: Correction; onServerChange: () => void }) {
   const { capabilities } = useApp();
-  const cmd = useCommand('approveCorrection', { id: c.id }, { onServerChange, jobPollMs: 500 });
+  const cmd = useCommand('approveCorrection', { correction_id: c.id }, { onServerChange, jobPollMs: 500 });
   const { state, prepared, discard } = cmd;
   const [ack, setAck] = useState(false);
   const [stale, setStale] = useState<string | null>(null);
@@ -573,7 +576,7 @@ function CorrectionApproval({ c, onServerChange }: { c: Correction; onServerChan
 export function CorrectionDetail() {
   const { correctionId = '' } = useParams();
   const { client } = useApp();
-  const result = useApiQuery(`correction:${correctionId}`, (signal) => client.get('getCorrection', { signal, path: { id: correctionId } }));
+  const result = useApiQuery(`correction:${correctionId}`, (signal) => client.get('getCorrection', { signal, path: { correction_id: correctionId } }));
   const c = result.data;
   const running = c ? c.status === 'APPROVED' || c.status === 'IN_PROGRESS' : false;
   const { refetch } = result;
@@ -612,6 +615,7 @@ export function CorrectionDetail() {
       <PageHeader title="Correction" qualifier="Server-calculated impact; nothing changes until a human approves and the server confirms." />
       <RecorderTabs />
       <IllustrativeNote />
+      <BackendGapNote ops={['getCorrection', 'approveCorrection']} />
       {result.status === 'loading' ? <Loading label="Loading correction" /> : null}
       {result.status === 'error' ? <ErrorState error={result.error} onRetry={result.refetch} /> : null}
       {c ? (

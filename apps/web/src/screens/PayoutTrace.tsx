@@ -6,6 +6,7 @@ import { EvidenceButton } from '../components/EvidenceButton';
 import { EvidenceDrawer } from '../components/EvidenceDrawer';
 import { SimulatedBanner } from '../components/FinanceLabels';
 import { BusinessDate, Code, Instant, Money } from '../components/Formatted';
+import { BackendGapNote } from '../components/BackendGapNote';
 import { IllustrativeNote } from '../components/IllustrativeNote';
 import { PageHeader } from '../components/PageHeader';
 import { PayoutStateBadge } from '../components/PayoutStateBadge';
@@ -45,7 +46,7 @@ export function PayoutTrace() {
   const open = (title: string, refs: SourceRef[]) => setEvidence({ title, refs });
 
   const result = useApiQuery<Trace>(`trace:${payoutId}`, async (signal) => {
-    const payout = await client.get('getPayout', { signal, path: { id: payoutId } });
+    const payout = await client.get('getPayout', { signal, path: { payout_id: payoutId } });
     let settlement: Settlement | null = null;
     let pinned = false;
     let currentVersion: number | null = null;
@@ -63,7 +64,7 @@ export function PayoutTrace() {
     const policies: PolicyLink[] = await Promise.all(
       (settlement?.applied_policies ?? []).map((applied) =>
         client
-          .get('getPolicyVersion', { signal, path: { id: applied.policy_version_id } })
+          .get('getPolicyVersion', { signal, path: { policy_version_id: applied.policy_version_id } })
           .then((policy) => ({ applied, policy, error: false }))
           .catch(() => ({ applied, policy: null, error: true })),
       ),
@@ -106,6 +107,7 @@ export function PayoutTrace() {
       </PageHeader>
       <SimulatedBanner what="This payout" />
       <IllustrativeNote />
+      <BackendGapNote ops={['getPayout', 'getSettlement']} />
       {result.status === 'loading' ? <Loading label="Tracing payout" /> : null}
       {result.status === 'error' ? <ErrorState error={result.error} onRetry={result.refetch} /> : null}
       {t ? (

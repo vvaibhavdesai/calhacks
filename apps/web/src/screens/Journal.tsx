@@ -7,6 +7,7 @@ import { EvidenceButton } from '../components/EvidenceButton';
 import { EvidenceDrawer } from '../components/EvidenceDrawer';
 import { FilterBar } from '../components/FilterBar';
 import { BusinessDate, Code, Instant, Money } from '../components/Formatted';
+import { BackendGapNote } from '../components/BackendGapNote';
 import { IllustrativeNote } from '../components/IllustrativeNote';
 import { PageHeader } from '../components/PageHeader';
 import { Pagination } from '../components/Pagination';
@@ -75,6 +76,7 @@ export function JournalList() {
     <>
       <PageHeader title="Journal" qualifier={QUALIFIER} />
       <IllustrativeNote />
+      <BackendGapNote ops={['listJournalEntries']} />
       <section className="panel" aria-labelledby="journal-heading">
         <h2 id="journal-heading" className="panel-title">
           Journal entries
@@ -132,6 +134,7 @@ export function JournalDetail() {
         </Link>
       </PageHeader>
       <IllustrativeNote />
+      <BackendGapNote ops={['getJournalEntry']} />
       {result.status === 'loading' ? <Loading label="Loading journal entry" /> : null}
       {result.status === 'error' ? <ErrorState error={result.error} onRetry={result.refetch} /> : null}
       {e ? (

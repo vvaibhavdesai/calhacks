@@ -660,6 +660,28 @@ a {
   color: var(--warn-ink);
   font-size: 0.85rem;
 }
+.illustrative-note p {
+  margin: 0;
+}
+/* Backend gaps listed under a BackendGapNote (src/components/BackendGapNote.tsx). */
+.gap-list {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+.gap-list li + li {
+  margin-top: 4px;
+}
+/* Vertical form rhythm (sign-in and other simple forms). */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+  max-width: 420px;
+}
+.stack .field {
+  width: 100%;
+}
 .count-tiles {
   list-style: none;
   display: flex;

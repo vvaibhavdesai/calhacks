@@ -10,6 +10,7 @@ import { EvidenceButton } from '../components/EvidenceButton';
 import { EvidenceDrawer } from '../components/EvidenceDrawer';
 import { FilterBar } from '../components/FilterBar';
 import { BusinessDate, Code, Instant, Money } from '../components/Formatted';
+import { BackendGapNote } from '../components/BackendGapNote';
 import { IllustrativeNote } from '../components/IllustrativeNote';
 import { PageHeader } from '../components/PageHeader';
 import { Pagination } from '../components/Pagination';
@@ -66,6 +67,7 @@ export function CasesList() {
     <>
       <PageHeader title="Exceptions" qualifier="Cases that need a human, with evidence and server-calculated impact. Agent proposals are not approvals." />
       <IllustrativeNote />
+      <BackendGapNote ops={['listCases']} />
       <section className="panel" aria-labelledby="cases-heading">
         <h2 id="cases-heading" className="panel-title">
           Cases
@@ -117,6 +119,7 @@ export function CaseDetail() {
         </Link>
       </PageHeader>
       <IllustrativeNote />
+      <BackendGapNote ops={['getCase', 'resolveCase']} />
       {result.status === 'loading' ? <Loading label="Loading case" /> : null}
       {result.status === 'error' ? <ErrorState error={result.error} onRetry={result.refetch} /> : null}
       {c ? (
@@ -488,7 +491,7 @@ function CaseDecision({ c, onServerChange }: { c: Case; onServerChange: () => vo
 
 function CandidatePolicy({ id }: { id: string }) {
   const { client } = useApp();
-  const policy = useApiQuery(`policy:${id}`, (signal) => client.get('getPolicyVersion', { signal, path: { id } }));
+  const policy = useApiQuery(`policy:${id}`, (signal) => client.get('getPolicyVersion', { signal, path: { policy_version_id: id } }));
   if (policy.status === 'loading') return <Loading label="Loading proposed policy" />;
   if (policy.status === 'error') return <ErrorState error={policy.error} onRetry={policy.refetch} />;
   const p = policy.data;

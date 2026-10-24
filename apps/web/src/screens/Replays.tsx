@@ -6,6 +6,7 @@ import type { Replay, StartReplayPayload } from '../api/types';
 import { CommandStatus } from '../components/CommandStatus';
 import { DataTable, type Column } from '../components/DataTable';
 import { Code, Instant } from '../components/Formatted';
+import { BackendGapNote } from '../components/BackendGapNote';
 import { IllustrativeNote } from '../components/IllustrativeNote';
 import { PageHeader } from '../components/PageHeader';
 import { EmptyState, ErrorState, Loading } from '../components/QueryState';
@@ -130,6 +131,7 @@ export function ReplaysScreen() {
       <RecorderTabs />
       <ReplayBanner />
       <IllustrativeNote />
+      <BackendGapNote ops={['listReplays', 'listRuns', 'createReplay']} />
       <section className="panel" aria-labelledby="start-replay-heading">
         <h2 id="start-replay-heading" className="panel-title">
           Start a replay
@@ -154,7 +156,7 @@ export function ReplaysScreen() {
 export function ReplayDetail() {
   const { replayId = '' } = useParams();
   const { client } = useApp();
-  const result = useApiQuery(`replay:${replayId}`, (signal) => client.get('getReplay', { signal, path: { id: replayId } }));
+  const result = useApiQuery(`replay:${replayId}`, (signal) => client.get('getReplay', { signal, path: { replay_id: replayId } }));
   const r = result.data;
   const running = r ? r.status === 'QUEUED' || r.status === 'RUNNING' : false;
   const { refetch } = result;
@@ -173,6 +175,7 @@ export function ReplayDetail() {
       <RecorderTabs />
       <ReplayBanner />
       <IllustrativeNote />
+      <BackendGapNote ops={['getReplay']} />
       {result.status === 'loading' ? <Loading label="Loading replay" /> : null}
       {result.status === 'error' ? <ErrorState error={result.error} onRetry={result.refetch} /> : null}
       {r ? (

@@ -4,6 +4,7 @@ import { useApp } from '../app/AppContext';
 import type { EventCategory, HistoricalRow } from '../api/types';
 import { DataTable, type Column } from '../components/DataTable';
 import { BusinessDate, Code, Instant, Money } from '../components/Formatted';
+import { BackendGapNote } from '../components/BackendGapNote';
 import { IllustrativeNote } from '../components/IllustrativeNote';
 import { PageHeader } from '../components/PageHeader';
 import { EmptyState, ErrorState, Loading } from '../components/QueryState';
@@ -114,6 +115,7 @@ export function HistoryScreen() {
       <RecorderTabs />
       <ReadOnlyHistoryBanner />
       <IllustrativeNote />
+      <BackendGapNote ops={['getHistoricalProjection', 'getFestival']} />
       <section className="panel" aria-labelledby="hist-form-heading">
         <h2 id="hist-form-heading" className="panel-title">
           Choose what to reconstruct
