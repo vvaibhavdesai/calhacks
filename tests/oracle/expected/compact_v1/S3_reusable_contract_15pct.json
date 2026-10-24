@@ -1,0 +1,3664 @@
+{
+  "cash_availability": [
+    {
+      "available_before_cents": "3980174",
+      "payout_time_utc": "2026-10-17T17:00:00Z",
+      "remaining_cents": "2864270",
+      "requested_cents": "1115904",
+      "sufficient": true
+    },
+    {
+      "available_before_cents": "2864270",
+      "payout_time_utc": "2026-10-18T17:00:00Z",
+      "remaining_cents": "1958030",
+      "requested_cents": "906240",
+      "sufficient": true
+    },
+    {
+      "available_before_cents": "4253513",
+      "payout_time_utc": "2026-10-19T17:00:00Z",
+      "remaining_cents": "3468298",
+      "requested_cents": "785215",
+      "sufficient": true
+    }
+  ],
+  "description": "Human rejects the email and keeps the signed contract's 15% for Taco Libre, approving reuse. Night-1 payout is still above $5,000 and needs finance-lead approval.",
+  "ending_balances": {
+    "1000": "968298",
+    "1050": "0",
+    "1100": "0",
+    "1200": "23500",
+    "2000": "0",
+    "2100": "-317701",
+    "2200": "0",
+    "4000": "-743500",
+    "5100": "69403"
+  },
+  "journal_entries": [
+    {
+      "business_date": "2026-10-16",
+      "correction_of": null,
+      "entry_key": "SALE:POS-B-01-0001",
+      "kind": "SALES_CAPTURE_CENTRAL",
+      "lines": [
+        {
+          "account": "1100",
+          "account_name": "Processor clearing",
+          "credit_cents": "0",
+          "debit_cents": "277500"
+        },
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "250000",
+          "debit_cents": "0"
+        },
+        {
+          "account": "2100",
+          "account_name": "Sales tax liability/control",
+          "credit_cents": "22500",
+          "debit_cents": "0"
+        },
+        {
+          "account": "2200",
+          "account_name": "Tips liability/control",
+          "credit_cents": "5000",
+          "debit_cents": "0"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ord_5edd8d06ed14c498",
+        "pay_0b68388bc3306ad7"
+      ]
+    },
+    {
+      "business_date": "2026-10-16",
+      "correction_of": null,
+      "entry_key": "SALE:POS-B-01-0002",
+      "kind": "SALES_CAPTURE_CENTRAL",
+      "lines": [
+        {
+          "account": "1100",
+          "account_name": "Processor clearing",
+          "credit_cents": "0",
+          "debit_cents": "165500"
+        },
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "150000",
+          "debit_cents": "0"
+        },
+        {
+          "account": "2100",
+          "account_name": "Sales tax liability/control",
+          "credit_cents": "13500",
+          "debit_cents": "0"
+        },
+        {
+          "account": "2200",
+          "account_name": "Tips liability/control",
+          "credit_cents": "2000",
+          "debit_cents": "0"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ord_e4c42f764bef189c",
+        "pay_6c8b8c5238c8553e"
+      ]
+    },
+    {
+      "business_date": "2026-10-17",
+      "correction_of": null,
+      "entry_key": "SALE:POS-B-01-0003",
+      "kind": "SALES_CAPTURE_CENTRAL",
+      "lines": [
+        {
+          "account": "1100",
+          "account_name": "Processor clearing",
+          "credit_cents": "0",
+          "debit_cents": "330000"
+        },
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "300000",
+          "debit_cents": "0"
+        },
+        {
+          "account": "2100",
+          "account_name": "Sales tax liability/control",
+          "credit_cents": "27000",
+          "debit_cents": "0"
+        },
+        {
+          "account": "2200",
+          "account_name": "Tips liability/control",
+          "credit_cents": "3000",
+          "debit_cents": "0"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ord_022a52eceab460c7",
+        "pay_409cc5d4e94a3529"
+      ]
+    },
+    {
+      "business_date": "2026-10-18",
+      "correction_of": null,
+      "entry_key": "SALE:POS-B-01-0004",
+      "kind": "SALES_CAPTURE_CENTRAL",
+      "lines": [
+        {
+          "account": "1100",
+          "account_name": "Processor clearing",
+          "credit_cents": "0",
+          "debit_cents": "331001"
+        },
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "300000",
+          "debit_cents": "0"
+        },
+        {
+          "account": "2100",
+          "account_name": "Sales tax liability/control",
+          "credit_cents": "27001",
+          "debit_cents": "0"
+        },
+        {
+          "account": "2200",
+          "account_name": "Tips liability/control",
+          "credit_cents": "4000",
+          "debit_cents": "0"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ord_28997c11f851c845",
+        "pay_324a2235f47d792d"
+      ]
+    },
+    {
+      "business_date": "2026-10-16",
+      "correction_of": null,
+      "entry_key": "SALE:POS-B-02-0005",
+      "kind": "SALES_CAPTURE_CENTRAL",
+      "lines": [
+        {
+          "account": "1100",
+          "account_name": "Processor clearing",
+          "credit_cents": "0",
+          "debit_cents": "660000"
+        },
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "600000",
+          "debit_cents": "0"
+        },
+        {
+          "account": "2100",
+          "account_name": "Sales tax liability/control",
+          "credit_cents": "54000",
+          "debit_cents": "0"
+        },
+        {
+          "account": "2200",
+          "account_name": "Tips liability/control",
+          "credit_cents": "6000",
+          "debit_cents": "0"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ord_87bd4e5dfec1d10b",
+        "pay_9ca7191e617c9085"
+      ]
+    },
+    {
+      "business_date": "2026-10-17",
+      "correction_of": null,
+      "entry_key": "SALE:POS-B-02-0006",
+      "kind": "SALES_CAPTURE_CENTRAL",
+      "lines": [
+        {
+          "account": "1100",
+          "account_name": "Processor clearing",
+          "credit_cents": "0",
+          "debit_cents": "547000"
+        },
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "500000",
+          "debit_cents": "0"
+        },
+        {
+          "account": "2100",
+          "account_name": "Sales tax liability/control",
+          "credit_cents": "45000",
+          "debit_cents": "0"
+        },
+        {
+          "account": "2200",
+          "account_name": "Tips liability/control",
+          "credit_cents": "2000",
+          "debit_cents": "0"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ord_b8371203296e7657",
+        "pay_910595afaf544fa2"
+      ]
+    },
+    {
+      "business_date": "2026-10-18",
+      "correction_of": null,
+      "entry_key": "SALE:POS-B-02-0007",
+      "kind": "SALES_CAPTURE_CENTRAL",
+      "lines": [
+        {
+          "account": "1100",
+          "account_name": "Processor clearing",
+          "credit_cents": "0",
+          "debit_cents": "437500"
+        },
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "400000",
+          "debit_cents": "0"
+        },
+        {
+          "account": "2100",
+          "account_name": "Sales tax liability/control",
+          "credit_cents": "36000",
+          "debit_cents": "0"
+        },
+        {
+          "account": "2200",
+          "account_name": "Tips liability/control",
+          "credit_cents": "1500",
+          "debit_cents": "0"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ord_84e06a9c666caab8",
+        "pay_d067826d875a0258"
+      ]
+    },
+    {
+      "business_date": "2026-10-16",
+      "correction_of": null,
+      "entry_key": "SALE:POS-B-03-0008",
+      "kind": "SALES_CAPTURE_CENTRAL",
+      "lines": [
+        {
+          "account": "1100",
+          "account_name": "Processor clearing",
+          "credit_cents": "0",
+          "debit_cents": "43600"
+        },
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "40000",
+          "debit_cents": "0"
+        },
+        {
+          "account": "2100",
+          "account_name": "Sales tax liability/control",
+          "credit_cents": "3600",
+          "debit_cents": "0"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ord_f85d7a5a9129c20a",
+        "pay_962754171daa8057"
+      ]
+    },
+    {
+      "business_date": "2026-10-16",
+      "correction_of": null,
+      "entry_key": "SALE:POS-B-03-0009",
+      "kind": "SALES_CAPTURE_CENTRAL",
+      "lines": [
+        {
+          "account": "1100",
+          "account_name": "Processor clearing",
+          "credit_cents": "0",
+          "debit_cents": "43600"
+        },
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "40000",
+          "debit_cents": "0"
+        },
+        {
+          "account": "2100",
+          "account_name": "Sales tax liability/control",
+          "credit_cents": "3600",
+          "debit_cents": "0"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ord_4ee5f4dd4e4eeee5",
+        "pay_b8b390ab02b35be6"
+      ]
+    },
+    {
+      "business_date": "2026-10-17",
+      "correction_of": null,
+      "entry_key": "SALE:POS-B-03-0010",
+      "kind": "SALES_CAPTURE_CENTRAL",
+      "lines": [
+        {
+          "account": "1100",
+          "account_name": "Processor clearing",
+          "credit_cents": "0",
+          "debit_cents": "78044"
+        },
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "71600",
+          "debit_cents": "0"
+        },
+        {
+          "account": "2100",
+          "account_name": "Sales tax liability/control",
+          "credit_cents": "6444",
+          "debit_cents": "0"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ord_e8a38da6f02484ed",
+        "pay_a55d974f86e90673"
+      ]
+    },
+    {
+      "business_date": "2026-10-18",
+      "correction_of": null,
+      "entry_key": "SALE:POS-B-03-0011",
+      "kind": "SALES_CAPTURE_CENTRAL",
+      "lines": [
+        {
+          "account": "1100",
+          "account_name": "Processor clearing",
+          "credit_cents": "0",
+          "debit_cents": "43600"
+        },
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "40000",
+          "debit_cents": "0"
+        },
+        {
+          "account": "2100",
+          "account_name": "Sales tax liability/control",
+          "credit_cents": "3600",
+          "debit_cents": "0"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ord_b8cecacf831a7045",
+        "pay_04f9feffce880f43"
+      ]
+    },
+    {
+      "business_date": "2026-10-18",
+      "correction_of": null,
+      "entry_key": "SALE:POS-B-03-0012",
+      "kind": "SALES_CAPTURE_CENTRAL",
+      "lines": [
+        {
+          "account": "1050",
+          "account_name": "Cash on hand - organizer cash office (DRAFT addition, not in C02 list)",
+          "credit_cents": "0",
+          "debit_cents": "10900"
+        },
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "10000",
+          "debit_cents": "0"
+        },
+        {
+          "account": "2100",
+          "account_name": "Sales tax liability/control",
+          "credit_cents": "900",
+          "debit_cents": "0"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ord_44494b4e504c4ec1",
+        "pay_9d6cd9a385aa7503"
+      ]
+    },
+    {
+      "business_date": "2026-10-17",
+      "correction_of": "SALE:POS-B-03-0009",
+      "entry_key": "REFUND:POS-B-03-0013",
+      "kind": "REFUND_CENTRAL",
+      "lines": [
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "0",
+          "debit_cents": "1600"
+        },
+        {
+          "account": "2100",
+          "account_name": "Sales tax liability/control",
+          "credit_cents": "0",
+          "debit_cents": "144"
+        },
+        {
+          "account": "1100",
+          "account_name": "Processor clearing",
+          "credit_cents": "1744",
+          "debit_cents": "0"
+        }
+      ],
+      "note": "Linked to original sale; original posting untouched.",
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ord_21934b0d5cbb81e6",
+        "pay_0257ef0f5e91bde2"
+      ]
+    },
+    {
+      "business_date": "2026-10-18",
+      "correction_of": null,
+      "entry_key": "SALE:POS-B-04-0014",
+      "kind": "SALES_CAPTURE_CENTRAL",
+      "lines": [
+        {
+          "account": "1100",
+          "account_name": "Processor clearing",
+          "credit_cents": "0",
+          "debit_cents": "44100"
+        },
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "40000",
+          "debit_cents": "0"
+        },
+        {
+          "account": "2100",
+          "account_name": "Sales tax liability/control",
+          "credit_cents": "3600",
+          "debit_cents": "0"
+        },
+        {
+          "account": "2200",
+          "account_name": "Tips liability/control",
+          "credit_cents": "500",
+          "debit_cents": "0"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ord_94ebdf02a99dcce7",
+        "pay_559acf9b6b4c0e03"
+      ]
+    },
+    {
+      "business_date": "2026-10-16",
+      "correction_of": null,
+      "entry_key": "SALE:POS-B-05-0016",
+      "kind": "SALES_CAPTURE_CENTRAL",
+      "lines": [
+        {
+          "account": "1100",
+          "account_name": "Processor clearing",
+          "credit_cents": "0",
+          "debit_cents": "110000"
+        },
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "100000",
+          "debit_cents": "0"
+        },
+        {
+          "account": "2100",
+          "account_name": "Sales tax liability/control",
+          "credit_cents": "9000",
+          "debit_cents": "0"
+        },
+        {
+          "account": "2200",
+          "account_name": "Tips liability/control",
+          "credit_cents": "1000",
+          "debit_cents": "0"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ord_5e99a869e02eade7",
+        "pay_d799e2d4793924f7"
+      ]
+    },
+    {
+      "business_date": "2026-10-17",
+      "correction_of": null,
+      "entry_key": "SALE:POS-B-05-0018",
+      "kind": "SALES_CAPTURE_CENTRAL",
+      "lines": [
+        {
+          "account": "1100",
+          "account_name": "Processor clearing",
+          "credit_cents": "0",
+          "debit_cents": "54500"
+        },
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "50000",
+          "debit_cents": "0"
+        },
+        {
+          "account": "2100",
+          "account_name": "Sales tax liability/control",
+          "credit_cents": "4500",
+          "debit_cents": "0"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ord_f628ead2e95ec2b9",
+        "pay_715c3d3661adb65c"
+      ]
+    },
+    {
+      "business_date": "2026-10-18",
+      "correction_of": null,
+      "entry_key": "SALE:POS-B-05-0020",
+      "kind": "SALES_CAPTURE_CENTRAL",
+      "lines": [
+        {
+          "account": "1100",
+          "account_name": "Processor clearing",
+          "credit_cents": "0",
+          "debit_cents": "54500"
+        },
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "50000",
+          "debit_cents": "0"
+        },
+        {
+          "account": "2100",
+          "account_name": "Sales tax liability/control",
+          "credit_cents": "4500",
+          "debit_cents": "0"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ord_716a19b00162abef",
+        "pay_c4fb17a1f40b8895"
+      ]
+    },
+    {
+      "business_date": "2026-10-16",
+      "correction_of": null,
+      "entry_key": "SALE:POS-B-06-0021",
+      "kind": "SALES_CAPTURE_CENTRAL",
+      "lines": [
+        {
+          "account": "1100",
+          "account_name": "Processor clearing",
+          "credit_cents": "0",
+          "debit_cents": "218000"
+        },
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "200000",
+          "debit_cents": "0"
+        },
+        {
+          "account": "2100",
+          "account_name": "Sales tax liability/control",
+          "credit_cents": "18000",
+          "debit_cents": "0"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ord_eec98ad7b7565a60",
+        "pay_a9ac3e6d1e7e5012"
+      ]
+    },
+    {
+      "business_date": "2026-10-17",
+      "correction_of": null,
+      "entry_key": "SALE:POS-B-06-0022",
+      "kind": "SALES_CAPTURE_CENTRAL",
+      "lines": [
+        {
+          "account": "1100",
+          "account_name": "Processor clearing",
+          "credit_cents": "0",
+          "debit_cents": "218000"
+        },
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "200000",
+          "debit_cents": "0"
+        },
+        {
+          "account": "2100",
+          "account_name": "Sales tax liability/control",
+          "credit_cents": "18000",
+          "debit_cents": "0"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ord_79223892b5ba8c8b",
+        "pay_8ee80b03b58a2180"
+      ]
+    },
+    {
+      "business_date": "2026-10-18",
+      "correction_of": null,
+      "entry_key": "SALE:POS-B-06-0023",
+      "kind": "SALES_CAPTURE_CENTRAL",
+      "lines": [
+        {
+          "account": "1100",
+          "account_name": "Processor clearing",
+          "credit_cents": "0",
+          "debit_cents": "218000"
+        },
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "200000",
+          "debit_cents": "0"
+        },
+        {
+          "account": "2100",
+          "account_name": "Sales tax liability/control",
+          "credit_cents": "18000",
+          "debit_cents": "0"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ord_7a7330c5d63b0af4",
+        "pay_52bed800646571f7"
+      ]
+    },
+    {
+      "business_date": "2026-10-20",
+      "correction_of": "SALE:POS-B-06-0023",
+      "entry_key": "REFUND:POS-B-06-0024",
+      "kind": "REFUND_CENTRAL",
+      "lines": [
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "0",
+          "debit_cents": "10000"
+        },
+        {
+          "account": "2100",
+          "account_name": "Sales tax liability/control",
+          "credit_cents": "0",
+          "debit_cents": "900"
+        },
+        {
+          "account": "1100",
+          "account_name": "Processor clearing",
+          "credit_cents": "10900",
+          "debit_cents": "0"
+        }
+      ],
+      "note": "Linked to original sale; original posting untouched.",
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ord_8d468861193d4b88",
+        "pay_3cf074af7b362259"
+      ]
+    },
+    {
+      "business_date": "2026-10-17",
+      "correction_of": null,
+      "entry_key": "DEPOSIT:CARDCO-PO-0001",
+      "kind": "PROCESSOR_SETTLEMENT",
+      "lines": [
+        {
+          "account": "1000",
+          "account_name": "Bank cash - operating",
+          "credit_cents": "0",
+          "debit_cents": "1480174"
+        },
+        {
+          "account": "5100",
+          "account_name": "Processor fee expense",
+          "credit_cents": "0",
+          "debit_cents": "38026"
+        },
+        {
+          "account": "1100",
+          "account_name": "Processor clearing",
+          "credit_cents": "1518200",
+          "debit_cents": "0"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "bank_eda31709b5bab40e",
+        "pbatch_9f243421b1a9ba6c"
+      ]
+    },
+    {
+      "business_date": "2026-10-19",
+      "correction_of": null,
+      "entry_key": "DEPOSIT:CARDCO-PO-0002",
+      "kind": "PROCESSOR_SETTLEMENT",
+      "lines": [
+        {
+          "account": "1000",
+          "account_name": "Bank cash - operating",
+          "credit_cents": "0",
+          "debit_cents": "2295483"
+        },
+        {
+          "account": "5100",
+          "account_name": "Processor fee expense",
+          "credit_cents": "0",
+          "debit_cents": "59018"
+        },
+        {
+          "account": "1100",
+          "account_name": "Processor clearing",
+          "credit_cents": "2354501",
+          "debit_cents": "0"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "bank_f15bf8119301aad8",
+        "pbatch_cad97763adbe0571",
+        "pbatch_617494454fab66b1"
+      ]
+    },
+    {
+      "business_date": "2026-10-19",
+      "correction_of": null,
+      "entry_key": "CASHDEP:CASHDEP-CASH-DEP-0001",
+      "kind": "CASH_OFFICE_DEPOSIT",
+      "lines": [
+        {
+          "account": "1000",
+          "account_name": "Bank cash - operating",
+          "credit_cents": "0",
+          "debit_cents": "10900"
+        },
+        {
+          "account": "1050",
+          "account_name": "Cash on hand - organizer cash office (DRAFT addition, not in C02 list)",
+          "credit_cents": "10900",
+          "debit_cents": "0"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "bank_7ef37f34db70ec74"
+      ]
+    },
+    {
+      "business_date": "2026-10-21",
+      "correction_of": null,
+      "entry_key": "DEPOSIT:CARDCO-PO-0003",
+      "kind": "PROCESSOR_SETTLEMENT",
+      "lines": [
+        {
+          "account": "1000",
+          "account_name": "Bank cash - operating",
+          "credit_cents": "10900",
+          "debit_cents": "0"
+        },
+        {
+          "account": "1100",
+          "account_name": "Processor clearing",
+          "credit_cents": "0",
+          "debit_cents": "10900"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "bank_3744a59b3b217d39",
+        "pbatch_037647e85beb814c"
+      ]
+    },
+    {
+      "business_date": "2026-10-16",
+      "correction_of": null,
+      "entry_key": "FEE_RECHARGE:Sunrise Smoothies:2026-10-16",
+      "kind": "PROCESSOR_FEE_RECHARGE",
+      "lines": [
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "0",
+          "debit_cents": "11096"
+        },
+        {
+          "account": "5100",
+          "account_name": "Processor fee expense",
+          "credit_cents": "11096",
+          "debit_cents": "0"
+        }
+      ],
+      "note": "Contract permits deducting processor fees from vendor settlement.",
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ven_7248fe404ac157ca"
+      ]
+    },
+    {
+      "business_date": "2026-10-16",
+      "correction_of": null,
+      "entry_key": "COMMISSION:Sunrise Smoothies:2026-10-16",
+      "kind": "COMMISSION_SETTLEMENT",
+      "lines": [
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "0",
+          "debit_cents": "60000"
+        },
+        {
+          "account": "4000",
+          "account_name": "Organizer commission revenue",
+          "credit_cents": "60000",
+          "debit_cents": "0"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ven_7248fe404ac157ca"
+      ]
+    },
+    {
+      "business_date": "2026-10-17",
+      "correction_of": null,
+      "entry_key": "FEE_RECHARGE:Sunrise Smoothies:2026-10-17",
+      "kind": "PROCESSOR_FEE_RECHARGE",
+      "lines": [
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "0",
+          "debit_cents": "8260"
+        },
+        {
+          "account": "5100",
+          "account_name": "Processor fee expense",
+          "credit_cents": "8260",
+          "debit_cents": "0"
+        }
+      ],
+      "note": "Contract permits deducting processor fees from vendor settlement.",
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ven_7248fe404ac157ca"
+      ]
+    },
+    {
+      "business_date": "2026-10-17",
+      "correction_of": null,
+      "entry_key": "COMMISSION:Sunrise Smoothies:2026-10-17",
+      "kind": "COMMISSION_SETTLEMENT",
+      "lines": [
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "0",
+          "debit_cents": "45000"
+        },
+        {
+          "account": "4000",
+          "account_name": "Organizer commission revenue",
+          "credit_cents": "45000",
+          "debit_cents": "0"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ven_7248fe404ac157ca"
+      ]
+    },
+    {
+      "business_date": "2026-10-18",
+      "correction_of": null,
+      "entry_key": "FEE_RECHARGE:Sunrise Smoothies:2026-10-18",
+      "kind": "PROCESSOR_FEE_RECHARGE",
+      "lines": [
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "0",
+          "debit_cents": "8285"
+        },
+        {
+          "account": "5100",
+          "account_name": "Processor fee expense",
+          "credit_cents": "8285",
+          "debit_cents": "0"
+        }
+      ],
+      "note": "Contract permits deducting processor fees from vendor settlement.",
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ven_7248fe404ac157ca"
+      ]
+    },
+    {
+      "business_date": "2026-10-18",
+      "correction_of": null,
+      "entry_key": "COMMISSION:Sunrise Smoothies:2026-10-18",
+      "kind": "COMMISSION_SETTLEMENT",
+      "lines": [
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "0",
+          "debit_cents": "45000"
+        },
+        {
+          "account": "4000",
+          "account_name": "Organizer commission revenue",
+          "credit_cents": "45000",
+          "debit_cents": "0"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ven_7248fe404ac157ca"
+      ]
+    },
+    {
+      "business_date": "2026-10-16",
+      "correction_of": null,
+      "entry_key": "COMMISSION:Taco Libre:2026-10-16",
+      "kind": "COMMISSION_SETTLEMENT",
+      "lines": [
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "0",
+          "debit_cents": "90000"
+        },
+        {
+          "account": "4000",
+          "account_name": "Organizer commission revenue",
+          "credit_cents": "90000",
+          "debit_cents": "0"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ven_c309836b4f9601f2"
+      ]
+    },
+    {
+      "business_date": "2026-10-17",
+      "correction_of": null,
+      "entry_key": "COMMISSION:Taco Libre:2026-10-17",
+      "kind": "COMMISSION_SETTLEMENT",
+      "lines": [
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "0",
+          "debit_cents": "75000"
+        },
+        {
+          "account": "4000",
+          "account_name": "Organizer commission revenue",
+          "credit_cents": "75000",
+          "debit_cents": "0"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ven_c309836b4f9601f2"
+      ]
+    },
+    {
+      "business_date": "2026-10-18",
+      "correction_of": null,
+      "entry_key": "COMMISSION:Taco Libre:2026-10-18",
+      "kind": "COMMISSION_SETTLEMENT",
+      "lines": [
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "0",
+          "debit_cents": "60000"
+        },
+        {
+          "account": "4000",
+          "account_name": "Organizer commission revenue",
+          "credit_cents": "60000",
+          "debit_cents": "0"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ven_c309836b4f9601f2"
+      ]
+    },
+    {
+      "business_date": "2026-10-16",
+      "correction_of": null,
+      "entry_key": "COMMISSION:Kettle Corn Co:2026-10-16",
+      "kind": "COMMISSION_SETTLEMENT",
+      "lines": [
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "0",
+          "debit_cents": "12000"
+        },
+        {
+          "account": "4000",
+          "account_name": "Organizer commission revenue",
+          "credit_cents": "12000",
+          "debit_cents": "0"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ven_bdccc4a0fab46f90"
+      ]
+    },
+    {
+      "business_date": "2026-10-17",
+      "correction_of": null,
+      "entry_key": "COMMISSION:Kettle Corn Co:2026-10-17",
+      "kind": "COMMISSION_SETTLEMENT",
+      "lines": [
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "0",
+          "debit_cents": "10500"
+        },
+        {
+          "account": "4000",
+          "account_name": "Organizer commission revenue",
+          "credit_cents": "10500",
+          "debit_cents": "0"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ven_bdccc4a0fab46f90"
+      ]
+    },
+    {
+      "business_date": "2026-10-18",
+      "correction_of": null,
+      "entry_key": "COMMISSION:Kettle Corn Co:2026-10-18",
+      "kind": "COMMISSION_SETTLEMENT",
+      "lines": [
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "0",
+          "debit_cents": "27500"
+        },
+        {
+          "account": "4000",
+          "account_name": "Organizer commission revenue",
+          "credit_cents": "27500",
+          "debit_cents": "0"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ven_bdccc4a0fab46f90"
+      ]
+    },
+    {
+      "business_date": "2026-10-18",
+      "correction_of": null,
+      "entry_key": "COMMISSION:Late Bloom Lemonade:2026-10-18",
+      "kind": "COMMISSION_SETTLEMENT",
+      "lines": [
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "0",
+          "debit_cents": "40000"
+        },
+        {
+          "account": "1200",
+          "account_name": "Vendor commission receivable / unpaid balance",
+          "credit_cents": "0",
+          "debit_cents": "10000"
+        },
+        {
+          "account": "4000",
+          "account_name": "Organizer commission revenue",
+          "credit_cents": "50000",
+          "debit_cents": "0"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ven_6d07f90ca688444e"
+      ]
+    },
+    {
+      "business_date": "2026-10-16",
+      "correction_of": null,
+      "entry_key": "COMMISSION:Grill Masters:2026-10-16",
+      "kind": "COMMISSION_SETTLEMENT",
+      "lines": [
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "0",
+          "debit_cents": "75000"
+        },
+        {
+          "account": "4000",
+          "account_name": "Organizer commission revenue",
+          "credit_cents": "75000",
+          "debit_cents": "0"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ven_5b3b7298e61a7172"
+      ]
+    },
+    {
+      "business_date": "2026-10-17",
+      "correction_of": null,
+      "entry_key": "COMMISSION:Grill Masters:2026-10-17",
+      "kind": "COMMISSION_SETTLEMENT",
+      "lines": [
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "0",
+          "debit_cents": "50000"
+        },
+        {
+          "account": "1200",
+          "account_name": "Vendor commission receivable / unpaid balance",
+          "credit_cents": "0",
+          "debit_cents": "2500"
+        },
+        {
+          "account": "4000",
+          "account_name": "Organizer commission revenue",
+          "credit_cents": "52500",
+          "debit_cents": "0"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ven_5b3b7298e61a7172"
+      ]
+    },
+    {
+      "business_date": "2026-10-18",
+      "correction_of": null,
+      "entry_key": "COMMISSION:Grill Masters:2026-10-18",
+      "kind": "COMMISSION_SETTLEMENT",
+      "lines": [
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "0",
+          "debit_cents": "50000"
+        },
+        {
+          "account": "1200",
+          "account_name": "Vendor commission receivable / unpaid balance",
+          "credit_cents": "0",
+          "debit_cents": "2500"
+        },
+        {
+          "account": "4000",
+          "account_name": "Organizer commission revenue",
+          "credit_cents": "52500",
+          "debit_cents": "0"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ven_5b3b7298e61a7172"
+      ]
+    },
+    {
+      "business_date": "2026-10-16",
+      "correction_of": null,
+      "entry_key": "COMMISSION:Churro Cart:2026-10-16",
+      "kind": "COMMISSION_SETTLEMENT",
+      "lines": [
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "0",
+          "debit_cents": "30000"
+        },
+        {
+          "account": "4000",
+          "account_name": "Organizer commission revenue",
+          "credit_cents": "30000",
+          "debit_cents": "0"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ven_24b891c0ef6e9864"
+      ]
+    },
+    {
+      "business_date": "2026-10-17",
+      "correction_of": null,
+      "entry_key": "COMMISSION:Churro Cart:2026-10-17",
+      "kind": "COMMISSION_SETTLEMENT",
+      "lines": [
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "0",
+          "debit_cents": "30000"
+        },
+        {
+          "account": "4000",
+          "account_name": "Organizer commission revenue",
+          "credit_cents": "30000",
+          "debit_cents": "0"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ven_24b891c0ef6e9864"
+      ]
+    },
+    {
+      "business_date": "2026-10-18",
+      "correction_of": null,
+      "entry_key": "COMMISSION:Churro Cart:2026-10-18",
+      "kind": "COMMISSION_SETTLEMENT",
+      "lines": [
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "0",
+          "debit_cents": "30000"
+        },
+        {
+          "account": "4000",
+          "account_name": "Organizer commission revenue",
+          "credit_cents": "30000",
+          "debit_cents": "0"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ven_24b891c0ef6e9864"
+      ]
+    },
+    {
+      "business_date": "2026-10-20",
+      "correction_of": "COMMISSION:Churro Cart:2026-10-18",
+      "entry_key": "COMMISSION:Churro Cart:2026-10-20",
+      "kind": "COMMISSION_SETTLEMENT",
+      "lines": [
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "10000",
+          "debit_cents": "0"
+        },
+        {
+          "account": "1200",
+          "account_name": "Vendor commission receivable / unpaid balance",
+          "credit_cents": "0",
+          "debit_cents": "8500"
+        },
+        {
+          "account": "4000",
+          "account_name": "Organizer commission revenue",
+          "credit_cents": "0",
+          "debit_cents": "1500"
+        }
+      ],
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ven_24b891c0ef6e9864"
+      ]
+    },
+    {
+      "business_date": "2026-10-16",
+      "correction_of": null,
+      "entry_key": "PAYOUT:Sunrise Smoothies:2026-10-16",
+      "kind": "VENDOR_PAYOUT_SIMULATED",
+      "lines": [
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "0",
+          "debit_cents": "328904"
+        },
+        {
+          "account": "2200",
+          "account_name": "Tips liability/control",
+          "credit_cents": "0",
+          "debit_cents": "7000"
+        },
+        {
+          "account": "1000",
+          "account_name": "Bank cash - operating",
+          "credit_cents": "335904",
+          "debit_cents": "0"
+        }
+      ],
+      "note": "Expected only once the simulated payout is CONFIRMED.",
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ven_7248fe404ac157ca"
+      ]
+    },
+    {
+      "business_date": "2026-10-17",
+      "correction_of": null,
+      "entry_key": "PAYOUT:Sunrise Smoothies:2026-10-17",
+      "kind": "VENDOR_PAYOUT_SIMULATED",
+      "lines": [
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "0",
+          "debit_cents": "246740"
+        },
+        {
+          "account": "2200",
+          "account_name": "Tips liability/control",
+          "credit_cents": "0",
+          "debit_cents": "3000"
+        },
+        {
+          "account": "1000",
+          "account_name": "Bank cash - operating",
+          "credit_cents": "249740",
+          "debit_cents": "0"
+        }
+      ],
+      "note": "Expected only once the simulated payout is CONFIRMED.",
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ven_7248fe404ac157ca"
+      ]
+    },
+    {
+      "business_date": "2026-10-18",
+      "correction_of": null,
+      "entry_key": "PAYOUT:Sunrise Smoothies:2026-10-18",
+      "kind": "VENDOR_PAYOUT_SIMULATED",
+      "lines": [
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "0",
+          "debit_cents": "246715"
+        },
+        {
+          "account": "2200",
+          "account_name": "Tips liability/control",
+          "credit_cents": "0",
+          "debit_cents": "4000"
+        },
+        {
+          "account": "1000",
+          "account_name": "Bank cash - operating",
+          "credit_cents": "250715",
+          "debit_cents": "0"
+        }
+      ],
+      "note": "Expected only once the simulated payout is CONFIRMED.",
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ven_7248fe404ac157ca"
+      ]
+    },
+    {
+      "business_date": "2026-10-16",
+      "correction_of": null,
+      "entry_key": "PAYOUT:Taco Libre:2026-10-16",
+      "kind": "VENDOR_PAYOUT_SIMULATED",
+      "lines": [
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "0",
+          "debit_cents": "510000"
+        },
+        {
+          "account": "2200",
+          "account_name": "Tips liability/control",
+          "credit_cents": "0",
+          "debit_cents": "6000"
+        },
+        {
+          "account": "1000",
+          "account_name": "Bank cash - operating",
+          "credit_cents": "516000",
+          "debit_cents": "0"
+        }
+      ],
+      "note": "Expected only once the simulated payout is CONFIRMED.",
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ven_c309836b4f9601f2"
+      ]
+    },
+    {
+      "business_date": "2026-10-17",
+      "correction_of": null,
+      "entry_key": "PAYOUT:Taco Libre:2026-10-17",
+      "kind": "VENDOR_PAYOUT_SIMULATED",
+      "lines": [
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "0",
+          "debit_cents": "425000"
+        },
+        {
+          "account": "2200",
+          "account_name": "Tips liability/control",
+          "credit_cents": "0",
+          "debit_cents": "2000"
+        },
+        {
+          "account": "1000",
+          "account_name": "Bank cash - operating",
+          "credit_cents": "427000",
+          "debit_cents": "0"
+        }
+      ],
+      "note": "Expected only once the simulated payout is CONFIRMED.",
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ven_c309836b4f9601f2"
+      ]
+    },
+    {
+      "business_date": "2026-10-18",
+      "correction_of": null,
+      "entry_key": "PAYOUT:Taco Libre:2026-10-18",
+      "kind": "VENDOR_PAYOUT_SIMULATED",
+      "lines": [
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "0",
+          "debit_cents": "340000"
+        },
+        {
+          "account": "2200",
+          "account_name": "Tips liability/control",
+          "credit_cents": "0",
+          "debit_cents": "1500"
+        },
+        {
+          "account": "1000",
+          "account_name": "Bank cash - operating",
+          "credit_cents": "341500",
+          "debit_cents": "0"
+        }
+      ],
+      "note": "Expected only once the simulated payout is CONFIRMED.",
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ven_c309836b4f9601f2"
+      ]
+    },
+    {
+      "business_date": "2026-10-16",
+      "correction_of": null,
+      "entry_key": "PAYOUT:Kettle Corn Co:2026-10-16",
+      "kind": "VENDOR_PAYOUT_SIMULATED",
+      "lines": [
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "0",
+          "debit_cents": "68000"
+        },
+        {
+          "account": "1000",
+          "account_name": "Bank cash - operating",
+          "credit_cents": "68000",
+          "debit_cents": "0"
+        }
+      ],
+      "note": "Expected only once the simulated payout is CONFIRMED.",
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ven_bdccc4a0fab46f90"
+      ]
+    },
+    {
+      "business_date": "2026-10-17",
+      "correction_of": null,
+      "entry_key": "PAYOUT:Kettle Corn Co:2026-10-17",
+      "kind": "VENDOR_PAYOUT_SIMULATED",
+      "lines": [
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "0",
+          "debit_cents": "59500"
+        },
+        {
+          "account": "1000",
+          "account_name": "Bank cash - operating",
+          "credit_cents": "59500",
+          "debit_cents": "0"
+        }
+      ],
+      "note": "Expected only once the simulated payout is CONFIRMED.",
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ven_bdccc4a0fab46f90"
+      ]
+    },
+    {
+      "business_date": "2026-10-18",
+      "correction_of": null,
+      "entry_key": "PAYOUT:Kettle Corn Co:2026-10-18",
+      "kind": "VENDOR_PAYOUT_SIMULATED",
+      "lines": [
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "0",
+          "debit_cents": "22500"
+        },
+        {
+          "account": "1000",
+          "account_name": "Bank cash - operating",
+          "credit_cents": "22500",
+          "debit_cents": "0"
+        }
+      ],
+      "note": "Expected only once the simulated payout is CONFIRMED.",
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ven_bdccc4a0fab46f90"
+      ]
+    },
+    {
+      "business_date": "2026-10-18",
+      "correction_of": null,
+      "entry_key": "PAYOUT:Late Bloom Lemonade:2026-10-18",
+      "kind": "VENDOR_PAYOUT_SIMULATED",
+      "lines": [
+        {
+          "account": "2200",
+          "account_name": "Tips liability/control",
+          "credit_cents": "0",
+          "debit_cents": "500"
+        },
+        {
+          "account": "1000",
+          "account_name": "Bank cash - operating",
+          "credit_cents": "500",
+          "debit_cents": "0"
+        }
+      ],
+      "note": "Expected only once the simulated payout is CONFIRMED.",
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ven_6d07f90ca688444e"
+      ]
+    },
+    {
+      "business_date": "2026-10-16",
+      "correction_of": null,
+      "entry_key": "PAYOUT:Grill Masters:2026-10-16",
+      "kind": "VENDOR_PAYOUT_SIMULATED",
+      "lines": [
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "0",
+          "debit_cents": "25000"
+        },
+        {
+          "account": "2200",
+          "account_name": "Tips liability/control",
+          "credit_cents": "0",
+          "debit_cents": "1000"
+        },
+        {
+          "account": "1000",
+          "account_name": "Bank cash - operating",
+          "credit_cents": "26000",
+          "debit_cents": "0"
+        }
+      ],
+      "note": "Expected only once the simulated payout is CONFIRMED.",
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ven_5b3b7298e61a7172"
+      ]
+    },
+    {
+      "business_date": "2026-10-16",
+      "correction_of": null,
+      "entry_key": "PAYOUT:Churro Cart:2026-10-16",
+      "kind": "VENDOR_PAYOUT_SIMULATED",
+      "lines": [
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "0",
+          "debit_cents": "170000"
+        },
+        {
+          "account": "1000",
+          "account_name": "Bank cash - operating",
+          "credit_cents": "170000",
+          "debit_cents": "0"
+        }
+      ],
+      "note": "Expected only once the simulated payout is CONFIRMED.",
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ven_24b891c0ef6e9864"
+      ]
+    },
+    {
+      "business_date": "2026-10-17",
+      "correction_of": null,
+      "entry_key": "PAYOUT:Churro Cart:2026-10-17",
+      "kind": "VENDOR_PAYOUT_SIMULATED",
+      "lines": [
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "0",
+          "debit_cents": "170000"
+        },
+        {
+          "account": "1000",
+          "account_name": "Bank cash - operating",
+          "credit_cents": "170000",
+          "debit_cents": "0"
+        }
+      ],
+      "note": "Expected only once the simulated payout is CONFIRMED.",
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ven_24b891c0ef6e9864"
+      ]
+    },
+    {
+      "business_date": "2026-10-18",
+      "correction_of": null,
+      "entry_key": "PAYOUT:Churro Cart:2026-10-18",
+      "kind": "VENDOR_PAYOUT_SIMULATED",
+      "lines": [
+        {
+          "account": "2000",
+          "account_name": "Vendor funds payable",
+          "credit_cents": "0",
+          "debit_cents": "170000"
+        },
+        {
+          "account": "1000",
+          "account_name": "Bank cash - operating",
+          "credit_cents": "170000",
+          "debit_cents": "0"
+        }
+      ],
+      "note": "Expected only once the simulated payout is CONFIRMED.",
+      "posting_rule_version": "DRAFT-posting-map-0.1",
+      "source_record_ids": [
+        "ven_24b891c0ef6e9864"
+      ]
+    }
+  ],
+  "payouts": [
+    {
+      "amount_cents": "328904",
+      "business_date": "2026-10-16",
+      "hold_reasons": [],
+      "logical_obligation_key": "payout:ven_7248fe404ac157ca:2026-10-16:1",
+      "requires_finance_lead": false,
+      "scheduled_at_utc": "2026-10-17T17:00:00Z",
+      "state": "RELEASE_ELIGIBLE",
+      "tips_passthrough_cents": "7000",
+      "transfer_cents": "335904",
+      "vendor_id": "ven_7248fe404ac157ca",
+      "vendor_name": "Sunrise Smoothies"
+    },
+    {
+      "amount_cents": "246740",
+      "business_date": "2026-10-17",
+      "hold_reasons": [],
+      "logical_obligation_key": "payout:ven_7248fe404ac157ca:2026-10-17:1",
+      "requires_finance_lead": false,
+      "scheduled_at_utc": "2026-10-18T17:00:00Z",
+      "state": "RELEASE_ELIGIBLE",
+      "tips_passthrough_cents": "3000",
+      "transfer_cents": "249740",
+      "vendor_id": "ven_7248fe404ac157ca",
+      "vendor_name": "Sunrise Smoothies"
+    },
+    {
+      "amount_cents": "246715",
+      "business_date": "2026-10-18",
+      "hold_reasons": [],
+      "logical_obligation_key": "payout:ven_7248fe404ac157ca:2026-10-18:1",
+      "requires_finance_lead": false,
+      "scheduled_at_utc": "2026-10-19T17:00:00Z",
+      "state": "RELEASE_ELIGIBLE",
+      "tips_passthrough_cents": "4000",
+      "transfer_cents": "250715",
+      "vendor_id": "ven_7248fe404ac157ca",
+      "vendor_name": "Sunrise Smoothies"
+    },
+    {
+      "amount_cents": "510000",
+      "business_date": "2026-10-16",
+      "hold_reasons": [],
+      "logical_obligation_key": "payout:ven_c309836b4f9601f2:2026-10-16:1",
+      "requires_finance_lead": true,
+      "scheduled_at_utc": "2026-10-17T17:00:00Z",
+      "state": "RELEASE_ELIGIBLE_AFTER_APPROVAL",
+      "tips_passthrough_cents": "6000",
+      "transfer_cents": "516000",
+      "vendor_id": "ven_c309836b4f9601f2",
+      "vendor_name": "Taco Libre"
+    },
+    {
+      "amount_cents": "425000",
+      "business_date": "2026-10-17",
+      "hold_reasons": [],
+      "logical_obligation_key": "payout:ven_c309836b4f9601f2:2026-10-17:1",
+      "requires_finance_lead": false,
+      "scheduled_at_utc": "2026-10-18T17:00:00Z",
+      "state": "RELEASE_ELIGIBLE",
+      "tips_passthrough_cents": "2000",
+      "transfer_cents": "427000",
+      "vendor_id": "ven_c309836b4f9601f2",
+      "vendor_name": "Taco Libre"
+    },
+    {
+      "amount_cents": "340000",
+      "business_date": "2026-10-18",
+      "hold_reasons": [],
+      "logical_obligation_key": "payout:ven_c309836b4f9601f2:2026-10-18:1",
+      "requires_finance_lead": false,
+      "scheduled_at_utc": "2026-10-19T17:00:00Z",
+      "state": "RELEASE_ELIGIBLE",
+      "tips_passthrough_cents": "1500",
+      "transfer_cents": "341500",
+      "vendor_id": "ven_c309836b4f9601f2",
+      "vendor_name": "Taco Libre"
+    },
+    {
+      "amount_cents": "68000",
+      "business_date": "2026-10-16",
+      "hold_reasons": [],
+      "logical_obligation_key": "payout:ven_bdccc4a0fab46f90:2026-10-16:1",
+      "requires_finance_lead": false,
+      "scheduled_at_utc": "2026-10-17T17:00:00Z",
+      "state": "RELEASE_ELIGIBLE",
+      "tips_passthrough_cents": "0",
+      "transfer_cents": "68000",
+      "vendor_id": "ven_bdccc4a0fab46f90",
+      "vendor_name": "Kettle Corn Co"
+    },
+    {
+      "amount_cents": "59500",
+      "business_date": "2026-10-17",
+      "hold_reasons": [],
+      "logical_obligation_key": "payout:ven_bdccc4a0fab46f90:2026-10-17:1",
+      "requires_finance_lead": false,
+      "scheduled_at_utc": "2026-10-18T17:00:00Z",
+      "state": "RELEASE_ELIGIBLE",
+      "tips_passthrough_cents": "0",
+      "transfer_cents": "59500",
+      "vendor_id": "ven_bdccc4a0fab46f90",
+      "vendor_name": "Kettle Corn Co"
+    },
+    {
+      "amount_cents": "22500",
+      "business_date": "2026-10-18",
+      "hold_reasons": [],
+      "logical_obligation_key": "payout:ven_bdccc4a0fab46f90:2026-10-18:1",
+      "requires_finance_lead": false,
+      "scheduled_at_utc": "2026-10-19T17:00:00Z",
+      "state": "RELEASE_ELIGIBLE",
+      "tips_passthrough_cents": "0",
+      "transfer_cents": "22500",
+      "vendor_id": "ven_bdccc4a0fab46f90",
+      "vendor_name": "Kettle Corn Co"
+    },
+    {
+      "amount_cents": "0",
+      "business_date": "2026-10-16",
+      "hold_reasons": [],
+      "logical_obligation_key": "payout:ven_6d07f90ca688444e:2026-10-16:1",
+      "requires_finance_lead": false,
+      "scheduled_at_utc": "2026-10-17T17:00:00Z",
+      "state": "NOTHING_TO_PAY",
+      "tips_passthrough_cents": "0",
+      "transfer_cents": "0",
+      "vendor_id": "ven_6d07f90ca688444e",
+      "vendor_name": "Late Bloom Lemonade"
+    },
+    {
+      "amount_cents": "0",
+      "business_date": "2026-10-17",
+      "hold_reasons": [],
+      "logical_obligation_key": "payout:ven_6d07f90ca688444e:2026-10-17:1",
+      "requires_finance_lead": false,
+      "scheduled_at_utc": "2026-10-18T17:00:00Z",
+      "state": "NOTHING_TO_PAY",
+      "tips_passthrough_cents": "0",
+      "transfer_cents": "0",
+      "vendor_id": "ven_6d07f90ca688444e",
+      "vendor_name": "Late Bloom Lemonade"
+    },
+    {
+      "amount_cents": "0",
+      "business_date": "2026-10-18",
+      "hold_reasons": [],
+      "logical_obligation_key": "payout:ven_6d07f90ca688444e:2026-10-18:1",
+      "requires_finance_lead": false,
+      "scheduled_at_utc": "2026-10-19T17:00:00Z",
+      "state": "RELEASE_ELIGIBLE",
+      "tips_passthrough_cents": "500",
+      "transfer_cents": "500",
+      "vendor_id": "ven_6d07f90ca688444e",
+      "vendor_name": "Late Bloom Lemonade"
+    },
+    {
+      "amount_cents": "25000",
+      "business_date": "2026-10-16",
+      "hold_reasons": [],
+      "logical_obligation_key": "payout:ven_5b3b7298e61a7172:2026-10-16:1",
+      "requires_finance_lead": false,
+      "scheduled_at_utc": "2026-10-17T17:00:00Z",
+      "state": "RELEASE_ELIGIBLE",
+      "tips_passthrough_cents": "1000",
+      "transfer_cents": "26000",
+      "vendor_id": "ven_5b3b7298e61a7172",
+      "vendor_name": "Grill Masters"
+    },
+    {
+      "amount_cents": "0",
+      "business_date": "2026-10-17",
+      "hold_reasons": [],
+      "logical_obligation_key": "payout:ven_5b3b7298e61a7172:2026-10-17:1",
+      "requires_finance_lead": false,
+      "scheduled_at_utc": "2026-10-18T17:00:00Z",
+      "state": "NOTHING_TO_PAY",
+      "tips_passthrough_cents": "0",
+      "transfer_cents": "0",
+      "vendor_id": "ven_5b3b7298e61a7172",
+      "vendor_name": "Grill Masters"
+    },
+    {
+      "amount_cents": "0",
+      "business_date": "2026-10-18",
+      "hold_reasons": [],
+      "logical_obligation_key": "payout:ven_5b3b7298e61a7172:2026-10-18:1",
+      "requires_finance_lead": false,
+      "scheduled_at_utc": "2026-10-19T17:00:00Z",
+      "state": "NOTHING_TO_PAY",
+      "tips_passthrough_cents": "0",
+      "transfer_cents": "0",
+      "vendor_id": "ven_5b3b7298e61a7172",
+      "vendor_name": "Grill Masters"
+    },
+    {
+      "amount_cents": "170000",
+      "business_date": "2026-10-16",
+      "hold_reasons": [],
+      "logical_obligation_key": "payout:ven_24b891c0ef6e9864:2026-10-16:1",
+      "requires_finance_lead": false,
+      "scheduled_at_utc": "2026-10-17T17:00:00Z",
+      "state": "RELEASE_ELIGIBLE",
+      "tips_passthrough_cents": "0",
+      "transfer_cents": "170000",
+      "vendor_id": "ven_24b891c0ef6e9864",
+      "vendor_name": "Churro Cart"
+    },
+    {
+      "amount_cents": "170000",
+      "business_date": "2026-10-17",
+      "hold_reasons": [],
+      "logical_obligation_key": "payout:ven_24b891c0ef6e9864:2026-10-17:1",
+      "requires_finance_lead": false,
+      "scheduled_at_utc": "2026-10-18T17:00:00Z",
+      "state": "RELEASE_ELIGIBLE",
+      "tips_passthrough_cents": "0",
+      "transfer_cents": "170000",
+      "vendor_id": "ven_24b891c0ef6e9864",
+      "vendor_name": "Churro Cart"
+    },
+    {
+      "amount_cents": "170000",
+      "business_date": "2026-10-18",
+      "hold_reasons": [],
+      "logical_obligation_key": "payout:ven_24b891c0ef6e9864:2026-10-18:1",
+      "requires_finance_lead": false,
+      "scheduled_at_utc": "2026-10-19T17:00:00Z",
+      "state": "RELEASE_ELIGIBLE",
+      "tips_passthrough_cents": "0",
+      "transfer_cents": "170000",
+      "vendor_id": "ven_24b891c0ef6e9864",
+      "vendor_name": "Churro Cart"
+    },
+    {
+      "amount_cents": "0",
+      "business_date": "2026-10-20",
+      "hold_reasons": [],
+      "logical_obligation_key": "payout:ven_24b891c0ef6e9864:2026-10-20:1",
+      "requires_finance_lead": false,
+      "scheduled_at_utc": "2026-10-21T17:00:00Z",
+      "state": "NOTHING_TO_PAY",
+      "tips_passthrough_cents": "0",
+      "transfer_cents": "0",
+      "vendor_id": "ven_24b891c0ef6e9864",
+      "vendor_name": "Churro Cart"
+    }
+  ],
+  "required_reviews": [
+    {
+      "blocking": true,
+      "business_date": "2026-10-16",
+      "evidence_source_ids": [
+        "src_4dcc7ce9f370b56b",
+        "src_1b532360bfaa3697"
+      ],
+      "expected_system_behavior": "Hold this vendor only; show both sources; do not pick a rate autonomously.",
+      "financial_impact": {
+        "cumulative_eligible_cents": "600000",
+        "cumulative_fee_by_candidate_rate_cents": {
+          "1000bps": "60000",
+          "1500bps": "90000"
+        }
+      },
+      "reason_code": "CONFLICTING_TERMS",
+      "scripted_human_decision": {
+        "business_date": "2026-10-16",
+        "choice": "CONTRACT_RATE",
+        "commission_bps": 1500,
+        "decision_id": "S3-TERMS-TACO-N1",
+        "reason_code": "CONFLICTING_TERMS",
+        "scope": "REUSABLE_VENDOR_FESTIVAL",
+        "vendor_name": "Taco Libre"
+      },
+      "vendor_id": "ven_c309836b4f9601f2",
+      "vendor_name": "Taco Libre"
+    },
+    {
+      "blocking": true,
+      "business_date": "2026-10-16",
+      "expected_system_behavior": "Hold payout until finance-lead approval bound to this amount/version.",
+      "financial_impact": {
+        "auto_limit_cents": "500000",
+        "transfer_cents": "516000"
+      },
+      "reason_code": "PAYOUT_ABOVE_AUTO_LIMIT",
+      "required_capability": "finance_lead",
+      "scripted_human_decision": {
+        "business_date": "2026-10-16",
+        "capability": "finance_lead",
+        "decision": "APPROVE",
+        "decision_id": "S3-LIMIT-TACO-N1",
+        "reason_code": "PAYOUT_ABOVE_AUTO_LIMIT",
+        "vendor_name": "Taco Libre"
+      },
+      "vendor_id": "ven_c309836b4f9601f2",
+      "vendor_name": "Taco Libre"
+    },
+    {
+      "blocking": false,
+      "business_date": "2026-10-18",
+      "expected_system_behavior": "Record receivable for human collection or waiver; never take tax/tips; no negative payout.",
+      "financial_impact": {
+        "unpaid_balance_cents": "10000"
+      },
+      "reason_code": "UNPAID_BALANCE",
+      "scripted_human_decision": {
+        "business_date": "2026-10-18",
+        "decision": "RECORD_FOR_COLLECTION",
+        "decision_id": "S3-UNPAID-LATEBLOOM",
+        "reason_code": "UNPAID_BALANCE",
+        "vendor_name": "Late Bloom Lemonade"
+      },
+      "vendor_id": "ven_6d07f90ca688444e",
+      "vendor_name": "Late Bloom Lemonade"
+    },
+    {
+      "blocking": false,
+      "business_date": "2026-10-18",
+      "expected_system_behavior": "Record receivable for human collection or waiver; never take tax/tips; no negative payout.",
+      "financial_impact": {
+        "unpaid_balance_cents": "5000"
+      },
+      "reason_code": "UNPAID_BALANCE",
+      "scripted_human_decision": {
+        "business_date": "2026-10-18",
+        "decision": "RECORD_FOR_COLLECTION",
+        "decision_id": "S3-UNPAID-GRILL",
+        "reason_code": "UNPAID_BALANCE",
+        "vendor_name": "Grill Masters"
+      },
+      "vendor_id": "ven_5b3b7298e61a7172",
+      "vendor_name": "Grill Masters"
+    },
+    {
+      "blocking": false,
+      "business_date": "2026-10-20",
+      "expected_system_behavior": "Linked adjustment + balanced correcting entries; no rewrite of original postings; recovery/waiver by human.",
+      "financial_impact": {
+        "fee_change_cents": "-1500",
+        "recovery_receivable_cents": "8500",
+        "refund_eligible_cents": "-10000"
+      },
+      "reason_code": "LATE_REFUND_RECOVERY",
+      "scripted_human_decision": {
+        "business_date": "2026-10-20",
+        "decision": "PURSUE_RECOVERY",
+        "decision_id": "S3-LATEREFUND-CHURRO",
+        "reason_code": "LATE_REFUND_RECOVERY",
+        "vendor_name": "Churro Cart"
+      },
+      "vendor_id": "ven_24b891c0ef6e9864",
+      "vendor_name": "Churro Cart"
+    }
+  ],
+  "settlements": [
+    {
+      "assessed_fee_cents": "60000",
+      "business_date": "2026-10-16",
+      "calculation_version": "oracle-0.1.0",
+      "collected_fee_cents": "60000",
+      "commission_bps": 1500,
+      "festival_id": "fest_bf25e974c723d827",
+      "holds": [],
+      "line_items": [
+        {
+          "amount_cents": "400000",
+          "code": "ELIGIBLE_SALES_CENTRAL"
+        },
+        {
+          "amount_cents": "0",
+          "code": "ELIGIBLE_SALES_VENDOR_RETAINED_CASH"
+        },
+        {
+          "amount_cents": "0",
+          "code": "REFUNDS_INCLUDED_IN_ELIGIBLE"
+        },
+        {
+          "amount_cents": "400000",
+          "code": "CUMULATIVE_ELIGIBLE"
+        },
+        {
+          "amount_cents": "60000",
+          "code": "CUMULATIVE_PERCENT_FEE"
+        },
+        {
+          "amount_cents": "0",
+          "code": "MINIMUM_ADJUSTMENT_CUMULATIVE"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PRIOR_ASSESSED"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PRIOR_UNPAID_BALANCE"
+        },
+        {
+          "amount_cents": "11096",
+          "code": "PROCESSOR_FEES_ON_VENDOR_PAYMENTS"
+        },
+        {
+          "amount_cents": "11096",
+          "code": "PROCESSOR_FEES_DEDUCTED"
+        },
+        {
+          "amount_cents": "36000",
+          "code": "TAX_COLLECTED_CENTRAL_PROTECTED"
+        },
+        {
+          "amount_cents": "0",
+          "code": "TAX_IN_VENDOR_RETAINED_CASH_MEMO"
+        },
+        {
+          "amount_cents": "7000",
+          "code": "TIPS_PASSTHROUGH"
+        }
+      ],
+      "payout_cents": "328904",
+      "phase": "INTERIM",
+      "policy_refs": [
+        {
+          "role": "CONTRACT",
+          "source_id": "src_88169f1ed8b0d222",
+          "source_version": 1
+        }
+      ],
+      "receivable_change_cents": "0",
+      "source_manifest_hash": "9e2bc1c51a723d80bc6a86f7a638eff047ede106ab38c06185a0821937b09b1e",
+      "status": "CALCULATED",
+      "terms_basis": "CONTRACT",
+      "tips_passthrough_cents": "7000",
+      "unpaid_balance_cents": "0",
+      "vendor_id": "ven_7248fe404ac157ca",
+      "vendor_name": "Sunrise Smoothies"
+    },
+    {
+      "assessed_fee_cents": "45000",
+      "business_date": "2026-10-17",
+      "calculation_version": "oracle-0.1.0",
+      "collected_fee_cents": "45000",
+      "commission_bps": 1500,
+      "festival_id": "fest_bf25e974c723d827",
+      "holds": [],
+      "line_items": [
+        {
+          "amount_cents": "300000",
+          "code": "ELIGIBLE_SALES_CENTRAL"
+        },
+        {
+          "amount_cents": "0",
+          "code": "ELIGIBLE_SALES_VENDOR_RETAINED_CASH"
+        },
+        {
+          "amount_cents": "0",
+          "code": "REFUNDS_INCLUDED_IN_ELIGIBLE"
+        },
+        {
+          "amount_cents": "700000",
+          "code": "CUMULATIVE_ELIGIBLE"
+        },
+        {
+          "amount_cents": "105000",
+          "code": "CUMULATIVE_PERCENT_FEE"
+        },
+        {
+          "amount_cents": "0",
+          "code": "MINIMUM_ADJUSTMENT_CUMULATIVE"
+        },
+        {
+          "amount_cents": "60000",
+          "code": "PRIOR_ASSESSED"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PRIOR_UNPAID_BALANCE"
+        },
+        {
+          "amount_cents": "8260",
+          "code": "PROCESSOR_FEES_ON_VENDOR_PAYMENTS"
+        },
+        {
+          "amount_cents": "8260",
+          "code": "PROCESSOR_FEES_DEDUCTED"
+        },
+        {
+          "amount_cents": "27000",
+          "code": "TAX_COLLECTED_CENTRAL_PROTECTED"
+        },
+        {
+          "amount_cents": "0",
+          "code": "TAX_IN_VENDOR_RETAINED_CASH_MEMO"
+        },
+        {
+          "amount_cents": "3000",
+          "code": "TIPS_PASSTHROUGH"
+        }
+      ],
+      "payout_cents": "246740",
+      "phase": "INTERIM",
+      "policy_refs": [
+        {
+          "role": "CONTRACT",
+          "source_id": "src_88169f1ed8b0d222",
+          "source_version": 1
+        }
+      ],
+      "receivable_change_cents": "0",
+      "source_manifest_hash": "9e2bc1c51a723d80bc6a86f7a638eff047ede106ab38c06185a0821937b09b1e",
+      "status": "CALCULATED",
+      "terms_basis": "CONTRACT",
+      "tips_passthrough_cents": "3000",
+      "unpaid_balance_cents": "0",
+      "vendor_id": "ven_7248fe404ac157ca",
+      "vendor_name": "Sunrise Smoothies"
+    },
+    {
+      "assessed_fee_cents": "45000",
+      "business_date": "2026-10-18",
+      "calculation_version": "oracle-0.1.0",
+      "collected_fee_cents": "45000",
+      "commission_bps": 1500,
+      "festival_id": "fest_bf25e974c723d827",
+      "holds": [],
+      "line_items": [
+        {
+          "amount_cents": "300000",
+          "code": "ELIGIBLE_SALES_CENTRAL"
+        },
+        {
+          "amount_cents": "0",
+          "code": "ELIGIBLE_SALES_VENDOR_RETAINED_CASH"
+        },
+        {
+          "amount_cents": "0",
+          "code": "REFUNDS_INCLUDED_IN_ELIGIBLE"
+        },
+        {
+          "amount_cents": "1000000",
+          "code": "CUMULATIVE_ELIGIBLE"
+        },
+        {
+          "amount_cents": "150000",
+          "code": "CUMULATIVE_PERCENT_FEE"
+        },
+        {
+          "amount_cents": "0",
+          "code": "MINIMUM_ADJUSTMENT_CUMULATIVE"
+        },
+        {
+          "amount_cents": "105000",
+          "code": "PRIOR_ASSESSED"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PRIOR_UNPAID_BALANCE"
+        },
+        {
+          "amount_cents": "8285",
+          "code": "PROCESSOR_FEES_ON_VENDOR_PAYMENTS"
+        },
+        {
+          "amount_cents": "8285",
+          "code": "PROCESSOR_FEES_DEDUCTED"
+        },
+        {
+          "amount_cents": "27001",
+          "code": "TAX_COLLECTED_CENTRAL_PROTECTED"
+        },
+        {
+          "amount_cents": "0",
+          "code": "TAX_IN_VENDOR_RETAINED_CASH_MEMO"
+        },
+        {
+          "amount_cents": "4000",
+          "code": "TIPS_PASSTHROUGH"
+        }
+      ],
+      "payout_cents": "246715",
+      "phase": "FINAL",
+      "policy_refs": [
+        {
+          "role": "CONTRACT",
+          "source_id": "src_88169f1ed8b0d222",
+          "source_version": 1
+        }
+      ],
+      "receivable_change_cents": "0",
+      "source_manifest_hash": "9e2bc1c51a723d80bc6a86f7a638eff047ede106ab38c06185a0821937b09b1e",
+      "status": "CALCULATED",
+      "terms_basis": "CONTRACT",
+      "tips_passthrough_cents": "4000",
+      "unpaid_balance_cents": "0",
+      "vendor_id": "ven_7248fe404ac157ca",
+      "vendor_name": "Sunrise Smoothies"
+    },
+    {
+      "assessed_fee_cents": "90000",
+      "business_date": "2026-10-16",
+      "calculation_version": "oracle-0.1.0",
+      "collected_fee_cents": "90000",
+      "commission_bps": 1500,
+      "festival_id": "fest_bf25e974c723d827",
+      "holds": [],
+      "line_items": [
+        {
+          "amount_cents": "600000",
+          "code": "ELIGIBLE_SALES_CENTRAL"
+        },
+        {
+          "amount_cents": "0",
+          "code": "ELIGIBLE_SALES_VENDOR_RETAINED_CASH"
+        },
+        {
+          "amount_cents": "0",
+          "code": "REFUNDS_INCLUDED_IN_ELIGIBLE"
+        },
+        {
+          "amount_cents": "600000",
+          "code": "CUMULATIVE_ELIGIBLE"
+        },
+        {
+          "amount_cents": "90000",
+          "code": "CUMULATIVE_PERCENT_FEE"
+        },
+        {
+          "amount_cents": "0",
+          "code": "MINIMUM_ADJUSTMENT_CUMULATIVE"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PRIOR_ASSESSED"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PRIOR_UNPAID_BALANCE"
+        },
+        {
+          "amount_cents": "16510",
+          "code": "PROCESSOR_FEES_ON_VENDOR_PAYMENTS"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PROCESSOR_FEES_DEDUCTED"
+        },
+        {
+          "amount_cents": "54000",
+          "code": "TAX_COLLECTED_CENTRAL_PROTECTED"
+        },
+        {
+          "amount_cents": "0",
+          "code": "TAX_IN_VENDOR_RETAINED_CASH_MEMO"
+        },
+        {
+          "amount_cents": "6000",
+          "code": "TIPS_PASSTHROUGH"
+        }
+      ],
+      "payout_cents": "510000",
+      "phase": "INTERIM",
+      "policy_refs": [
+        {
+          "role": "CONTRACT",
+          "source_id": "src_4dcc7ce9f370b56b",
+          "source_version": 1
+        },
+        {
+          "role": "CONFLICTING_CLAIM",
+          "source_id": "src_1b532360bfaa3697",
+          "source_version": 1
+        },
+        {
+          "human_decision": "S3-TERMS-TACO-N1",
+          "role": "CASE_RESOLUTION"
+        }
+      ],
+      "receivable_change_cents": "0",
+      "source_manifest_hash": "9e2bc1c51a723d80bc6a86f7a638eff047ede106ab38c06185a0821937b09b1e",
+      "status": "CALCULATED",
+      "terms_basis": "HUMAN_DECISION_REUSABLE_VENDOR_FESTIVAL",
+      "tips_passthrough_cents": "6000",
+      "unpaid_balance_cents": "0",
+      "vendor_id": "ven_c309836b4f9601f2",
+      "vendor_name": "Taco Libre"
+    },
+    {
+      "assessed_fee_cents": "75000",
+      "business_date": "2026-10-17",
+      "calculation_version": "oracle-0.1.0",
+      "collected_fee_cents": "75000",
+      "commission_bps": 1500,
+      "festival_id": "fest_bf25e974c723d827",
+      "holds": [],
+      "line_items": [
+        {
+          "amount_cents": "500000",
+          "code": "ELIGIBLE_SALES_CENTRAL"
+        },
+        {
+          "amount_cents": "0",
+          "code": "ELIGIBLE_SALES_VENDOR_RETAINED_CASH"
+        },
+        {
+          "amount_cents": "0",
+          "code": "REFUNDS_INCLUDED_IN_ELIGIBLE"
+        },
+        {
+          "amount_cents": "1100000",
+          "code": "CUMULATIVE_ELIGIBLE"
+        },
+        {
+          "amount_cents": "165000",
+          "code": "CUMULATIVE_PERCENT_FEE"
+        },
+        {
+          "amount_cents": "0",
+          "code": "MINIMUM_ADJUSTMENT_CUMULATIVE"
+        },
+        {
+          "amount_cents": "90000",
+          "code": "PRIOR_ASSESSED"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PRIOR_UNPAID_BALANCE"
+        },
+        {
+          "amount_cents": "13685",
+          "code": "PROCESSOR_FEES_ON_VENDOR_PAYMENTS"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PROCESSOR_FEES_DEDUCTED"
+        },
+        {
+          "amount_cents": "45000",
+          "code": "TAX_COLLECTED_CENTRAL_PROTECTED"
+        },
+        {
+          "amount_cents": "0",
+          "code": "TAX_IN_VENDOR_RETAINED_CASH_MEMO"
+        },
+        {
+          "amount_cents": "2000",
+          "code": "TIPS_PASSTHROUGH"
+        }
+      ],
+      "payout_cents": "425000",
+      "phase": "INTERIM",
+      "policy_refs": [
+        {
+          "role": "CONTRACT",
+          "source_id": "src_4dcc7ce9f370b56b",
+          "source_version": 1
+        },
+        {
+          "role": "CONFLICTING_CLAIM",
+          "source_id": "src_1b532360bfaa3697",
+          "source_version": 1
+        },
+        {
+          "originating_case": "CONFLICTING_TERMS/Taco Libre/2026-10-16",
+          "policy_from_decision": "S3-TERMS-TACO-N1",
+          "role": "APPLIED_POLICY"
+        }
+      ],
+      "receivable_change_cents": "0",
+      "source_manifest_hash": "9e2bc1c51a723d80bc6a86f7a638eff047ede106ab38c06185a0821937b09b1e",
+      "status": "CALCULATED",
+      "terms_basis": "APPROVED_REUSABLE_POLICY",
+      "tips_passthrough_cents": "2000",
+      "unpaid_balance_cents": "0",
+      "vendor_id": "ven_c309836b4f9601f2",
+      "vendor_name": "Taco Libre"
+    },
+    {
+      "assessed_fee_cents": "60000",
+      "business_date": "2026-10-18",
+      "calculation_version": "oracle-0.1.0",
+      "collected_fee_cents": "60000",
+      "commission_bps": 1500,
+      "festival_id": "fest_bf25e974c723d827",
+      "holds": [],
+      "line_items": [
+        {
+          "amount_cents": "400000",
+          "code": "ELIGIBLE_SALES_CENTRAL"
+        },
+        {
+          "amount_cents": "0",
+          "code": "ELIGIBLE_SALES_VENDOR_RETAINED_CASH"
+        },
+        {
+          "amount_cents": "0",
+          "code": "REFUNDS_INCLUDED_IN_ELIGIBLE"
+        },
+        {
+          "amount_cents": "1500000",
+          "code": "CUMULATIVE_ELIGIBLE"
+        },
+        {
+          "amount_cents": "225000",
+          "code": "CUMULATIVE_PERCENT_FEE"
+        },
+        {
+          "amount_cents": "0",
+          "code": "MINIMUM_ADJUSTMENT_CUMULATIVE"
+        },
+        {
+          "amount_cents": "165000",
+          "code": "PRIOR_ASSESSED"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PRIOR_UNPAID_BALANCE"
+        },
+        {
+          "amount_cents": "10948",
+          "code": "PROCESSOR_FEES_ON_VENDOR_PAYMENTS"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PROCESSOR_FEES_DEDUCTED"
+        },
+        {
+          "amount_cents": "36000",
+          "code": "TAX_COLLECTED_CENTRAL_PROTECTED"
+        },
+        {
+          "amount_cents": "0",
+          "code": "TAX_IN_VENDOR_RETAINED_CASH_MEMO"
+        },
+        {
+          "amount_cents": "1500",
+          "code": "TIPS_PASSTHROUGH"
+        }
+      ],
+      "payout_cents": "340000",
+      "phase": "FINAL",
+      "policy_refs": [
+        {
+          "role": "CONTRACT",
+          "source_id": "src_4dcc7ce9f370b56b",
+          "source_version": 1
+        },
+        {
+          "role": "CONFLICTING_CLAIM",
+          "source_id": "src_1b532360bfaa3697",
+          "source_version": 1
+        },
+        {
+          "originating_case": "CONFLICTING_TERMS/Taco Libre/2026-10-16",
+          "policy_from_decision": "S3-TERMS-TACO-N1",
+          "role": "APPLIED_POLICY"
+        }
+      ],
+      "receivable_change_cents": "0",
+      "source_manifest_hash": "9e2bc1c51a723d80bc6a86f7a638eff047ede106ab38c06185a0821937b09b1e",
+      "status": "CALCULATED",
+      "terms_basis": "APPROVED_REUSABLE_POLICY",
+      "tips_passthrough_cents": "1500",
+      "unpaid_balance_cents": "0",
+      "vendor_id": "ven_c309836b4f9601f2",
+      "vendor_name": "Taco Libre"
+    },
+    {
+      "assessed_fee_cents": "12000",
+      "business_date": "2026-10-16",
+      "calculation_version": "oracle-0.1.0",
+      "collected_fee_cents": "12000",
+      "commission_bps": 1500,
+      "festival_id": "fest_bf25e974c723d827",
+      "holds": [],
+      "line_items": [
+        {
+          "amount_cents": "80000",
+          "code": "ELIGIBLE_SALES_CENTRAL"
+        },
+        {
+          "amount_cents": "0",
+          "code": "ELIGIBLE_SALES_VENDOR_RETAINED_CASH"
+        },
+        {
+          "amount_cents": "0",
+          "code": "REFUNDS_INCLUDED_IN_ELIGIBLE"
+        },
+        {
+          "amount_cents": "80000",
+          "code": "CUMULATIVE_ELIGIBLE"
+        },
+        {
+          "amount_cents": "12000",
+          "code": "CUMULATIVE_PERCENT_FEE"
+        },
+        {
+          "amount_cents": "0",
+          "code": "MINIMUM_ADJUSTMENT_CUMULATIVE"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PRIOR_ASSESSED"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PRIOR_UNPAID_BALANCE"
+        },
+        {
+          "amount_cents": "2200",
+          "code": "PROCESSOR_FEES_ON_VENDOR_PAYMENTS"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PROCESSOR_FEES_DEDUCTED"
+        },
+        {
+          "amount_cents": "7200",
+          "code": "TAX_COLLECTED_CENTRAL_PROTECTED"
+        },
+        {
+          "amount_cents": "0",
+          "code": "TAX_IN_VENDOR_RETAINED_CASH_MEMO"
+        },
+        {
+          "amount_cents": "0",
+          "code": "TIPS_PASSTHROUGH"
+        }
+      ],
+      "payout_cents": "68000",
+      "phase": "INTERIM",
+      "policy_refs": [
+        {
+          "role": "CONTRACT",
+          "source_id": "src_0a53137b3e9b6d72",
+          "source_version": 1
+        }
+      ],
+      "receivable_change_cents": "0",
+      "source_manifest_hash": "9e2bc1c51a723d80bc6a86f7a638eff047ede106ab38c06185a0821937b09b1e",
+      "status": "CALCULATED",
+      "terms_basis": "CONTRACT",
+      "tips_passthrough_cents": "0",
+      "unpaid_balance_cents": "0",
+      "vendor_id": "ven_bdccc4a0fab46f90",
+      "vendor_name": "Kettle Corn Co"
+    },
+    {
+      "assessed_fee_cents": "10500",
+      "business_date": "2026-10-17",
+      "calculation_version": "oracle-0.1.0",
+      "collected_fee_cents": "10500",
+      "commission_bps": 1500,
+      "festival_id": "fest_bf25e974c723d827",
+      "holds": [],
+      "line_items": [
+        {
+          "amount_cents": "70000",
+          "code": "ELIGIBLE_SALES_CENTRAL"
+        },
+        {
+          "amount_cents": "0",
+          "code": "ELIGIBLE_SALES_VENDOR_RETAINED_CASH"
+        },
+        {
+          "amount_cents": "-1600",
+          "code": "REFUNDS_INCLUDED_IN_ELIGIBLE"
+        },
+        {
+          "amount_cents": "150000",
+          "code": "CUMULATIVE_ELIGIBLE"
+        },
+        {
+          "amount_cents": "22500",
+          "code": "CUMULATIVE_PERCENT_FEE"
+        },
+        {
+          "amount_cents": "0",
+          "code": "MINIMUM_ADJUSTMENT_CUMULATIVE"
+        },
+        {
+          "amount_cents": "12000",
+          "code": "PRIOR_ASSESSED"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PRIOR_UNPAID_BALANCE"
+        },
+        {
+          "amount_cents": "1961",
+          "code": "PROCESSOR_FEES_ON_VENDOR_PAYMENTS"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PROCESSOR_FEES_DEDUCTED"
+        },
+        {
+          "amount_cents": "6300",
+          "code": "TAX_COLLECTED_CENTRAL_PROTECTED"
+        },
+        {
+          "amount_cents": "0",
+          "code": "TAX_IN_VENDOR_RETAINED_CASH_MEMO"
+        },
+        {
+          "amount_cents": "0",
+          "code": "TIPS_PASSTHROUGH"
+        }
+      ],
+      "payout_cents": "59500",
+      "phase": "INTERIM",
+      "policy_refs": [
+        {
+          "role": "CONTRACT",
+          "source_id": "src_0a53137b3e9b6d72",
+          "source_version": 1
+        }
+      ],
+      "receivable_change_cents": "0",
+      "source_manifest_hash": "9e2bc1c51a723d80bc6a86f7a638eff047ede106ab38c06185a0821937b09b1e",
+      "status": "CALCULATED",
+      "terms_basis": "CONTRACT",
+      "tips_passthrough_cents": "0",
+      "unpaid_balance_cents": "0",
+      "vendor_id": "ven_bdccc4a0fab46f90",
+      "vendor_name": "Kettle Corn Co"
+    },
+    {
+      "assessed_fee_cents": "27500",
+      "business_date": "2026-10-18",
+      "calculation_version": "oracle-0.1.0",
+      "collected_fee_cents": "27500",
+      "commission_bps": 1500,
+      "festival_id": "fest_bf25e974c723d827",
+      "holds": [],
+      "line_items": [
+        {
+          "amount_cents": "50000",
+          "code": "ELIGIBLE_SALES_CENTRAL"
+        },
+        {
+          "amount_cents": "0",
+          "code": "ELIGIBLE_SALES_VENDOR_RETAINED_CASH"
+        },
+        {
+          "amount_cents": "0",
+          "code": "REFUNDS_INCLUDED_IN_ELIGIBLE"
+        },
+        {
+          "amount_cents": "200000",
+          "code": "CUMULATIVE_ELIGIBLE"
+        },
+        {
+          "amount_cents": "30000",
+          "code": "CUMULATIVE_PERCENT_FEE"
+        },
+        {
+          "amount_cents": "20000",
+          "code": "MINIMUM_ADJUSTMENT_CUMULATIVE"
+        },
+        {
+          "amount_cents": "22500",
+          "code": "PRIOR_ASSESSED"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PRIOR_UNPAID_BALANCE"
+        },
+        {
+          "amount_cents": "1100",
+          "code": "PROCESSOR_FEES_ON_VENDOR_PAYMENTS"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PROCESSOR_FEES_DEDUCTED"
+        },
+        {
+          "amount_cents": "4500",
+          "code": "TAX_COLLECTED_CENTRAL_PROTECTED"
+        },
+        {
+          "amount_cents": "0",
+          "code": "TAX_IN_VENDOR_RETAINED_CASH_MEMO"
+        },
+        {
+          "amount_cents": "0",
+          "code": "TIPS_PASSTHROUGH"
+        }
+      ],
+      "payout_cents": "22500",
+      "phase": "FINAL",
+      "policy_refs": [
+        {
+          "role": "CONTRACT",
+          "source_id": "src_0a53137b3e9b6d72",
+          "source_version": 1
+        }
+      ],
+      "receivable_change_cents": "0",
+      "source_manifest_hash": "9e2bc1c51a723d80bc6a86f7a638eff047ede106ab38c06185a0821937b09b1e",
+      "status": "CALCULATED",
+      "terms_basis": "CONTRACT",
+      "tips_passthrough_cents": "0",
+      "unpaid_balance_cents": "0",
+      "vendor_id": "ven_bdccc4a0fab46f90",
+      "vendor_name": "Kettle Corn Co"
+    },
+    {
+      "assessed_fee_cents": "0",
+      "business_date": "2026-10-16",
+      "calculation_version": "oracle-0.1.0",
+      "collected_fee_cents": "0",
+      "commission_bps": 1500,
+      "festival_id": "fest_bf25e974c723d827",
+      "holds": [],
+      "line_items": [
+        {
+          "amount_cents": "0",
+          "code": "ELIGIBLE_SALES_CENTRAL"
+        },
+        {
+          "amount_cents": "0",
+          "code": "ELIGIBLE_SALES_VENDOR_RETAINED_CASH"
+        },
+        {
+          "amount_cents": "0",
+          "code": "REFUNDS_INCLUDED_IN_ELIGIBLE"
+        },
+        {
+          "amount_cents": "0",
+          "code": "CUMULATIVE_ELIGIBLE"
+        },
+        {
+          "amount_cents": "0",
+          "code": "CUMULATIVE_PERCENT_FEE"
+        },
+        {
+          "amount_cents": "0",
+          "code": "MINIMUM_ADJUSTMENT_CUMULATIVE"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PRIOR_ASSESSED"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PRIOR_UNPAID_BALANCE"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PROCESSOR_FEES_ON_VENDOR_PAYMENTS"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PROCESSOR_FEES_DEDUCTED"
+        },
+        {
+          "amount_cents": "0",
+          "code": "TAX_COLLECTED_CENTRAL_PROTECTED"
+        },
+        {
+          "amount_cents": "0",
+          "code": "TAX_IN_VENDOR_RETAINED_CASH_MEMO"
+        },
+        {
+          "amount_cents": "0",
+          "code": "TIPS_PASSTHROUGH"
+        }
+      ],
+      "payout_cents": "0",
+      "phase": "INTERIM",
+      "policy_refs": [
+        {
+          "role": "CONTRACT",
+          "source_id": "src_2a3a620d79211299",
+          "source_version": 1
+        }
+      ],
+      "receivable_change_cents": "0",
+      "source_manifest_hash": "9e2bc1c51a723d80bc6a86f7a638eff047ede106ab38c06185a0821937b09b1e",
+      "status": "CALCULATED",
+      "terms_basis": "CONTRACT",
+      "tips_passthrough_cents": "0",
+      "unpaid_balance_cents": "0",
+      "vendor_id": "ven_6d07f90ca688444e",
+      "vendor_name": "Late Bloom Lemonade"
+    },
+    {
+      "assessed_fee_cents": "0",
+      "business_date": "2026-10-17",
+      "calculation_version": "oracle-0.1.0",
+      "collected_fee_cents": "0",
+      "commission_bps": 1500,
+      "festival_id": "fest_bf25e974c723d827",
+      "holds": [],
+      "line_items": [
+        {
+          "amount_cents": "0",
+          "code": "ELIGIBLE_SALES_CENTRAL"
+        },
+        {
+          "amount_cents": "0",
+          "code": "ELIGIBLE_SALES_VENDOR_RETAINED_CASH"
+        },
+        {
+          "amount_cents": "0",
+          "code": "REFUNDS_INCLUDED_IN_ELIGIBLE"
+        },
+        {
+          "amount_cents": "0",
+          "code": "CUMULATIVE_ELIGIBLE"
+        },
+        {
+          "amount_cents": "0",
+          "code": "CUMULATIVE_PERCENT_FEE"
+        },
+        {
+          "amount_cents": "0",
+          "code": "MINIMUM_ADJUSTMENT_CUMULATIVE"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PRIOR_ASSESSED"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PRIOR_UNPAID_BALANCE"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PROCESSOR_FEES_ON_VENDOR_PAYMENTS"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PROCESSOR_FEES_DEDUCTED"
+        },
+        {
+          "amount_cents": "0",
+          "code": "TAX_COLLECTED_CENTRAL_PROTECTED"
+        },
+        {
+          "amount_cents": "0",
+          "code": "TAX_IN_VENDOR_RETAINED_CASH_MEMO"
+        },
+        {
+          "amount_cents": "0",
+          "code": "TIPS_PASSTHROUGH"
+        }
+      ],
+      "payout_cents": "0",
+      "phase": "INTERIM",
+      "policy_refs": [
+        {
+          "role": "CONTRACT",
+          "source_id": "src_2a3a620d79211299",
+          "source_version": 1
+        }
+      ],
+      "receivable_change_cents": "0",
+      "source_manifest_hash": "9e2bc1c51a723d80bc6a86f7a638eff047ede106ab38c06185a0821937b09b1e",
+      "status": "CALCULATED",
+      "terms_basis": "CONTRACT",
+      "tips_passthrough_cents": "0",
+      "unpaid_balance_cents": "0",
+      "vendor_id": "ven_6d07f90ca688444e",
+      "vendor_name": "Late Bloom Lemonade"
+    },
+    {
+      "assessed_fee_cents": "50000",
+      "business_date": "2026-10-18",
+      "calculation_version": "oracle-0.1.0",
+      "collected_fee_cents": "40000",
+      "commission_bps": 1500,
+      "festival_id": "fest_bf25e974c723d827",
+      "holds": [],
+      "line_items": [
+        {
+          "amount_cents": "40000",
+          "code": "ELIGIBLE_SALES_CENTRAL"
+        },
+        {
+          "amount_cents": "0",
+          "code": "ELIGIBLE_SALES_VENDOR_RETAINED_CASH"
+        },
+        {
+          "amount_cents": "0",
+          "code": "REFUNDS_INCLUDED_IN_ELIGIBLE"
+        },
+        {
+          "amount_cents": "40000",
+          "code": "CUMULATIVE_ELIGIBLE"
+        },
+        {
+          "amount_cents": "6000",
+          "code": "CUMULATIVE_PERCENT_FEE"
+        },
+        {
+          "amount_cents": "44000",
+          "code": "MINIMUM_ADJUSTMENT_CUMULATIVE"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PRIOR_ASSESSED"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PRIOR_UNPAID_BALANCE"
+        },
+        {
+          "amount_cents": "1113",
+          "code": "PROCESSOR_FEES_ON_VENDOR_PAYMENTS"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PROCESSOR_FEES_DEDUCTED"
+        },
+        {
+          "amount_cents": "3600",
+          "code": "TAX_COLLECTED_CENTRAL_PROTECTED"
+        },
+        {
+          "amount_cents": "0",
+          "code": "TAX_IN_VENDOR_RETAINED_CASH_MEMO"
+        },
+        {
+          "amount_cents": "500",
+          "code": "TIPS_PASSTHROUGH"
+        }
+      ],
+      "payout_cents": "0",
+      "phase": "FINAL",
+      "policy_refs": [
+        {
+          "role": "CONTRACT",
+          "source_id": "src_2a3a620d79211299",
+          "source_version": 1
+        }
+      ],
+      "receivable_change_cents": "10000",
+      "source_manifest_hash": "9e2bc1c51a723d80bc6a86f7a638eff047ede106ab38c06185a0821937b09b1e",
+      "status": "CALCULATED",
+      "terms_basis": "CONTRACT",
+      "tips_passthrough_cents": "500",
+      "unpaid_balance_cents": "10000",
+      "vendor_id": "ven_6d07f90ca688444e",
+      "vendor_name": "Late Bloom Lemonade"
+    },
+    {
+      "assessed_fee_cents": "75000",
+      "business_date": "2026-10-16",
+      "calculation_version": "oracle-0.1.0",
+      "collected_fee_cents": "75000",
+      "commission_bps": 1500,
+      "festival_id": "fest_bf25e974c723d827",
+      "holds": [],
+      "line_items": [
+        {
+          "amount_cents": "100000",
+          "code": "ELIGIBLE_SALES_CENTRAL"
+        },
+        {
+          "amount_cents": "400000",
+          "code": "ELIGIBLE_SALES_VENDOR_RETAINED_CASH"
+        },
+        {
+          "amount_cents": "0",
+          "code": "REFUNDS_INCLUDED_IN_ELIGIBLE"
+        },
+        {
+          "amount_cents": "500000",
+          "code": "CUMULATIVE_ELIGIBLE"
+        },
+        {
+          "amount_cents": "75000",
+          "code": "CUMULATIVE_PERCENT_FEE"
+        },
+        {
+          "amount_cents": "0",
+          "code": "MINIMUM_ADJUSTMENT_CUMULATIVE"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PRIOR_ASSESSED"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PRIOR_UNPAID_BALANCE"
+        },
+        {
+          "amount_cents": "2760",
+          "code": "PROCESSOR_FEES_ON_VENDOR_PAYMENTS"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PROCESSOR_FEES_DEDUCTED"
+        },
+        {
+          "amount_cents": "9000",
+          "code": "TAX_COLLECTED_CENTRAL_PROTECTED"
+        },
+        {
+          "amount_cents": "36000",
+          "code": "TAX_IN_VENDOR_RETAINED_CASH_MEMO"
+        },
+        {
+          "amount_cents": "1000",
+          "code": "TIPS_PASSTHROUGH"
+        }
+      ],
+      "payout_cents": "25000",
+      "phase": "INTERIM",
+      "policy_refs": [
+        {
+          "role": "CONTRACT",
+          "source_id": "src_de85106c79ea966b",
+          "source_version": 1
+        }
+      ],
+      "receivable_change_cents": "0",
+      "source_manifest_hash": "9e2bc1c51a723d80bc6a86f7a638eff047ede106ab38c06185a0821937b09b1e",
+      "status": "CALCULATED",
+      "terms_basis": "CONTRACT",
+      "tips_passthrough_cents": "1000",
+      "unpaid_balance_cents": "0",
+      "vendor_id": "ven_5b3b7298e61a7172",
+      "vendor_name": "Grill Masters"
+    },
+    {
+      "assessed_fee_cents": "52500",
+      "business_date": "2026-10-17",
+      "calculation_version": "oracle-0.1.0",
+      "collected_fee_cents": "50000",
+      "commission_bps": 1500,
+      "festival_id": "fest_bf25e974c723d827",
+      "holds": [],
+      "line_items": [
+        {
+          "amount_cents": "50000",
+          "code": "ELIGIBLE_SALES_CENTRAL"
+        },
+        {
+          "amount_cents": "300000",
+          "code": "ELIGIBLE_SALES_VENDOR_RETAINED_CASH"
+        },
+        {
+          "amount_cents": "0",
+          "code": "REFUNDS_INCLUDED_IN_ELIGIBLE"
+        },
+        {
+          "amount_cents": "850000",
+          "code": "CUMULATIVE_ELIGIBLE"
+        },
+        {
+          "amount_cents": "127500",
+          "code": "CUMULATIVE_PERCENT_FEE"
+        },
+        {
+          "amount_cents": "0",
+          "code": "MINIMUM_ADJUSTMENT_CUMULATIVE"
+        },
+        {
+          "amount_cents": "75000",
+          "code": "PRIOR_ASSESSED"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PRIOR_UNPAID_BALANCE"
+        },
+        {
+          "amount_cents": "1373",
+          "code": "PROCESSOR_FEES_ON_VENDOR_PAYMENTS"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PROCESSOR_FEES_DEDUCTED"
+        },
+        {
+          "amount_cents": "4500",
+          "code": "TAX_COLLECTED_CENTRAL_PROTECTED"
+        },
+        {
+          "amount_cents": "27000",
+          "code": "TAX_IN_VENDOR_RETAINED_CASH_MEMO"
+        },
+        {
+          "amount_cents": "0",
+          "code": "TIPS_PASSTHROUGH"
+        }
+      ],
+      "payout_cents": "0",
+      "phase": "INTERIM",
+      "policy_refs": [
+        {
+          "role": "CONTRACT",
+          "source_id": "src_de85106c79ea966b",
+          "source_version": 1
+        }
+      ],
+      "receivable_change_cents": "2500",
+      "source_manifest_hash": "9e2bc1c51a723d80bc6a86f7a638eff047ede106ab38c06185a0821937b09b1e",
+      "status": "CALCULATED",
+      "terms_basis": "CONTRACT",
+      "tips_passthrough_cents": "0",
+      "unpaid_balance_cents": "2500",
+      "vendor_id": "ven_5b3b7298e61a7172",
+      "vendor_name": "Grill Masters"
+    },
+    {
+      "assessed_fee_cents": "52500",
+      "business_date": "2026-10-18",
+      "calculation_version": "oracle-0.1.0",
+      "collected_fee_cents": "50000",
+      "commission_bps": 1500,
+      "festival_id": "fest_bf25e974c723d827",
+      "holds": [],
+      "line_items": [
+        {
+          "amount_cents": "50000",
+          "code": "ELIGIBLE_SALES_CENTRAL"
+        },
+        {
+          "amount_cents": "300000",
+          "code": "ELIGIBLE_SALES_VENDOR_RETAINED_CASH"
+        },
+        {
+          "amount_cents": "0",
+          "code": "REFUNDS_INCLUDED_IN_ELIGIBLE"
+        },
+        {
+          "amount_cents": "1200000",
+          "code": "CUMULATIVE_ELIGIBLE"
+        },
+        {
+          "amount_cents": "180000",
+          "code": "CUMULATIVE_PERCENT_FEE"
+        },
+        {
+          "amount_cents": "0",
+          "code": "MINIMUM_ADJUSTMENT_CUMULATIVE"
+        },
+        {
+          "amount_cents": "127500",
+          "code": "PRIOR_ASSESSED"
+        },
+        {
+          "amount_cents": "2500",
+          "code": "PRIOR_UNPAID_BALANCE"
+        },
+        {
+          "amount_cents": "1373",
+          "code": "PROCESSOR_FEES_ON_VENDOR_PAYMENTS"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PROCESSOR_FEES_DEDUCTED"
+        },
+        {
+          "amount_cents": "4500",
+          "code": "TAX_COLLECTED_CENTRAL_PROTECTED"
+        },
+        {
+          "amount_cents": "27000",
+          "code": "TAX_IN_VENDOR_RETAINED_CASH_MEMO"
+        },
+        {
+          "amount_cents": "0",
+          "code": "TIPS_PASSTHROUGH"
+        }
+      ],
+      "payout_cents": "0",
+      "phase": "FINAL",
+      "policy_refs": [
+        {
+          "role": "CONTRACT",
+          "source_id": "src_de85106c79ea966b",
+          "source_version": 1
+        }
+      ],
+      "receivable_change_cents": "2500",
+      "source_manifest_hash": "9e2bc1c51a723d80bc6a86f7a638eff047ede106ab38c06185a0821937b09b1e",
+      "status": "CALCULATED",
+      "terms_basis": "CONTRACT",
+      "tips_passthrough_cents": "0",
+      "unpaid_balance_cents": "5000",
+      "vendor_id": "ven_5b3b7298e61a7172",
+      "vendor_name": "Grill Masters"
+    },
+    {
+      "assessed_fee_cents": "30000",
+      "business_date": "2026-10-16",
+      "calculation_version": "oracle-0.1.0",
+      "collected_fee_cents": "30000",
+      "commission_bps": 1500,
+      "festival_id": "fest_bf25e974c723d827",
+      "holds": [],
+      "line_items": [
+        {
+          "amount_cents": "200000",
+          "code": "ELIGIBLE_SALES_CENTRAL"
+        },
+        {
+          "amount_cents": "0",
+          "code": "ELIGIBLE_SALES_VENDOR_RETAINED_CASH"
+        },
+        {
+          "amount_cents": "0",
+          "code": "REFUNDS_INCLUDED_IN_ELIGIBLE"
+        },
+        {
+          "amount_cents": "200000",
+          "code": "CUMULATIVE_ELIGIBLE"
+        },
+        {
+          "amount_cents": "30000",
+          "code": "CUMULATIVE_PERCENT_FEE"
+        },
+        {
+          "amount_cents": "0",
+          "code": "MINIMUM_ADJUSTMENT_CUMULATIVE"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PRIOR_ASSESSED"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PRIOR_UNPAID_BALANCE"
+        },
+        {
+          "amount_cents": "5460",
+          "code": "PROCESSOR_FEES_ON_VENDOR_PAYMENTS"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PROCESSOR_FEES_DEDUCTED"
+        },
+        {
+          "amount_cents": "18000",
+          "code": "TAX_COLLECTED_CENTRAL_PROTECTED"
+        },
+        {
+          "amount_cents": "0",
+          "code": "TAX_IN_VENDOR_RETAINED_CASH_MEMO"
+        },
+        {
+          "amount_cents": "0",
+          "code": "TIPS_PASSTHROUGH"
+        }
+      ],
+      "payout_cents": "170000",
+      "phase": "INTERIM",
+      "policy_refs": [
+        {
+          "role": "CONTRACT",
+          "source_id": "src_4472f9097a6e390e",
+          "source_version": 1
+        }
+      ],
+      "receivable_change_cents": "0",
+      "source_manifest_hash": "9e2bc1c51a723d80bc6a86f7a638eff047ede106ab38c06185a0821937b09b1e",
+      "status": "CALCULATED",
+      "terms_basis": "CONTRACT",
+      "tips_passthrough_cents": "0",
+      "unpaid_balance_cents": "0",
+      "vendor_id": "ven_24b891c0ef6e9864",
+      "vendor_name": "Churro Cart"
+    },
+    {
+      "assessed_fee_cents": "30000",
+      "business_date": "2026-10-17",
+      "calculation_version": "oracle-0.1.0",
+      "collected_fee_cents": "30000",
+      "commission_bps": 1500,
+      "festival_id": "fest_bf25e974c723d827",
+      "holds": [],
+      "line_items": [
+        {
+          "amount_cents": "200000",
+          "code": "ELIGIBLE_SALES_CENTRAL"
+        },
+        {
+          "amount_cents": "0",
+          "code": "ELIGIBLE_SALES_VENDOR_RETAINED_CASH"
+        },
+        {
+          "amount_cents": "0",
+          "code": "REFUNDS_INCLUDED_IN_ELIGIBLE"
+        },
+        {
+          "amount_cents": "400000",
+          "code": "CUMULATIVE_ELIGIBLE"
+        },
+        {
+          "amount_cents": "60000",
+          "code": "CUMULATIVE_PERCENT_FEE"
+        },
+        {
+          "amount_cents": "0",
+          "code": "MINIMUM_ADJUSTMENT_CUMULATIVE"
+        },
+        {
+          "amount_cents": "30000",
+          "code": "PRIOR_ASSESSED"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PRIOR_UNPAID_BALANCE"
+        },
+        {
+          "amount_cents": "5460",
+          "code": "PROCESSOR_FEES_ON_VENDOR_PAYMENTS"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PROCESSOR_FEES_DEDUCTED"
+        },
+        {
+          "amount_cents": "18000",
+          "code": "TAX_COLLECTED_CENTRAL_PROTECTED"
+        },
+        {
+          "amount_cents": "0",
+          "code": "TAX_IN_VENDOR_RETAINED_CASH_MEMO"
+        },
+        {
+          "amount_cents": "0",
+          "code": "TIPS_PASSTHROUGH"
+        }
+      ],
+      "payout_cents": "170000",
+      "phase": "INTERIM",
+      "policy_refs": [
+        {
+          "role": "CONTRACT",
+          "source_id": "src_4472f9097a6e390e",
+          "source_version": 1
+        }
+      ],
+      "receivable_change_cents": "0",
+      "source_manifest_hash": "9e2bc1c51a723d80bc6a86f7a638eff047ede106ab38c06185a0821937b09b1e",
+      "status": "CALCULATED",
+      "terms_basis": "CONTRACT",
+      "tips_passthrough_cents": "0",
+      "unpaid_balance_cents": "0",
+      "vendor_id": "ven_24b891c0ef6e9864",
+      "vendor_name": "Churro Cart"
+    },
+    {
+      "assessed_fee_cents": "30000",
+      "business_date": "2026-10-18",
+      "calculation_version": "oracle-0.1.0",
+      "collected_fee_cents": "30000",
+      "commission_bps": 1500,
+      "festival_id": "fest_bf25e974c723d827",
+      "holds": [],
+      "line_items": [
+        {
+          "amount_cents": "200000",
+          "code": "ELIGIBLE_SALES_CENTRAL"
+        },
+        {
+          "amount_cents": "0",
+          "code": "ELIGIBLE_SALES_VENDOR_RETAINED_CASH"
+        },
+        {
+          "amount_cents": "0",
+          "code": "REFUNDS_INCLUDED_IN_ELIGIBLE"
+        },
+        {
+          "amount_cents": "600000",
+          "code": "CUMULATIVE_ELIGIBLE"
+        },
+        {
+          "amount_cents": "90000",
+          "code": "CUMULATIVE_PERCENT_FEE"
+        },
+        {
+          "amount_cents": "0",
+          "code": "MINIMUM_ADJUSTMENT_CUMULATIVE"
+        },
+        {
+          "amount_cents": "60000",
+          "code": "PRIOR_ASSESSED"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PRIOR_UNPAID_BALANCE"
+        },
+        {
+          "amount_cents": "5460",
+          "code": "PROCESSOR_FEES_ON_VENDOR_PAYMENTS"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PROCESSOR_FEES_DEDUCTED"
+        },
+        {
+          "amount_cents": "18000",
+          "code": "TAX_COLLECTED_CENTRAL_PROTECTED"
+        },
+        {
+          "amount_cents": "0",
+          "code": "TAX_IN_VENDOR_RETAINED_CASH_MEMO"
+        },
+        {
+          "amount_cents": "0",
+          "code": "TIPS_PASSTHROUGH"
+        }
+      ],
+      "payout_cents": "170000",
+      "phase": "FINAL",
+      "policy_refs": [
+        {
+          "role": "CONTRACT",
+          "source_id": "src_4472f9097a6e390e",
+          "source_version": 1
+        }
+      ],
+      "receivable_change_cents": "0",
+      "source_manifest_hash": "9e2bc1c51a723d80bc6a86f7a638eff047ede106ab38c06185a0821937b09b1e",
+      "status": "CALCULATED",
+      "terms_basis": "CONTRACT",
+      "tips_passthrough_cents": "0",
+      "unpaid_balance_cents": "0",
+      "vendor_id": "ven_24b891c0ef6e9864",
+      "vendor_name": "Churro Cart"
+    },
+    {
+      "assessed_fee_cents": "-1500",
+      "business_date": "2026-10-20",
+      "calculation_version": "oracle-0.1.0",
+      "collected_fee_cents": "-1500",
+      "commission_bps": 1500,
+      "festival_id": "fest_bf25e974c723d827",
+      "holds": [],
+      "line_items": [
+        {
+          "amount_cents": "-10000",
+          "code": "ELIGIBLE_SALES_CENTRAL"
+        },
+        {
+          "amount_cents": "0",
+          "code": "ELIGIBLE_SALES_VENDOR_RETAINED_CASH"
+        },
+        {
+          "amount_cents": "-10000",
+          "code": "REFUNDS_INCLUDED_IN_ELIGIBLE"
+        },
+        {
+          "amount_cents": "590000",
+          "code": "CUMULATIVE_ELIGIBLE"
+        },
+        {
+          "amount_cents": "88500",
+          "code": "CUMULATIVE_PERCENT_FEE"
+        },
+        {
+          "amount_cents": "0",
+          "code": "MINIMUM_ADJUSTMENT_CUMULATIVE"
+        },
+        {
+          "amount_cents": "90000",
+          "code": "PRIOR_ASSESSED"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PRIOR_UNPAID_BALANCE"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PROCESSOR_FEES_ON_VENDOR_PAYMENTS"
+        },
+        {
+          "amount_cents": "0",
+          "code": "PROCESSOR_FEES_DEDUCTED"
+        },
+        {
+          "amount_cents": "-900",
+          "code": "TAX_COLLECTED_CENTRAL_PROTECTED"
+        },
+        {
+          "amount_cents": "0",
+          "code": "TAX_IN_VENDOR_RETAINED_CASH_MEMO"
+        },
+        {
+          "amount_cents": "0",
+          "code": "TIPS_PASSTHROUGH"
+        }
+      ],
+      "payout_cents": "0",
+      "phase": "POST_FESTIVAL_ADJUSTMENT",
+      "policy_refs": [
+        {
+          "role": "CONTRACT",
+          "source_id": "src_4472f9097a6e390e",
+          "source_version": 1
+        }
+      ],
+      "receivable_change_cents": "8500",
+      "source_manifest_hash": "9e2bc1c51a723d80bc6a86f7a638eff047ede106ab38c06185a0821937b09b1e",
+      "status": "CALCULATED",
+      "terms_basis": "CONTRACT",
+      "tips_passthrough_cents": "0",
+      "unpaid_balance_cents": "8500",
+      "vendor_id": "ven_24b891c0ef6e9864",
+      "vendor_name": "Churro Cart"
+    }
+  ]
+}

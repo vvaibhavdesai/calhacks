@@ -1,0 +1,245 @@
+{
+  "accounts": {
+    "1000": "Bank cash - operating",
+    "1050": "Cash on hand - organizer cash office (DRAFT addition, not in C02 list)",
+    "1100": "Processor clearing",
+    "1200": "Vendor commission receivable / unpaid balance",
+    "2000": "Vendor funds payable",
+    "2100": "Sales tax liability/control",
+    "2200": "Tips liability/control",
+    "4000": "Organizer commission revenue",
+    "5100": "Processor fee expense"
+  },
+  "derived_from_manifest_sha256": "9e2bc1c51a723d80bc6a86f7a638eff047ede106ab38c06185a0821937b09b1e",
+  "derived_terms": {
+    "Churro Cart": {
+      "conflict": false,
+      "contract_bps": 1500,
+      "contract_source_id": "src_4472f9097a6e390e",
+      "contract_source_version": 1,
+      "minimum_cents": 50000,
+      "other_rate_claims": [],
+      "processor_fees_deductible": false
+    },
+    "Grill Masters": {
+      "conflict": false,
+      "contract_bps": 1500,
+      "contract_source_id": "src_de85106c79ea966b",
+      "contract_source_version": 1,
+      "minimum_cents": 50000,
+      "other_rate_claims": [],
+      "processor_fees_deductible": false
+    },
+    "Kettle Corn Co": {
+      "conflict": false,
+      "contract_bps": 1500,
+      "contract_source_id": "src_0a53137b3e9b6d72",
+      "contract_source_version": 1,
+      "minimum_cents": 50000,
+      "other_rate_claims": [],
+      "processor_fees_deductible": false
+    },
+    "Late Bloom Lemonade": {
+      "conflict": false,
+      "contract_bps": 1500,
+      "contract_source_id": "src_2a3a620d79211299",
+      "contract_source_version": 1,
+      "minimum_cents": 50000,
+      "other_rate_claims": [],
+      "processor_fees_deductible": false
+    },
+    "Sunrise Smoothies": {
+      "conflict": false,
+      "contract_bps": 1500,
+      "contract_source_id": "src_88169f1ed8b0d222",
+      "contract_source_version": 1,
+      "minimum_cents": 50000,
+      "other_rate_claims": [],
+      "processor_fees_deductible": true
+    },
+    "Taco Libre": {
+      "conflict": true,
+      "contract_bps": 1500,
+      "contract_source_id": "src_4dcc7ce9f370b56b",
+      "contract_source_version": 1,
+      "minimum_cents": 50000,
+      "other_rate_claims": [
+        {
+          "bps": 1000,
+          "excerpt": "10% commission for Taco Libre,",
+          "source_id": "src_1b532360bfaa3697",
+          "source_version": 1
+        }
+      ],
+      "processor_fees_deductible": false
+    }
+  },
+  "evaluator_only": true,
+  "fixture_id": "compact_v1",
+  "input_checks": {
+    "batches_checked": 4,
+    "orders_checked": 24,
+    "payments_checked": 24,
+    "tax_mismatches": []
+  },
+  "oracle_version": "oracle-0.1.0",
+  "reconciliation": {
+    "cash_count_checks": [
+      {
+        "business_date": "2026-10-18",
+        "cash_count_id": "cashct_126c9c06fcabf497",
+        "counted_cents": "10900",
+        "custody": "CENTRALLY_COLLECTED",
+        "pos_cash_cents": "10900",
+        "status": "MATCHED",
+        "variance_cents": "0",
+        "vendor_name": "Kettle Corn Co"
+      },
+      {
+        "business_date": "2026-10-16",
+        "cash_count_id": "cashct_ca2b104ccd72d7fe",
+        "counted_cents": "436000",
+        "custody": "VENDOR_RETAINED",
+        "pos_cash_cents": "436000",
+        "status": "MATCHED",
+        "variance_cents": "0",
+        "vendor_name": "Grill Masters"
+      },
+      {
+        "business_date": "2026-10-17",
+        "cash_count_id": "cashct_1589a0eee91c45a0",
+        "counted_cents": "327000",
+        "custody": "VENDOR_RETAINED",
+        "pos_cash_cents": "327000",
+        "status": "MATCHED",
+        "variance_cents": "0",
+        "vendor_name": "Grill Masters"
+      },
+      {
+        "business_date": "2026-10-18",
+        "cash_count_id": "cashct_7be62c2d348dab4c",
+        "counted_cents": "327000",
+        "custody": "VENDOR_RETAINED",
+        "pos_cash_cents": "327000",
+        "status": "MATCHED",
+        "variance_cents": "0",
+        "vendor_name": "Grill Masters"
+      }
+    ],
+    "deposit_state_at_statement_time": [
+      {
+        "as_of_utc": "2026-10-17T16:00:00Z",
+        "batch_business_date": "2026-10-16",
+        "state": "DEPOSITED",
+        "statement_for": "2026-10-16"
+      },
+      {
+        "as_of_utc": "2026-10-18T16:00:00Z",
+        "batch_business_date": "2026-10-16",
+        "state": "DEPOSITED",
+        "statement_for": "2026-10-17"
+      },
+      {
+        "as_of_utc": "2026-10-18T16:00:00Z",
+        "batch_business_date": "2026-10-17",
+        "state": "TIMING_PENDING_NOT_AVAILABLE_CASH",
+        "statement_for": "2026-10-17"
+      },
+      {
+        "as_of_utc": "2026-10-19T16:00:00Z",
+        "batch_business_date": "2026-10-16",
+        "state": "DEPOSITED",
+        "statement_for": "2026-10-18"
+      },
+      {
+        "as_of_utc": "2026-10-19T16:00:00Z",
+        "batch_business_date": "2026-10-17",
+        "state": "DEPOSITED",
+        "statement_for": "2026-10-18"
+      },
+      {
+        "as_of_utc": "2026-10-19T16:00:00Z",
+        "batch_business_date": "2026-10-18",
+        "state": "DEPOSITED",
+        "statement_for": "2026-10-18"
+      }
+    ],
+    "match_groups": [
+      {
+        "bank_entry_id": "bank_eda31709b5bab40e",
+        "bank_provider_reference": "CARDCO-PO-0001",
+        "deposit_lag_days": [
+          1
+        ],
+        "fees_cents": "38026",
+        "gross_cents": "1518200",
+        "kind": "PROCESSOR_DEPOSIT",
+        "matched_amount_cents": "1480174",
+        "member_batch_dates": [
+          "2026-10-16"
+        ],
+        "member_batch_ids": [
+          "pbatch_9f243421b1a9ba6c"
+        ],
+        "reason_code": "NORMAL",
+        "status": "MATCHED",
+        "variance_cents": "0"
+      },
+      {
+        "bank_entry_id": "bank_f15bf8119301aad8",
+        "bank_provider_reference": "CARDCO-PO-0002",
+        "deposit_lag_days": [
+          2,
+          1
+        ],
+        "fees_cents": "59018",
+        "gross_cents": "2354501",
+        "kind": "PROCESSOR_DEPOSIT",
+        "matched_amount_cents": "2295483",
+        "member_batch_dates": [
+          "2026-10-17",
+          "2026-10-18"
+        ],
+        "member_batch_ids": [
+          "pbatch_cad97763adbe0571",
+          "pbatch_617494454fab66b1"
+        ],
+        "reason_code": "GROUPED_DEPOSIT_TIMING",
+        "status": "MATCHED",
+        "variance_cents": "0"
+      },
+      {
+        "bank_entry_id": "bank_3744a59b3b217d39",
+        "bank_provider_reference": "CARDCO-PO-0003",
+        "deposit_lag_days": [
+          1
+        ],
+        "fees_cents": "0",
+        "gross_cents": "-10900",
+        "kind": "PROCESSOR_DEPOSIT",
+        "matched_amount_cents": "-10900",
+        "member_batch_dates": [
+          "2026-10-20"
+        ],
+        "member_batch_ids": [
+          "pbatch_037647e85beb814c"
+        ],
+        "reason_code": "NORMAL",
+        "status": "MATCHED",
+        "variance_cents": "0"
+      },
+      {
+        "bank_entry_id": "bank_7ef37f34db70ec74",
+        "kind": "CASH_DEPOSIT",
+        "matched_amount_cents": "10900",
+        "member_cash_count_ids": [
+          "cashct_126c9c06fcabf497"
+        ],
+        "reason_code": "NORMAL",
+        "status": "MATCHED",
+        "variance_cents": "0"
+      }
+    ]
+  },
+  "seed": 20261016
+}
