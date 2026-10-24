@@ -102,6 +102,9 @@ CAPABILITY_RESOLVE_CASE = "resolve_case"
 CAPABILITY_APPROVE_POLICY = "approve_policy"
 CAPABILITY_APPROVE_PAYOUT = "approve_payout"
 CAPABILITY_FINANCE_LEAD = "finance_lead"
+# A02: required to call POST /api/v1/imports. Separate from CAPABILITY_ADMIN
+# so ingestion access can later be granted without granting full admin.
+CAPABILITY_IMPORT_SOURCE = "import_source"
 
 ALL_CAPABILITY_CODES = (
     CAPABILITY_ADMIN,
@@ -109,4 +112,5 @@ ALL_CAPABILITY_CODES = (
     CAPABILITY_APPROVE_POLICY,
     CAPABILITY_APPROVE_PAYOUT,
     CAPABILITY_FINANCE_LEAD,
+    CAPABILITY_IMPORT_SOURCE,
 )
