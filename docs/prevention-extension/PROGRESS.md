@@ -13,7 +13,7 @@ not started · in progress · blocked · review · done
 
 | Ticket | Tier | Status | Branch commits | Handoff doc |
 |---|---|---|---|---|
-| X0.1 generalize cases/approvals | must | not started | — | — |
+| X0.1 generalize cases/approvals | must | review (verified) | migration 0010; see handoff for commit list | [X0.1-handoff.md](../progress/X0.1-handoff.md) |
 | X0.2 term provenance/precedence | must | not started | — | — |
 | X0.3 contract obligations/links | must | not started | — | — |
 | X0.4 generator additions | must | **deferred** (collision risk with teammate's live `data/generator`/`tests/oracle` work — see CONTEXT.md) | — | — |
@@ -58,6 +58,13 @@ not started · in progress · blocked · review · done
    instead (see CONTEXT.md's "Working conventions"). Not a blocker, just a
    recorded simplification — revisit only if the user asks for more
    parallelism.
+6. **X0.1's `vendor_readiness`/`supplier_readiness` routing-table owner
+   capability is a placeholder** (`finance_lead`/`manage_payables` reused,
+   since no dedicated "finance operations" capability exists and the
+   Seeds table's "owner is finance operations" wording doesn't map
+   cleanly onto today's capability vocabulary). R1/R2 should confirm or
+   introduce a dedicated capability instead of silently inheriting this
+   guess — see X0.1-handoff.md's "Open risks."
 
 ## Deviations from `TICKET_SPEC.md` (running log)
 
@@ -68,3 +75,24 @@ not started · in progress · blocked · review · done
   automated tests." See CONTEXT.md for the exact naming convention.
 - (Further deviations get logged here per-ticket as they happen, each with
   a one-line "why.")
+- **X0.1: backfill labeling was a judgment call, not literal spec text.**
+  TICKET_SPEC.md says "Backfill existing rows as `vendor_run`." Reading
+  the actual `cases` table found a second genuinely different pre-existing
+  shape (A08's invoice-duplicate/variance cases: no `vendor_id`, a real
+  invoice reference instead) that `vendor_run` does not honestly describe.
+  Backfilled those specifically as `subject_type="supplier_invoice"`
+  instead. Full reasoning in X0.1-handoff.md.
+- **X0.1: a fourth case-opening call site was found and patched.**
+  `services/api/app/reconciliation.py` (A03) opens `Case` rows through its
+  own `_open_case`, not mentioned in CONTEXT.md's three-call-site list (that
+  list is specifically about *approval* fields, not case-opening). Tagged
+  additively, same as the other two case-opening sites. See handoff for
+  detail.
+
+## Capabilities added by X0.1 (new, beyond A01-A08's existing set)
+
+`approve_interpretation`, `record_amendment`, `approve_invoice_exception`,
+`release_supplier_payment`, `acknowledge_forecast` -- see
+`services/api/app/models.py` and X0.1-handoff.md's routing table. Re-run
+`scripts/seed_admin.py` after migration 0010 to grant these to the admin
+user.
