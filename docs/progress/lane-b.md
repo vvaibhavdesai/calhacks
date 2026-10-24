@@ -122,3 +122,203 @@ Oracle-side assumptions:
 - Joint G0 review of C01, C02, C03 and C05, using `tests/oracle/HAND_WORKED_EXAMPLES.md` as the C02 hand-worked fixture evidence. A should check numbers by hand, not by trusting the oracle.
 - After answers come back: update the config and assumptions, regenerate, and bump `config_version` and `GENERATOR_VERSION`.
 - Next lane B task: B03 (frontend shell against these API fixtures), which can start once C03 is reviewed. B02 (full dataset) waits for frozen schemas.
+
+## B02: full synthetic festival generation and evaluation harness
+
+| Field | Value |
+|---|---|
+| Task ID | B02 |
+| Owner | Lane B (experience/data) |
+| Branch | `lane-b` (pushed to `origin/lane-b`; nothing merged to `main`) |
+| Base commit | `ac8a612` (B01 handoff record) |
+| Status | **review**: awaiting lane A and human review. Not verified. Built on DRAFT contracts C01/C02/C03/C05 ("frozen schemas" dependency not met), so field names and money semantics may change. |
+| Reviewer / merge commit | none yet |
+
+### Files added or changed (lane B paths only)
+
+- `data/generator/generate_full.py`: full generator (v0.2.0). It reuses helpers from `generate.py`, which is unchanged, so `compact_v1` stays byte-identical.
+- `data/generator/pdfmini.py`: minimal deterministic stdlib PDF writer, so no dependency was added.
+- `data/generator/config/full_v1.json` (validation/demo, seed 20261016, roles fixed, **DRAFT assumptions DA13–DA30**).
+- `data/generator/config/full_v1_train.json` (seed 20251017) and `full_v1_heldout.json` (seed 20270611). Both extend `full_v1` and reshuffle tiers, booths and scenario roles.
+- `data/generator/manifests/{full_v1,full_v1_train,full_v1_heldout}.manifest.json`: committed manifests (counts, input totals, source versions, per-file sha256) for cross-laptop verification.
+- `data/generator/tests/test_full.py`.
+- `data/generator/.gitignore`: adds `out/`.
+- `data/generator/README.md`: B02 section.
+- `tests/oracle/oracle_full.py`: independent full-dataset oracle.
+- `tests/oracle/scripted_decisions_full.json`: F0/F1/F2 rule-based human decisions.
+- `tests/oracle/score.py`: scorer.
+- `tests/oracle/test_oracle_full.py`.
+- `tests/oracle/.gitignore`: adds `generated/`.
+- `tests/oracle/README.md`.
+- This file.
+
+Not committed, by design: `data/generator/out/<fixture>/` (about 105 MB per split) and `tests/oracle/generated/<fixture>/`, which holds the scenario manifests and all full-dataset expected answers, including held-out. No contracts, services, db, infra, apps, root config or planning docs were touched. No dependencies were added.
+
+### Commands actually run (Python 3.13.5, macOS)
+
+| Command | Result |
+|---|---|
+| `python3 data/generator/generate_full.py --verify` (and the same with `--config …full_v1_train.json` / `…full_v1_heldout.json`) | Each split wrote 154 files in 1.9 s and printed `VERIFY OK`. Manifest sha256: full_v1 `a6a5c899…c451487e`, train `7784de9c…8288d5f6`, held-out `023fafa6…f2aa3ead`. |
+| full_v1 counts | 80 vendors, 40,000 sales + 174 refund orders, 73,385 order lines, 40,207 payment records (30 of them duplicate-import records), 9 processor batches, 33 bank entries, 86 cash counts, 3 deposit slips, 128 source documents (100 PDFs, 8 email threads), 13 supplier invoice/credit-note records, 8 POs, 5 ticket settlements, 4 sponsors, 8 expenses, 60 prior-year settlements, 30 labelled scenarios. Eligible sales are $805,706.25 gross of refunds (refunds −$1,859.00), tax $71,684.10, tips $32,764.75. |
+| `python3 tests/oracle/oracle_full.py` (on each split) | 1.5 s per split, all journal entries balanced, economics checks all pass. full_v1: F0 has 242 settlements, 53 reviews and 901 entries (192 CONFIRMED, 40 HELD, 1 FAILED). F1 has 242 settlements, 57 reviews and 945 entries (230 CONFIRMED, 1 FAILED, 2 HELD, 9 nothing-to-pay). F2 has 58 reviews (the conflict re-asked on night 2) and 945 entries. |
+| `python3 tests/oracle/score.py --emit-oracle-candidate <tmp> --set F1_story` then `--candidate <tmp> --set F1_story` | `perfect=True errors_total=0`, payout accuracy 242/242, citations 291/291 valid. |
+| The F0 candidate scored against F1 expectations (sanity) | `perfect=False errors_total=91`: missed_reviews 4, false_holds 76, settlement_errors 3, journal_errors 8; payout accuracy 0.843. |
+| `python3 -m unittest discover -s data/generator/tests -v` | `Ran 25 tests in 62.5s … OK` (11 B01 + 14 B02). It generates all three splits plus a second full_v1 run (1.9 / 2.1 / 2.2 / 2.2 s); most of the remaining time is the SourceRef and format sweep over about 100 MB of JSON. |
+| `python3 -m unittest discover -s tests/oracle -v` | `Ran 30 tests … OK` (13 B01 + 17 B02), about 11 s. |
+| `qlmanage -t` on a contract PDF | The macOS Quick Look renderer showed readable text (manual visual check, one file). |
+
+B01 compact fixture: `generate.py`, `config/compact_v1.json`, `fixtures/compact_v1/` and `tests/oracle/expected/compact_v1/` were not modified. The B01 drift and staleness tests still pass.
+
+Not run:
+- comparison against lane A output, because no A system exists yet;
+- schema validation, because there are no Pydantic/OpenAPI models;
+- CI;
+- an external PDF library check (only macOS Quick Look was tried);
+- runs on a second laptop. The cross-laptop manifest match has only been shown on this machine, by running twice and by the committed-manifest test.
+
+### What the full dataset contains
+
+- **Scale and normalcy.** 80 vendors across 16 cuisine archetypes in three sales tiers, so sales are uneven: the largest vendor has more than 8× the orders of the smallest. Every sale is ticket-level with 1–3 lines. Tenders are card, wristband and cash, with cash going either to the vendor's own drawer or to the organizer cash office. About 28% of card and wristband orders carry a tip. About 0.4% of orders get an in-festival refund. Most records are normal.
+- **Contracts.**
+  - Four phrasing templates:
+    - A: numbered clauses;
+    - B: legal prose with number words;
+    - C: a schedule table;
+    - D: a letter.
+  - Ten vendors override the rate or minimum (10%, 12%, 12.5%, 18%, 20%; $300 or $750).
+  - About a quarter of vendors may have processing fees deducted.
+  - Two pre-festival amendments: one changes the rate to 12%, the other permits fee deduction.
+  - The oracle extracts the terms from PDF text, and they match the injected terms for all 80 vendors in both validation and held-out.
+- **Branches.** In F1, 14 vendors hit the $500/$750 minimum adjustment on the final day, and six of them leave an unpaid balance. All others are on the commission branch. Payouts above the $5,000 automatic limit appear 34 times in F1.
+- **Seeded scenarios.** Each scenario is labelled with its expected control behaviour in the evaluator-only scenario manifest, and the test checks that the oracle finds it on its own:
+  - **Three-night story.** On night 1 the Taco Libre contract says 15% and the producer email says 10%. On night 3 a signed amendment (12%) arrives at 2026-10-19 07:05 PT.
+  - **Duplicates.** A duplicate import (an overlapping CardCo re-export of 30 rows) and, separately, a genuine duplicate customer charge (two provider references, one POS order, reversed on 10-19).
+  - **Cash.** A cash-office count short by $40, and a missing cash count (an unlabelled bag on the deposit slip).
+  - **After the final payout.** Three late refunds on 10-21 and a chargeback with a $15 fee on 10-24.
+  - **Terms traps.** A vendor email claiming a nightly minimum, an expired 2025 policy that is still marked ACTIVE, and an email that restates the contract rate (must not be treated as a conflict).
+  - **Payment details.** An unverified beneficiary change, sent by email with an embedded prompt injection.
+  - **Tax.** Tax charged on EXEMPT water on two days, and an under-collected rate (8.5%) on one day.
+  - **Cash-heavy vendor.** A small vendor whose sales are mostly vendor-retained cash, leaving a fee receivable.
+  - **Insufficient cash.** At the 10-18 10:00 window: the night-2 card deposit is delayed and a sized production invoice was paid on 10-17.
+  - **Rail outcomes.** A FAILED payout (ACCOUNT_CLOSED); an UNKNOWN that turns out CONFIRMED; an UNKNOWN that is NOT_FOUND and is resubmitted with the same key.
+  - **Deposit timing.** Delayed and grouped CardCo and TapBand deposits.
+  - **Payables and bank.** A duplicate supplier invoice re-sent after payment, an invoice exceeding its PO, a credit note, a sponsor that paid half, and an unmatched bank fee.
+- **Splits.** Train and held-out reuse the rules with new seeds and reshuffled roles, so the conflict vendor is not Taco Libre. Their expected answers exist only under `tests/oracle/generated/`.
+
+### Oracle (`tests/oracle/oracle_full.py`) and scorer (`tests/oracle/score.py`)
+
+- **Independence.**
+  - It uses only the stdlib, enforced by an AST allowlist test.
+  - It contains no reference to the generator, config or scenario manifest.
+  - It re-verifies:
+    - line tax using menu taxability;
+    - qty × price;
+    - business dates;
+    - batch gross/fee/net;
+    - order/payment equality;
+    - source content hashes.
+- **Output for each decision set:**
+  - settlements (cumulative commission, minimum applied once, fees collected only from central proceeds, unpaid receivable, tips passed through and protected);
+  - required reviews with SourceRef evidence (PDF page plus excerpt, email char span, CSV row), the financial impact and the scripted decision;
+  - payouts, using payout windows that model cash availability, beneficiary holds, rail-script outcomes, retries at the next window and idempotency keys;
+  - night-3 corrections, with `correction_of` linking each to the original entry;
+  - policy events;
+  - payables as of 2026-11-01;
+  - the DRAFT tax summary;
+  - balanced journals for all of the above, plus tickets, sponsorship, suppliers, expenses, the opening balance and suspense;
+  - economics checks: book bank = statement − simulated payouts, processor clearing = 0, refunds-payable = 0, vendor payable = settlements, AP = outstanding, and a zero trial balance.
+- **Scorer error classes:**
+  - missed reviews;
+  - false holds (settlement, payout or blocking case);
+  - repeated questions;
+  - unexplained variances;
+  - double-counted duplicates;
+  - payout errors and accuracy rate;
+  - unsafe releases;
+  - duplicate provider payments;
+  - changed idempotency keys;
+  - cash overspend, checked against bank entries independently of the oracle's own release order;
+  - settlement field errors;
+  - invalid citations (source, version, hash, locator, excerpt, or citing the expired prior-year policy);
+  - blocking cases without citations;
+  - journal imbalance and ending balance by account role.
+- **Scorer tests.** The oracle's own answer scores perfect for F0, F1, F2 and held-out F1. Each of the 14 perturbation classes is detected.
+
+### Candidate export format (PROPOSAL for lane A, `encore-candidate-0.1-PROPOSAL`)
+
+The scorer reads a directory. Field names follow C03 where it has them.
+
+- `meta.json`: `candidate_format`, `fixture_id`, `fixture_manifest_sha256` (the sha256 of the fixture's `manifest.json` that was imported), `decision_set` (F0/F1/F2) and `system` (version).
+- `settlements.json`: `{items:[{vendor_id, business_date, status: CALCULATED|HELD, assessed_fee_cents|null, collected_fee_cents|null, payout_cents, tips_passthrough_cents, unpaid_balance_cents|null, commission_bps|null, hold_reasons[], citations[SourceRef]}]}`. There is one row per vendor and business date, including post-festival adjustment dates.
+- `payouts.json`: `{items:[{vendor_id, business_date, final_state: CONFIRMED|FAILED|HELD|NOTHING_TO_PAY, amount_cents, tips_passthrough_cents, idempotency_keys[], provider_submissions, confirmed_provider_payments, released_at_utc|null, hold_reasons[]}]}`.
+- `cases.json`: `{items:[{case_id, reason_code, subject_kind: VENDOR|SUPPLIER_INVOICE|BANK_ENTRY|SYSTEM, subject_id|null, business_date, blocking, citations[SourceRef]}]}`. Cases are matched on (reason_code, subject_id, business_date). The reason codes used are listed in `scripted_decisions_full.json`.
+- `journals.json`: `{items:[{entry_id, business_date, kind, correction_of, lines:[{account_role, debit_cents, credit_cents}]}]}`. Lines are compared by account ROLE, using the names in `oracle_full.ACCOUNTS`.
+- `reconciliation.json`: `{items:[{match_key, status: MATCHED|CASE_REQUIRED|DUPLICATE_IGNORED, variance_cents, reason_code}]}`. `match_key` takes one of these forms:
+  - `PROCESSOR_DEPOSIT:<bank provider_reference>`
+  - `CASH_DEPOSIT:<slip_reference>`
+  - `CASH_COUNT:<count source_native_id>`
+  - `MISSING_COUNT:<vendor_id>:<date>:<custody>`
+  - `DUPLICATE_IMPORT:<provider_reference>`
+  - `DUPLICATE_CHARGE:<provider_reference>`
+  - `TICKETS|SPONSOR|SUPPLIER_PAYMENT|EXPENSE:<bank provider_reference>`
+  - `BANK_UNMATCHED:<bank provider_reference>`
+
+To drive A's system with a decision set, apply the F-set rules to A's cases as they appear, after the 9 AM statement and before the 10 AM payout (DA28).
+
+### Implemented vs incomplete
+
+Implemented:
+- everything listed above, plus a deterministic generator for all three splits, committed manifests and the `--verify` flow;
+- tests for exact counts, references, SourceRefs (more than 100k checked), money and time formats, unique IDs, no leakage (no answer keys or scenario labels in runtime files, no evaluator files in runtime dirs, generated outputs untracked by git), fictional-only data and runtime under 60 s.
+
+Fixture-only: all data is synthetic, money movement is simulated, tax is a DEMO rate, reports are DRAFT and NOT FILED, and no compliance claim is made.
+
+Not done:
+- **Cash forecast.** No expected cash forecast or daily-close report; only cash windows, positions and payables are covered.
+- **Orders.** POS orders have exactly one tender each; split tenders are not generated.
+- **Tickets.** No ticket refunds and no wristband top-up liability.
+- **Vendor-retained cash.** Count variances for vendor-retained cash are reconciled but raise no review, because none are seeded.
+- **Insufficient-cash ordering.** The oracle releases in booth order. The scorer accepts any ordering that does not overspend, but settlement-level expectations assume every carried payout is released at the next window.
+- **Supplier and sponsor documents.** Supplier and sponsorship PDFs are not parsed by the oracle (it uses `api/`). Only contracts and amendments are parsed from PDF.
+- **Remote and second-laptop verification.** No artifact store for the 105 MB outputs (each laptop regenerates), and nothing has run on a second laptop yet.
+
+### New DRAFT assumptions (also in `config/full_v1.json` → `api/business_config.json`)
+
+- DA13: DEMO taxability. Only packaged water is EXEMPT.
+- DA14: TapBand wristband fee is 1.75%, centrally collected, with a weekly grouped deposit (matching window 7 days, against 3 for CardCo).
+- DA15: the opening balance (2026-09-20) is journaled (Dr bank / Cr opening equity), unlike compact DA12.
+- DA16: fees on a duplicate charge and its reversal are organizer expense.
+- DA17: a chargeback reverses the whole original payment on its own date; the $15 fee is a processor fee, deducted from the vendor only where the contract permits.
+- DA18: a signed amendment supersedes the clause it names and any earlier correspondence, from received_at.
+- DA19: every source has `received_at`; nothing may be used before then.
+- DA20: cash-office bags are deposited at D+1 11:30 PT, with a slip listing each bag.
+- DA21: an email beneficiary change is UNVERIFIED and blocks later payouts.
+- DA22: payout outcomes are scripted per (vendor_id, business_date, attempt) and default to CONFIRMED. FAILED does not consume cash; UNKNOWN does until it is resolved.
+- DA23: available cash = posted bank entries − released payouts. Payouts that do not fit are held INSUFFICIENT_CASH and retried at the next window.
+- DA24: ticket revenue is deferred and recognized on 2026-10-18; settlements received later are recognized on receipt.
+- DA25: sponsorship revenue is recognized on a cash basis, with memo receivables.
+- DA26: supplier tax is included in expense; credit notes reverse; a duplicate invoice is never posted.
+- DA27: sales and refund journals are daily summaries per vendor, date and custody asset.
+- DA28: scripted decisions are taken between the 9 AM statement and the 10 AM payout.
+- DA29: the $5,000 limit applies per (vendor, business date) obligation, on payout plus tips.
+- DA30: UNPAID_BALANCE is reviewed on the final day only.
+
+### Contract questions for A (proposals; CONTRACTS.md was not edited)
+
+13. **Record types (C03, additive).** The following API-shaped inputs exist in `api/` and need agreed schemas: `menu_items`, `cash_deposit_slips`, `beneficiary_change_requests`, `ticket_settlements`, `sponsors`, `sponsorship_receipts`, `suppliers`, `purchase_orders`, `supplier_invoices` (with `kind` INVOICE/CREDIT_NOTE and `applies_to_invoice_id`), `supplier_payments`, `expenses`, `opening_balances`, `prior_settlements`, `prior_policies` and `prior_cases`. New fields:
+    - Payment: `card_token`, `chargeback_of_payment_id` and kind `CHARGEBACK`;
+    - SourceDocument: `received_at`, `page_count`, `document_date` and `amends_source_id`.
+14. **Duplicate import representation.** Is it acceptable that `api/payments.json` contains the re-imported records with the same `provider_reference` and distinct ids, so that A's ingestion must deduplicate? Or should `api/` hold only canonical records, with the raw CSV alone carrying the duplicate?
+15. **Demo-clock visibility (C01/C06).** Will the importer honour `received_at`, so that the night-3 amendment is invisible on nights 1–2? Or does A want late documents delivered as a separate import batch?
+16. **Candidate export.** Please review the candidate format above and say whether A will export it from an endpoint or a CLI.
+17. **Insufficient cash (C04).** What release order should apply? Is partial release of a single obligation allowed (I assumed it is not)? Should the $5,000 limit be counted per obligation or per release day when a held payout is released the next day?
+18. **Failed payout (C04).** After a permanent failure, is holding later payouts for that vendor (BENEFICIARY_INVALID_AFTER_FAILED_PAYOUT) the right control?
+19. **Chargeback and tips (C02).** Should a chargeback claw back tips already passed through? The seeded chargeback has no tip, so this is deliberately avoided.
+20. **Account roles (C02).** Proposed role names, in addition to the B01 accounts: `CASH_OFFICE`, `SUSPENSE`, `SUPPLIER_AP`, `DEFERRED_TICKET_REVENUE`, `CUSTOMER_REFUNDS_PAYABLE`, `OPENING_EQUITY`, `TICKET_REVENUE`, `SPONSORSHIP_REVENUE`, `TICKETING_FEE_EXPENSE`, `CASH_OVER_SHORT`, `SUPPLIER_EXPENSE`, `OPERATING_EXPENSE`.
+21. **Exclusions (A01/A10).** In addition to B01 question 12, please also exclude `data/generator/out/*/simulator_only/` and `data/generator/out/*/manifest.json` from agent context. Only the payout simulator may read the outcome script.
+
+### Next
+
+- Joint review of the DA13–DA30 assumptions, the candidate format and questions 13–21, together with the still-open B01 questions 1–12.
+- A03/A04 can start checking against `tests/oracle/generated/full_v1/` once their engines exist. Score with `score.py`, never against the held-out split during development.
+- Next lane B task: **B03**, the frontend shell and typed API client against the B01/B02 API fixtures. It starts once C03 is reviewed.
