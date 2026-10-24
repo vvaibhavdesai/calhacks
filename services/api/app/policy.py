@@ -249,6 +249,12 @@ def detect_contract_term_conflicts(
             financial_impact_cents=financial_impact_cents,
             proposed_resolution=proposed_resolution,
             required_capability=CAPABILITY_RESOLVE_CASE,
+            # X0.1: generalized subject -- this case is about a vendor's
+            # night/run (see packages/domain/domain/case_routing.py). Pure
+            # additive tagging; the A05 resolution workflow below is
+            # unchanged.
+            subject_type="vendor_run",
+            subject_id=vendor.id,
             status="RESOLVED",
             predicate_values=facts.predicate_values,
             auto_resolved=True,
@@ -307,6 +313,10 @@ def detect_contract_term_conflicts(
         financial_impact_cents=financial_impact_cents,
         proposed_resolution=proposed_resolution,
         required_capability=CAPABILITY_RESOLVE_CASE,
+        # X0.1: generalized subject (see note on the auto-resolve branch
+        # above).
+        subject_type="vendor_run",
+        subject_id=vendor.id,
         status="OPEN",
         predicate_values=facts.predicate_values,
     )

@@ -71,6 +71,8 @@ class CaseOut(BaseModel):
     applied_policy_version_id: str | None
     origin_case_id: str | None
     challenge_status: str | None
+    subject_type: str | None
+    subject_id: str | None
 
 
 def _to_case_out(case: Case) -> CaseOut:
@@ -95,6 +97,8 @@ def _to_case_out(case: Case) -> CaseOut:
         applied_policy_version_id=case.applied_policy_version_id,
         origin_case_id=case.origin_case_id,
         challenge_status=case.challenge_status,
+        subject_type=case.subject_type,
+        subject_id=case.subject_id,
     )
 
 
