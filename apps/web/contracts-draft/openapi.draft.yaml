@@ -1,0 +1,1483 @@
+# =============================================================================
+#  TEMPORARY LANE-B DRAFT. NOT THE CONTRACT AUTHORITY.
+#
+#  Transcribed by lane B from CONTRACTS.md v0.1 (C01, C03, C04: all DRAFT) so
+#  the frontend can generate types instead of hand-maintaining shapes.
+#  It must be REPLACED by lane A's generated OpenAPI from packages/contracts
+#  (Pydantic) once C03 is reviewed/frozen. See apps/web/README.md
+#  "Swapping the draft contract".
+#
+#  Conventions in this file:
+#   - Anything without `x-encore-proposal` is transcribed from CONTRACTS.md.
+#   - `x-encore-proposal: <ref>` marks a lane-B proposal (field or route) that
+#     is NOT in CONTRACTS.md; <ref> points at docs/progress/lane-b.md
+#     (contract question Qn or assumption DAnn).
+#   - `x-encore-unspecified: true` marks a schema CONTRACTS.md names but does
+#     not define; the shape is a minimal placeholder.
+#   - Fixture-backed input records use additionalProperties: false so the
+#     conformance test catches drift between the compact fixture and this
+#     draft. The runtime client does not reject unknown fields.
+# =============================================================================
+openapi: 3.1.0
+info:
+  title: Encore API (lane B DRAFT transcription of CONTRACTS.md C03)
+  version: 0.1.0-draft.lane-b
+  description: >-
+    DRAFT. Transcribed from CONTRACTS.md v0.1 C01/C03/C04. Not frozen, not
+    reviewed by lane A. Money is USD integer cents as base-10 strings; instants
+    are UTC RFC3339; business_date is YYYY-MM-DD in America/Los_Angeles.
+servers:
+  - url: /api/v1
+tags:
+  - name: reads
+  - name: commands
+  - name: proposals
+    description: Routes proposed by lane B, not present in CONTRACTS.md.
+
+paths:
+  # ---------------------------------------------------------------- proposals
+  /session:
+    get:
+      tags: [proposals]
+      x-encore-proposal: Q22
+      operationId: getSession
+      summary: Authenticated actor and backend-granted capabilities (PROPOSAL).
+      responses:
+        '200':
+          description: Current session.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Session' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /festival:
+    get:
+      tags: [proposals]
+      x-encore-proposal: Q23
+      operationId: getFestival
+      responses:
+        '200':
+          description: The festival in scope for this workspace.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Festival' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /business-config:
+    get:
+      tags: [proposals]
+      x-encore-proposal: Q23
+      operationId: getBusinessConfig
+      responses:
+        '200':
+          description: Active versioned business configuration (C05, DRAFT).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BusinessConfig' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /orders:
+    get:
+      tags: [proposals]
+      x-encore-proposal: Q23
+      operationId: listOrders
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Sort'
+        - $ref: '#/components/parameters/VendorId'
+        - $ref: '#/components/parameters/BusinessDate'
+      responses:
+        '200':
+          description: Orders.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OrderList' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/Invalid' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /payments:
+    get:
+      tags: [proposals]
+      x-encore-proposal: Q23
+      operationId: listPayments
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Sort'
+        - $ref: '#/components/parameters/VendorId'
+        - $ref: '#/components/parameters/BusinessDate'
+      responses:
+        '200':
+          description: Payments.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaymentList' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/Invalid' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /bank-entries:
+    get:
+      tags: [proposals]
+      x-encore-proposal: Q23
+      operationId: listBankEntries
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Sort'
+        - name: direction
+          in: query
+          required: false
+          schema: { $ref: '#/components/schemas/BankDirection' }
+      responses:
+        '200':
+          description: Bank entries.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BankEntryList' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/Invalid' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /processor-batches:
+    get:
+      tags: [proposals]
+      x-encore-proposal: Q23
+      operationId: listProcessorBatches
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Sort'
+        - $ref: '#/components/parameters/BusinessDate'
+      responses:
+        '200':
+          description: Processor batches.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProcessorBatchList' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/Invalid' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /cash-counts:
+    get:
+      tags: [proposals]
+      x-encore-proposal: Q23
+      operationId: listCashCounts
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Sort'
+        - $ref: '#/components/parameters/VendorId'
+        - $ref: '#/components/parameters/BusinessDate'
+      responses:
+        '200':
+          description: Cash counts.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CashCountList' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/Invalid' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /source-documents:
+    get:
+      tags: [proposals]
+      x-encore-proposal: Q23
+      operationId: listSourceDocuments
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Sort'
+        - $ref: '#/components/parameters/VendorId'
+      responses:
+        '200':
+          description: Source document metadata. Content is served separately (authorized).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SourceDocumentList' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/Invalid' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /source-documents/{id}:
+    get:
+      tags: [proposals]
+      x-encore-proposal: Q23
+      operationId: getSourceDocument
+      parameters:
+        - $ref: '#/components/parameters/PathId'
+      responses:
+        '200':
+          description: Source document metadata.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SourceDocument' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /jobs/{id}:
+    get:
+      tags: [proposals]
+      x-encore-proposal: Q26
+      operationId: getJob
+      summary: Target of JobAccepted.status_url (PROPOSAL).
+      parameters:
+        - $ref: '#/components/parameters/PathId'
+      responses:
+        '200':
+          description: Job status.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JobStatus' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # --------------------------------------------------- C03 read collections
+  /runs:
+    get:
+      tags: [reads]
+      operationId: listRuns
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/BusinessDate'
+      responses:
+        '200':
+          description: Close runs.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RunList' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+    post:
+      tags: [commands]
+      operationId: startRun
+      summary: Start/resume a close run (effectful command).
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody: { $ref: '#/components/requestBodies/Command' }
+      responses: &commandResponses
+        '200':
+          description: Short accepted command; authoritative state/version.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CommandResult' }
+        '202':
+          description: Long job accepted.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JobAccepted' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Invalid' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /runs/{id}:
+    get:
+      tags: [reads]
+      operationId: getRun
+      parameters: [{ $ref: '#/components/parameters/PathId' }]
+      responses:
+        '200':
+          description: Run.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Run' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /vendors:
+    get:
+      tags: [reads]
+      operationId: listVendors
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Sort'
+      responses:
+        '200':
+          description: Vendors.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VendorList' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/Invalid' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /vendors/{id}:
+    get:
+      tags: [reads]
+      operationId: getVendor
+      parameters: [{ $ref: '#/components/parameters/PathId' }]
+      responses:
+        '200':
+          description: Vendor.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Vendor' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /settlements:
+    get:
+      tags: [reads]
+      operationId: listSettlements
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/VendorId'
+        - $ref: '#/components/parameters/BusinessDate'
+      responses:
+        '200':
+          description: Settlements (server-calculated).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SettlementList' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /cases:
+    get:
+      tags: [reads]
+      operationId: listCases
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/VendorId'
+        - name: status
+          in: query
+          required: false
+          schema: { $ref: '#/components/schemas/CaseStatus' }
+      responses:
+        '200':
+          description: Cases.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CaseList' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /cases/{id}/resolve:
+    post:
+      tags: [commands]
+      operationId: resolveCase
+      parameters:
+        - $ref: '#/components/parameters/PathId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody: { $ref: '#/components/requestBodies/Command' }
+      responses: *commandResponses
+  /policies:
+    get:
+      tags: [reads]
+      operationId: listPolicies
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Policy versions.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PolicyVersionList' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /policies/{id}/approve:
+    post:
+      tags: [commands]
+      operationId: approvePolicy
+      parameters:
+        - $ref: '#/components/parameters/PathId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody: { $ref: '#/components/requestBodies/Command' }
+      responses: *commandResponses
+  /payouts:
+    get:
+      tags: [reads]
+      operationId: listPayouts
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/VendorId'
+        - $ref: '#/components/parameters/BusinessDate'
+      responses:
+        '200':
+          description: Payouts (simulated money movement in v1).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PayoutList' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /payouts/{id}/approve:
+    post:
+      tags: [commands]
+      operationId: approvePayout
+      parameters:
+        - $ref: '#/components/parameters/PathId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody: { $ref: '#/components/requestBodies/Command' }
+      responses: *commandResponses
+  /reconciliation:
+    get:
+      tags: [reads]
+      operationId: listMatchGroups
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Reconciliation match groups.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MatchGroupList' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /suppliers:
+    get:
+      tags: [reads]
+      operationId: listSuppliers
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Suppliers.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SupplierList' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /purchase-orders:
+    get:
+      tags: [reads]
+      operationId: listPurchaseOrders
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Purchase orders.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PurchaseOrderList' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /invoices:
+    get:
+      tags: [reads]
+      operationId: listSupplierInvoices
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Supplier invoices.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SupplierInvoiceList' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /journal:
+    get:
+      tags: [reads]
+      operationId: listJournalEntries
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/BusinessDate'
+      responses:
+        '200':
+          description: Journal entries.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JournalEntryList' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /reports/tax:
+    get:
+      tags: [reads]
+      operationId: listTaxReports
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: DRAFT, NOT FILED tax summaries.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TaxReportList' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /cash:
+    get:
+      tags: [reads]
+      operationId: listCashPositions
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Cash position/forecast.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CashPositionList' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /events:
+    get:
+      tags: [reads]
+      operationId: listEvents
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Audit/business events (flight recorder).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EventList' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /events/stream:
+    get:
+      tags: [reads]
+      operationId: streamEvents
+      summary: SSE notification stream. Notification only, never a second ledger or a permission grant.
+      parameters:
+        - name: cursor
+          in: query
+          required: false
+          description: Opaque resume cursor (the last received EventEnvelope.cursor). Also sent as Last-Event-ID.
+          schema: { type: string }
+        - name: Last-Event-ID
+          in: header
+          required: false
+          schema: { type: string }
+      responses:
+        '200':
+          description: >-
+            text/event-stream. Each `data:` line is one JSON EventEnvelope; the SSE `id:` field
+            carries EventEnvelope.cursor. A control event of type `stream.resync_required` means the
+            client must refetch projections and reconnect without a cursor.
+          content:
+            text/event-stream:
+              schema: { $ref: '#/components/schemas/EventEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '410':
+          x-encore-proposal: Q25
+          description: Resume cursor expired; client must resync projections and reconnect without a cursor.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+
+  # ------------------------------------------------------- C03 commands
+  /imports:
+    post:
+      tags: [commands]
+      operationId: createImport
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { $ref: '#/components/requestBodies/Command' }
+      responses: *commandResponses
+  /challenges:
+    post:
+      tags: [commands]
+      operationId: createChallenge
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { $ref: '#/components/requestBodies/Command' }
+      responses: *commandResponses
+  /corrections/preview:
+    post:
+      tags: [commands]
+      operationId: previewCorrection
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { $ref: '#/components/requestBodies/Command' }
+      responses: *commandResponses
+  /corrections/{id}/approve:
+    post:
+      tags: [commands]
+      operationId: approveCorrection
+      parameters:
+        - $ref: '#/components/parameters/PathId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody: { $ref: '#/components/requestBodies/Command' }
+      responses: *commandResponses
+  /branches:
+    post:
+      tags: [commands]
+      operationId: createBranch
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { $ref: '#/components/requestBodies/Command' }
+      responses: *commandResponses
+  /replays:
+    post:
+      tags: [commands]
+      operationId: createReplay
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { $ref: '#/components/requestBodies/Command' }
+      responses: *commandResponses
+
+components:
+  parameters:
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      description: Opaque cursor from a previous next_cursor. Never parsed by clients.
+      schema: { type: string }
+    Limit:
+      name: limit
+      in: query
+      required: false
+      x-encore-proposal: Q24
+      schema: { type: integer, minimum: 1, maximum: 200 }
+    Sort:
+      name: sort
+      in: query
+      required: false
+      x-encore-proposal: Q24
+      description: Server-side sort, `field` or `-field`. Ordering must remain stable (ties by id).
+      schema: { type: string, pattern: '^-?[a-z_]+$' }
+    VendorId:
+      name: vendor_id
+      in: query
+      required: false
+      schema: { type: string }
+    BusinessDate:
+      name: business_date
+      in: query
+      required: false
+      schema: { $ref: '#/components/schemas/BusinessDate' }
+    PathId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: >-
+        Required for effectful commands; scoped by workspace/action. Same key + same canonical
+        payload returns the original result; same key + different payload returns 409.
+      schema: { type: string, minLength: 8, maxLength: 200 }
+
+  requestBodies:
+    Command:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/CommandEnvelope' }
+
+  responses:
+    Unauthenticated:
+      description: 401 unauthenticated.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    Forbidden:
+      description: 403 forbidden (authenticated but lacks capability).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    NotFound:
+      description: 404 not found.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    Conflict:
+      description: 409 conflict (version mismatch or idempotency key reused with different payload).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    Invalid:
+      description: 422 invalid input or domain precondition.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    RateLimited:
+      description: 429 rate limited.
+      headers:
+        Retry-After:
+          schema: { type: string }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    Unavailable:
+      description: 503 dependency unavailable.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  schemas:
+    # ------------------------------------------------------------ C01 basics
+    MoneyCents:
+      type: string
+      description: >-
+        USD integer cents as a canonical base-10 string (C01). A leading '-' for refunds is a
+        DRAFT assumption (DA07, open question Q4); '-0' and leading zeros are not canonical.
+      pattern: '^-?(0|[1-9][0-9]*)$'
+      not: { const: '-0' }
+    NonNegativeMoneyCents:
+      type: string
+      pattern: '^(0|[1-9][0-9]*)$'
+    Currency:
+      type: string
+      enum: [USD]
+    BusinessDate:
+      type: string
+      format: date
+      pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+      description: YYYY-MM-DD festival business date in America/Los_Angeles.
+    Instant:
+      type: string
+      format: date-time
+      pattern: 'Z$'
+      description: UTC RFC3339 instant.
+    Version:
+      type: integer
+      minimum: 1
+    BasisPoints:
+      type: integer
+      minimum: 0
+      maximum: 10000
+    DecimalString:
+      type: string
+      pattern: '^[0-9]+\.[0-9]+$'
+    SourceRef:
+      type: object
+      additionalProperties: false
+      required: [source_id, source_version, content_hash, locator_kind, locator]
+      properties:
+        source_id: { type: string }
+        source_version: { $ref: '#/components/schemas/Version' }
+        content_hash: { type: string, pattern: '^sha256:[0-9a-f]{64}$' }
+        locator_kind: { type: string, enum: [row, page, span] }
+        locator: { type: string, minLength: 1 }
+        quoted_excerpt: { type: string }
+    SourceVersionRef:
+      type: object
+      additionalProperties: false
+      required: [source_id, source_version]
+      properties:
+        source_id: { type: string }
+        source_version: { $ref: '#/components/schemas/Version' }
+
+    # ------------------------------------------------------- C03 envelopes
+    FieldError:
+      type: object
+      required: [field, message]
+      properties:
+        field: { type: string }
+        message: { type: string }
+        code: { type: string }
+    ErrorResponse:
+      type: object
+      required: [code, message, request_id, retryable]
+      properties:
+        code: { type: string }
+        message: { type: string, description: User-safe; never secrets or internals. }
+        request_id: { type: string }
+        retryable: { type: boolean }
+        field_errors:
+          type: array
+          items: { $ref: '#/components/schemas/FieldError' }
+        current_version:
+          anyOf:
+            - { $ref: '#/components/schemas/Version' }
+            - { type: 'null' }
+    CommandEnvelope:
+      type: object
+      additionalProperties: false
+      required: [command_id, expected_version, payload]
+      description: Actor derives from the authenticated session, never from the payload.
+      properties:
+        command_id: { type: string, minLength: 1 }
+        expected_version:
+          description: Optimistic concurrency version of the target; null when creating.
+          anyOf:
+            - { $ref: '#/components/schemas/Version' }
+            - { type: 'null' }
+        payload:
+          type: object
+          additionalProperties: true
+          x-encore-unspecified: true
+          description: Domain-specific; precise models freeze in the shared schema PR.
+    CommandResult:
+      type: object
+      required: [command_id, aggregate_id, version, status]
+      x-encore-unspecified: true
+      properties:
+        command_id: { type: string }
+        aggregate_id: { type: string }
+        version: { $ref: '#/components/schemas/Version' }
+        status: { type: string }
+    JobAccepted:
+      type: object
+      required: [job_id, status_url]
+      properties:
+        job_id: { type: string }
+        status_url: { type: string }
+        status: { $ref: '#/components/schemas/JobState' }
+    JobState:
+      type: string
+      x-encore-proposal: Q26
+      enum: [QUEUED, RUNNING, SUCCEEDED, FAILED, CANCELLED]
+    JobStatus:
+      type: object
+      x-encore-proposal: Q26
+      required: [job_id, status]
+      properties:
+        job_id: { type: string }
+        status: { $ref: '#/components/schemas/JobState' }
+        result_ref: { type: [string, 'null'] }
+        error: { anyOf: [{ $ref: '#/components/schemas/ErrorResponse' }, { type: 'null' }] }
+    NextCursor:
+      type: [string, 'null']
+      description: Opaque; null when there are no more items.
+
+    Capability:
+      type: string
+      x-encore-proposal: Q22
+      description: Backend-granted capability name. UI hides/disables controls from these only.
+    Session:
+      type: object
+      x-encore-proposal: Q22
+      required: [actor_id, capabilities]
+      properties:
+        actor_id: { type: string }
+        display_name: { type: string }
+        workspace_id: { type: string }
+        capabilities:
+          type: array
+          items: { $ref: '#/components/schemas/Capability' }
+
+    # --------------------------------------------- C04 state enumerations
+    RunStatus:
+      type: string
+      enum: [QUEUED, RUNNING, WAITING_REVIEW, PARTIALLY_COMPLETE, COMPLETED, FAILED, CANCELLED]
+    VendorMilestone:
+      type: string
+      enum: [INGESTED, RECONCILED, TERMS_RESOLVED, CALCULATED, CONTROLS_CHECKED, APPROVED]
+    PayoutState:
+      type: string
+      enum: [DRAFT, APPROVED, DISPATCH_PENDING, SUBMITTED, CONFIRMED, REJECTED, FAILED, CANCELLED, UNKNOWN, CANCEL_REQUESTED]
+    CaseStatus:
+      type: string
+      enum: [OPEN, IN_REVIEW, RESOLVED, REJECTED]
+    PolicyStatus:
+      type: string
+      enum: [DRAFT, ACTIVE, SUSPENDED, EXPIRED, SUPERSEDED, REVOKED]
+
+    # ------------------------------------ fixture-backed input records
+    Custody:
+      type: string
+      enum: [CENTRALLY_COLLECTED, VENDOR_RETAINED]
+    BankDirection:
+      type: string
+      enum: [credit, debit]
+    Booth:
+      type: object
+      additionalProperties: false
+      x-encore-proposal: Q3
+      required: [id, label]
+      properties:
+        id: { type: string }
+        label: { type: string }
+    Vendor:
+      type: object
+      additionalProperties: false
+      required: [id, version, status, festival_id, name, booth_ids, beneficiary_version, active_contract_version]
+      properties:
+        id: { type: string }
+        version: { $ref: '#/components/schemas/Version' }
+        status: { type: string }
+        festival_id: { type: string }
+        name: { type: string }
+        booth_ids: { type: array, items: { type: string } }
+        beneficiary_version: { $ref: '#/components/schemas/Version' }
+        active_contract_version: { $ref: '#/components/schemas/SourceVersionRef' }
+        beneficiary_id: { type: string, x-encore-proposal: Q3 }
+        booths: { type: array, items: { $ref: '#/components/schemas/Booth' }, x-encore-proposal: Q3 }
+        fictional_notice: { type: string, x-encore-proposal: Q3 }
+    OrderLine:
+      type: object
+      additionalProperties: false
+      required: [line_id, quantity, eligible_net_cents, tax_cents, tips_cents, gross_cents, source_refs]
+      properties:
+        line_id: { type: string }
+        quantity: { type: integer }
+        eligible_net_cents: { $ref: '#/components/schemas/MoneyCents' }
+        tax_cents: { $ref: '#/components/schemas/MoneyCents' }
+        tips_cents: { $ref: '#/components/schemas/MoneyCents' }
+        gross_cents: { $ref: '#/components/schemas/MoneyCents' }
+        source_refs: { type: array, items: { $ref: '#/components/schemas/SourceRef' } }
+        line_no: { type: integer, x-encore-proposal: Q3 }
+        description: { type: string, x-encore-proposal: Q3 }
+        item_sku: { type: string, x-encore-proposal: Q3 }
+        unit_price_cents: { $ref: '#/components/schemas/MoneyCents', x-encore-proposal: Q3 }
+        refund_of_line_id: { type: string, x-encore-proposal: Q3 }
+    Order:
+      type: object
+      additionalProperties: false
+      required: [id, version, status, source_native_id, vendor_id, business_date, ordered_at, lines, eligible_net_cents, tax_cents, tips_cents, gross_cents, source_refs]
+      properties:
+        id: { type: string }
+        version: { $ref: '#/components/schemas/Version' }
+        status: { type: string }
+        source_native_id: { type: string }
+        vendor_id: { type: string }
+        business_date: { $ref: '#/components/schemas/BusinessDate' }
+        ordered_at: { $ref: '#/components/schemas/Instant' }
+        lines: { type: array, items: { $ref: '#/components/schemas/OrderLine' } }
+        eligible_net_cents: { $ref: '#/components/schemas/MoneyCents' }
+        tax_cents: { $ref: '#/components/schemas/MoneyCents' }
+        tips_cents: { $ref: '#/components/schemas/MoneyCents' }
+        gross_cents: { $ref: '#/components/schemas/MoneyCents' }
+        source_refs: { type: array, items: { $ref: '#/components/schemas/SourceRef' } }
+        recorded_at: { $ref: '#/components/schemas/Instant' }
+        festival_id: { type: string, x-encore-proposal: Q3 }
+        booth_id: { type: string, x-encore-proposal: Q3 }
+        source_system: { type: string, x-encore-proposal: Q3 }
+        kind: { type: string, enum: [SALE, REFUND], x-encore-proposal: Q3 }
+        refund_of_order_id: { type: string, x-encore-proposal: Q3 }
+        refund_reason: { type: string, x-encore-proposal: Q3 }
+    OrderAllocation:
+      type: object
+      additionalProperties: false
+      required: [order_id, amount_cents]
+      properties:
+        order_id: { type: string }
+        amount_cents: { $ref: '#/components/schemas/MoneyCents' }
+    Payment:
+      type: object
+      additionalProperties: false
+      required: [id, version, status, order_refs, vendor_id, method, custody, amount_cents, currency, provider_reference, source_refs]
+      properties:
+        id: { type: string }
+        version: { $ref: '#/components/schemas/Version' }
+        status: { type: string }
+        order_refs: { type: array, items: { $ref: '#/components/schemas/OrderAllocation' } }
+        vendor_id: { type: string }
+        method: { type: string, enum: [CARD, CASH, WRISTBAND] }
+        custody: { $ref: '#/components/schemas/Custody' }
+        amount_cents: { $ref: '#/components/schemas/MoneyCents' }
+        currency: { $ref: '#/components/schemas/Currency' }
+        provider_reference: { type: string }
+        source_refs: { type: array, items: { $ref: '#/components/schemas/SourceRef' } }
+        business_date: { $ref: '#/components/schemas/BusinessDate', x-encore-proposal: Q3 }
+        occurred_at: { $ref: '#/components/schemas/Instant', x-encore-proposal: Q3 }
+        festival_id: { type: string, x-encore-proposal: Q3 }
+        kind: { type: string, enum: [CAPTURE, REFUND, CHARGEBACK], x-encore-proposal: Q3 }
+        cash_drawer: { type: [string, 'null'], enum: [VENDOR, ORGANIZER_CASH_OFFICE, null], x-encore-proposal: Q3 }
+        processor_batch_id: { type: [string, 'null'], x-encore-proposal: Q3 }
+        processor_fee_cents: { anyOf: [{ $ref: '#/components/schemas/MoneyCents' }, { type: 'null' }], x-encore-proposal: Q3 }
+        provider: { type: [string, 'null'], x-encore-proposal: Q3 }
+        refund_of_payment_id: { type: string, x-encore-proposal: Q3 }
+    BankEntry:
+      type: object
+      additionalProperties: false
+      required: [id, version, status, account_id, provider_reference, amount_cents, occurred_at, direction, source_refs]
+      properties:
+        id: { type: string }
+        version: { $ref: '#/components/schemas/Version' }
+        status: { type: string }
+        account_id: { type: string }
+        provider_reference: { type: string }
+        amount_cents: { $ref: '#/components/schemas/NonNegativeMoneyCents' }
+        occurred_at: { $ref: '#/components/schemas/Instant' }
+        direction: { $ref: '#/components/schemas/BankDirection' }
+        source_refs: { type: array, items: { $ref: '#/components/schemas/SourceRef' } }
+        currency: { $ref: '#/components/schemas/Currency', x-encore-proposal: Q3 }
+        description: { type: string, x-encore-proposal: Q3 }
+    ProcessorBatch:
+      type: object
+      additionalProperties: false
+      x-encore-proposal: Q3
+      required: [id, version, status, provider, provider_reference, business_date, currency, gross_cents, fees_cents, net_cents, payment_ids, source_refs]
+      properties:
+        id: { type: string }
+        version: { $ref: '#/components/schemas/Version' }
+        status: { type: string }
+        provider: { type: string }
+        provider_reference: { type: string }
+        payout_reference: { type: string }
+        business_date: { $ref: '#/components/schemas/BusinessDate' }
+        currency: { $ref: '#/components/schemas/Currency' }
+        gross_cents: { $ref: '#/components/schemas/MoneyCents' }
+        fees_cents: { $ref: '#/components/schemas/MoneyCents' }
+        net_cents: { $ref: '#/components/schemas/MoneyCents' }
+        payment_count: { type: integer }
+        payment_ids: { type: array, items: { type: string } }
+        source_refs: { type: array, items: { $ref: '#/components/schemas/SourceRef' } }
+    CashCount:
+      type: object
+      additionalProperties: false
+      x-encore-proposal: Q3
+      required: [id, version, status, festival_id, vendor_id, booth_id, business_date, custody, location, amount_cents, currency, counted_at, source_refs]
+      properties:
+        id: { type: string }
+        version: { $ref: '#/components/schemas/Version' }
+        status: { type: string }
+        festival_id: { type: string }
+        vendor_id: { type: string }
+        booth_id: { type: string }
+        business_date: { $ref: '#/components/schemas/BusinessDate' }
+        custody: { $ref: '#/components/schemas/Custody' }
+        location: { type: string }
+        amount_cents: { $ref: '#/components/schemas/NonNegativeMoneyCents' }
+        currency: { $ref: '#/components/schemas/Currency' }
+        counted_at: { $ref: '#/components/schemas/Instant' }
+        counted_by_role: { type: string }
+        source_native_id: { type: string }
+        source_refs: { type: array, items: { $ref: '#/components/schemas/SourceRef' } }
+    SourceDocument:
+      type: object
+      additionalProperties: false
+      x-encore-proposal: Q23
+      required: [id, version, status, kind, title, media_type, content_hash, byte_length]
+      properties:
+        id: { type: string }
+        version: { $ref: '#/components/schemas/Version' }
+        status: { type: string }
+        kind: { type: string }
+        title: { type: string }
+        media_type: { type: string }
+        content_hash: { type: string, pattern: '^sha256:[0-9a-f]{64}$' }
+        byte_length: { type: integer, minimum: 0 }
+        parser_version: { type: [string, 'null'] }
+        path: { type: string, description: Fixture-relative path; a live API serves content via an authorized reference instead. }
+        vendor_id: { type: [string, 'null'] }
+        received_at: { $ref: '#/components/schemas/Instant' }
+    BankAccount:
+      type: object
+      additionalProperties: false
+      x-encore-proposal: Q23
+      required: [id, name]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        opening_as_of: { $ref: '#/components/schemas/BusinessDate' }
+        opening_balance_cents: { $ref: '#/components/schemas/MoneyCents' }
+        source_refs: { type: array, items: { $ref: '#/components/schemas/SourceRef' } }
+    Festival:
+      type: object
+      additionalProperties: false
+      x-encore-proposal: Q23
+      required: [id, version, status, name, timezone, currency, start_date, end_date, business_dates]
+      properties:
+        id: { type: string }
+        version: { $ref: '#/components/schemas/Version' }
+        status: { type: string }
+        name: { type: string }
+        organizer_name: { type: string }
+        timezone: { type: string, const: America/Los_Angeles }
+        currency: { $ref: '#/components/schemas/Currency' }
+        start_date: { $ref: '#/components/schemas/BusinessDate' }
+        end_date: { $ref: '#/components/schemas/BusinessDate' }
+        business_dates: { type: array, items: { $ref: '#/components/schemas/BusinessDate' } }
+        business_config_id: { type: string }
+        bank_accounts: { type: array, items: { $ref: '#/components/schemas/BankAccount' } }
+        fictional_notice: { type: string }
+    BusinessConfig:
+      type: object
+      x-encore-proposal: Q23
+      description: C05 configuration (DRAFT). Shape is lane-B fixture shape; nested objects are open.
+      required: [id, version, status, festival_id, currency, timezone]
+      properties:
+        id: { type: string }
+        version: { $ref: '#/components/schemas/Version' }
+        status: { type: string }
+        festival_id: { type: string }
+        currency: { $ref: '#/components/schemas/Currency' }
+        timezone: { type: string }
+        draft_notice: { type: string }
+        default_terms:
+          type: object
+          properties:
+            commission_bps: { $ref: '#/components/schemas/BasisPoints' }
+            festival_minimum_cents: { $ref: '#/components/schemas/MoneyCents' }
+        payout_controls:
+          type: object
+          properties:
+            auto_limit_cents_per_vendor_day: { $ref: '#/components/schemas/MoneyCents' }
+            payment_mode: { type: string, enum: [SIMULATED] }
+            statement_local_time: { type: string }
+            payout_local_time: { type: string }
+        tax:
+          type: object
+          properties:
+            rate: { $ref: '#/components/schemas/DecimalString' }
+            label: { type: string }
+            report_status: { type: string }
+        draft_assumptions:
+          type: object
+          additionalProperties: { type: string }
+
+    # ----------------------------------- C03 output records (no fixture yet)
+    Run:
+      type: object
+      required: [id, version, status, business_date]
+      properties:
+        id: { type: string }
+        version: { $ref: '#/components/schemas/Version' }
+        status: { $ref: '#/components/schemas/RunStatus' }
+        business_date: { $ref: '#/components/schemas/BusinessDate' }
+        branch_id: { type: [string, 'null'] }
+        started_at: { $ref: '#/components/schemas/Instant' }
+        completed_at: { anyOf: [{ $ref: '#/components/schemas/Instant' }, { type: 'null' }] }
+    MatchGroup:
+      type: object
+      required: [id, version, status, member_refs, matched_amounts, variance_cents, reason_code, source_refs]
+      properties:
+        id: { type: string }
+        version: { $ref: '#/components/schemas/Version' }
+        status: { type: string }
+        member_refs: { type: array, items: { type: string } }
+        matched_amounts: { type: array, items: { $ref: '#/components/schemas/MoneyCents' } }
+        variance_cents: { $ref: '#/components/schemas/MoneyCents' }
+        reason_code: { type: string }
+        source_refs: { type: array, items: { $ref: '#/components/schemas/SourceRef' } }
+    SettlementLineItem:
+      type: object
+      x-encore-unspecified: true
+      required: [kind, amount_cents]
+      properties:
+        kind: { type: string }
+        label: { type: string }
+        amount_cents: { $ref: '#/components/schemas/MoneyCents' }
+        source_refs: { type: array, items: { $ref: '#/components/schemas/SourceRef' } }
+    Settlement:
+      type: object
+      required: [id, version, status, vendor_id, festival_id, business_date, calculation_version, source_manifest_hash, policy_refs, line_items, assessed_fee_cents, collected_fee_cents, payout_cents, unpaid_balance_cents, holds]
+      properties:
+        id: { type: string }
+        version: { $ref: '#/components/schemas/Version' }
+        status: { type: string }
+        vendor_id: { type: string }
+        festival_id: { type: string }
+        business_date: { $ref: '#/components/schemas/BusinessDate' }
+        calculation_version: { type: string }
+        source_manifest_hash: { type: string }
+        policy_refs: { type: array, items: { type: string } }
+        line_items: { type: array, items: { $ref: '#/components/schemas/SettlementLineItem' } }
+        assessed_fee_cents: { $ref: '#/components/schemas/MoneyCents' }
+        collected_fee_cents: { $ref: '#/components/schemas/MoneyCents' }
+        payout_cents: { $ref: '#/components/schemas/MoneyCents' }
+        unpaid_balance_cents: { $ref: '#/components/schemas/MoneyCents' }
+        holds: { type: array, items: { type: string } }
+        tips_passthrough_cents: { $ref: '#/components/schemas/MoneyCents', x-encore-proposal: Q2 }
+        receivable_change_cents: { $ref: '#/components/schemas/MoneyCents', x-encore-proposal: Q2 }
+        terms_basis: { type: string, x-encore-proposal: Q2 }
+        phase: { type: string, enum: [INTERIM, FINAL, POST_FESTIVAL_ADJUSTMENT], x-encore-proposal: Q2 }
+    FinancialImpact:
+      type: object
+      x-encore-unspecified: true
+      properties:
+        amount_cents: { $ref: '#/components/schemas/MoneyCents' }
+        description: { type: string }
+    Case:
+      type: object
+      required: [id, version, status, reason_code, evidence_refs, financial_impact, proposed_resolution, required_capability]
+      properties:
+        id: { type: string }
+        version: { $ref: '#/components/schemas/Version' }
+        status: { $ref: '#/components/schemas/CaseStatus' }
+        vendor_id: { type: [string, 'null'] }
+        run_id: { type: [string, 'null'] }
+        reason_code: { type: string }
+        evidence_refs: { type: array, items: { $ref: '#/components/schemas/SourceRef' } }
+        financial_impact: { $ref: '#/components/schemas/FinancialImpact' }
+        proposed_resolution: { type: [string, 'null'] }
+        required_capability: { $ref: '#/components/schemas/Capability' }
+    PolicyVersion:
+      type: object
+      required: [id, version, status, policy_id, scope, predicates, effect, evidence_refs, approver_ref, valid_from]
+      properties:
+        id: { type: string }
+        version: { $ref: '#/components/schemas/Version' }
+        status: { $ref: '#/components/schemas/PolicyStatus' }
+        policy_id: { type: string }
+        scope: { type: object, additionalProperties: true, x-encore-unspecified: true }
+        predicates: { type: array, items: { type: object, additionalProperties: true }, x-encore-unspecified: true }
+        effect: { type: object, additionalProperties: true, x-encore-unspecified: true }
+        evidence_refs: { type: array, items: { $ref: '#/components/schemas/SourceRef' } }
+        approver_ref: { type: [string, 'null'] }
+        valid_from: { $ref: '#/components/schemas/Instant' }
+        valid_to: { anyOf: [{ $ref: '#/components/schemas/Instant' }, { type: 'null' }] }
+        supersedes_version: { type: [integer, 'null'] }
+    Approval:
+      type: object
+      required: [id, actor_id, capability, action, target_id, target_version, evidence_hash, scope, expiry, decision]
+      properties:
+        id: { type: string }
+        actor_id: { type: string }
+        capability: { $ref: '#/components/schemas/Capability' }
+        action: { type: string }
+        target_id: { type: string }
+        target_version: { $ref: '#/components/schemas/Version' }
+        evidence_hash: { type: string }
+        amount_cents: { anyOf: [{ $ref: '#/components/schemas/MoneyCents' }, { type: 'null' }] }
+        scope: { type: string }
+        expiry: { $ref: '#/components/schemas/Instant' }
+        decision: { type: string }
+    Payout:
+      type: object
+      required: [id, version, logical_obligation_id, idempotency_key, vendor_id, business_date, beneficiary_version, amount_cents, state]
+      properties:
+        id: { type: string }
+        version: { $ref: '#/components/schemas/Version' }
+        logical_obligation_id: { type: string }
+        idempotency_key: { type: string }
+        vendor_id: { type: string }
+        business_date: { $ref: '#/components/schemas/BusinessDate' }
+        beneficiary_version: { $ref: '#/components/schemas/Version' }
+        amount_cents: { $ref: '#/components/schemas/MoneyCents' }
+        approval_ref: { type: [string, 'null'] }
+        state: { $ref: '#/components/schemas/PayoutState' }
+        provider_reference: { type: [string, 'null'] }
+    JournalLine:
+      type: object
+      required: [account, debit_cents, credit_cents]
+      properties:
+        account: { type: string }
+        debit_cents: { $ref: '#/components/schemas/NonNegativeMoneyCents' }
+        credit_cents: { $ref: '#/components/schemas/NonNegativeMoneyCents' }
+    JournalEntry:
+      type: object
+      required: [entry_id, posting_rule_version, source_refs, correction_of, lines, posted_at]
+      properties:
+        entry_id: { type: string }
+        posting_rule_version: { type: string }
+        source_refs: { type: array, items: { $ref: '#/components/schemas/SourceRef' } }
+        correction_of: { type: [string, 'null'] }
+        lines: { type: array, items: { $ref: '#/components/schemas/JournalLine' } }
+        posted_at: { $ref: '#/components/schemas/Instant' }
+    Supplier:
+      type: object
+      x-encore-unspecified: true
+      required: [id, version, name]
+      properties:
+        id: { type: string }
+        version: { $ref: '#/components/schemas/Version' }
+        name: { type: string }
+    PurchaseOrder:
+      type: object
+      x-encore-unspecified: true
+      required: [id, version, supplier_id]
+      properties:
+        id: { type: string }
+        version: { $ref: '#/components/schemas/Version' }
+        supplier_id: { type: string }
+        amount_cents: { $ref: '#/components/schemas/MoneyCents' }
+    SupplierInvoice:
+      type: object
+      required: [id, version, status, supplier_id, po_refs, invoice_number, invoice_date, currency, gross_cents, tax_cents, net_cents, due_date, outstanding_cents, source_refs]
+      properties:
+        id: { type: string }
+        version: { $ref: '#/components/schemas/Version' }
+        status: { type: string }
+        supplier_id: { type: string }
+        po_refs: { type: array, items: { type: string } }
+        invoice_number: { type: string }
+        invoice_date: { $ref: '#/components/schemas/BusinessDate' }
+        currency: { $ref: '#/components/schemas/Currency' }
+        gross_cents: { $ref: '#/components/schemas/MoneyCents' }
+        tax_cents: { $ref: '#/components/schemas/MoneyCents' }
+        net_cents: { $ref: '#/components/schemas/MoneyCents' }
+        due_date: { $ref: '#/components/schemas/BusinessDate' }
+        outstanding_cents: { $ref: '#/components/schemas/MoneyCents' }
+        source_refs: { type: array, items: { $ref: '#/components/schemas/SourceRef' } }
+    TaxReport:
+      type: object
+      x-encore-unspecified: true
+      required: [id, version, status, label]
+      properties:
+        id: { type: string }
+        version: { $ref: '#/components/schemas/Version' }
+        status: { type: string, description: Always labelled DRAFT, NOT FILED in v1. }
+        label: { type: string }
+        tax_collected_cents: { $ref: '#/components/schemas/MoneyCents' }
+    CashPosition:
+      type: object
+      x-encore-unspecified: true
+      required: [id, as_of, available_cents]
+      properties:
+        id: { type: string }
+        as_of: { $ref: '#/components/schemas/Instant' }
+        available_cents: { $ref: '#/components/schemas/MoneyCents' }
+
+    # ---------------------------------------------------------- C03 events
+    EventEnvelope:
+      type: object
+      required: [event_id, type, schema_version, cursor, stream_sequence, aggregate_id, aggregate_version, occurred_at, recorded_at]
+      properties:
+        event_id: { type: string }
+        type: { type: string }
+        schema_version: { type: integer, minimum: 1 }
+        cursor: { type: string, description: Opaque resume cursor. }
+        stream_sequence:
+          type: integer
+          minimum: 1
+          x-encore-proposal: Q25
+          description: Monotonic per stream (C06 stream_id/sequence); used for gap detection.
+        aggregate_id: { type: string }
+        aggregate_version: { $ref: '#/components/schemas/Version' }
+        run_id: { type: [string, 'null'] }
+        vendor_id: { type: [string, 'null'] }
+        branch_id: { type: [string, 'null'] }
+        occurred_at: { $ref: '#/components/schemas/Instant' }
+        recorded_at: { $ref: '#/components/schemas/Instant' }
+        causation_id: { type: [string, 'null'] }
+        correlation_id: { type: [string, 'null'] }
+        actor_ref: { type: [string, 'null'] }
+        payload: { type: object, additionalProperties: true, description: Authorized safe payload or ref. Never grants permissions. }
+
+    # ------------------------------------------------------ list envelopes
+    VendorList:
+      type: object
+      additionalProperties: false
+      required: [items, next_cursor]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Vendor' } }
+        next_cursor: { $ref: '#/components/schemas/NextCursor' }
+    OrderList:
+      type: object
+      additionalProperties: false
+      required: [items, next_cursor]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Order' } }
+        next_cursor: { $ref: '#/components/schemas/NextCursor' }
+    PaymentList:
+      type: object
+      additionalProperties: false
+      required: [items, next_cursor]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Payment' } }
+        next_cursor: { $ref: '#/components/schemas/NextCursor' }
+    BankEntryList:
+      type: object
+      additionalProperties: false
+      required: [items, next_cursor]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/BankEntry' } }
+        next_cursor: { $ref: '#/components/schemas/NextCursor' }
+    ProcessorBatchList:
+      type: object
+      additionalProperties: false
+      required: [items, next_cursor]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/ProcessorBatch' } }
+        next_cursor: { $ref: '#/components/schemas/NextCursor' }
+    CashCountList:
+      type: object
+      additionalProperties: false
+      required: [items, next_cursor]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/CashCount' } }
+        next_cursor: { $ref: '#/components/schemas/NextCursor' }
+    SourceDocumentList:
+      type: object
+      additionalProperties: false
+      required: [items, next_cursor]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/SourceDocument' } }
+        next_cursor: { $ref: '#/components/schemas/NextCursor' }
+    RunList:
+      type: object
+      required: [items, next_cursor]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Run' } }
+        next_cursor: { $ref: '#/components/schemas/NextCursor' }
+    SettlementList:
+      type: object
+      required: [items, next_cursor]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Settlement' } }
+        next_cursor: { $ref: '#/components/schemas/NextCursor' }
+    CaseList:
+      type: object
+      required: [items, next_cursor]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Case' } }
+        next_cursor: { $ref: '#/components/schemas/NextCursor' }
+    PolicyVersionList:
+      type: object
+      required: [items, next_cursor]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/PolicyVersion' } }
+        next_cursor: { $ref: '#/components/schemas/NextCursor' }
+    PayoutList:
+      type: object
+      required: [items, next_cursor]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Payout' } }
+        next_cursor: { $ref: '#/components/schemas/NextCursor' }
+    MatchGroupList:
+      type: object
+      required: [items, next_cursor]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/MatchGroup' } }
+        next_cursor: { $ref: '#/components/schemas/NextCursor' }
+    SupplierList:
+      type: object
+      required: [items, next_cursor]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Supplier' } }
+        next_cursor: { $ref: '#/components/schemas/NextCursor' }
+    PurchaseOrderList:
+      type: object
+      required: [items, next_cursor]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/PurchaseOrder' } }
+        next_cursor: { $ref: '#/components/schemas/NextCursor' }
+    SupplierInvoiceList:
+      type: object
+      required: [items, next_cursor]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/SupplierInvoice' } }
+        next_cursor: { $ref: '#/components/schemas/NextCursor' }
+    JournalEntryList:
+      type: object
+      required: [items, next_cursor]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/JournalEntry' } }
+        next_cursor: { $ref: '#/components/schemas/NextCursor' }
+    TaxReportList:
+      type: object
+      required: [items, next_cursor]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/TaxReport' } }
+        next_cursor: { $ref: '#/components/schemas/NextCursor' }
+    CashPositionList:
+      type: object
+      required: [items, next_cursor]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/CashPosition' } }
+        next_cursor: { $ref: '#/components/schemas/NextCursor' }
+    EventList:
+      type: object
+      required: [items, next_cursor]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/EventEnvelope' } }
+        next_cursor: { $ref: '#/components/schemas/NextCursor' }
