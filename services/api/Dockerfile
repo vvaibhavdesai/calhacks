@@ -13,10 +13,17 @@ RUN uv sync --frozen --no-dev || uv sync --no-dev
 
 # Now copy the actual source.
 COPY services/api/app /repo/services/api/app
+COPY packages/domain /repo/packages/domain
 COPY db/migrations /repo/db/migrations
 COPY scripts /repo/scripts
 
-ENV PYTHONPATH=/repo/services/api
+# A04: app/settlement.py is the first real consumer of packages/domain
+# (`from domain.settlement import ...`) -- it must be on PYTHONPATH here,
+# not only in pyproject.toml's [tool.pytest.ini_options] pythonpath (which
+# only applies to `pytest`, never to this container's `uvicorn` process).
+# Before A04 this omission was latent/harmless because nothing under
+# services/api/app imported from `domain` yet.
+ENV PYTHONPATH=/repo/services/api:/repo/packages/domain
 
 EXPOSE 8000
 
