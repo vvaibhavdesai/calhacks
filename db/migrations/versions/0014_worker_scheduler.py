@@ -36,7 +36,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision: str = "0014_worker_scheduler"
-down_revision: str | None = "0012_a09_corrections"
+down_revision: str | None = "0013_terms_resolution"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

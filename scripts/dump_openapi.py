@@ -94,12 +94,16 @@ def main() -> int:
 
     if args.check:
         if not out.exists():
-            print(f"dump_openapi: {out} does not exist; run `uv run python scripts/dump_openapi.py`.")
+            print(
+                f"dump_openapi: {out} does not exist; run `uv run python scripts/dump_openapi.py`."
+            )
             return 1
         committed = out.read_text(encoding="utf-8")
         if committed == fresh:
             paths = len(json.loads(fresh).get("paths", {}))
-            print(f"dump_openapi: {out.relative_to(REPO_ROOT)} matches app.openapi() ({paths} paths)")
+            print(
+                f"dump_openapi: {out.relative_to(REPO_ROOT)} matches app.openapi() ({paths} paths)"
+            )
             return 0
         print(
             f"dump_openapi: {out.relative_to(REPO_ROOT)} is STALE. The backend contract moved; "

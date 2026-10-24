@@ -74,7 +74,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "0016_audit_append_only"
-down_revision: str | None = "0014_worker_scheduler"
+down_revision: str | None = "0015_festivals"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
