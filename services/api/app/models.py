@@ -124,6 +124,31 @@ CAPABILITY_CLOSE_BOOKS = "close_books"
 # Anthropic API credit. Separate so model spend can be granted on its own.
 CAPABILITY_RUN_AGENTS = "run_agents"
 
+# X0.1 (prevention extension): the five new capabilities TICKET_SPEC.md's
+# X0.1 section lists by name, gating the new generic Approval mechanism's
+# `action`s (see packages/domain/domain/approvals.py). Each is separate
+# from CAPABILITY_ADMIN/CAPABILITY_FINANCE_LEAD for the same reason every
+# earlier capability above is split out -- so a later deployment can grant
+# one narrow approval authority without granting the others.
+# R2: approve a scoped "internal interpretation" rule for a readiness
+# conflict. Distinct from CAPABILITY_RECORD_AMENDMENT -- "signed amendment
+# != approved interpretation" (TICKET_SPEC.md rule) extends to who may
+# grant each, not just how they're stored/displayed.
+CAPABILITY_APPROVE_INTERPRETATION = "approve_interpretation"
+# R2: record that a signed amendment document resolves a readiness
+# conflict (requires a document upload per R2's "Done when").
+CAPABILITY_RECORD_AMENDMENT = "record_amendment"
+# S4: accept/dispute/credit a supplier-invoice matching exception.
+# Distinct from CAPABILITY_MANAGE_PAYABLES (A08) so invoice-exception
+# authority can be split from ordinary PO/invoice recording later.
+CAPABILITY_APPROVE_INVOICE_EXCEPTION = "approve_invoice_exception"
+# S4: the separate payment-release step after an exception is accepted.
+# Every supplier payment release needs this -- TICKET_SPEC.md's default:
+# "there is no automatic limit."
+CAPABILITY_RELEASE_SUPPLIER_PAYMENT = "release_supplier_payment"
+# F5: acknowledge a cash-forecast shortfall case.
+CAPABILITY_ACKNOWLEDGE_FORECAST = "acknowledge_forecast"
+
 ALL_CAPABILITY_CODES = (
     CAPABILITY_ADMIN,
     CAPABILITY_RESOLVE_CASE,
@@ -136,4 +161,9 @@ ALL_CAPABILITY_CODES = (
     CAPABILITY_MANAGE_PAYABLES,
     CAPABILITY_CLOSE_BOOKS,
     CAPABILITY_RUN_AGENTS,
+    CAPABILITY_APPROVE_INTERPRETATION,
+    CAPABILITY_RECORD_AMENDMENT,
+    CAPABILITY_APPROVE_INVOICE_EXCEPTION,
+    CAPABILITY_RELEASE_SUPPLIER_PAYMENT,
+    CAPABILITY_ACKNOWLEDGE_FORECAST,
 )
