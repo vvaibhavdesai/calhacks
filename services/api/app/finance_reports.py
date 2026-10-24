@@ -34,6 +34,7 @@ from app.models_cash_office import (
     CashOfficeCount,
     ChargebackFee,
 )
+from app.models_corrections import VendorRecovery, WorkHold
 from app.models_finance import (
     DailyClose,
     Expense,
@@ -455,6 +456,30 @@ def build_statement_content(db: Session, vendor: Vendor, business_date: date) ->
     )
     if payout is not None and payout.recovery_required:
         holds.append({"code": "payout_recovery_required", "payout_id": payout.id})
+    # A09: an open challenge of this vendor's terms, or money the vendor
+    # still owes back for this night, keeps the statement HELD.
+    for h in db.execute(
+        select(WorkHold).where(
+            WorkHold.status == "ACTIVE",
+            WorkHold.record_kind == "VENDOR",
+            WorkHold.record_id == vendor.id,
+        )
+    ).scalars():
+        holds.append({"code": h.reason_code, "hold_id": h.id, "source_id": h.source_id})
+    for r in db.execute(
+        select(VendorRecovery).where(
+            VendorRecovery.vendor_id == vendor.id,
+            VendorRecovery.business_date == business_date,
+            VendorRecovery.status != "CLOSED",
+        )
+    ).scalars():
+        holds.append(
+            {
+                "code": "vendor_recovery_open",
+                "recovery_id": r.id,
+                "remaining_cents": r.remaining_cents,
+            }
+        )
 
     entries = (
         db.execute(

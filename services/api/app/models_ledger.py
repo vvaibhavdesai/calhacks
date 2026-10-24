@@ -43,6 +43,7 @@ from sqlalchemy import (
     Date,
     DateTime,
     ForeignKey,
+    Identity,
     Integer,
     String,
     Text,
@@ -781,6 +782,18 @@ class BusinessEvent(Base):
     versions: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     previous_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     hash: Mapped[str] = mapped_column(String(64), nullable=False)
+
+    # --- A09 additive column (migration 0010) ---
+    # A global, database-assigned insertion position across ALL streams, so
+    # the recorder can page a stable, pinned event list and fold history in
+    # one deterministic order. It is assigned at INSERT (identity), not at
+    # commit, so a long-running transaction can commit a lower position
+    # after a higher one: knowledge-time queries therefore cut on
+    # `recorded_at`, and snapshots re-verify their event count (see
+    # app/history.py). Not part of the hash chain (the chain is per stream).
+    global_position: Mapped[int] = mapped_column(
+        BigInteger, Identity(always=False), nullable=False, unique=True
+    )
 
 
 class OutboxIntent(Base):

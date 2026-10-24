@@ -263,7 +263,8 @@ def dispatch(
             actor_capability=CAPABILITY_APPROVE_PAYOUT,
             simulate_outcome=body.simulate_outcome,
         )
-    except payout_dispatch.PayoutNotFoundError as exc:
+    except (payout_dispatch.PayoutNotFoundError, payout_dispatch.PayoutBlockedError) as exc:
+        # A09: dispatch can now be blocked by a work hold (recheck at execution).
         raise _http_error_for(exc) from exc
     db.commit()
     return DispatchResponse(

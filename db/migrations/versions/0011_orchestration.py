@@ -1,6 +1,6 @@
 """A06 stage 3: nightly-close orchestration records and LangGraph checkpoints.
 
-Revision ID: 0010_orchestration
+Revision ID: 0011_orchestration
 Revises: 0009_agent_extractions
 Create Date: 2026-10-24
 
@@ -39,8 +39,8 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision: str = "0010_orchestration"
-down_revision: str | None = "0009_agent_extractions"
+revision: str = "0011_orchestration"
+down_revision: str | None = "0010_a08_cash_deposits"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

@@ -30,3 +30,7 @@ var/documents/
 
 # Logs
 *.log
+
+# Claude Code session state and agent worktrees (never committed; also keeps
+# black/ruff from walking into other branches, incl. lane B's excluded files).
+.claude/

@@ -123,6 +123,15 @@ CAPABILITY_CLOSE_BOOKS = "close_books"
 # A06: start agent work (document extraction / investigation) that spends
 # Anthropic API credit. Separate so model spend can be granted on its own.
 CAPABILITY_RUN_AGENTS = "run_agents"
+# A09: challenge a decided result (pauses the rule and dependent work; moves
+# no money), approve an exact correction plan, open an isolated what-if
+# branch, start a side-effect-free replay. Lane B's draft names these
+# challenge.create / correction.approve / branch.create / replay.start (Q55);
+# this codebase's capability codes are snake_case.
+CAPABILITY_CHALLENGE = "challenge_result"
+CAPABILITY_APPROVE_CORRECTION = "approve_correction"
+CAPABILITY_WHAT_IF = "run_what_if"
+CAPABILITY_REPLAY = "run_replay"
 
 ALL_CAPABILITY_CODES = (
     CAPABILITY_ADMIN,
@@ -136,4 +145,8 @@ ALL_CAPABILITY_CODES = (
     CAPABILITY_MANAGE_PAYABLES,
     CAPABILITY_CLOSE_BOOKS,
     CAPABILITY_RUN_AGENTS,
+    CAPABILITY_CHALLENGE,
+    CAPABILITY_APPROVE_CORRECTION,
+    CAPABILITY_WHAT_IF,
+    CAPABILITY_REPLAY,
 )

@@ -123,7 +123,7 @@ New:
 - `services/worker/worker/orchestration.py`: the claim/execute loop.
   `worker/main.py` runs it when `ORCHESTRATION_WORKER_ENABLED=1` and keeps
   the A01 heartbeat otherwise. The health contract is unchanged.
-- `db/migrations/versions/0010_orchestration.py`.
+- `db/migrations/versions/0011_orchestration.py`.
 - `scripts/dev_fixtures_a06_orchestration.py` (hand-checked, NOT B01).
 - `scripts/verify_a06_orchestration.py`.
 - `services/api/tests/test_orchestration.py` (10 tests).

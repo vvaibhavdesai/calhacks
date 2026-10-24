@@ -33,6 +33,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
+from app.effects_guard import assert_effects_allowed
 from app.models_payout_dispatch import RailSimulatorRecord
 
 Outcome = Literal["ACCEPTED", "DELAYED", "FAILED", "UNKNOWN"]
@@ -78,6 +79,8 @@ def submit_payment(
     that nothing is mutated on `db` before this call.
     """
     require_simulated_payment_mode()
+    # A09: replay/what-if can never submit a payment, even a simulated one.
+    assert_effects_allowed("payment_effect")
 
     existing = lookup(db, idempotency_key)
     if existing is not None:
