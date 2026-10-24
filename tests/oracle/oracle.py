@@ -531,7 +531,7 @@ def journals(fx: Fixture, result: dict) -> list[dict]:
         if not p["state"].startswith("RELEASE_ELIGIBLE"):
             continue
         a, tp = cents(p["amount_cents"]), cents(p["tips_passthrough_cents"])
-        add(f"PAYOUT:{p['vendor_name']}:{p['business_date']}", p["business_date"], "VENDOR_PAYOUT_SIMULATED",
+        add(f"PAYOUT:{p['vendor_name']}:{p['business_date']}", fx.local_date(p["scheduled_at_utc"]), "VENDOR_PAYOUT_SIMULATED",
             [("2000", a, 0), ("2200", tp, 0), ("1000", 0, a + tp)], [p["vendor_id"]],
             note="Expected only once the simulated payout is CONFIRMED.")
     for e in entries:
