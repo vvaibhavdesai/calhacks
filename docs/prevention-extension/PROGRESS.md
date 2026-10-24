@@ -10,12 +10,13 @@ Branch: `prevention-extension` (local only, based off `origin/integration`
 not started · in progress · blocked · review · done
 
 **X0 (shared foundations) is now fully complete, except the deliberately
-deferred X0.4** — X0.1, X0.2, and X0.3 are all `review (verified)`. Per
-CONTEXT.md's build order, the next ticket is **R1 (readiness records and
-checks)**, whose real dependency is X0.2 (term provenance/precedence), not
-X0.3 — see X0.3-handoff.md's "Next ticket" section for the exact
-dependency reasoning (X0.3's `contract_obligation`/`obligation_link`
-tables are F1's and S1's dependency, not R-track's).
+deferred X0.4** — X0.1, X0.2, and X0.3 are all `review (verified)`. **R1
+(readiness records and checks) is now also `review (verified)`.** Per
+CONTEXT.md's build order, the next ticket is **R2 (readiness cases and
+decisions)**, which depends on R1 (done) and X0.1 (done) — see
+R1-handoff.md's "Next ticket" section for the exact hook R2 should call
+(`compute_readiness`'s `case_facts` parameter) to get `ready_with_
+interpretation` for free once it approves an interpretation.
 
 ## Ticket status
 
@@ -25,7 +26,7 @@ tables are F1's and S1's dependency, not R-track's).
 | X0.2 term provenance/precedence | must | review (verified) | migration 0011; see handoff for commit list | [X0.2-handoff.md](../progress/X0.2-handoff.md) |
 | X0.3 contract obligations/links | must | review (verified) | migration 0012; see handoff for commit list | [X0.3-handoff.md](../progress/X0.3-handoff.md) |
 | X0.4 generator additions | must | **deferred** (collision risk with teammate's live `data/generator`/`tests/oracle` work — see CONTEXT.md) | — | — |
-| R1 readiness records/checks | must | not started | — | — |
+| R1 readiness records/checks | must | review (verified) | migration 0013; see handoff for commit list | [R1-handoff.md](../progress/R1-handoff.md) |
 | R2 readiness cases/decisions | must | not started | — | — |
 | R3 invalidation on new evidence | must | not started | — | — |
 | R4 settlement gate integration | must | not started | — | — |
@@ -96,6 +97,44 @@ tables are F1's and S1's dependency, not R-track's).
    subject pair. A future ticket wiring a real endpoint on top of X0.3
    should add that existence check at the endpoint/service boundary. See
    X0.3-handoff.md's "Open risks."
+10. **R1: no literal `propose_terms` function exists anywhere in this
+    codebase.** TICKET_SPEC.md's R1 section says "Extraction reuses
+    `propose_terms` with citations" — confirmed by a repo-wide grep before
+    writing any R1 code that no such function exists. R1 instead reuses
+    `app/agents/extraction.py`'s real `extract_document`/`DocumentClaim`
+    pattern (A06), per CONTEXT.md's own explicit instruction. See
+    R1-handoff.md's "Design, in brief" for the full mapping.
+11. **R1: no live Anthropic API call was made in this ticket's own
+    fixtures/verification.** `ANTHROPIC_API_KEY` is unset in this
+    sandbox's `.env` — CONTEXT.md's note that "a real Anthropic key
+    already verified working" exists must refer to a different session's
+    environment, not this one. `scripts/dev_fixtures_r1.py` constructs
+    `DocumentExtraction`/`DocumentClaim` rows directly instead (same
+    precedent `dev_fixtures_x02.py` already set for not re-driving
+    another ticket's own live/HTTP flow). R1's production code path
+    (`app/readiness.py`'s `SIGNED_AGREEMENT` check) is NOT mocked —  only
+    this ticket's own fixture-seeding bypasses the live model call. Any
+    future ticket relying on a real Anthropic call working in THIS sandbox
+    should re-check `ANTHROPIC_API_KEY` first, not assume CONTEXT.md's
+    earlier note still holds. See R1-handoff.md's "Design, in brief" and
+    "Deviations" for the full reasoning.
+12. **R1: counterparty-genericity — schema generic, logic vendor-only.**
+    `ReadinessCheck.counterparty_type`/`counterparty_id` is a loose,
+    generic string pair (same convention as `Case`/`ContractObligation`'s
+    own subject/counterparty pairs); the pure `domain.readiness.
+    evaluate_readiness` function is already fully generic over
+    `counterparty_type`. `app/readiness.py`'s `compute_readiness`,
+    however, raises `UnsupportedCounterpartyTypeError` loudly for
+    `counterparty_type="supplier"` — no `SupplierContractTerm` (or
+    equivalent) data model exists anywhere in this codebase yet. A future
+    supplier-readiness ticket adds its own data source and calls the same
+    pure function directly; the TABLES do not need to change. See
+    R1-handoff.md's "Design, in brief" for the full reasoning.
+13. **R1: a new capability, `run_readiness`, was added** — not one of
+    X0.1's five named capabilities, but following the SAME precedent every
+    other "trigger a deterministic engine" endpoint already has
+    (`import_source`, `run_reconciliation`, `calculate_settlement`).
+    Judgment call, documented in R1-handoff.md.
 
 ## Deviations from `TICKET_SPEC.md` (running log)
 
@@ -179,10 +218,62 @@ tables are F1's and S1's dependency, not R-track's).
   this aggregate (a cancelled commitment is no longer a real one). See
   X0.3-handoff.md.
 
+- **R1: no literal `propose_terms` function exists anywhere in this
+  codebase** — TICKET_SPEC.md's R1 wording is adapted to mean "reuse A06's
+  real `extract_document`/`DocumentClaim` pattern," per CONTEXT.md's own
+  explicit instruction, confirmed by a repo-wide grep before writing any
+  code. See R1-handoff.md.
+- **R1: the `SIGNED_AGREEMENT` check reads `DocumentClaim` rows, not
+  `VendorContractTerm` rows** — the one check (of eight) that consults
+  A06's extraction output directly (`speaker_role="SIGNED_AGREEMENT"`,
+  code-verified), reusing the exact convention
+  `scripts/eval_a06_extraction.py` already established, not inventing a
+  new one. The other seven checks read `VendorContractTerm`/`Vendor`/
+  `Case` data the way A05/X0.2 already do. See R1-handoff.md.
+- **R1: no "claims -> VendorContractTerm" conversion pipeline was built**
+  — `app/terms_resolution.py` (named in `models_agents.py`'s own docstring
+  as future work) does not exist and R1 does not build it; R1's checks
+  read whichever `VendorContractTerm` rows already exist, built the same
+  way A05/X0.2's own fixtures already build them. See R1-handoff.md.
+- **R1: no live Anthropic API call was made** — `ANTHROPIC_API_KEY` is
+  unset in this sandbox; `scripts/dev_fixtures_r1.py` constructs
+  `DocumentExtraction`/`DocumentClaim` rows directly instead (same
+  precedent `dev_fixtures_x02.py` set for not re-driving another ticket's
+  own live flow a second time). See R1-handoff.md.
+- **R1: a third `readiness_input.input_kind` value,
+  `"vendor_contract_term"`, added** beyond TICKET_SPEC.md's literal
+  "document_version or rule_version" pair — most `VendorContractTerm` rows
+  in this codebase's existing fixtures have no real document citation of
+  their own. Documented in the 0013 migration's docstring,
+  `app/models_readiness.py`, R1-handoff.md, and here, per the same
+  "documented addition, never silently invented" discipline X0.1/X0.3
+  already established for their own additions.
+- **R1: a new capability, `run_readiness`, added** — not named explicitly
+  by TICKET_SPEC.md's R1 section, but following the same precedent every
+  other "trigger a deterministic engine" endpoint already has
+  (`import_source`/`run_reconciliation`/`calculate_settlement`). See
+  R1-handoff.md.
+- **R1: `compute_readiness` reuses `app.policy.find_candidate_conflicting_
+  terms` directly, never `detect_contract_term_conflicts`** — a deliberate
+  choice so R1's own compute path never opens a `Case` as a side effect
+  (that is explicitly R2's job per TICKET_SPEC.md's own sequencing). See
+  R1-handoff.md.
+- **R1: counterparty_type="supplier" is rejected loudly
+  (`UnsupportedCounterpartyTypeError`), not silently computed** — no
+  `SupplierContractTerm` (or equivalent) data model exists yet; the schema
+  stays generic, the logic does not. See R1-handoff.md.
+
 ## Capabilities added by X0.1 (new, beyond A01-A08's existing set)
 
 `approve_interpretation`, `record_amendment`, `approve_invoice_exception`,
 `release_supplier_payment`, `acknowledge_forecast` -- see
 `services/api/app/models.py` and X0.1-handoff.md's routing table. Re-run
 `scripts/seed_admin.py` after migration 0010 to grant these to the admin
+user.
+
+## Capabilities added by R1
+
+`run_readiness` -- gates `POST /api/v1/readiness/recompute`. See
+`services/api/app/models.py` and R1-handoff.md's "Deviations" #5. Re-run
+`scripts/seed_admin.py` after migration 0013 to grant it to the admin
 user.
