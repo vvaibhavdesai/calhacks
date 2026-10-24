@@ -462,3 +462,145 @@ Not done:
 
 - Lane A reviews the draft routes, proposals Q22–Q29 and DA31–DA38. When A's OpenAPI exists, follow the swap procedure in `apps/web/README.md`.
 - Next lane B task: **B04** (live core screens), starting from these primitives, against contract fixtures and then A's endpoints.
+
+## B04: live core screens
+
+| Field | Value |
+|---|---|
+| Task ID | B04 |
+| Owner | Lane B (experience/data) |
+| Branch | `lane-b` (pushed to `origin/lane-b`; nothing merged to `main`) |
+| Base commit | `ea970bb` (B03 handoff record) |
+| Commits | `9e1ffe5` OpenAPI proposals + types · `7299489` illustrative fixture + transport + bundle guard · `3c162d1` shared hook/components · `a538ae8` screens + tests · `cd1ab94` README · this record |
+| Status | **review: integration blocked on A03–A06.** Lane A has no backend yet, so the B04 acceptance (browser tests against a real API and database for one complete vendor flow) **has not been met and was not attempted**. Everything below was exercised only on the dev/test fixture transport. |
+| Reviewer / merge commit | none yet |
+
+### Files (only `apps/web/` and this note)
+
+- `contracts-draft/openapi.draft.yaml`: lane-B proposals Q30–Q36 (marked `x-encore-proposal`). `src/api/generated/schema.ts` was regenerated with openapi-typescript 7.4.4; `src/api/operations.ts` and `types.ts` were extended.
+- `src/fixtures/illustrative/outputs_v1.json`: **ILLUSTRATIVE** hand-authored outputs (2 runs, 6 vendor runs, 4 settlements, 4 cases, 4 policy versions, 4 match groups). Every id starts with `illus_`.
+- `src/fixtures/fixtureTransport.ts`, `compactFixture.ts`, `disabled.ts`: opt-in output routes and decision-command semantics.
+- `scripts/check-prod-bundle.mjs`: now also collects every `illus_` id from the illustrative file (285 markers, up from 228).
+- `src/hooks/useCommand.ts`, `useLookups.tsx` (extracted from SourceRecords).
+- `src/components/`: StatusBadge, MilestoneTrack, HoldList, AppliedPolicyBadge, CommandStatus, EvidenceButton, IllustrativeNote.
+- `src/screens/`: Runs, Reconciliation, Settlements, Cases, Policies and an updated Overview.
+- `src/app/`: routes and navigation (`implemented` flag). `src/main.tsx` enables illustrative outputs and decision capabilities in `dev:fixtures` only.
+- Tests: `src/screens/screens.test.tsx`, `src/screens/decisions.test.tsx`, `src/fixtures/illustrativeOutputs.test.ts`, additions to `src/api/contract.test.ts`, the helper `src/test/renderApp.tsx`, and `App.test.tsx` adapted to the multi-panel overview.
+- `src/test/setup.ts`: Testing Library async timeout raised to 4 s, because detail pages chain fetches and the parallel suite was flaky at 1 s.
+- `README.md`.
+
+No dependencies were added. No changes were made to packages/contracts, services, db, infra, data, tests/oracle, root config or planning docs.
+
+### How the illustrative fixture was made (oracle isolation)
+
+- Hand-written by lane B. Amounts are invented round figures, labelled illustrative, and **were not computed from the compact inputs, the oracle, `tests/oracle/expected/`, `scripted_decisions*` or `dev_only/`**. None of those files were opened during B04.
+- Only input artifacts were referenced: compact vendor, source-document, bank-entry, batch and cash-count ids and hashes, plus two quoted spans whose char offsets I located myself in the input contract and email.
+- Match groups pair input batch/bank/cash records whose input amounts are equal or sum. The `CASE_REQUIRED` cash group uses invented `illus_` member ids.
+- The Taco Libre conflict case has **no proposed answer**; both options are offered. The DRAFT policy candidate exists so the reuse-approval UI can be exercised.
+- A test fails if fixture code or data mentions oracle or `dev_only` paths. The UI shows "ILLUSTRATIVE sample output" on every output screen in fixture mode.
+
+### Commands actually run (macOS, Node v18.18.2)
+
+| Command | Result |
+|---|---|
+| `npm run gen:api` then `npm run check:api` | `generated API types are up to date with contracts-draft/openapi.draft.yaml` |
+| `npm run check` (check:api, typecheck, lint, test, build) | all passed. Typecheck and lint had no errors. `Test Files 14 passed (14) · Tests 140 passed (140)` (103 from B03 + 37 new). Vite built 4 files (JS 318.86 kB, gzip 96.30 kB). `prod bundle check OK: 4 files, 285 fixture markers, 0 hits` |
+| `npx vitest run`, three runs in a row after the timeout fix | 140/140 each time. Before the fix one decision test failed deterministically: it read the policy section synchronously before the candidate loaded. The test was fixed, not skipped. |
+| Planted `illus_case_taco_rate` in `dist/` and ran `node scripts/check-prod-bundle.mjs` | exit 1, `1 hits`. The planted file was removed and the guard passed again. |
+| Mutation check: removed the stale-binding discard in `Cases.tsx` | the 409 test failed as expected; the file was restored |
+| Headless Chrome screenshots of `vite --mode fixtures` | Overview, case and statement at 1280 px; case at 500 px. This found a long evidence hash overflowing at 500 px, now fixed with `code-wrap`. Not done: screen reader, real mobile, 375 px. |
+
+Not run: any browser E2E, Playwright or real-API tests (none added); integration against lane A; CI.
+
+### Tests added (fixture-only; NOT integration acceptance)
+
+- **Screens:**
+  - the overview pipeline: 6 vendors, server counts, held vendors with reasons and case links, the vendor-local isolation note, and run selection kept in `?run=` across a remount;
+  - run filter by state;
+  - reconciliation list, status filter, members paired with amounts, evidence drawer and case link;
+  - statement: protected tax/tips, hold reason, provisional label, calculation version and SIMULATED label; applied-rule badge citing the policy version and origin case;
+  - settlement vendor filter;
+  - case read view;
+  - auto-resolved recurrence citing the rule and origin case;
+  - policy detail: versions, scope, predicates, effect, approval, challenge stub; list of all statuses;
+  - live mode: an SSE event triggers a refetch of the pipeline projection (stubbed `fetch` stream), and 404 shows not-found.
+- **axe:** no violations on overview, runs, reconciliation, statement, case (read-only and decider) and policy pages. Color-contrast is disabled because jsdom has no layout.
+- **Decisions:**
+  - a read-only session gets no controls; `case.resolve` alone does not unlock policy approval;
+  - the two decisions are distinct, with explicit scope text;
+  - review binds version 3 and the evidence hash, and nothing is sent before Confirm;
+  - envelope and payload validate against `CommandEnvelope` and `ResolveCasePayload`, with an `Idempotency-Key` header;
+  - resolving does not approve the policy, and approving does not resolve the case;
+  - pending state with no success text; double click plus an extra click sends exactly one POST;
+  - 409: refetch, "now version 5", the review is cleared, and a re-review binds version 5;
+  - 422 shows field errors; 403 shows no permission;
+  - after a network failure, "Retry safely" resends the same key and body;
+  - `?decision=` survives reload, and the confirmed decision shows after a remount;
+  - policy approval sends `expected_version` = `record_version` and echoes the scope; a changed policy (409) is not approved blindly.
+- **Fixture transport:** inputs-only by default; lists, filters and details; capability 403; version 409 with `current_version`; same-key replay; same key with a different body gives 409; invalid transition 422; missing key 422; scope mismatch 422.
+- **Contract:** every illustrative list and detail validates against the draft schemas; the two payload schemas reject each other and spoofed `actor_id`.
+
+### Implemented vs fixture-only vs incomplete
+
+**Implemented (against the contract):**
+- Overview and close runs, the per-vendor pipeline with SSE-driven refetch (B03 client), reconciliation, settlements and statements, the exceptions decision workflow, and policies with applied-rule badges.
+- Capability gating comes from `/session` and the record's `required_capability`.
+- No money arithmetic: the lint money guard passes, and the UI only displays server cents.
+
+**Fixture-only:** all rendered data and all command outcomes. The fixture transport's command rules are a stand-in, not lane A's state machine.
+
+**Incomplete / not done:**
+- Integration with A03–A06 and the real-API/database browser test (the acceptance criterion).
+- Playwright E2E.
+- Job polling: written in `useCommand` but untested, because no test uses a 202 for decisions.
+- Payout approval (`/payouts/{id}/approve`) is B05: the payout-limit hold only points there.
+- Challenge is a stub link to `/recorder` (B06).
+- There is no "start/resume run" button, because no capability name or payload has been agreed.
+- Statement export/print.
+
+### New DRAFT assumptions
+
+- DA39: `MatchGroup.matched_amounts[i]` belongs to `member_refs[i]`. If the lengths differ, the UI shows them unpaired and flags it.
+- DA40: `GET /runs` lists newest business date first. The overview defaults to the newest run that is not QUEUED.
+- DA41: `VendorRun.milestone` is the last milestone reached. A HELD/FAILED vendor waits at the next milestone, and the UI does not infer progress beyond that.
+- DA42: settlement line items carry signed amounts (deductions negative) and a `treatment`. The UI groups lines by treatment and never sums them.
+- DA43: the case and policy-candidate evidence hash is an opaque server value. The UI only echoes it.
+- DA44: the decision option chosen before review may live in the URL (`?decision=`). The review step itself is not persisted, so a reload requires a fresh review.
+- DA45: illustrative capability names `case.resolve` and `policy.approve` are placeholders; the UI reads the required capability from each record.
+
+### Contract questions for A (continuing; CONTRACTS.md not edited)
+
+30. **Run vendor projection.** Add `GET /runs/{id}/vendors` → VendorRun `{milestone, state ACTIVE|HELD|FAILED|COMPLETED, holds[], case_ids[], settlement_id, failure}`, plus `Run.vendor_summary` counts derived by the server?
+31. **Match groups.** Should we add:
+    - `GET /reconciliation/{id}`;
+    - `status` and `business_date` filters;
+    - a status enum `MATCHED|TIMING_PENDING|CASE_REQUIRED|DUPLICATE_IGNORED|RESOLVED`;
+    - `match_kind`, `member_kinds`, `vendor_id`, `case_id` and `explanation`?
+
+    And please confirm the DA39 index pairing, or replace it with structured members.
+32. **Settlements.** Should we add:
+    - `GET /settlements/{id}`;
+    - structured `Hold {reason_code, description, blocking, case_id, since}`, replacing the unshaped `holds`;
+    - `SettlementLineItem {line_id, kind, label, amount_cents, treatment, source_refs, policy_version_id}`;
+    - `tax_collected_cents`, `statement_status PROVISIONAL|HELD|FINAL|ADJUSTED`, `statement_generated_at` and `run_id`?
+33. **Cases.** Should we add:
+    - `GET /cases/{id}`;
+    - structured `FinancialImpact {amount_cents, description, basis, affected_settlement_ids}`;
+    - `resolution_options[]`, `evidence_hash`, `policy_candidate_id`, `resolution {decision, option_id, approval_id, actor_id, capability, decided_at, policy_version_id}`, `title`, `business_date` and `opened_at`?
+34. **Policies.** Should we add:
+    - `GET /policies/{id}` and `policy_id`/`status` filters;
+    - structured scope, predicates and effect;
+    - `record_version`, the optimistic-concurrency revision. It is distinct from the policy `version` number, and approval needs it as `expected_version`;
+    - `title`, `origin_case_id`, `evidence_hash`, `approval {approval_id, actor_id, capability, decided_at}`, `status_reason`, `required_capability` and `application_count`?
+35. **Applied-rule badges.** Add `AppliedPolicyRef {policy_version_id, policy_id, version, title, origin_case_id, status_at_application, applied_at}` on settlements and cases, pinned to the version actually used?
+36. **Decision payloads.** Are these the agreed request bodies inside the command envelope?
+    - `ResolveCasePayload {action: RESOLVE_CASE_ONE_TIME, decision: ACCEPT_OPTION|REJECT, option_id, evidence_hash, note}`;
+    - `ApprovePolicyPayload {action: APPROVE_REUSABLE_POLICY, policy_id, policy_version, evidence_hash, scope (echoed), source_case_id, note}`.
+
+    Should the server reject an approval whose echoed scope differs from the stored one with 422 `SCOPE_MISMATCH`, and a stale evidence hash with 422 `EVIDENCE_CHANGED` (or 409)?
+37. **Capability names.** What are the capability names for case resolution, policy approval and run start? Is `required_capability` always present on cases and policy versions?
+
+### Next
+
+- Lane A: review Q30–Q37 and DA39–DA45 together with the open Q1–Q29. When A03–A06 endpoints exist, swap the draft contract (README procedure), run the screens against A's API and database locally, and add the real-API browser test for one complete vendor flow. That test is the B04 acceptance and is still outstanding.
+- Next lane B task: **B05** (remaining finance screens: payouts including finance-lead approval, cash, payables, journal, tax drafts, reports).
