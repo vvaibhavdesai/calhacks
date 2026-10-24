@@ -105,6 +105,10 @@ CAPABILITY_FINANCE_LEAD = "finance_lead"
 # A02: required to call POST /api/v1/imports. Separate from CAPABILITY_ADMIN
 # so ingestion access can later be granted without granting full admin.
 CAPABILITY_IMPORT_SOURCE = "import_source"
+# A03: required to call POST /api/v1/reconciliation/runs (triggers the
+# deterministic matching engine). Separate from CAPABILITY_ADMIN for the
+# same reason as CAPABILITY_IMPORT_SOURCE above.
+CAPABILITY_RUN_RECONCILIATION = "run_reconciliation"
 
 ALL_CAPABILITY_CODES = (
     CAPABILITY_ADMIN,
@@ -113,4 +117,5 @@ ALL_CAPABILITY_CODES = (
     CAPABILITY_APPROVE_PAYOUT,
     CAPABILITY_FINANCE_LEAD,
     CAPABILITY_IMPORT_SOURCE,
+    CAPABILITY_RUN_RECONCILIATION,
 )

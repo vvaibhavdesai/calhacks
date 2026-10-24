@@ -13,7 +13,9 @@ _SERVICES_API = os.path.join(os.path.dirname(__file__), "..", "..", "services", 
 if _SERVICES_API not in sys.path:
     sys.path.insert(0, os.path.abspath(_SERVICES_API))
 
-from app import models, models_ledger  # noqa: E402,F401  -- side effect: registers tables on Base
+from app import models, models_ledger, models_reconciliation  # noqa: E402,F401
+
+# side effect of the import above: registers tables on Base.metadata
 from app.db import Base  # noqa: E402
 
 config = context.config

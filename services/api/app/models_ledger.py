@@ -271,6 +271,20 @@ class Payment(Base):
     amount_cents: Mapped[int] = mapped_column(BigInteger, nullable=False)
     currency: Mapped[str] = mapped_column(String(3), nullable=False, default="USD")
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="recorded")
+    # A03 additive columns (migration 0004; 0002 is never edited in place).
+    # `kind` distinguishes a capture from a refund/chargeback -- always a
+    # positive `amount_cents` magnitude, with `kind` carrying the direction.
+    # This is what lets app/reconciliation.py tell "two genuinely separate
+    # captures" (possible duplicate charge) apart from "a capture plus its
+    # own, legitimate, offsetting refund" without guessing from sign alone.
+    kind: Mapped[str] = mapped_column(String(20), nullable=False, default="capture")
+    # `bank_entry_id`: which grouped net bank settlement batch (if any) this
+    # payment was deposited through. Nullable because vendor-retained cash
+    # payments never go through a bank settlement at all, and a
+    # centrally-collected payment may not have settled yet.
+    bank_entry_id: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("bank_entries.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     provider_reference: Mapped[str | None] = mapped_column(String(300), nullable=True)
     source_document_id: Mapped[str | None] = mapped_column(
         String(32), ForeignKey("source_documents.id", ondelete="RESTRICT"), nullable=True
