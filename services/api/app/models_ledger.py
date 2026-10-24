@@ -194,6 +194,26 @@ class VendorContractTerm(Base):
     effective_from: Mapped[date] = mapped_column(Date, nullable=False)
     effective_to: Mapped[date | None] = mapped_column(Date, nullable=True)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="draft")
+
+    # --- X0.2 additive column (migration 0011; 0001-0010 never edited in
+    # place). `effective_from`/`effective_to` above already existed before
+    # X0.2 -- this is the only genuinely new column X0.2 needs.
+    #
+    # One of "contract" | "signed_amendment" | "approved_interpretation" |
+    # "default" -- see packages/domain/domain/term_precedence.py for the
+    # single source of truth on this vocabulary and its precedence order,
+    # and services/api/app/term_provenance.py for the only two sanctioned
+    # ways to create a "signed_amendment" or "approved_interpretation" row
+    # (each structurally requires a different kind of evidence -- a real
+    # document citation for an amendment, a real Case citation for an
+    # interpretation -- so one can never be silently recorded as the other,
+    # per TICKET_SPEC.md/CONTEXT.md's explicit "signed amendment != approved
+    # interpretation" rule). Every row created before X0.2 (and every row
+    # app/policy.py's `resolve_case` creates going forward -- deliberately
+    # left untouched this ticket) defaults to "contract": see migration
+    # 0011's docstring for why that is the correct, honest backfill value.
+    source_kind: Mapped[str] = mapped_column(String(30), nullable=False, default="contract")
+
     source_refs: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
     approved_by: Mapped[str | None] = mapped_column(
         String(32), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
