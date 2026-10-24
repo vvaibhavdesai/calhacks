@@ -302,6 +302,30 @@ paths:
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+  /runs/{id}/vendors:
+    get:
+      tags: [proposals]
+      x-encore-proposal: Q30
+      operationId: listRunVendors
+      summary: Per-vendor workflow projection for one close run (C04 vendor milestones) (PROPOSAL).
+      parameters:
+        - $ref: '#/components/parameters/PathId'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - name: state
+          in: query
+          required: false
+          schema: { $ref: '#/components/schemas/VendorRunState' }
+      responses:
+        '200':
+          description: Vendor runs (one row per vendor in the run).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VendorRunList' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/Unavailable' }
   /vendors:
     get:
       tags: [reads]
@@ -353,6 +377,21 @@ paths:
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '503': { $ref: '#/components/responses/Unavailable' }
+  /settlements/{id}:
+    get:
+      tags: [proposals]
+      x-encore-proposal: Q32
+      operationId: getSettlement
+      parameters: [{ $ref: '#/components/parameters/PathId' }]
+      responses:
+        '200':
+          description: Settlement and statement (server-calculated).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Settlement' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
   /cases:
     get:
       tags: [reads]
@@ -374,6 +413,21 @@ paths:
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '503': { $ref: '#/components/responses/Unavailable' }
+  /cases/{id}:
+    get:
+      tags: [proposals]
+      x-encore-proposal: Q33
+      operationId: getCase
+      parameters: [{ $ref: '#/components/parameters/PathId' }]
+      responses:
+        '200':
+          description: Case with evidence, impact, options and current state/version.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Case' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
   /cases/{id}/resolve:
     post:
       tags: [commands]
@@ -390,6 +444,17 @@ paths:
       parameters:
         - $ref: '#/components/parameters/Cursor'
         - $ref: '#/components/parameters/Limit'
+        - name: policy_id
+          in: query
+          required: false
+          x-encore-proposal: Q34
+          description: All versions of one logical policy.
+          schema: { type: string }
+        - name: status
+          in: query
+          required: false
+          x-encore-proposal: Q34
+          schema: { $ref: '#/components/schemas/PolicyStatus' }
       responses:
         '200':
           description: Policy versions.
@@ -399,6 +464,22 @@ paths:
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '503': { $ref: '#/components/responses/Unavailable' }
+  /policies/{id}:
+    get:
+      tags: [proposals]
+      x-encore-proposal: Q34
+      operationId: getPolicyVersion
+      summary: One policy version by its id (PROPOSAL).
+      parameters: [{ $ref: '#/components/parameters/PathId' }]
+      responses:
+        '200':
+          description: Policy version.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PolicyVersion' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
   /policies/{id}/approve:
     post:
       tags: [commands]
@@ -442,6 +523,12 @@ paths:
       parameters:
         - $ref: '#/components/parameters/Cursor'
         - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/BusinessDate'
+        - name: status
+          in: query
+          required: false
+          x-encore-proposal: Q31
+          schema: { $ref: '#/components/schemas/MatchGroupStatus' }
       responses:
         '200':
           description: Reconciliation match groups.
@@ -450,7 +537,23 @@ paths:
               schema: { $ref: '#/components/schemas/MatchGroupList' }
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/Invalid' }
         '503': { $ref: '#/components/responses/Unavailable' }
+  /reconciliation/{id}:
+    get:
+      tags: [proposals]
+      x-encore-proposal: Q31
+      operationId: getMatchGroup
+      parameters: [{ $ref: '#/components/parameters/PathId' }]
+      responses:
+        '200':
+          description: Match group.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MatchGroup' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
   /suppliers:
     get:
       tags: [reads]
@@ -1146,27 +1249,122 @@ components:
         branch_id: { type: [string, 'null'] }
         started_at: { $ref: '#/components/schemas/Instant' }
         completed_at: { anyOf: [{ $ref: '#/components/schemas/Instant' }, { type: 'null' }] }
+        festival_id: { type: string, x-encore-proposal: Q30 }
+        vendor_summary: { $ref: '#/components/schemas/RunVendorSummary', x-encore-proposal: Q30 }
+    RunVendorSummary:
+      type: object
+      x-encore-proposal: Q30
+      description: >-
+        Server-derived counts of vendor runs by state (C04: completion is derived from all vendor
+        obligations). The UI displays these; it does not recount.
+      required: [total, active, held, failed, completed]
+      properties:
+        total: { type: integer, minimum: 0 }
+        active: { type: integer, minimum: 0 }
+        held: { type: integer, minimum: 0 }
+        failed: { type: integer, minimum: 0 }
+        completed: { type: integer, minimum: 0 }
+    VendorRunState:
+      type: string
+      x-encore-proposal: Q30
+      description: >-
+        ACTIVE = progressing; HELD = waiting at `milestone` for an authorized command; FAILED = needs
+        operator action; COMPLETED = all milestones through CONTROLS_CHECKED (or APPROVED) reached.
+      enum: [ACTIVE, HELD, FAILED, COMPLETED]
+    Hold:
+      type: object
+      x-encore-proposal: Q32
+      required: [reason_code, description, blocking]
+      properties:
+        reason_code: { type: string }
+        description: { type: string, description: User-safe reason the hold exists. }
+        blocking: { type: boolean, description: True when it blocks statement finalization or payout release. }
+        case_id: { type: [string, 'null'] }
+        since: { $ref: '#/components/schemas/Instant' }
+    VendorRun:
+      type: object
+      x-encore-proposal: Q30
+      required: [id, version, run_id, vendor_id, business_date, milestone, state, holds, case_ids, updated_at]
+      properties:
+        id: { type: string }
+        version: { $ref: '#/components/schemas/Version' }
+        run_id: { type: string }
+        vendor_id: { type: string }
+        business_date: { $ref: '#/components/schemas/BusinessDate' }
+        milestone:
+          description: Last milestone reached (C04), null before INGESTED.
+          anyOf: [{ $ref: '#/components/schemas/VendorMilestone' }, { type: 'null' }]
+        state: { $ref: '#/components/schemas/VendorRunState' }
+        holds: { type: array, items: { $ref: '#/components/schemas/Hold' } }
+        case_ids: { type: array, items: { type: string } }
+        settlement_id: { type: [string, 'null'] }
+        failure: { type: [string, 'null'], description: User-safe failure summary when state is FAILED. }
+        updated_at: { $ref: '#/components/schemas/Instant' }
+    MatchGroupStatus:
+      type: string
+      x-encore-proposal: Q31
+      enum: [MATCHED, TIMING_PENDING, CASE_REQUIRED, DUPLICATE_IGNORED, RESOLVED]
     MatchGroup:
       type: object
       required: [id, version, status, member_refs, matched_amounts, variance_cents, reason_code, source_refs]
       properties:
         id: { type: string }
         version: { $ref: '#/components/schemas/Version' }
-        status: { type: string }
-        member_refs: { type: array, items: { type: string } }
+        status:
+          type: string
+          description: C03 leaves this open; values proposed in MatchGroupStatus (Q31).
+        member_refs:
+          type: array
+          description: Record ids in the group. DA39 assumes matched_amounts[i] belongs to member_refs[i].
+          items: { type: string }
         matched_amounts: { type: array, items: { $ref: '#/components/schemas/MoneyCents' } }
         variance_cents: { $ref: '#/components/schemas/MoneyCents' }
         reason_code: { type: string }
         source_refs: { type: array, items: { $ref: '#/components/schemas/SourceRef' } }
+        match_kind: { type: string, x-encore-proposal: Q31, description: e.g. PROCESSOR_DEPOSIT, CASH_DEPOSIT, CASH_COUNT. }
+        member_kinds: { type: array, items: { type: string }, x-encore-proposal: Q31, description: Index-aligned with member_refs (record type of each member). }
+        business_date: { anyOf: [{ $ref: '#/components/schemas/BusinessDate' }, { type: 'null' }], x-encore-proposal: Q31 }
+        vendor_id: { type: [string, 'null'], x-encore-proposal: Q31 }
+        case_id: { type: [string, 'null'], x-encore-proposal: Q31 }
+        explanation: { type: [string, 'null'], x-encore-proposal: Q31, description: Server-provided explanation of the variance. }
+    SettlementLineTreatment:
+      type: string
+      x-encore-proposal: Q32
+      description: >-
+        How a line participates in the statement. PROTECTED lines (sales tax, tips) are shown
+        separately and are never used to collect fees or unpaid balances. MEMO lines are
+        informational (e.g. vendor-retained cash).
+      enum: [FEE_BASIS, FEE, DEDUCTION, PAYOUT, PROTECTED, MEMO]
     SettlementLineItem:
       type: object
-      x-encore-unspecified: true
-      required: [kind, amount_cents]
+      x-encore-proposal: Q32
+      required: [line_id, kind, label, amount_cents, treatment, source_refs]
       properties:
+        line_id: { type: string }
         kind: { type: string }
         label: { type: string }
         amount_cents: { $ref: '#/components/schemas/MoneyCents' }
+        treatment: { $ref: '#/components/schemas/SettlementLineTreatment' }
         source_refs: { type: array, items: { $ref: '#/components/schemas/SourceRef' } }
+        policy_version_id: { type: [string, 'null'], description: Policy version that produced this line, if any. }
+    StatementStatus:
+      type: string
+      x-encore-proposal: Q32
+      description: PROVISIONAL statements can precede payout confirmation (C04/A08); HELD shows why.
+      enum: [PROVISIONAL, HELD, FINAL, ADJUSTED]
+    AppliedPolicyRef:
+      type: object
+      x-encore-proposal: Q35
+      description: Applied-rule badge data, pinned to the exact policy version used.
+      required: [policy_version_id, policy_id, version, title, status_at_application]
+      properties:
+        policy_version_id: { type: string }
+        policy_id: { type: string }
+        version: { type: integer, minimum: 1 }
+        title: { type: string }
+        origin_case_id: { type: [string, 'null'] }
+        status_at_application: { $ref: '#/components/schemas/PolicyStatus' }
+        applied_at: { $ref: '#/components/schemas/Instant' }
     Settlement:
       type: object
       required: [id, version, status, vendor_id, festival_id, business_date, calculation_version, source_manifest_hash, policy_refs, line_items, assessed_fee_cents, collected_fee_cents, payout_cents, unpaid_balance_cents, holds]
@@ -1179,23 +1377,61 @@ components:
         business_date: { $ref: '#/components/schemas/BusinessDate' }
         calculation_version: { type: string }
         source_manifest_hash: { type: string }
-        policy_refs: { type: array, items: { type: string } }
+        policy_refs:
+          type: array
+          description: Policy version ids applied (C03). Badge details are in applied_policies (Q35).
+          items: { type: string }
         line_items: { type: array, items: { $ref: '#/components/schemas/SettlementLineItem' } }
         assessed_fee_cents: { $ref: '#/components/schemas/MoneyCents' }
         collected_fee_cents: { $ref: '#/components/schemas/MoneyCents' }
         payout_cents: { $ref: '#/components/schemas/MoneyCents' }
         unpaid_balance_cents: { $ref: '#/components/schemas/MoneyCents' }
-        holds: { type: array, items: { type: string } }
+        holds:
+          type: array
+          x-encore-proposal: Q32
+          description: C03 names `holds` without a shape; proposed as structured Hold objects.
+          items: { $ref: '#/components/schemas/Hold' }
         tips_passthrough_cents: { $ref: '#/components/schemas/MoneyCents', x-encore-proposal: Q2 }
         receivable_change_cents: { $ref: '#/components/schemas/MoneyCents', x-encore-proposal: Q2 }
         terms_basis: { type: string, x-encore-proposal: Q2 }
         phase: { type: string, enum: [INTERIM, FINAL, POST_FESTIVAL_ADJUSTMENT], x-encore-proposal: Q2 }
+        tax_collected_cents: { $ref: '#/components/schemas/MoneyCents', x-encore-proposal: Q32 }
+        statement_status: { $ref: '#/components/schemas/StatementStatus', x-encore-proposal: Q32 }
+        statement_generated_at: { $ref: '#/components/schemas/Instant', x-encore-proposal: Q32 }
+        applied_policies: { type: array, items: { $ref: '#/components/schemas/AppliedPolicyRef' }, x-encore-proposal: Q35 }
+        run_id: { type: [string, 'null'], x-encore-proposal: Q32 }
     FinancialImpact:
       type: object
-      x-encore-unspecified: true
+      x-encore-proposal: Q33
+      description: Server-calculated impact of the case. The UI never computes it.
+      required: [amount_cents, description]
       properties:
         amount_cents: { $ref: '#/components/schemas/MoneyCents' }
         description: { type: string }
+        basis: { type: [string, 'null'], description: How the server derived the amount (e.g. which option vs which). }
+        affected_settlement_ids: { type: array, items: { type: string } }
+    ResolutionOption:
+      type: object
+      x-encore-proposal: Q33
+      required: [option_id, label, effect_summary, is_proposed]
+      properties:
+        option_id: { type: string }
+        label: { type: string }
+        effect_summary: { type: string }
+        impact_cents: { anyOf: [{ $ref: '#/components/schemas/MoneyCents' }, { type: 'null' }] }
+        is_proposed: { type: boolean, description: True for the agent's proposed resolution (a proposal, not authority). }
+    CaseResolution:
+      type: object
+      x-encore-proposal: Q33
+      required: [decision, decided_at]
+      properties:
+        decision: { type: string, enum: [RESOLVED_ONE_TIME, REJECTED, AUTO_POLICY] }
+        option_id: { type: [string, 'null'] }
+        approval_id: { type: [string, 'null'] }
+        actor_id: { type: [string, 'null'] }
+        capability: { type: [string, 'null'] }
+        decided_at: { $ref: '#/components/schemas/Instant' }
+        policy_version_id: { type: [string, 'null'], description: Set when an ACTIVE policy resolved the case automatically. }
     Case:
       type: object
       required: [id, version, status, reason_code, evidence_refs, financial_impact, proposed_resolution, required_capability]
@@ -1210,22 +1446,115 @@ components:
         financial_impact: { $ref: '#/components/schemas/FinancialImpact' }
         proposed_resolution: { type: [string, 'null'] }
         required_capability: { $ref: '#/components/schemas/Capability' }
+        title: { type: string, x-encore-proposal: Q33 }
+        business_date: { anyOf: [{ $ref: '#/components/schemas/BusinessDate' }, { type: 'null' }], x-encore-proposal: Q33 }
+        opened_at: { $ref: '#/components/schemas/Instant', x-encore-proposal: Q33 }
+        evidence_hash:
+          type: string
+          x-encore-proposal: Q33
+          description: Hash over the exact evidence set; approvals bind to it (C03 Approval.evidence_hash).
+        resolution_options: { type: array, items: { $ref: '#/components/schemas/ResolutionOption' }, x-encore-proposal: Q33 }
+        policy_candidate_id:
+          type: [string, 'null']
+          x-encore-proposal: Q33
+          description: DRAFT policy version proposed for reuse. Approving it is a SEPARATE command (/policies/{id}/approve).
+        resolution: { anyOf: [{ $ref: '#/components/schemas/CaseResolution' }, { type: 'null' }], x-encore-proposal: Q33 }
+        applied_policies: { type: array, items: { $ref: '#/components/schemas/AppliedPolicyRef' }, x-encore-proposal: Q35 }
+    PolicyScope:
+      type: object
+      x-encore-proposal: Q34
+      required: [festival_id, vendor_ids, description]
+      properties:
+        festival_id: { type: string }
+        vendor_ids: { type: array, items: { type: string }, description: Empty means every vendor in the festival. }
+        business_date_from: { anyOf: [{ $ref: '#/components/schemas/BusinessDate' }, { type: 'null' }] }
+        business_date_to: { anyOf: [{ $ref: '#/components/schemas/BusinessDate' }, { type: 'null' }] }
+        description: { type: string }
+    PolicyPredicate:
+      type: object
+      x-encore-proposal: Q34
+      required: [field, operator, value, description]
+      properties:
+        field: { type: string }
+        operator: { type: string }
+        value: { type: string }
+        description: { type: string }
+    PolicyEffect:
+      type: object
+      x-encore-proposal: Q34
+      required: [kind, description]
+      properties:
+        kind: { type: string }
+        description: { type: string }
+        commission_bps: { anyOf: [{ $ref: '#/components/schemas/BasisPoints' }, { type: 'null' }] }
+    PolicyApprovalRef:
+      type: object
+      x-encore-proposal: Q34
+      required: [approval_id, actor_id, capability, decided_at]
+      properties:
+        approval_id: { type: string }
+        actor_id: { type: string }
+        capability: { $ref: '#/components/schemas/Capability' }
+        decided_at: { $ref: '#/components/schemas/Instant' }
     PolicyVersion:
       type: object
       required: [id, version, status, policy_id, scope, predicates, effect, evidence_refs, approver_ref, valid_from]
       properties:
         id: { type: string }
-        version: { $ref: '#/components/schemas/Version' }
+        version: { type: integer, minimum: 1, description: Policy version number (C03). }
         status: { $ref: '#/components/schemas/PolicyStatus' }
         policy_id: { type: string }
-        scope: { type: object, additionalProperties: true, x-encore-unspecified: true }
-        predicates: { type: array, items: { type: object, additionalProperties: true }, x-encore-unspecified: true }
-        effect: { type: object, additionalProperties: true, x-encore-unspecified: true }
+        scope: { $ref: '#/components/schemas/PolicyScope' }
+        predicates: { type: array, items: { $ref: '#/components/schemas/PolicyPredicate' } }
+        effect: { $ref: '#/components/schemas/PolicyEffect' }
         evidence_refs: { type: array, items: { $ref: '#/components/schemas/SourceRef' } }
         approver_ref: { type: [string, 'null'] }
         valid_from: { $ref: '#/components/schemas/Instant' }
         valid_to: { anyOf: [{ $ref: '#/components/schemas/Instant' }, { type: 'null' }] }
         supersedes_version: { type: [integer, 'null'] }
+        record_version:
+          $ref: '#/components/schemas/Version'
+          x-encore-proposal: Q34
+          description: >-
+            Optimistic-concurrency revision of this policy-version record (changes on approval,
+            suspension...). Distinct from `version`, the policy version number. Used as expected_version.
+        title: { type: string, x-encore-proposal: Q34 }
+        origin_case_id: { type: [string, 'null'], x-encore-proposal: Q34 }
+        evidence_hash: { type: string, x-encore-proposal: Q34 }
+        approval: { anyOf: [{ $ref: '#/components/schemas/PolicyApprovalRef' }, { type: 'null' }], x-encore-proposal: Q34 }
+        status_reason: { type: [string, 'null'], x-encore-proposal: Q34 }
+        required_capability: { $ref: '#/components/schemas/Capability', x-encore-proposal: Q34 }
+        application_count: { type: integer, minimum: 0, x-encore-proposal: Q34 }
+    ResolveCasePayload:
+      type: object
+      x-encore-proposal: Q36
+      description: >-
+        payload of POST /cases/{id}/resolve. ONE-TIME resolution of this case only; never creates or
+        approves a reusable policy.
+      additionalProperties: false
+      required: [action, decision, evidence_hash]
+      properties:
+        action: { const: RESOLVE_CASE_ONE_TIME }
+        decision: { type: string, enum: [ACCEPT_OPTION, REJECT] }
+        option_id: { type: [string, 'null'] }
+        evidence_hash: { type: string }
+        note: { type: string, maxLength: 2000 }
+    ApprovePolicyPayload:
+      type: object
+      x-encore-proposal: Q36
+      description: >-
+        payload of POST /policies/{id}/approve. Approves REUSE of one exact DRAFT policy version within
+        the echoed scope. Separate from case resolution even when the same person does both.
+      additionalProperties: false
+      required: [action, policy_id, policy_version, evidence_hash, scope]
+      properties:
+        action: { const: APPROVE_REUSABLE_POLICY }
+        policy_id: { type: string }
+        policy_version: { type: integer, minimum: 1 }
+        evidence_hash: { type: string }
+        scope: { $ref: '#/components/schemas/PolicyScope' }
+        source_case_id: { type: [string, 'null'] }
+        note: { type: string, maxLength: 2000 }
     Approval:
       type: object
       required: [id, actor_id, capability, action, target_id, target_version, evidence_hash, scope, expiry, decision]
@@ -1402,6 +1731,13 @@ components:
       required: [items, next_cursor]
       properties:
         items: { type: array, items: { $ref: '#/components/schemas/SourceDocument' } }
+        next_cursor: { $ref: '#/components/schemas/NextCursor' }
+    VendorRunList:
+      type: object
+      x-encore-proposal: Q30
+      required: [items, next_cursor]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/VendorRun' } }
         next_cursor: { $ref: '#/components/schemas/NextCursor' }
     RunList:
       type: object

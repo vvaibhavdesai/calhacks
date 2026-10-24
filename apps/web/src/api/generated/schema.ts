@@ -215,6 +215,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/runs/{id}/vendors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Per-vendor workflow projection for one close run (C04 vendor milestones) (PROPOSAL). */
+        get: operations["listRunVendors"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/vendors": {
         parameters: {
             query?: never;
@@ -263,6 +280,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/settlements/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getSettlement"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/cases": {
         parameters: {
             query?: never;
@@ -271,6 +304,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["listCases"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/cases/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getCase"];
         put?: never;
         post?: never;
         delete?: never;
@@ -303,6 +352,23 @@ export interface paths {
             cookie?: never;
         };
         get: operations["listPolicies"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/policies/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One policy version by its id (PROPOSAL). */
+        get: operations["getPolicyVersion"];
         put?: never;
         post?: never;
         delete?: never;
@@ -367,6 +433,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["listMatchGroups"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reconciliation/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getMatchGroup"];
         put?: never;
         post?: never;
         delete?: never;
@@ -906,22 +988,99 @@ export interface components {
             branch_id?: string | null;
             started_at?: components["schemas"]["Instant"];
             completed_at?: components["schemas"]["Instant"] | null;
+            festival_id?: string;
+            vendor_summary?: components["schemas"]["RunVendorSummary"];
         };
+        /** @description Server-derived counts of vendor runs by state (C04: completion is derived from all vendor obligations). The UI displays these; it does not recount. */
+        RunVendorSummary: {
+            total: number;
+            active: number;
+            held: number;
+            failed: number;
+            completed: number;
+        };
+        /**
+         * @description ACTIVE = progressing; HELD = waiting at `milestone` for an authorized command; FAILED = needs operator action; COMPLETED = all milestones through CONTROLS_CHECKED (or APPROVED) reached.
+         * @enum {string}
+         */
+        VendorRunState: "ACTIVE" | "HELD" | "FAILED" | "COMPLETED";
+        Hold: {
+            reason_code: string;
+            /** @description User-safe reason the hold exists. */
+            description: string;
+            /** @description True when it blocks statement finalization or payout release. */
+            blocking: boolean;
+            case_id?: string | null;
+            since?: components["schemas"]["Instant"];
+        };
+        VendorRun: {
+            id: string;
+            version: components["schemas"]["Version"];
+            run_id: string;
+            vendor_id: string;
+            business_date: components["schemas"]["BusinessDate"];
+            /** @description Last milestone reached (C04), null before INGESTED. */
+            milestone: components["schemas"]["VendorMilestone"] | null;
+            state: components["schemas"]["VendorRunState"];
+            holds: components["schemas"]["Hold"][];
+            case_ids: string[];
+            settlement_id?: string | null;
+            /** @description User-safe failure summary when state is FAILED. */
+            failure?: string | null;
+            updated_at: components["schemas"]["Instant"];
+        };
+        /** @enum {string} */
+        MatchGroupStatus: "MATCHED" | "TIMING_PENDING" | "CASE_REQUIRED" | "DUPLICATE_IGNORED" | "RESOLVED";
         MatchGroup: {
             id: string;
             version: components["schemas"]["Version"];
+            /** @description C03 leaves this open; values proposed in MatchGroupStatus (Q31). */
             status: string;
+            /** @description Record ids in the group. DA39 assumes matched_amounts[i] belongs to member_refs[i]. */
             member_refs: string[];
             matched_amounts: components["schemas"]["MoneyCents"][];
             variance_cents: components["schemas"]["MoneyCents"];
             reason_code: string;
             source_refs: components["schemas"]["SourceRef"][];
+            /** @description e.g. PROCESSOR_DEPOSIT */
+            match_kind?: string;
+            /** @description Index-aligned with member_refs (record type of each member). */
+            member_kinds?: string[];
+            business_date?: components["schemas"]["BusinessDate"] | null;
+            vendor_id?: string | null;
+            case_id?: string | null;
+            /** @description Server-provided explanation of the variance. */
+            explanation?: string | null;
         };
+        /**
+         * @description How a line participates in the statement. PROTECTED lines (sales tax, tips) are shown separately and are never used to collect fees or unpaid balances. MEMO lines are informational (e.g. vendor-retained cash).
+         * @enum {string}
+         */
+        SettlementLineTreatment: "FEE_BASIS" | "FEE" | "DEDUCTION" | "PAYOUT" | "PROTECTED" | "MEMO";
         SettlementLineItem: {
+            line_id: string;
             kind: string;
-            label?: string;
+            label: string;
             amount_cents: components["schemas"]["MoneyCents"];
-            source_refs?: components["schemas"]["SourceRef"][];
+            treatment: components["schemas"]["SettlementLineTreatment"];
+            source_refs: components["schemas"]["SourceRef"][];
+            /** @description Policy version that produced this line */
+            policy_version_id?: string | null;
+        };
+        /**
+         * @description PROVISIONAL statements can precede payout confirmation (C04/A08); HELD shows why.
+         * @enum {string}
+         */
+        StatementStatus: "PROVISIONAL" | "HELD" | "FINAL" | "ADJUSTED";
+        /** @description Applied-rule badge data, pinned to the exact policy version used. */
+        AppliedPolicyRef: {
+            policy_version_id: string;
+            policy_id: string;
+            version: number;
+            title: string;
+            origin_case_id?: string | null;
+            status_at_application: components["schemas"]["PolicyStatus"];
+            applied_at?: components["schemas"]["Instant"];
         };
         Settlement: {
             id: string;
@@ -932,22 +1091,52 @@ export interface components {
             business_date: components["schemas"]["BusinessDate"];
             calculation_version: string;
             source_manifest_hash: string;
+            /** @description Policy version ids applied (C03). Badge details are in applied_policies (Q35). */
             policy_refs: string[];
             line_items: components["schemas"]["SettlementLineItem"][];
             assessed_fee_cents: components["schemas"]["MoneyCents"];
             collected_fee_cents: components["schemas"]["MoneyCents"];
             payout_cents: components["schemas"]["MoneyCents"];
             unpaid_balance_cents: components["schemas"]["MoneyCents"];
-            holds: string[];
+            /** @description C03 names `holds` without a shape; proposed as structured Hold objects. */
+            holds: components["schemas"]["Hold"][];
             tips_passthrough_cents?: components["schemas"]["MoneyCents"];
             receivable_change_cents?: components["schemas"]["MoneyCents"];
             terms_basis?: string;
             /** @enum {string} */
             phase?: "INTERIM" | "FINAL" | "POST_FESTIVAL_ADJUSTMENT";
+            tax_collected_cents?: components["schemas"]["MoneyCents"];
+            statement_status?: components["schemas"]["StatementStatus"];
+            statement_generated_at?: components["schemas"]["Instant"];
+            applied_policies?: components["schemas"]["AppliedPolicyRef"][];
+            run_id?: string | null;
         };
+        /** @description Server-calculated impact of the case. The UI never computes it. */
         FinancialImpact: {
-            amount_cents?: components["schemas"]["MoneyCents"];
-            description?: string;
+            amount_cents: components["schemas"]["MoneyCents"];
+            description: string;
+            /** @description How the server derived the amount (e.g. which option vs which). */
+            basis?: string | null;
+            affected_settlement_ids?: string[];
+        };
+        ResolutionOption: {
+            option_id: string;
+            label: string;
+            effect_summary: string;
+            impact_cents?: components["schemas"]["MoneyCents"] | null;
+            /** @description True for the agent's proposed resolution (a proposal */
+            is_proposed: boolean;
+        };
+        CaseResolution: {
+            /** @enum {string} */
+            decision: "RESOLVED_ONE_TIME" | "REJECTED" | "AUTO_POLICY";
+            option_id?: string | null;
+            approval_id?: string | null;
+            actor_id?: string | null;
+            capability?: string | null;
+            decided_at: components["schemas"]["Instant"];
+            /** @description Set when an ACTIVE policy resolved the case automatically. */
+            policy_version_id?: string | null;
         };
         Case: {
             id: string;
@@ -960,26 +1149,86 @@ export interface components {
             financial_impact: components["schemas"]["FinancialImpact"];
             proposed_resolution: string | null;
             required_capability: components["schemas"]["Capability"];
+            title?: string;
+            business_date?: components["schemas"]["BusinessDate"] | null;
+            opened_at?: components["schemas"]["Instant"];
+            /** @description Hash over the exact evidence set; approvals bind to it (C03 Approval.evidence_hash). */
+            evidence_hash?: string;
+            resolution_options?: components["schemas"]["ResolutionOption"][];
+            /** @description DRAFT policy version proposed for reuse. Approving it is a SEPARATE command (/policies/{id}/approve). */
+            policy_candidate_id?: string | null;
+            resolution?: components["schemas"]["CaseResolution"] | null;
+            applied_policies?: components["schemas"]["AppliedPolicyRef"][];
+        };
+        PolicyScope: {
+            festival_id: string;
+            /** @description Empty means every vendor in the festival. */
+            vendor_ids: string[];
+            business_date_from?: components["schemas"]["BusinessDate"] | null;
+            business_date_to?: components["schemas"]["BusinessDate"] | null;
+            description: string;
+        };
+        PolicyPredicate: {
+            field: string;
+            operator: string;
+            value: string;
+            description: string;
+        };
+        PolicyEffect: {
+            kind: string;
+            description: string;
+            commission_bps?: components["schemas"]["BasisPoints"] | null;
+        };
+        PolicyApprovalRef: {
+            approval_id: string;
+            actor_id: string;
+            capability: components["schemas"]["Capability"];
+            decided_at: components["schemas"]["Instant"];
         };
         PolicyVersion: {
             id: string;
-            version: components["schemas"]["Version"];
+            /** @description Policy version number (C03). */
+            version: number;
             status: components["schemas"]["PolicyStatus"];
             policy_id: string;
-            scope: {
-                [key: string]: unknown;
-            };
-            predicates: {
-                [key: string]: unknown;
-            }[];
-            effect: {
-                [key: string]: unknown;
-            };
+            scope: components["schemas"]["PolicyScope"];
+            predicates: components["schemas"]["PolicyPredicate"][];
+            effect: components["schemas"]["PolicyEffect"];
             evidence_refs: components["schemas"]["SourceRef"][];
             approver_ref: string | null;
             valid_from: components["schemas"]["Instant"];
             valid_to?: components["schemas"]["Instant"] | null;
             supersedes_version?: number | null;
+            /** @description Optimistic-concurrency revision of this policy-version record (changes on approval, suspension...). Distinct from `version`, the policy version number. Used as expected_version. */
+            record_version?: components["schemas"]["Version"];
+            title?: string;
+            origin_case_id?: string | null;
+            evidence_hash?: string;
+            approval?: components["schemas"]["PolicyApprovalRef"] | null;
+            status_reason?: string | null;
+            required_capability?: components["schemas"]["Capability"];
+            application_count?: number;
+        };
+        /** @description payload of POST /cases/{id}/resolve. ONE-TIME resolution of this case only; never creates or approves a reusable policy. */
+        ResolveCasePayload: {
+            /** @constant */
+            action: "RESOLVE_CASE_ONE_TIME";
+            /** @enum {string} */
+            decision: "ACCEPT_OPTION" | "REJECT";
+            option_id?: string | null;
+            evidence_hash: string;
+            note?: string;
+        };
+        /** @description payload of POST /policies/{id}/approve. Approves REUSE of one exact DRAFT policy version within the echoed scope. Separate from case resolution even when the same person does both. */
+        ApprovePolicyPayload: {
+            /** @constant */
+            action: "APPROVE_REUSABLE_POLICY";
+            policy_id: string;
+            policy_version: number;
+            evidence_hash: string;
+            scope: components["schemas"]["PolicyScope"];
+            source_case_id?: string | null;
+            note?: string;
         };
         Approval: {
             id: string;
@@ -1109,6 +1358,10 @@ export interface components {
         };
         SourceDocumentList: {
             items: components["schemas"]["SourceDocument"][];
+            next_cursor: components["schemas"]["NextCursor"];
+        };
+        VendorRunList: {
+            items: components["schemas"]["VendorRun"][];
             next_cursor: components["schemas"]["NextCursor"];
         };
         RunList: {
@@ -1660,6 +1913,37 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
+    listRunVendors: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from a previous next_cursor. Never parsed by clients. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+                state?: components["schemas"]["VendorRunState"];
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["PathId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Vendor runs (one row per vendor in the run). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VendorRunList"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
     listVendors: {
         parameters: {
             query?: {
@@ -1745,6 +2029,31 @@ export interface operations {
             503: components["responses"]["Unavailable"];
         };
     };
+    getSettlement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PathId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Settlement and statement (server-calculated). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Settlement"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
     listCases: {
         parameters: {
             query?: {
@@ -1772,6 +2081,31 @@ export interface operations {
             401: components["responses"]["Unauthenticated"];
             403: components["responses"]["Forbidden"];
             503: components["responses"]["Unavailable"];
+        };
+    };
+    getCase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PathId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Case with evidence, impact, options and current state/version. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Case"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
     resolveCase: {
@@ -1820,6 +2154,9 @@ export interface operations {
                 /** @description Opaque cursor from a previous next_cursor. Never parsed by clients. */
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];
+                /** @description All versions of one logical policy. */
+                policy_id?: string;
+                status?: components["schemas"]["PolicyStatus"];
             };
             header?: never;
             path?: never;
@@ -1839,6 +2176,31 @@ export interface operations {
             401: components["responses"]["Unauthenticated"];
             403: components["responses"]["Forbidden"];
             503: components["responses"]["Unavailable"];
+        };
+    };
+    getPolicyVersion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PathId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Policy version. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyVersion"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
     approvePolicy: {
@@ -1956,6 +2318,8 @@ export interface operations {
                 /** @description Opaque cursor from a previous next_cursor. Never parsed by clients. */
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];
+                business_date?: components["parameters"]["BusinessDate"];
+                status?: components["schemas"]["MatchGroupStatus"];
             };
             header?: never;
             path?: never;
@@ -1974,7 +2338,33 @@ export interface operations {
             };
             401: components["responses"]["Unauthenticated"];
             403: components["responses"]["Forbidden"];
+            422: components["responses"]["Invalid"];
             503: components["responses"]["Unavailable"];
+        };
+    };
+    getMatchGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PathId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Match group. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MatchGroup"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
     listSuppliers: {

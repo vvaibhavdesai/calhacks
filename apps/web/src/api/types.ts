@@ -27,6 +27,27 @@ export type CashCount = Schemas['CashCount'];
 export type SourceDocument = Schemas['SourceDocument'];
 export type Festival = Schemas['Festival'];
 
+// Outputs (C03 records + lane-B proposals Q30-Q36).
+export type Run = Schemas['Run'];
+export type RunStatus = Schemas['RunStatus'];
+export type VendorRun = Schemas['VendorRun'];
+export type VendorRunState = Schemas['VendorRunState'];
+export type VendorMilestone = Schemas['VendorMilestone'];
+export type Hold = Schemas['Hold'];
+export type MatchGroup = Schemas['MatchGroup'];
+export type Settlement = Schemas['Settlement'];
+export type SettlementLineItem = Schemas['SettlementLineItem'];
+export type SettlementLineTreatment = Schemas['SettlementLineTreatment'];
+export type AppliedPolicyRef = Schemas['AppliedPolicyRef'];
+export type Case = Schemas['Case'];
+export type CaseStatus = Schemas['CaseStatus'];
+export type ResolutionOption = Schemas['ResolutionOption'];
+export type PolicyVersion = Schemas['PolicyVersion'];
+export type PolicyStatus = Schemas['PolicyStatus'];
+export type PolicyScope = Schemas['PolicyScope'];
+export type ResolveCasePayload = Schemas['ResolveCasePayload'];
+export type ApprovePolicyPayload = Schemas['ApprovePolicyPayload'];
+
 export type OperationId = keyof operations;
 
 type JsonOf<R> = R extends { content: { 'application/json': infer B } } ? B : never;
