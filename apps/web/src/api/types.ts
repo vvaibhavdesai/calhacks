@@ -69,6 +69,28 @@ export type FinancialReport = Schemas['FinancialReport'];
 export type FinancialReportSection = Schemas['FinancialReportSection'];
 export type FinancialReportLine = Schemas['FinancialReportLine'];
 
+// B06 flight recorder, history, challenges, corrections, branches, replays (lane-B proposals Q46-Q53).
+export type EventCategory = Schemas['EventCategory'];
+export type ActorType = Schemas['ActorType'];
+export type RecordKind = Schemas['RecordKind'];
+export type RecordRef = Schemas['RecordRef'];
+export type EventList = Schemas['EventList'];
+export type HistoricalProjection = Schemas['HistoricalProjection'];
+export type HistoricalRow = Schemas['HistoricalRow'];
+export type LaterRecordedFact = Schemas['LaterRecordedFact'];
+export type Challenge = Schemas['Challenge'];
+export type CreateChallengePayload = Schemas['CreateChallengePayload'];
+export type PreviewCorrectionPayload = Schemas['PreviewCorrectionPayload'];
+export type Correction = Schemas['Correction'];
+export type CorrectionItem = Schemas['CorrectionItem'];
+export type CorrectionStateGroup = Schemas['CorrectionStateGroup'];
+export type CorrectionTreatment = Schemas['CorrectionTreatment'];
+export type ApproveCorrectionPayload = Schemas['ApproveCorrectionPayload'];
+export type Branch = Schemas['Branch'];
+export type CreateBranchPayload = Schemas['CreateBranchPayload'];
+export type Replay = Schemas['Replay'];
+export type StartReplayPayload = Schemas['StartReplayPayload'];
+
 export type OperationId = keyof operations;
 
 type JsonOf<R> = R extends { content: { 'application/json': infer B } } ? B : never;

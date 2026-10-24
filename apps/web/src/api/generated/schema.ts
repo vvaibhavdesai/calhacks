@@ -689,7 +689,106 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description Flight-recorder events, newest stream_sequence first. Filters are lane-B proposals (Q46). Without branch_id only production events are returned. up_to_sequence pins the page set so pages stay stable while new events arrive; after_sequence lists only events newer than a pin. */
         get: operations["listEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/events/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One flight-recorder event by event_id (PROPOSAL). */
+        get: operations["getEvent"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/history/projection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read-only reconstruction of what was KNOWN at a knowledge-time cutoff (recorded_at <= cutoff), separately filtered by business date (C06). Never mutates anything. */
+        get: operations["getHistoricalProjection"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/challenges/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getChallenge"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/corrections/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getCorrection"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/branches/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getBranch"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/replays/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getReplay"];
         put?: never;
         post?: never;
         delete?: never;
@@ -738,8 +837,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** @description Challenges, newest first (PROPOSAL). */
+        get: operations["listChallenges"];
         put?: never;
+        /** @description payload is CreateChallengePayload (proposal Q49). expected_version is the challenged target's optimistic version (policy record_version, settlement or payout version). Creating a challenge pauses use of the affected policy version server-side; it changes no money by itself. */
         post: operations["createChallenge"];
         delete?: never;
         options?: never;
@@ -756,6 +857,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @description payload is PreviewCorrectionPayload (proposal Q50); expected_version is the challenge version. Returns the correction id (CommandResult.aggregate_id); GET /corrections/{id} serves the preview. A preview changes no financial state. */
         post: operations["previewCorrection"];
         delete?: never;
         options?: never;
@@ -772,6 +874,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @description payload is ApproveCorrectionPayload (proposal Q51); expected_version is the correction version. Binds the exact preview_hash and evidence_hash shown to the approver. Usually 202 + job: the correction executes asynchronously and reports progress on GET /corrections/{id}. */
         post: operations["approveCorrection"];
         delete?: never;
         options?: never;
@@ -786,8 +889,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** @description What-if branches (isolated storage, external effects disabled). */
+        get: operations["listBranches"];
         put?: never;
+        /** @description payload is CreateBranchPayload (proposal Q52); expected_version is null. A branch is isolated storage with external effects disabled. There is no promote/merge route: changing production needs a new reviewed production command (C06). */
         post: operations["createBranch"];
         delete?: never;
         options?: never;
@@ -802,8 +907,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** @description Replays, newest first. */
+        get: operations["listReplays"];
         put?: never;
+        /** @description payload is StartReplayPayload (proposal Q53); expected_version is null. Replays consume recorded results only: no live model calls, no payments, no production postings (C06). */
         post: operations["createReplay"];
         delete?: never;
         options?: never;
@@ -1738,6 +1845,325 @@ export interface components {
             payload?: {
                 [key: string]: unknown;
             };
+            stream_id?: string;
+            category?: components["schemas"]["EventCategory"];
+            /** @description User-safe one-line statement of what was recorded. Never hidden model reasoning. */
+            summary?: string;
+            aggregate_type?: components["schemas"]["RecordKind"];
+            actor_id?: string | null;
+            actor_type?: components["schemas"]["ActorType"];
+            actor_label?: string | null;
+            /** @description Capability the actor exercised (C04 "log actual actor and capability"). */
+            capability?: string | null;
+            command_id?: string | null;
+            business_date?: components["schemas"]["BusinessDate"] | null;
+            /** @description Server flag. True when the fact was recorded materially later than it occurred / took business effect ("recorded later, effective earlier"). */
+            backdated?: boolean;
+            versions?: components["schemas"]["EventVersions"];
+            input_refs?: components["schemas"]["SourceRef"][];
+            /** @description Records this event concerns (actor */
+            links?: components["schemas"]["RecordRef"][];
+            previous_hash?: string | null;
+            hash?: string;
+        };
+        /**
+         * @description FACT = recorded fact (ingestion, human decision, state transition, posting). PROPOSAL = agent proposal, never an approval. INTENT = attempted action logged before/while awaiting an external outcome, not a confirmed effect. EFFECT = confirmed external outcome. PROJECTION = derived, rebuildable calculation or view.
+         * @enum {string}
+         */
+        EventCategory: "FACT" | "PROPOSAL" | "INTENT" | "EFFECT" | "PROJECTION";
+        /** @enum {string} */
+        ActorType: "HUMAN" | "AGENT" | "SYSTEM" | "EXTERNAL";
+        /** @enum {string} */
+        RecordKind: "RUN" | "VENDOR" | "CASE" | "POLICY_VERSION" | "SETTLEMENT" | "PAYOUT" | "JOURNAL_ENTRY" | "SOURCE_DOCUMENT" | "REPORT" | "APPROVAL" | "CHALLENGE" | "CORRECTION" | "BRANCH" | "REPLAY" | "ACTOR";
+        RecordRef: {
+            kind: components["schemas"]["RecordKind"];
+            id: string;
+            version?: number | null;
+            label?: string | null;
+        };
+        /** @description Versions in force for this event (C06), when applicable. */
+        EventVersions: {
+            model?: string | null;
+            prompt?: string | null;
+            tool?: string | null;
+            config?: string | null;
+            calculation?: string | null;
+            posting_rule?: string | null;
+            policy_version_ids?: string[];
+        };
+        /** @description Derived, rebuildable snapshot the reconstruction started from (C06). */
+        ProjectionSnapshotRef: {
+            snapshot_id: string;
+            stream_cursor: string;
+            projection_schema_version: number;
+            state_hash: string;
+            taken_at: components["schemas"]["Instant"];
+        };
+        HistoricalRow: {
+            record: components["schemas"]["RecordRef"];
+            label: string;
+            vendor_id?: string | null;
+            business_date?: components["schemas"]["BusinessDate"] | null;
+            status: string;
+            amount_cents?: components["schemas"]["MoneyCents"] | null;
+            amount_label?: string | null;
+            policy_version_id?: string | null;
+            /** @description Knowledge time of the version shown. */
+            recorded_at: components["schemas"]["Instant"];
+            /** @description Business occurrence/effective time. */
+            occurred_at: components["schemas"]["Instant"];
+            /** @description Recorded later than it took effect. */
+            backdated: boolean;
+            note?: string | null;
+        };
+        /** @description Recorded AFTER the cutoff but effective at or before it. Not part of the projection; listed so history never changes silently. */
+        LaterRecordedFact: {
+            event_id: string;
+            summary: string;
+            category?: components["schemas"]["EventCategory"];
+            record?: components["schemas"]["RecordRef"] | null;
+            business_date?: components["schemas"]["BusinessDate"] | null;
+            occurred_at: components["schemas"]["Instant"];
+            recorded_at: components["schemas"]["Instant"];
+        };
+        HistoricalProjection: {
+            knowledge_cutoff: components["schemas"]["Instant"];
+            business_date: components["schemas"]["BusinessDate"] | null;
+            vendor_id?: string | null;
+            branch_id?: string | null;
+            /** @description Last stream_sequence included. */
+            as_of_sequence: number;
+            snapshot: components["schemas"]["ProjectionSnapshotRef"] | null;
+            /** @description Events replayed on top of the snapshot. */
+            events_applied: number;
+            rows: components["schemas"]["HistoricalRow"][];
+            recorded_later: components["schemas"]["LaterRecordedFact"][];
+            generated_at: components["schemas"]["Instant"];
+        };
+        /** @enum {string} */
+        ChallengeStatus: "OPEN" | "PREVIEWED" | "CORRECTION_APPROVED" | "CORRECTED" | "WITHDRAWN";
+        PausedWork: {
+            record: components["schemas"]["RecordRef"];
+            detail: string;
+        };
+        /** @description What the server paused when the challenge was recorded. */
+        ChallengePolicyEffect: {
+            policy_version_id: string;
+            status_before: components["schemas"]["PolicyStatus"];
+            status_now: components["schemas"]["PolicyStatus"];
+            paused_at: components["schemas"]["Instant"];
+            paused_work: components["schemas"]["PausedWork"][];
+        };
+        Challenge: {
+            id: string;
+            version: components["schemas"]["Version"];
+            status: components["schemas"]["ChallengeStatus"];
+            target: components["schemas"]["RecordRef"];
+            reason: string;
+            superseding_evidence: components["schemas"]["SourceRef"][];
+            evidence_hash: string;
+            policy_effect?: components["schemas"]["ChallengePolicyEffect"] | null;
+            correction_id?: string | null;
+            created_by?: string | null;
+            capability?: string | null;
+            created_at: components["schemas"]["Instant"];
+            correlation_id?: string | null;
+        };
+        EvidenceCitation: {
+            source_id: string;
+            source_version: components["schemas"]["Version"];
+            content_hash: string;
+            locator?: string;
+        };
+        /** @description payload of POST /challenges. Actor comes from the session. */
+        CreateChallengePayload: {
+            /** @constant */
+            action: "CHALLENGE";
+            target: {
+                /** @enum {string} */
+                kind: "POLICY_VERSION" | "SETTLEMENT" | "PAYOUT";
+                id: string;
+                version: components["schemas"]["Version"];
+            };
+            superseding_evidence: components["schemas"]["EvidenceCitation"][];
+            reason: string;
+        };
+        PreviewCorrectionPayload: {
+            /** @constant */
+            action: "PREVIEW_CORRECTION";
+            challenge_id: string;
+        };
+        /** @enum {string} */
+        CorrectionStatus: "PREVIEW_READY" | "APPROVED" | "IN_PROGRESS" | "COMPLETED" | "FAILED" | "STALE";
+        /**
+         * @description Server grouping of an affected record by its state at preview time (AGENT_HANDOFF "Challenges and reversal").
+         * @enum {string}
+         */
+        CorrectionStateGroup: "DRAFT" | "PENDING" | "COMPLETED" | "POSTED" | "NO_REMAINING_PAYOUT" | "STATEMENT";
+        /** @enum {string} */
+        CorrectionTreatment: "DRAFT_REVISE" | "PENDING_CANCEL_REQUEST" | "COMPLETED_RECOVERY_OFFSET" | "POSTED_REVERSE_AND_CORRECT" | "HUMAN_RECOVERY_OR_WAIVER" | "STATEMENT_REISSUE";
+        CorrectionItem: {
+            item_id: string;
+            record: components["schemas"]["RecordRef"];
+            state_at_preview: string;
+            state_group: components["schemas"]["CorrectionStateGroup"];
+            treatment: components["schemas"]["CorrectionTreatment"];
+            description: string;
+            original_cents?: components["schemas"]["MoneyCents"] | null;
+            corrected_cents?: components["schemas"]["MoneyCents"] | null;
+            /** @description Server-calculated; the UI never subtracts. */
+            delta_cents?: components["schemas"]["MoneyCents"] | null;
+            amount_label?: string | null;
+            /** @description item_id whose actual outcome decides whether this item applies. */
+            contingent_on?: string | null;
+            requires_human: boolean;
+        };
+        CorrectionPolicyChange: {
+            policy_version_id: string;
+            title: string;
+            status_now: components["schemas"]["PolicyStatus"];
+            planned_status: components["schemas"]["PolicyStatus"];
+            application_count?: number;
+        };
+        /** @description Server totals of the plan. The UI shows them and never adds item amounts. */
+        CorrectionTotals: {
+            fee_delta_cents: components["schemas"]["MoneyCents"];
+            overpaid_cents: components["schemas"]["MoneyCents"];
+            human_recovery_max_cents: components["schemas"]["MoneyCents"];
+        };
+        /** @enum {string} */
+        CorrectionStepStatus: "PENDING" | "RUNNING" | "DONE" | "FAILED" | "SKIPPED";
+        CorrectionStep: {
+            step_id: string;
+            label: string;
+            status: components["schemas"]["CorrectionStepStatus"];
+            detail?: string | null;
+        };
+        /** @description Original vs corrected link for one item, after execution. Originals are preserved. */
+        CorrectionResult: {
+            item_id: string;
+            original: components["schemas"]["RecordRef"];
+            corrected?: components["schemas"]["RecordRef"][];
+            original_cents?: components["schemas"]["MoneyCents"] | null;
+            corrected_cents?: components["schemas"]["MoneyCents"] | null;
+            outcome: string;
+        };
+        CorrectionApprovalRef: {
+            approval_id: string;
+            actor_id: string;
+            capability: components["schemas"]["Capability"];
+            decided_at: components["schemas"]["Instant"];
+        };
+        Correction: {
+            id: string;
+            version: components["schemas"]["Version"];
+            status: components["schemas"]["CorrectionStatus"];
+            challenge_id: string;
+            /** @description Hash over the exact plan shown; approvals bind to it. */
+            preview_hash: string;
+            evidence_hash: string;
+            required_capability: components["schemas"]["Capability"];
+            summary: string;
+            generated_at: components["schemas"]["Instant"];
+            policy_changes: components["schemas"]["CorrectionPolicyChange"][];
+            paused_work?: components["schemas"]["PausedWork"][];
+            items: components["schemas"]["CorrectionItem"][];
+            totals: components["schemas"]["CorrectionTotals"];
+            approval?: components["schemas"]["CorrectionApprovalRef"] | null;
+            progress?: components["schemas"]["CorrectionStep"][];
+            results?: components["schemas"]["CorrectionResult"][];
+            correlation_id?: string | null;
+            completed_at?: components["schemas"]["Instant"] | null;
+        };
+        /** @description payload of POST /corrections/{id}/approve. Approves exactly the previewed plan: stale preview_hash or evidence_hash must be rejected (422), a changed correction version is 409. */
+        ApproveCorrectionPayload: {
+            /** @constant */
+            action: "APPROVE_CORRECTION";
+            correction_id: string;
+            challenge_id: string;
+            preview_hash: string;
+            evidence_hash: string;
+            item_ids: string[];
+            note?: string;
+        };
+        BranchIsolation: {
+            /** @enum {string} */
+            storage: "ISOLATED";
+            /** @enum {string} */
+            external_effects: "DISABLED";
+            /** @enum {string} */
+            production_writes: "NONE";
+        };
+        BranchOverride: {
+            policy_version_id: string;
+            commission_bps: components["schemas"]["BasisPoints"];
+        };
+        BranchComparisonRow: {
+            record: components["schemas"]["RecordRef"];
+            label: string;
+            production_cents: components["schemas"]["MoneyCents"];
+            branch_cents: components["schemas"]["MoneyCents"];
+            /** @description Server-calculated branch minus production. */
+            delta_cents: components["schemas"]["MoneyCents"];
+        };
+        Branch: {
+            id: string;
+            version: components["schemas"]["Version"];
+            /** @enum {string} */
+            status: "CREATING" | "READY" | "FAILED" | "DISCARDED";
+            label: string;
+            base_knowledge_cutoff: components["schemas"]["Instant"];
+            business_date?: components["schemas"]["BusinessDate"] | null;
+            overrides: components["schemas"]["BranchOverride"][];
+            isolation: components["schemas"]["BranchIsolation"];
+            comparison?: components["schemas"]["BranchComparisonRow"][];
+            note?: string | null;
+            created_by?: string | null;
+            created_at: components["schemas"]["Instant"];
+        };
+        CreateBranchPayload: {
+            /** @constant */
+            action: "CREATE_WHAT_IF_BRANCH";
+            label: string;
+            base_knowledge_cutoff: components["schemas"]["Instant"];
+            business_date?: components["schemas"]["BusinessDate"] | null;
+            overrides: components["schemas"]["BranchOverride"][];
+        };
+        /** @description Server counters of effects attempted during replay. All must be 0; anything else is an incident. */
+        ReplayEffects: {
+            live_model_calls: number;
+            payment_effects: number;
+            production_postings: number;
+        };
+        ReplayDivergence: {
+            event_id: string;
+            detail: string;
+        };
+        Replay: {
+            id: string;
+            version: components["schemas"]["Version"];
+            /** @enum {string} */
+            status: "QUEUED" | "RUNNING" | "COMPLETED" | "FAILED";
+            /** @enum {string} */
+            mode: "RECORDED_RESULTS_ONLY";
+            run_id: string;
+            from_sequence?: number | null;
+            to_sequence?: number | null;
+            effects: components["schemas"]["ReplayEffects"];
+            processed: number;
+            total: number;
+            matching?: number | null;
+            divergences?: components["schemas"]["ReplayDivergence"][];
+            created_by?: string | null;
+            created_at: components["schemas"]["Instant"];
+            completed_at?: components["schemas"]["Instant"] | null;
+        };
+        StartReplayPayload: {
+            /** @constant */
+            action: "START_REPLAY";
+            run_id: string;
+            /** @constant */
+            mode: "RECORDED_RESULTS_ONLY";
         };
         VendorList: {
             items: components["schemas"]["Vendor"][];
@@ -1833,6 +2259,20 @@ export interface components {
         };
         EventList: {
             items: components["schemas"]["EventEnvelope"][];
+            next_cursor: components["schemas"]["NextCursor"];
+            /** @description Stream head when the query ran; pass as up_to_sequence to keep later pages stable. */
+            head_sequence?: number;
+        };
+        ChallengeList: {
+            items: components["schemas"]["Challenge"][];
+            next_cursor: components["schemas"]["NextCursor"];
+        };
+        BranchList: {
+            items: components["schemas"]["Branch"][];
+            next_cursor: components["schemas"]["NextCursor"];
+        };
+        ReplayList: {
+            items: components["schemas"]["Replay"][];
             next_cursor: components["schemas"]["NextCursor"];
         };
     };
@@ -3168,6 +3608,24 @@ export interface operations {
                 /** @description Opaque cursor from a previous next_cursor. Never parsed by clients. */
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];
+                run_id?: string;
+                vendor_id?: components["parameters"]["VendorId"];
+                aggregate_id?: string;
+                aggregate_type?: components["schemas"]["RecordKind"];
+                actor_type?: components["schemas"]["ActorType"];
+                actor_id?: string;
+                /** @description Exact event type */
+                type?: string;
+                category?: components["schemas"]["EventCategory"];
+                /** @description Absent means production events only. */
+                branch_id?: string;
+                correlation_id?: string;
+                /** @description Inclusive lower bound on recorded_at (knowledge time). */
+                recorded_from?: components["schemas"]["Instant"];
+                /** @description Inclusive upper bound on recorded_at. */
+                recorded_to?: components["schemas"]["Instant"];
+                up_to_sequence?: number;
+                after_sequence?: number;
             };
             header?: never;
             path?: never;
@@ -3186,6 +3644,161 @@ export interface operations {
             };
             401: components["responses"]["Unauthenticated"];
             403: components["responses"]["Forbidden"];
+            422: components["responses"]["Invalid"];
+        };
+    };
+    getEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PathId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Event. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventEnvelope"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getHistoricalProjection: {
+        parameters: {
+            query: {
+                knowledge_cutoff: components["schemas"]["Instant"];
+                business_date?: components["parameters"]["BusinessDate"];
+                vendor_id?: components["parameters"]["VendorId"];
+                /** @description Absent means production. */
+                branch_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Historical projection labelled with its cutoff, snapshot and later-recorded facts. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HistoricalProjection"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["Invalid"];
+        };
+    };
+    getChallenge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PathId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Challenge with superseding evidence and the policy pause it caused. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Challenge"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getCorrection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PathId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Correction preview (server-calculated impact and plan), approval, progress and results. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Correction"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getBranch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PathId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Isolated what-if branch with its production comparison. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Branch"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getReplay: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PathId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Side-effect-free replay with progress, effect counters and results. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Replay"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
     streamEvents: {
@@ -3261,6 +3874,33 @@ export interface operations {
             422: components["responses"]["Invalid"];
             429: components["responses"]["RateLimited"];
             503: components["responses"]["Unavailable"];
+        };
+    };
+    listChallenges: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from a previous next_cursor. Never parsed by clients. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+                target_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChallengeList"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
         };
     };
     createChallenge: {
@@ -3379,6 +4019,32 @@ export interface operations {
             503: components["responses"]["Unavailable"];
         };
     };
+    listBranches: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from a previous next_cursor. Never parsed by clients. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BranchList"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
     createBranch: {
         parameters: {
             query?: never;
@@ -3415,6 +4081,32 @@ export interface operations {
             422: components["responses"]["Invalid"];
             429: components["responses"]["RateLimited"];
             503: components["responses"]["Unavailable"];
+        };
+    };
+    listReplays: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from a previous next_cursor. Never parsed by clients. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReplayList"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
         };
     };
     createReplay: {
