@@ -21,9 +21,11 @@ from datetime import UTC, datetime
 from domain import accounting as acct
 from domain.tax import DEFAULT_TAX_CONFIG
 from sqlalchemy import func, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from app.accounting import post_cumulative
+from app.models import _new_id
 from app.models_finance import (
     Expense,
     FinanceConfig,
@@ -82,16 +84,20 @@ def get_or_default_config(db: Session, festival_id: str) -> FinanceConfig:
     cfg = active_config(db, festival_id)
     if cfg is not None:
         return cfg
-    cfg = FinanceConfig(
-        festival_id=festival_id,
-        version=1,
-        status="ACTIVE",
-        tax=DEFAULT_TAX_CONFIG,
-        **DEFAULT_SCHEDULE,
+    # ON CONFLICT: two concurrent first reads must not both create v1.
+    db.execute(
+        pg_insert(FinanceConfig)
+        .values(
+            id=_new_id(),
+            festival_id=festival_id,
+            version=1,
+            status="ACTIVE",
+            tax=DEFAULT_TAX_CONFIG,
+            **DEFAULT_SCHEDULE,
+        )
+        .on_conflict_do_nothing(index_elements=["festival_id", "version"])
     )
-    db.add(cfg)
-    db.flush()
-    return cfg
+    return active_config(db, festival_id)
 
 
 def set_config(
@@ -331,11 +337,13 @@ def record_sponsor_invoice(
 
 
 def sponsor_received_cents(db: Session, sponsor_invoice_id: str) -> int:
-    return db.execute(
-        select(func.coalesce(func.sum(SponsorshipReceipt.amount_cents), 0)).where(
-            SponsorshipReceipt.sponsor_invoice_id == sponsor_invoice_id
-        )
-    ).scalar_one()
+    return int(
+        db.execute(
+            select(func.coalesce(func.sum(SponsorshipReceipt.amount_cents), 0)).where(
+                SponsorshipReceipt.sponsor_invoice_id == sponsor_invoice_id
+            )
+        ).scalar_one()
+    )
 
 
 def record_sponsorship_receipt(

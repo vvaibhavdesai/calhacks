@@ -19,7 +19,7 @@ from zoneinfo import ZoneInfo
 from domain import accounting as acct
 from domain import cash as cash_rules
 from domain import tax as tax_rules
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from app.accounting import (
@@ -27,7 +27,7 @@ from app.accounting import (
     festival_balances,
     unbalanced_entry_count,
 )
-from app.finance_records import get_or_default_config
+from app.finance_records import get_or_default_config, sponsor_received_cents
 from app.models_finance import (
     DailyClose,
     Expense,
@@ -175,15 +175,17 @@ def tax_summary(db: Session, *, festival_id: str, through: date | None = None) -
 
 
 def _reserved_payouts(db: Session, festival_id: str) -> int:
-    return db.execute(
-        select(func.coalesce(func.sum(Payout.amount_cents), 0))
-        .join(Vendor, Vendor.id == Payout.vendor_id)
-        .where(
-            Vendor.festival_id == festival_id,
-            Payout.state.in_(IN_FLIGHT_PAYOUT_STATES),
-            Payout.reservation_released_at.is_(None),
-        )
-    ).scalar_one()
+    return int(
+        db.execute(
+            select(func.coalesce(func.sum(Payout.amount_cents), 0))
+            .join(Vendor, Vendor.id == Payout.vendor_id)
+            .where(
+                Vendor.festival_id == festival_id,
+                Payout.state.in_(IN_FLIGHT_PAYOUT_STATES),
+                Payout.reservation_released_at.is_(None),
+            )
+        ).scalar_one()
+    )
 
 
 def cash_report(db: Session, *, festival_id: str, as_of: date) -> dict:
@@ -496,6 +498,13 @@ def issue_vendor_statement(
     cfg = get_or_default_config(db, vendor.festival_id)
     status, content = build_statement_content(db, vendor, business_date)
     digest = hashlib.sha256(json.dumps(content, sort_keys=True).encode()).hexdigest()
+    # vendor_statements is append-only for encore_app, and SELECT ... FOR
+    # UPDATE needs UPDATE privilege, so concurrent issuers for the same
+    # vendor/date serialize on a transaction-scoped advisory lock instead.
+    db.execute(
+        text("SELECT pg_advisory_xact_lock(hashtext(:k))"),
+        {"k": f"vendor_statement:{vendor_id}:{business_date.isoformat()}"},
+    )
     latest = (
         db.execute(
             select(VendorStatement)
@@ -504,7 +513,6 @@ def issue_vendor_statement(
                 VendorStatement.business_date == business_date,
             )
             .order_by(VendorStatement.statement_version.desc())
-            .with_for_update()
         )
         .scalars()
         .first()
@@ -565,7 +573,7 @@ def statement_out(s: VendorStatement) -> dict:
         "payout_id": s.payout_id,
         "payout_state": s.payout_state,
         "finance_config_id": s.finance_config_id,
-        "due_by": s.due_by.isoformat(),
+        "due_by": s.due_by.astimezone(UTC).isoformat(),
         "issued_on_time": s.issued_on_time,
         "issued_at": s.created_at.isoformat() if s.created_at else None,
         "supersedes_statement_id": s.supersedes_statement_id,
@@ -691,11 +699,7 @@ def sponsorship_memo(db: Session, festival_id: str) -> list[dict]:
     for si in db.execute(
         select(SponsorInvoice).where(SponsorInvoice.festival_id == festival_id)
     ).scalars():
-        got = db.execute(
-            select(func.coalesce(func.sum(SponsorshipReceipt.amount_cents), 0)).where(
-                SponsorshipReceipt.sponsor_invoice_id == si.id
-            )
-        ).scalar_one()
+        got = sponsor_received_cents(db, si.id)
         rows.append(
             {
                 "sponsor_invoice_id": si.id,

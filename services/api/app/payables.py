@@ -37,7 +37,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.accounting import post_cumulative
-from app.models import CAPABILITY_FINANCE_LEAD, CAPABILITY_RESOLVE_CASE
+from app.models import CAPABILITY_FINANCE_LEAD, CAPABILITY_RESOLVE_CASE, _new_id
 from app.models_finance import PurchaseOrder, SupplierPayment
 from app.models_ledger import Case, Supplier, SupplierInvoice
 from app.models_payout_dispatch import CashPool
@@ -85,15 +85,15 @@ def _event(db, *, stream, event_type, aggregate_id, version, actor_id, actor_cap
     )
 
 
-def _invoice_ref(invoice_id: str) -> dict:
-    return {"ref_kind": "supplier_invoice", "ref_id": invoice_id}
+def _invoice_ref(invoice_id: str, role: str = "related") -> dict:
+    return {"ref_kind": "supplier_invoice", "ref_id": invoice_id, "role": role}
 
 
 def _open_case(db, *, reason_code, invoice: SupplierInvoice, evidence, impact, proposed, cap):
     case = Case(
         vendor_id=None,
         reason_code=reason_code,
-        evidence_refs=[_invoice_ref(invoice.id), *evidence],
+        evidence_refs=[_invoice_ref(invoice.id, "subject"), *evidence],
         financial_impact_cents=impact,
         proposed_resolution=proposed,
         required_capability=cap,
@@ -110,7 +110,10 @@ def _blocking_cases(db: Session, invoice_id: str) -> list[Case]:
             select(Case).where(
                 Case.status == "OPEN",
                 Case.reason_code.in_(BLOCKING_CASE_REASONS),
-                Case.evidence_refs.contains([_invoice_ref(invoice_id)]),
+                # Only cases ABOUT this invoice block it; an invoice merely
+                # cited as evidence (e.g. the original of a suspected
+                # duplicate) stays payable.
+                Case.evidence_refs.contains([_invoice_ref(invoice_id, "subject")]),
             )
         )
         .scalars()
@@ -232,17 +235,43 @@ def _po_invoiced_cents(db: Session, po_id: str, *, excluding: str | None = None)
     )
     if excluding is not None:
         q = q.where(SupplierInvoice.id != excluding)
-    return db.execute(q).scalar_one()
+    return int(db.execute(q).scalar_one())
 
 
-def _recompute_po_excess(
-    db: Session, po: PurchaseOrder, inv: SupplierInvoice, *, actor_id, actor_capability
-) -> None:
-    prior = _po_invoiced_cents(db, po.id, excluding=inv.id)
-    excess_to_date = rules.po_excess(po.amount_cents, prior + inv.gross_cents - inv.credited_cents)
-    # The excess is attributed to the invoice that crossed the PO amount,
-    # never more than that invoice's own net-of-credit amount.
-    inv.po_excess_cents = min(excess_to_date, inv.gross_cents - inv.credited_cents)
+def _recompute_po(db: Session, po: PurchaseOrder, *, actor_id: str | None) -> None:
+    """Re-attributes PO excess across ALL invoices on the PO, in invoice
+    date order (net of credit notes). Each invoice's excess is the part of
+    it that lies beyond the PO amount. Called with the PO row locked. An
+    invoice whose excess falls to zero (e.g. after a credit note on an
+    earlier invoice) has its INVOICE_EXCEEDS_PO case resolved as no longer
+    applicable -- never silently: the resolution is recorded on the case."""
+    invoices = (
+        db.execute(
+            select(SupplierInvoice)
+            .where(SupplierInvoice.kind == "INVOICE", SupplierInvoice.po_refs.contains([po.id]))
+            .order_by(SupplierInvoice.invoice_date, SupplierInvoice.id)
+            .with_for_update()
+        )
+        .scalars()
+        .all()
+    )
+    running = 0
+    for inv in invoices:
+        own = inv.gross_cents - inv.credited_cents
+        running += own
+        excess = min(rules.po_excess(po.amount_cents, running), max(own, 0))
+        if excess != inv.po_excess_cents:
+            inv.po_excess_cents = excess
+            inv.version += 1
+            if excess == 0:
+                for case in _blocking_cases(db, inv.id):
+                    if case.reason_code == "INVOICE_EXCEEDS_PO":
+                        case.status = "RESOLVED"
+                        case.auto_resolved = True
+                        case.resolution_decision = "NO_LONGER_EXCEEDS_PO"
+                        case.resolution_note = "PO total back within amount after a credit note."
+                        case.resolved_at = datetime.now(UTC)
+        _refresh_status(inv)
 
 
 # ---------------------------------------------------------------------------
@@ -366,7 +395,7 @@ def record_invoice(
         )
 
     if po is not None:
-        _recompute_po_excess(db, po, inv, actor_id=actor_id, actor_capability=actor_capability)
+        _recompute_po(db, po, actor_id=actor_id)
         if inv.po_excess_cents > 0:
             cases.append(
                 _open_case(
@@ -481,13 +510,13 @@ def record_credit_note(
     db.flush()
     original.credited_cents += gross_cents
     original.version += 1
-    if original.po_refs:
-        po = db.get(PurchaseOrder, original.po_refs[0])
-        if po is not None:
-            _recompute_po_excess(
-                db, po, original, actor_id=actor_id, actor_capability=actor_capability
-            )
     _refresh_status(original)
+    if original.po_refs:
+        po = db.execute(
+            select(PurchaseOrder).where(PurchaseOrder.id == original.po_refs[0]).with_for_update()
+        ).scalar_one_or_none()
+        if po is not None:
+            _recompute_po(db, po, actor_id=actor_id)
     result = post_cumulative(
         db,
         festival_id=original.festival_id,
@@ -603,7 +632,24 @@ def pay_invoice(
     pool.available_cents -= amount_cents
     pool.version += 1
 
+    # `supplier_payments` is append-only for encore_app (no UPDATE), so the
+    # row is inserted once, complete: the id is generated first, the journal
+    # entry posted citing it, then the payment row written with its entry id.
+    payment_id = _new_id()
+    result = post_cumulative(
+        db,
+        festival_id=inv.festival_id,
+        base_key=f"SUPPLIER_PAYMENT:{payment_id}",
+        business_date=business_date,
+        kind="SUPPLIER_PAYMENT",
+        lines=acct.supplier_payment(amount_cents),
+        source_record_ids=[payment_id, inv.id],
+        note="Simulated supplier payment. No real money moved.",
+        actor_id=actor_id,
+        actor_capability=actor_capability,
+    )
     payment = SupplierPayment(
+        id=payment_id,
         festival_id=inv.festival_id,
         supplier_id=inv.supplier_id,
         invoice_id=inv.id,
@@ -613,25 +659,13 @@ def pay_invoice(
         payment_reference=f"SIM-AP-{idempotency_key[:40]}",
         approved_by=actor_id,
         approved_capability=actor_capability,
+        journal_entry_id=result.entry.id,
     )
     db.add(payment)
     db.flush()
     inv.paid_cents += amount_cents
     inv.version += 1
     _refresh_status(inv)
-    result = post_cumulative(
-        db,
-        festival_id=inv.festival_id,
-        base_key=f"SUPPLIER_PAYMENT:{payment.id}",
-        business_date=business_date,
-        kind="SUPPLIER_PAYMENT",
-        lines=acct.supplier_payment(amount_cents),
-        source_record_ids=[payment.id, inv.id],
-        note="Simulated supplier payment. No real money moved.",
-        actor_id=actor_id,
-        actor_capability=actor_capability,
-    )
-    payment.journal_entry_id = result.entry.id if result.entry else None
     _event(
         db,
         stream=f"supplier_invoice:{inv.id}",
