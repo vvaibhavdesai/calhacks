@@ -543,9 +543,16 @@ def release_payout(
 
     # 3. Unresolved holds: an OPEN case on this vendor is a hard blocker,
     # independent of amount/approval (AGENT_HANDOFF.md: "An amount approval
-    # does not waive unrelated controls").
+    # does not waive unrelated controls"). `blocking` defaults to true, so
+    # every case kind that ever blocked still blocks; the one exception is
+    # A06 stage 2's `minimum_period_claim`, where the signed contract
+    # already decides the night and the open question withholds nothing.
     open_case = db.execute(
-        select(Case.id).where(Case.vendor_id == payout.vendor_id, Case.status == "OPEN")
+        select(Case.id).where(
+            Case.vendor_id == payout.vendor_id,
+            Case.status == "OPEN",
+            Case.blocking.is_(True),
+        )
     ).first()
     if open_case is not None:
         _block(

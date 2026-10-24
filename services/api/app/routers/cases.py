@@ -61,6 +61,10 @@ class CaseOut(BaseModel):
     proposed_resolution: str | None
     required_capability: str | None
     status: str
+    # Whether an OPEN case withholds the vendor's money. True for every
+    # case kind before A06 stage 2; false only for `minimum_period_claim`,
+    # where the signed contract already decides the night.
+    blocking: bool
     predicate_values: dict
     resolution_decision: str | None
     resolution_note: str | None
@@ -85,6 +89,7 @@ def _to_case_out(case: Case) -> CaseOut:
         proposed_resolution=case.proposed_resolution,
         required_capability=case.required_capability,
         status=case.status,
+        blocking=case.blocking,
         predicate_values=case.predicate_values,
         resolution_decision=case.resolution_decision,
         resolution_note=case.resolution_note,

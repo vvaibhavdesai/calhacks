@@ -460,6 +460,16 @@ class Case(Base):
     challenged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     challenge_note: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # --- A06 stage 2 additive column (migration 0013) ---
+    # Whether an OPEN case withholds this vendor's money. Every case kind
+    # before A06 stage 2 did (A07 `release_payout`, the nightly close's
+    # `check_controls`), so this defaults to true and existing rows are
+    # unchanged in meaning. Terms resolution opens the first deliberately
+    # NON-blocking kind: a vendor's claim that the minimum fee is charged
+    # per night. The signed contract stands, a human still sees the
+    # question, and nothing is held while they look at it.
+    blocking: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
 
 class PolicyVersion(Base):
     """One row per policy *version*. `policy_id` is the stable logical

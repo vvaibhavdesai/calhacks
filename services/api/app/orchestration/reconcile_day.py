@@ -237,10 +237,20 @@ def reconcile_bank_deposits_day(
 
 
 def open_cases_for_vendor(db: Session, vendor_id: str) -> list[Case]:
+    """The OPEN cases that hold this vendor's money at CONTROLS_CHECKED.
+    `Case.blocking` defaults to true, so this is every case kind that has
+    ever held a vendor; A06 stage 2's `minimum_period_claim` is the one
+    deliberately non-blocking kind -- the signed contract already decides
+    the night, so the open question is visible without holding the money
+    (the same distinction A07's `release_payout` makes)."""
     return list(
         db.execute(
             select(Case)
-            .where(Case.vendor_id == vendor_id, Case.status == "OPEN")
+            .where(
+                Case.vendor_id == vendor_id,
+                Case.status == "OPEN",
+                Case.blocking.is_(True),
+            )
             .order_by(Case.created_at)
         )
         .scalars()
