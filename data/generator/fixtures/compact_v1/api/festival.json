@@ -1,0 +1,35 @@
+{
+  "bank_accounts": [
+    {
+      "id": "bacct_26c664a5ec9da411",
+      "name": "Organizer operating account (fictional)",
+      "opening_as_of": "2026-10-15",
+      "opening_balance_cents": "2500000",
+      "source_refs": [
+        {
+          "content_hash": "sha256:7d93a748e6f6a1c9b342cb68d6964b2b11bd513572ecf2fefbef407a5766aeb7",
+          "locator": "row=1",
+          "locator_kind": "row",
+          "source_id": "src_1fdc84e50a1715ef",
+          "source_version": 1
+        }
+      ]
+    }
+  ],
+  "business_config_id": "cfg_fae7c3173048935f",
+  "business_dates": [
+    "2026-10-16",
+    "2026-10-17",
+    "2026-10-18"
+  ],
+  "currency": "USD",
+  "end_date": "2026-10-18",
+  "fictional_notice": "Fictional festival, organizer, vendors and people. Synthetic test data only.",
+  "id": "fest_bf25e974c723d827",
+  "name": "Golden Coast Music Festival",
+  "organizer_name": "Golden Coast Festival Productions (fictional)",
+  "start_date": "2026-10-16",
+  "status": "ACTIVE",
+  "timezone": "America/Los_Angeles",
+  "version": 1
+}

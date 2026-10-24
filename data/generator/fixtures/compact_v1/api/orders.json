@@ -1,0 +1,1547 @@
+{
+  "items": [
+    {
+      "booth_id": "booth_4dcaa0b9d833272f",
+      "business_date": "2026-10-16",
+      "eligible_net_cents": "250000",
+      "festival_id": "fest_bf25e974c723d827",
+      "gross_cents": "277500",
+      "id": "ord_5edd8d06ed14c498",
+      "kind": "SALE",
+      "lines": [
+        {
+          "description": "Mango smoothie",
+          "eligible_net_cents": "250000",
+          "gross_cents": "272500",
+          "item_sku": "SMOOTHIE",
+          "line_id": "oln_c23afbb3d78539fa",
+          "line_no": 1,
+          "quantity": 250,
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=1",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "22500",
+          "tips_cents": "0",
+          "unit_price_cents": "1000"
+        },
+        {
+          "description": "Tip",
+          "eligible_net_cents": "0",
+          "gross_cents": "5000",
+          "item_sku": "TIP",
+          "line_id": "oln_af9474a4c4b436b9",
+          "line_no": 2,
+          "quantity": 1,
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=2",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "0",
+          "tips_cents": "5000",
+          "unit_price_cents": "0"
+        }
+      ],
+      "ordered_at": "2026-10-16T20:16:00Z",
+      "recorded_at": "2026-10-16T20:18:00Z",
+      "source_native_id": "POS-B-01-0001",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=1-2",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        }
+      ],
+      "source_system": "POS",
+      "status": "COMPLETED",
+      "tax_cents": "22500",
+      "tips_cents": "5000",
+      "vendor_id": "ven_7248fe404ac157ca",
+      "version": 1
+    },
+    {
+      "booth_id": "booth_4dcaa0b9d833272f",
+      "business_date": "2026-10-16",
+      "eligible_net_cents": "150000",
+      "festival_id": "fest_bf25e974c723d827",
+      "gross_cents": "165500",
+      "id": "ord_e4c42f764bef189c",
+      "kind": "SALE",
+      "lines": [
+        {
+          "description": "Acai bowl",
+          "eligible_net_cents": "150000",
+          "gross_cents": "163500",
+          "item_sku": "BOWL",
+          "line_id": "oln_2ecc486edc0b40b1",
+          "line_no": 1,
+          "quantity": 120,
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=3",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "13500",
+          "tips_cents": "0",
+          "unit_price_cents": "1250"
+        },
+        {
+          "description": "Tip",
+          "eligible_net_cents": "0",
+          "gross_cents": "2000",
+          "item_sku": "TIP",
+          "line_id": "oln_31d0f393adb84697",
+          "line_no": 2,
+          "quantity": 1,
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=4",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "0",
+          "tips_cents": "2000",
+          "unit_price_cents": "0"
+        }
+      ],
+      "ordered_at": "2026-10-17T06:30:00Z",
+      "recorded_at": "2026-10-17T06:32:00Z",
+      "source_native_id": "POS-B-01-0002",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=3-4",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        }
+      ],
+      "source_system": "POS",
+      "status": "COMPLETED",
+      "tax_cents": "13500",
+      "tips_cents": "2000",
+      "vendor_id": "ven_7248fe404ac157ca",
+      "version": 1
+    },
+    {
+      "booth_id": "booth_4dcaa0b9d833272f",
+      "business_date": "2026-10-17",
+      "eligible_net_cents": "300000",
+      "festival_id": "fest_bf25e974c723d827",
+      "gross_cents": "330000",
+      "id": "ord_022a52eceab460c7",
+      "kind": "SALE",
+      "lines": [
+        {
+          "description": "Mango smoothie",
+          "eligible_net_cents": "180000",
+          "gross_cents": "196200",
+          "item_sku": "SMOOTHIE",
+          "line_id": "oln_e34bd8ac6af31ac9",
+          "line_no": 1,
+          "quantity": 180,
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=5",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "16200",
+          "tips_cents": "0",
+          "unit_price_cents": "1000"
+        },
+        {
+          "description": "Acai bowl",
+          "eligible_net_cents": "120000",
+          "gross_cents": "130800",
+          "item_sku": "BOWL",
+          "line_id": "oln_d1ed85a48afe2285",
+          "line_no": 2,
+          "quantity": 96,
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=6",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "10800",
+          "tips_cents": "0",
+          "unit_price_cents": "1250"
+        },
+        {
+          "description": "Tip",
+          "eligible_net_cents": "0",
+          "gross_cents": "3000",
+          "item_sku": "TIP",
+          "line_id": "oln_f543830713a3be4f",
+          "line_no": 3,
+          "quantity": 1,
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=7",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "0",
+          "tips_cents": "3000",
+          "unit_price_cents": "0"
+        }
+      ],
+      "ordered_at": "2026-10-18T03:34:00Z",
+      "recorded_at": "2026-10-18T03:36:00Z",
+      "source_native_id": "POS-B-01-0003",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=5-7",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        }
+      ],
+      "source_system": "POS",
+      "status": "COMPLETED",
+      "tax_cents": "27000",
+      "tips_cents": "3000",
+      "vendor_id": "ven_7248fe404ac157ca",
+      "version": 1
+    },
+    {
+      "booth_id": "booth_4dcaa0b9d833272f",
+      "business_date": "2026-10-18",
+      "eligible_net_cents": "300000",
+      "festival_id": "fest_bf25e974c723d827",
+      "gross_cents": "331001",
+      "id": "ord_28997c11f851c845",
+      "kind": "SALE",
+      "lines": [
+        {
+          "description": "Mango smoothie",
+          "eligible_net_cents": "150000",
+          "gross_cents": "163500",
+          "item_sku": "SMOOTHIE",
+          "line_id": "oln_9e0a9b47485181a3",
+          "line_no": 1,
+          "quantity": 150,
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=8",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "13500",
+          "tips_cents": "0",
+          "unit_price_cents": "1000"
+        },
+        {
+          "description": "Acai bowl",
+          "eligible_net_cents": "123750",
+          "gross_cents": "134888",
+          "item_sku": "BOWL",
+          "line_id": "oln_3bb3dc3704b4e4ed",
+          "line_no": 2,
+          "quantity": 99,
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=9",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "11138",
+          "tips_cents": "0",
+          "unit_price_cents": "1250"
+        },
+        {
+          "description": "Ginger shot",
+          "eligible_net_cents": "26250",
+          "gross_cents": "28613",
+          "item_sku": "SHOT",
+          "line_id": "oln_0c8b264be43ab53f",
+          "line_no": 3,
+          "quantity": 70,
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=10",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "2363",
+          "tips_cents": "0",
+          "unit_price_cents": "375"
+        },
+        {
+          "description": "Tip",
+          "eligible_net_cents": "0",
+          "gross_cents": "4000",
+          "item_sku": "TIP",
+          "line_id": "oln_688d1a85b2e9a73c",
+          "line_no": 4,
+          "quantity": 1,
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=11",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "0",
+          "tips_cents": "4000",
+          "unit_price_cents": "0"
+        }
+      ],
+      "ordered_at": "2026-10-19T02:47:00Z",
+      "recorded_at": "2026-10-19T02:49:00Z",
+      "source_native_id": "POS-B-01-0004",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=8-11",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        }
+      ],
+      "source_system": "POS",
+      "status": "COMPLETED",
+      "tax_cents": "27001",
+      "tips_cents": "4000",
+      "vendor_id": "ven_7248fe404ac157ca",
+      "version": 1
+    },
+    {
+      "booth_id": "booth_24721659e5a0e531",
+      "business_date": "2026-10-16",
+      "eligible_net_cents": "600000",
+      "festival_id": "fest_bf25e974c723d827",
+      "gross_cents": "660000",
+      "id": "ord_87bd4e5dfec1d10b",
+      "kind": "SALE",
+      "lines": [
+        {
+          "description": "Street taco",
+          "eligible_net_cents": "450000",
+          "gross_cents": "490500",
+          "item_sku": "TACO",
+          "line_id": "oln_2623459adf0d3ca0",
+          "line_no": 1,
+          "quantity": 1000,
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=12",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "40500",
+          "tips_cents": "0",
+          "unit_price_cents": "450"
+        },
+        {
+          "description": "Carne asada burrito",
+          "eligible_net_cents": "150000",
+          "gross_cents": "163500",
+          "item_sku": "BURRITO",
+          "line_id": "oln_0012fbec5d3e9bc7",
+          "line_no": 2,
+          "quantity": 120,
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=13",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "13500",
+          "tips_cents": "0",
+          "unit_price_cents": "1250"
+        },
+        {
+          "description": "Tip",
+          "eligible_net_cents": "0",
+          "gross_cents": "6000",
+          "item_sku": "TIP",
+          "line_id": "oln_a9f63307c69845be",
+          "line_no": 3,
+          "quantity": 1,
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=14",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "0",
+          "tips_cents": "6000",
+          "unit_price_cents": "0"
+        }
+      ],
+      "ordered_at": "2026-10-17T05:19:00Z",
+      "recorded_at": "2026-10-17T05:21:00Z",
+      "source_native_id": "POS-B-02-0005",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=12-14",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        }
+      ],
+      "source_system": "POS",
+      "status": "COMPLETED",
+      "tax_cents": "54000",
+      "tips_cents": "6000",
+      "vendor_id": "ven_c309836b4f9601f2",
+      "version": 1
+    },
+    {
+      "booth_id": "booth_24721659e5a0e531",
+      "business_date": "2026-10-17",
+      "eligible_net_cents": "500000",
+      "festival_id": "fest_bf25e974c723d827",
+      "gross_cents": "547000",
+      "id": "ord_b8371203296e7657",
+      "kind": "SALE",
+      "lines": [
+        {
+          "description": "Street taco",
+          "eligible_net_cents": "360000",
+          "gross_cents": "392400",
+          "item_sku": "TACO",
+          "line_id": "oln_707a35e455f0f626",
+          "line_no": 1,
+          "quantity": 800,
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=15",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "32400",
+          "tips_cents": "0",
+          "unit_price_cents": "450"
+        },
+        {
+          "description": "Carne asada burrito",
+          "eligible_net_cents": "140000",
+          "gross_cents": "152600",
+          "item_sku": "BURRITO",
+          "line_id": "oln_3d4ced532772fe4d",
+          "line_no": 2,
+          "quantity": 112,
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=16",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "12600",
+          "tips_cents": "0",
+          "unit_price_cents": "1250"
+        },
+        {
+          "description": "Tip",
+          "eligible_net_cents": "0",
+          "gross_cents": "2000",
+          "item_sku": "TIP",
+          "line_id": "oln_f49ac2ca9c6f6bc6",
+          "line_no": 3,
+          "quantity": 1,
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=17",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "0",
+          "tips_cents": "2000",
+          "unit_price_cents": "0"
+        }
+      ],
+      "ordered_at": "2026-10-18T05:37:00Z",
+      "recorded_at": "2026-10-18T05:39:00Z",
+      "source_native_id": "POS-B-02-0006",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=15-17",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        }
+      ],
+      "source_system": "POS",
+      "status": "COMPLETED",
+      "tax_cents": "45000",
+      "tips_cents": "2000",
+      "vendor_id": "ven_c309836b4f9601f2",
+      "version": 1
+    },
+    {
+      "booth_id": "booth_24721659e5a0e531",
+      "business_date": "2026-10-18",
+      "eligible_net_cents": "400000",
+      "festival_id": "fest_bf25e974c723d827",
+      "gross_cents": "437500",
+      "id": "ord_84e06a9c666caab8",
+      "kind": "SALE",
+      "lines": [
+        {
+          "description": "Street taco",
+          "eligible_net_cents": "270000",
+          "gross_cents": "294300",
+          "item_sku": "TACO",
+          "line_id": "oln_4d2d82352217a539",
+          "line_no": 1,
+          "quantity": 600,
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=18",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "24300",
+          "tips_cents": "0",
+          "unit_price_cents": "450"
+        },
+        {
+          "description": "Carne asada burrito",
+          "eligible_net_cents": "130000",
+          "gross_cents": "141700",
+          "item_sku": "BURRITO",
+          "line_id": "oln_19d7f96c2b80ab5a",
+          "line_no": 2,
+          "quantity": 104,
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=19",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "11700",
+          "tips_cents": "0",
+          "unit_price_cents": "1250"
+        },
+        {
+          "description": "Tip",
+          "eligible_net_cents": "0",
+          "gross_cents": "1500",
+          "item_sku": "TIP",
+          "line_id": "oln_05c0f4348aefe2c8",
+          "line_no": 3,
+          "quantity": 1,
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=20",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "0",
+          "tips_cents": "1500",
+          "unit_price_cents": "0"
+        }
+      ],
+      "ordered_at": "2026-10-19T01:00:00Z",
+      "recorded_at": "2026-10-19T01:02:00Z",
+      "source_native_id": "POS-B-02-0007",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=18-20",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        }
+      ],
+      "source_system": "POS",
+      "status": "COMPLETED",
+      "tax_cents": "36000",
+      "tips_cents": "1500",
+      "vendor_id": "ven_c309836b4f9601f2",
+      "version": 1
+    },
+    {
+      "booth_id": "booth_bc4d1fc834e12d44",
+      "business_date": "2026-10-16",
+      "eligible_net_cents": "40000",
+      "festival_id": "fest_bf25e974c723d827",
+      "gross_cents": "43600",
+      "id": "ord_f85d7a5a9129c20a",
+      "kind": "SALE",
+      "lines": [
+        {
+          "description": "Kettle corn bag",
+          "eligible_net_cents": "40000",
+          "gross_cents": "43600",
+          "item_sku": "CORN",
+          "line_id": "oln_c08b313dba194d5a",
+          "line_no": 1,
+          "quantity": 50,
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=21",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "3600",
+          "tips_cents": "0",
+          "unit_price_cents": "800"
+        }
+      ],
+      "ordered_at": "2026-10-17T03:20:00Z",
+      "recorded_at": "2026-10-17T03:22:00Z",
+      "source_native_id": "POS-B-03-0008",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=21-21",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        }
+      ],
+      "source_system": "POS",
+      "status": "COMPLETED",
+      "tax_cents": "3600",
+      "tips_cents": "0",
+      "vendor_id": "ven_bdccc4a0fab46f90",
+      "version": 1
+    },
+    {
+      "booth_id": "booth_bc4d1fc834e12d44",
+      "business_date": "2026-10-16",
+      "eligible_net_cents": "40000",
+      "festival_id": "fest_bf25e974c723d827",
+      "gross_cents": "43600",
+      "id": "ord_4ee5f4dd4e4eeee5",
+      "kind": "SALE",
+      "lines": [
+        {
+          "description": "Kettle corn bag",
+          "eligible_net_cents": "40000",
+          "gross_cents": "43600",
+          "item_sku": "CORN",
+          "line_id": "oln_6aeff792ef7c76fa",
+          "line_no": 1,
+          "quantity": 50,
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=22",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "3600",
+          "tips_cents": "0",
+          "unit_price_cents": "800"
+        }
+      ],
+      "ordered_at": "2026-10-16T23:03:00Z",
+      "recorded_at": "2026-10-16T23:05:00Z",
+      "source_native_id": "POS-B-03-0009",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=22-22",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        }
+      ],
+      "source_system": "POS",
+      "status": "COMPLETED",
+      "tax_cents": "3600",
+      "tips_cents": "0",
+      "vendor_id": "ven_bdccc4a0fab46f90",
+      "version": 1
+    },
+    {
+      "booth_id": "booth_bc4d1fc834e12d44",
+      "business_date": "2026-10-17",
+      "eligible_net_cents": "71600",
+      "festival_id": "fest_bf25e974c723d827",
+      "gross_cents": "78044",
+      "id": "ord_e8a38da6f02484ed",
+      "kind": "SALE",
+      "lines": [
+        {
+          "description": "Kettle corn bag",
+          "eligible_net_cents": "69600",
+          "gross_cents": "75864",
+          "item_sku": "CORN",
+          "line_id": "oln_9b3f27a0e824374f",
+          "line_no": 1,
+          "quantity": 87,
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=23",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "6264",
+          "tips_cents": "0",
+          "unit_price_cents": "800"
+        },
+        {
+          "description": "Fresh lemonade",
+          "eligible_net_cents": "2000",
+          "gross_cents": "2180",
+          "item_sku": "LEMON",
+          "line_id": "oln_12b420d4e6c68eaf",
+          "line_no": 2,
+          "quantity": 4,
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=24",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "180",
+          "tips_cents": "0",
+          "unit_price_cents": "500"
+        }
+      ],
+      "ordered_at": "2026-10-18T01:34:00Z",
+      "recorded_at": "2026-10-18T01:36:00Z",
+      "source_native_id": "POS-B-03-0010",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=23-24",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        }
+      ],
+      "source_system": "POS",
+      "status": "COMPLETED",
+      "tax_cents": "6444",
+      "tips_cents": "0",
+      "vendor_id": "ven_bdccc4a0fab46f90",
+      "version": 1
+    },
+    {
+      "booth_id": "booth_bc4d1fc834e12d44",
+      "business_date": "2026-10-18",
+      "eligible_net_cents": "40000",
+      "festival_id": "fest_bf25e974c723d827",
+      "gross_cents": "43600",
+      "id": "ord_b8cecacf831a7045",
+      "kind": "SALE",
+      "lines": [
+        {
+          "description": "Kettle corn bag",
+          "eligible_net_cents": "40000",
+          "gross_cents": "43600",
+          "item_sku": "CORN",
+          "line_id": "oln_edf61f4114215c94",
+          "line_no": 1,
+          "quantity": 50,
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=25",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "3600",
+          "tips_cents": "0",
+          "unit_price_cents": "800"
+        }
+      ],
+      "ordered_at": "2026-10-18T20:58:00Z",
+      "recorded_at": "2026-10-18T21:00:00Z",
+      "source_native_id": "POS-B-03-0011",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=25-25",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        }
+      ],
+      "source_system": "POS",
+      "status": "COMPLETED",
+      "tax_cents": "3600",
+      "tips_cents": "0",
+      "vendor_id": "ven_bdccc4a0fab46f90",
+      "version": 1
+    },
+    {
+      "booth_id": "booth_bc4d1fc834e12d44",
+      "business_date": "2026-10-18",
+      "eligible_net_cents": "10000",
+      "festival_id": "fest_bf25e974c723d827",
+      "gross_cents": "10900",
+      "id": "ord_44494b4e504c4ec1",
+      "kind": "SALE",
+      "lines": [
+        {
+          "description": "Fresh lemonade",
+          "eligible_net_cents": "10000",
+          "gross_cents": "10900",
+          "item_sku": "LEMON",
+          "line_id": "oln_fafea897fdc378cd",
+          "line_no": 1,
+          "quantity": 20,
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=26",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "900",
+          "tips_cents": "0",
+          "unit_price_cents": "500"
+        }
+      ],
+      "ordered_at": "2026-10-18T19:40:00Z",
+      "recorded_at": "2026-10-18T19:42:00Z",
+      "source_native_id": "POS-B-03-0012",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=26-26",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        }
+      ],
+      "source_system": "POS",
+      "status": "COMPLETED",
+      "tax_cents": "900",
+      "tips_cents": "0",
+      "vendor_id": "ven_bdccc4a0fab46f90",
+      "version": 1
+    },
+    {
+      "booth_id": "booth_bc4d1fc834e12d44",
+      "business_date": "2026-10-17",
+      "eligible_net_cents": "-1600",
+      "festival_id": "fest_bf25e974c723d827",
+      "gross_cents": "-1744",
+      "id": "ord_21934b0d5cbb81e6",
+      "kind": "REFUND",
+      "lines": [
+        {
+          "description": "Kettle corn bag",
+          "eligible_net_cents": "-1600",
+          "gross_cents": "-1744",
+          "item_sku": "CORN",
+          "line_id": "oln_04145b619cbfd094",
+          "line_no": 1,
+          "quantity": -2,
+          "refund_of_line_id": "oln_6aeff792ef7c76fa",
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=27",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "-144",
+          "tips_cents": "0",
+          "unit_price_cents": "800"
+        }
+      ],
+      "ordered_at": "2026-10-18T04:00:00Z",
+      "recorded_at": "2026-10-18T04:02:00Z",
+      "refund_of_order_id": "ord_4ee5f4dd4e4eeee5",
+      "refund_reason": "Customer returned 2 stale bags",
+      "source_native_id": "POS-B-03-0013",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=27-27",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        }
+      ],
+      "source_system": "POS",
+      "status": "COMPLETED",
+      "tax_cents": "-144",
+      "tips_cents": "0",
+      "vendor_id": "ven_bdccc4a0fab46f90",
+      "version": 1
+    },
+    {
+      "booth_id": "booth_4d248f0209f72401",
+      "business_date": "2026-10-18",
+      "eligible_net_cents": "40000",
+      "festival_id": "fest_bf25e974c723d827",
+      "gross_cents": "44100",
+      "id": "ord_94ebdf02a99dcce7",
+      "kind": "SALE",
+      "lines": [
+        {
+          "description": "Lavender lemonade",
+          "eligible_net_cents": "40000",
+          "gross_cents": "43600",
+          "item_sku": "LEMON",
+          "line_id": "oln_3fcd0224b8a51b12",
+          "line_no": 1,
+          "quantity": 80,
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=28",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "3600",
+          "tips_cents": "0",
+          "unit_price_cents": "500"
+        },
+        {
+          "description": "Tip",
+          "eligible_net_cents": "0",
+          "gross_cents": "500",
+          "item_sku": "TIP",
+          "line_id": "oln_6f28195bb9e001e0",
+          "line_no": 2,
+          "quantity": 1,
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=29",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "0",
+          "tips_cents": "500",
+          "unit_price_cents": "0"
+        }
+      ],
+      "ordered_at": "2026-10-19T02:58:00Z",
+      "recorded_at": "2026-10-19T03:00:00Z",
+      "source_native_id": "POS-B-04-0014",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=28-29",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        }
+      ],
+      "source_system": "POS",
+      "status": "COMPLETED",
+      "tax_cents": "3600",
+      "tips_cents": "500",
+      "vendor_id": "ven_6d07f90ca688444e",
+      "version": 1
+    },
+    {
+      "booth_id": "booth_429785af7ec72a84",
+      "business_date": "2026-10-16",
+      "eligible_net_cents": "400000",
+      "festival_id": "fest_bf25e974c723d827",
+      "gross_cents": "436000",
+      "id": "ord_b639f5851b19e9c6",
+      "kind": "SALE",
+      "lines": [
+        {
+          "description": "Smash burger",
+          "eligible_net_cents": "400000",
+          "gross_cents": "436000",
+          "item_sku": "BURGER",
+          "line_id": "oln_d6b872e4fa694288",
+          "line_no": 1,
+          "quantity": 400,
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=30",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "36000",
+          "tips_cents": "0",
+          "unit_price_cents": "1000"
+        }
+      ],
+      "ordered_at": "2026-10-16T21:56:00Z",
+      "recorded_at": "2026-10-16T21:58:00Z",
+      "source_native_id": "POS-B-05-0015",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=30-30",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        }
+      ],
+      "source_system": "POS",
+      "status": "COMPLETED",
+      "tax_cents": "36000",
+      "tips_cents": "0",
+      "vendor_id": "ven_5b3b7298e61a7172",
+      "version": 1
+    },
+    {
+      "booth_id": "booth_429785af7ec72a84",
+      "business_date": "2026-10-16",
+      "eligible_net_cents": "100000",
+      "festival_id": "fest_bf25e974c723d827",
+      "gross_cents": "110000",
+      "id": "ord_5e99a869e02eade7",
+      "kind": "SALE",
+      "lines": [
+        {
+          "description": "Smash burger",
+          "eligible_net_cents": "100000",
+          "gross_cents": "109000",
+          "item_sku": "BURGER",
+          "line_id": "oln_2a0fb71e11d57cda",
+          "line_no": 1,
+          "quantity": 100,
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=31",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "9000",
+          "tips_cents": "0",
+          "unit_price_cents": "1000"
+        },
+        {
+          "description": "Tip",
+          "eligible_net_cents": "0",
+          "gross_cents": "1000",
+          "item_sku": "TIP",
+          "line_id": "oln_1cb51264a24a94cb",
+          "line_no": 2,
+          "quantity": 1,
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=32",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "0",
+          "tips_cents": "1000",
+          "unit_price_cents": "0"
+        }
+      ],
+      "ordered_at": "2026-10-17T03:02:00Z",
+      "recorded_at": "2026-10-17T03:04:00Z",
+      "source_native_id": "POS-B-05-0016",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=31-32",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        }
+      ],
+      "source_system": "POS",
+      "status": "COMPLETED",
+      "tax_cents": "9000",
+      "tips_cents": "1000",
+      "vendor_id": "ven_5b3b7298e61a7172",
+      "version": 1
+    },
+    {
+      "booth_id": "booth_429785af7ec72a84",
+      "business_date": "2026-10-17",
+      "eligible_net_cents": "300000",
+      "festival_id": "fest_bf25e974c723d827",
+      "gross_cents": "327000",
+      "id": "ord_ccbff642c7881f5f",
+      "kind": "SALE",
+      "lines": [
+        {
+          "description": "Smash burger",
+          "eligible_net_cents": "300000",
+          "gross_cents": "327000",
+          "item_sku": "BURGER",
+          "line_id": "oln_9128eb202d50549f",
+          "line_no": 1,
+          "quantity": 300,
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=33",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "27000",
+          "tips_cents": "0",
+          "unit_price_cents": "1000"
+        }
+      ],
+      "ordered_at": "2026-10-17T22:35:00Z",
+      "recorded_at": "2026-10-17T22:37:00Z",
+      "source_native_id": "POS-B-05-0017",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=33-33",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        }
+      ],
+      "source_system": "POS",
+      "status": "COMPLETED",
+      "tax_cents": "27000",
+      "tips_cents": "0",
+      "vendor_id": "ven_5b3b7298e61a7172",
+      "version": 1
+    },
+    {
+      "booth_id": "booth_429785af7ec72a84",
+      "business_date": "2026-10-17",
+      "eligible_net_cents": "50000",
+      "festival_id": "fest_bf25e974c723d827",
+      "gross_cents": "54500",
+      "id": "ord_f628ead2e95ec2b9",
+      "kind": "SALE",
+      "lines": [
+        {
+          "description": "Smash burger",
+          "eligible_net_cents": "50000",
+          "gross_cents": "54500",
+          "item_sku": "BURGER",
+          "line_id": "oln_e38d28ecdd88b8a0",
+          "line_no": 1,
+          "quantity": 50,
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=34",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "4500",
+          "tips_cents": "0",
+          "unit_price_cents": "1000"
+        }
+      ],
+      "ordered_at": "2026-10-17T18:54:00Z",
+      "recorded_at": "2026-10-17T18:56:00Z",
+      "source_native_id": "POS-B-05-0018",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=34-34",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        }
+      ],
+      "source_system": "POS",
+      "status": "COMPLETED",
+      "tax_cents": "4500",
+      "tips_cents": "0",
+      "vendor_id": "ven_5b3b7298e61a7172",
+      "version": 1
+    },
+    {
+      "booth_id": "booth_429785af7ec72a84",
+      "business_date": "2026-10-18",
+      "eligible_net_cents": "300000",
+      "festival_id": "fest_bf25e974c723d827",
+      "gross_cents": "327000",
+      "id": "ord_2e2fd2eb1d2fce6c",
+      "kind": "SALE",
+      "lines": [
+        {
+          "description": "Smash burger",
+          "eligible_net_cents": "300000",
+          "gross_cents": "327000",
+          "item_sku": "BURGER",
+          "line_id": "oln_c843f00eb0bd8339",
+          "line_no": 1,
+          "quantity": 300,
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=35",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "27000",
+          "tips_cents": "0",
+          "unit_price_cents": "1000"
+        }
+      ],
+      "ordered_at": "2026-10-18T20:50:00Z",
+      "recorded_at": "2026-10-18T20:52:00Z",
+      "source_native_id": "POS-B-05-0019",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=35-35",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        }
+      ],
+      "source_system": "POS",
+      "status": "COMPLETED",
+      "tax_cents": "27000",
+      "tips_cents": "0",
+      "vendor_id": "ven_5b3b7298e61a7172",
+      "version": 1
+    },
+    {
+      "booth_id": "booth_429785af7ec72a84",
+      "business_date": "2026-10-18",
+      "eligible_net_cents": "50000",
+      "festival_id": "fest_bf25e974c723d827",
+      "gross_cents": "54500",
+      "id": "ord_716a19b00162abef",
+      "kind": "SALE",
+      "lines": [
+        {
+          "description": "Smash burger",
+          "eligible_net_cents": "50000",
+          "gross_cents": "54500",
+          "item_sku": "BURGER",
+          "line_id": "oln_dac391f7d62ac7b1",
+          "line_no": 1,
+          "quantity": 50,
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=36",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "4500",
+          "tips_cents": "0",
+          "unit_price_cents": "1000"
+        }
+      ],
+      "ordered_at": "2026-10-19T04:42:00Z",
+      "recorded_at": "2026-10-19T04:44:00Z",
+      "source_native_id": "POS-B-05-0020",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=36-36",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        }
+      ],
+      "source_system": "POS",
+      "status": "COMPLETED",
+      "tax_cents": "4500",
+      "tips_cents": "0",
+      "vendor_id": "ven_5b3b7298e61a7172",
+      "version": 1
+    },
+    {
+      "booth_id": "booth_12ef4706aac744c3",
+      "business_date": "2026-10-16",
+      "eligible_net_cents": "200000",
+      "festival_id": "fest_bf25e974c723d827",
+      "gross_cents": "218000",
+      "id": "ord_eec98ad7b7565a60",
+      "kind": "SALE",
+      "lines": [
+        {
+          "description": "Cinnamon churro",
+          "eligible_net_cents": "200000",
+          "gross_cents": "218000",
+          "item_sku": "CHURRO",
+          "line_id": "oln_af8527962bf1a7dd",
+          "line_no": 1,
+          "quantity": 400,
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=37",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "18000",
+          "tips_cents": "0",
+          "unit_price_cents": "500"
+        }
+      ],
+      "ordered_at": "2026-10-17T04:48:00Z",
+      "recorded_at": "2026-10-17T04:50:00Z",
+      "source_native_id": "POS-B-06-0021",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=37-37",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        }
+      ],
+      "source_system": "POS",
+      "status": "COMPLETED",
+      "tax_cents": "18000",
+      "tips_cents": "0",
+      "vendor_id": "ven_24b891c0ef6e9864",
+      "version": 1
+    },
+    {
+      "booth_id": "booth_12ef4706aac744c3",
+      "business_date": "2026-10-17",
+      "eligible_net_cents": "200000",
+      "festival_id": "fest_bf25e974c723d827",
+      "gross_cents": "218000",
+      "id": "ord_79223892b5ba8c8b",
+      "kind": "SALE",
+      "lines": [
+        {
+          "description": "Cinnamon churro",
+          "eligible_net_cents": "200000",
+          "gross_cents": "218000",
+          "item_sku": "CHURRO",
+          "line_id": "oln_4a6bf8b33eb004a5",
+          "line_no": 1,
+          "quantity": 400,
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=38",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "18000",
+          "tips_cents": "0",
+          "unit_price_cents": "500"
+        }
+      ],
+      "ordered_at": "2026-10-18T04:58:00Z",
+      "recorded_at": "2026-10-18T05:00:00Z",
+      "source_native_id": "POS-B-06-0022",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=38-38",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        }
+      ],
+      "source_system": "POS",
+      "status": "COMPLETED",
+      "tax_cents": "18000",
+      "tips_cents": "0",
+      "vendor_id": "ven_24b891c0ef6e9864",
+      "version": 1
+    },
+    {
+      "booth_id": "booth_12ef4706aac744c3",
+      "business_date": "2026-10-18",
+      "eligible_net_cents": "200000",
+      "festival_id": "fest_bf25e974c723d827",
+      "gross_cents": "218000",
+      "id": "ord_7a7330c5d63b0af4",
+      "kind": "SALE",
+      "lines": [
+        {
+          "description": "Cinnamon churro",
+          "eligible_net_cents": "200000",
+          "gross_cents": "218000",
+          "item_sku": "CHURRO",
+          "line_id": "oln_d74e64484568deed",
+          "line_no": 1,
+          "quantity": 400,
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=39",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "18000",
+          "tips_cents": "0",
+          "unit_price_cents": "500"
+        }
+      ],
+      "ordered_at": "2026-10-19T05:11:00Z",
+      "recorded_at": "2026-10-19T05:13:00Z",
+      "source_native_id": "POS-B-06-0023",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=39-39",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        }
+      ],
+      "source_system": "POS",
+      "status": "COMPLETED",
+      "tax_cents": "18000",
+      "tips_cents": "0",
+      "vendor_id": "ven_24b891c0ef6e9864",
+      "version": 1
+    },
+    {
+      "booth_id": "booth_12ef4706aac744c3",
+      "business_date": "2026-10-20",
+      "eligible_net_cents": "-10000",
+      "festival_id": "fest_bf25e974c723d827",
+      "gross_cents": "-10900",
+      "id": "ord_8d468861193d4b88",
+      "kind": "REFUND",
+      "lines": [
+        {
+          "description": "Cinnamon churro",
+          "eligible_net_cents": "-10000",
+          "gross_cents": "-10900",
+          "item_sku": "CHURRO",
+          "line_id": "oln_50f6e04275e33bc2",
+          "line_no": 1,
+          "quantity": -20,
+          "refund_of_line_id": "oln_d74e64484568deed",
+          "source_refs": [
+            {
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator": "row=40",
+              "locator_kind": "row",
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1
+            }
+          ],
+          "tax_cents": "-900",
+          "tips_cents": "0",
+          "unit_price_cents": "500"
+        }
+      ],
+      "ordered_at": "2026-10-20T19:02:00Z",
+      "recorded_at": "2026-10-20T19:04:00Z",
+      "refund_of_order_id": "ord_7a7330c5d63b0af4",
+      "refund_reason": "Late complaint: 20 churros undercooked; refunded after final payout",
+      "source_native_id": "POS-B-06-0024",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=40-40",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        }
+      ],
+      "source_system": "POS",
+      "status": "COMPLETED",
+      "tax_cents": "-900",
+      "tips_cents": "0",
+      "vendor_id": "ven_24b891c0ef6e9864",
+      "version": 1
+    }
+  ],
+  "next_cursor": null
+}

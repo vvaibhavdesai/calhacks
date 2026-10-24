@@ -1,0 +1,2094 @@
+{
+  "fixture_id": "illustrative_finance_v1",
+  "notice": "ILLUSTRATIVE, hand-authored dev/test sample finance outputs (B05) for UI development only. Not oracle-derived, not calculated from compact_v1 inputs by any engine, not expected answers. Supplier documents and hashes are invented; payouts are SIMULATED; tax is DRAFT, NOT FILED.",
+  "payouts": [
+    {
+      "id": "illus_payout_n1_sunrise",
+      "version": 2,
+      "logical_obligation_id": "illus_obl_n1_sunrise",
+      "idempotency_key": "illus_idem_payout_n1_sunrise",
+      "vendor_id": "ven_7248fe404ac157ca",
+      "business_date": "2026-10-16",
+      "beneficiary_version": 1,
+      "amount_cents": "747000",
+      "approval_ref": null,
+      "state": "DRAFT",
+      "provider_reference": null,
+      "payment_mode": "SIMULATED",
+      "batch_id": "illus_pbatch_n1",
+      "settlement_id": "illus_set_n1_sunrise",
+      "settlement_version": 2,
+      "run_id": "illus_run_n1",
+      "verified_beneficiary_version": 1,
+      "approval_required": true,
+      "required_capability": "payout.approve_above_limit",
+      "holds": [
+        {
+          "reason_code": "PAYOUT_ABOVE_AUTO_LIMIT",
+          "description": "Above the $5,000 automatic daily limit for this vendor; waiting for finance-lead approval of this exact amount.",
+          "blocking": true,
+          "case_id": null,
+          "since": "2026-10-17T16:02:00Z"
+        }
+      ],
+      "outcome_detail": null,
+      "reconciliation_case_id": null,
+      "gate": {
+        "evaluated_at": "2026-10-17T16:02:00Z",
+        "checks": [
+          {
+            "check": "SOURCES_VALID",
+            "result": "PASS",
+            "hard_blocker": true,
+            "detail": "Sources and current terms are valid.",
+            "case_id": null
+          },
+          {
+            "check": "RECONCILIATION_RESOLVED",
+            "result": "PASS",
+            "hard_blocker": true,
+            "detail": "No unresolved reconciliation discrepancy for this vendor/day.",
+            "case_id": null
+          },
+          {
+            "check": "POLICY_SCOPE_VALID",
+            "result": "PASS",
+            "hard_blocker": true,
+            "detail": "Every applied rule is ACTIVE and in scope.",
+            "case_id": null
+          },
+          {
+            "check": "BENEFICIARY_VERIFIED",
+            "result": "PASS",
+            "hard_blocker": true,
+            "detail": "Beneficiary details unchanged and verified.",
+            "case_id": null
+          },
+          {
+            "check": "CASH_RESERVED",
+            "result": "PASS",
+            "hard_blocker": true,
+            "detail": "$7,470.00 is reserved for this payout.",
+            "case_id": null
+          },
+          {
+            "check": "DAILY_AUTO_LIMIT",
+            "result": "REQUIRES_APPROVAL",
+            "hard_blocker": false,
+            "detail": "Cumulative vendor/day amount is above the $5,000 automatic limit; a finance lead must approve this exact amount.",
+            "case_id": null
+          }
+        ],
+        "daily_limit": {
+          "limit_cents": "500000",
+          "prior_cumulative_cents": "0",
+          "cumulative_with_this_cents": "747000",
+          "exceeds_limit": true
+        }
+      },
+      "state_history": [
+        {
+          "state": "DRAFT",
+          "at": "2026-10-17T16:02:00Z",
+          "actor_ref": "system:payout-gate",
+          "note": "Prepared from the provisional statement."
+        }
+      ],
+      "updated_at": "2026-10-17T16:02:00Z"
+    },
+    {
+      "id": "illus_payout_n1_kettle",
+      "version": 5,
+      "logical_obligation_id": "illus_obl_n1_kettle",
+      "idempotency_key": "illus_idem_payout_n1_kettle",
+      "vendor_id": "ven_bdccc4a0fab46f90",
+      "business_date": "2026-10-16",
+      "beneficiary_version": 1,
+      "amount_cents": "102000",
+      "approval_ref": null,
+      "state": "CONFIRMED",
+      "provider_reference": "illus_simrail_0001",
+      "payment_mode": "SIMULATED",
+      "batch_id": "illus_pbatch_n1",
+      "settlement_id": "illus_set_n1_kettle",
+      "settlement_version": 2,
+      "run_id": "illus_run_n1",
+      "verified_beneficiary_version": 1,
+      "approval_required": false,
+      "required_capability": "payout.approve_above_limit",
+      "holds": [],
+      "outcome_detail": "Confirmed by the simulated rail.",
+      "reconciliation_case_id": null,
+      "gate": {
+        "evaluated_at": "2026-10-17T16:02:00Z",
+        "checks": [
+          {
+            "check": "SOURCES_VALID",
+            "result": "PASS",
+            "hard_blocker": true,
+            "detail": "Sources and current terms are valid.",
+            "case_id": null
+          },
+          {
+            "check": "RECONCILIATION_RESOLVED",
+            "result": "PASS",
+            "hard_blocker": true,
+            "detail": "No unresolved reconciliation discrepancy for this vendor/day.",
+            "case_id": null
+          },
+          {
+            "check": "POLICY_SCOPE_VALID",
+            "result": "PASS",
+            "hard_blocker": true,
+            "detail": "Every applied rule is ACTIVE and in scope.",
+            "case_id": null
+          },
+          {
+            "check": "BENEFICIARY_VERIFIED",
+            "result": "PASS",
+            "hard_blocker": true,
+            "detail": "Beneficiary details unchanged and verified.",
+            "case_id": null
+          },
+          {
+            "check": "CASH_RESERVED",
+            "result": "PASS",
+            "hard_blocker": true,
+            "detail": "Cash for this payout is reserved.",
+            "case_id": null
+          },
+          {
+            "check": "DAILY_AUTO_LIMIT",
+            "result": "PASS",
+            "hard_blocker": false,
+            "detail": "Within the $5,000 automatic daily limit for this vendor.",
+            "case_id": null
+          }
+        ],
+        "daily_limit": {
+          "limit_cents": "500000",
+          "prior_cumulative_cents": "0",
+          "cumulative_with_this_cents": "102000",
+          "exceeds_limit": false
+        }
+      },
+      "state_history": [
+        {
+          "state": "DRAFT",
+          "at": "2026-10-17T16:02:00Z",
+          "actor_ref": "system:payout-gate",
+          "note": null
+        },
+        {
+          "state": "APPROVED",
+          "at": "2026-10-17T16:02:30Z",
+          "actor_ref": "system:payout-gate",
+          "note": "All gate checks passed within the automatic limit."
+        },
+        {
+          "state": "DISPATCH_PENDING",
+          "at": "2026-10-17T17:00:00Z",
+          "actor_ref": "system:outbox",
+          "note": "Release window 10:00 AM Pacific."
+        },
+        {
+          "state": "SUBMITTED",
+          "at": "2026-10-17T17:00:04Z",
+          "actor_ref": "system:outbox",
+          "note": null
+        },
+        {
+          "state": "CONFIRMED",
+          "at": "2026-10-17T17:01:10Z",
+          "actor_ref": "system:simulated-rail",
+          "note": "Simulated rail confirmed. No real money moved."
+        }
+      ],
+      "updated_at": "2026-10-17T17:01:10Z"
+    },
+    {
+      "id": "illus_payout_n1_lemon",
+      "version": 4,
+      "logical_obligation_id": "illus_obl_n1_lemon",
+      "idempotency_key": "illus_idem_payout_n1_lemon",
+      "vendor_id": "ven_6d07f90ca688444e",
+      "business_date": "2026-10-16",
+      "beneficiary_version": 1,
+      "amount_cents": "68000",
+      "approval_ref": null,
+      "state": "UNKNOWN",
+      "provider_reference": null,
+      "payment_mode": "SIMULATED",
+      "batch_id": "illus_pbatch_n1",
+      "settlement_id": "illus_set_n1_lemon",
+      "settlement_version": 1,
+      "run_id": "illus_run_n1",
+      "verified_beneficiary_version": 1,
+      "approval_required": false,
+      "required_capability": "payout.approve_above_limit",
+      "holds": [
+        {
+          "reason_code": "PAYOUT_OUTCOME_UNKNOWN",
+          "description": "The simulated rail did not answer after submission. The outcome must be looked up by the same idempotency key; nothing is resent.",
+          "blocking": true,
+          "case_id": null,
+          "since": "2026-10-17T17:02:00Z"
+        }
+      ],
+      "outcome_detail": "Simulated rail timed out after submission; the outcome is not known. Reserved cash stays reserved until reconciliation.",
+      "reconciliation_case_id": null,
+      "gate": {
+        "evaluated_at": "2026-10-17T16:02:00Z",
+        "checks": [
+          {
+            "check": "SOURCES_VALID",
+            "result": "PASS",
+            "hard_blocker": true,
+            "detail": "Sources and current terms are valid.",
+            "case_id": null
+          },
+          {
+            "check": "RECONCILIATION_RESOLVED",
+            "result": "PASS",
+            "hard_blocker": true,
+            "detail": "No unresolved reconciliation discrepancy for this vendor/day.",
+            "case_id": null
+          },
+          {
+            "check": "POLICY_SCOPE_VALID",
+            "result": "PASS",
+            "hard_blocker": true,
+            "detail": "Every applied rule is ACTIVE and in scope.",
+            "case_id": null
+          },
+          {
+            "check": "BENEFICIARY_VERIFIED",
+            "result": "PASS",
+            "hard_blocker": true,
+            "detail": "Beneficiary details unchanged and verified.",
+            "case_id": null
+          },
+          {
+            "check": "CASH_RESERVED",
+            "result": "PASS",
+            "hard_blocker": true,
+            "detail": "Cash for this payout is reserved.",
+            "case_id": null
+          },
+          {
+            "check": "DAILY_AUTO_LIMIT",
+            "result": "PASS",
+            "hard_blocker": false,
+            "detail": "Within the $5,000 automatic daily limit for this vendor.",
+            "case_id": null
+          }
+        ],
+        "daily_limit": {
+          "limit_cents": "500000",
+          "prior_cumulative_cents": "0",
+          "cumulative_with_this_cents": "68000",
+          "exceeds_limit": false
+        }
+      },
+      "state_history": [
+        {
+          "state": "DRAFT",
+          "at": "2026-10-17T16:02:00Z",
+          "actor_ref": "system:payout-gate",
+          "note": null
+        },
+        {
+          "state": "APPROVED",
+          "at": "2026-10-17T16:02:30Z",
+          "actor_ref": "system:payout-gate",
+          "note": null
+        },
+        {
+          "state": "DISPATCH_PENDING",
+          "at": "2026-10-17T17:00:00Z",
+          "actor_ref": "system:outbox",
+          "note": null
+        },
+        {
+          "state": "SUBMITTED",
+          "at": "2026-10-17T17:00:05Z",
+          "actor_ref": "system:outbox",
+          "note": null
+        },
+        {
+          "state": "UNKNOWN",
+          "at": "2026-10-17T17:02:00Z",
+          "actor_ref": "system:outbox",
+          "note": "Simulated rail timed out after submission."
+        }
+      ],
+      "updated_at": "2026-10-17T17:02:00Z"
+    },
+    {
+      "id": "illus_payout_n1_churro",
+      "version": 2,
+      "logical_obligation_id": "illus_obl_n1_churro",
+      "idempotency_key": "illus_idem_payout_n1_churro",
+      "vendor_id": "ven_24b891c0ef6e9864",
+      "business_date": "2026-10-16",
+      "beneficiary_version": 1,
+      "amount_cents": "25500",
+      "approval_ref": null,
+      "state": "DRAFT",
+      "provider_reference": null,
+      "payment_mode": "SIMULATED",
+      "batch_id": "illus_pbatch_n1",
+      "settlement_id": "illus_set_n1_churro",
+      "settlement_version": 2,
+      "run_id": "illus_run_n1",
+      "verified_beneficiary_version": 1,
+      "approval_required": false,
+      "required_capability": "payout.approve_above_limit",
+      "holds": [
+        {
+          "reason_code": "BENEFICIARY_CHANGED",
+          "description": "Payment details changed and are not verified. No amount approval can release this payout.",
+          "blocking": true,
+          "case_id": null,
+          "since": "2026-10-17T16:02:00Z"
+        }
+      ],
+      "outcome_detail": null,
+      "reconciliation_case_id": null,
+      "gate": {
+        "evaluated_at": "2026-10-17T16:02:00Z",
+        "checks": [
+          {
+            "check": "SOURCES_VALID",
+            "result": "PASS",
+            "hard_blocker": true,
+            "detail": "Sources and current terms are valid.",
+            "case_id": null
+          },
+          {
+            "check": "RECONCILIATION_RESOLVED",
+            "result": "PASS",
+            "hard_blocker": true,
+            "detail": "No unresolved reconciliation discrepancy for this vendor/day.",
+            "case_id": null
+          },
+          {
+            "check": "POLICY_SCOPE_VALID",
+            "result": "PASS",
+            "hard_blocker": true,
+            "detail": "Every applied rule is ACTIVE and in scope.",
+            "case_id": null
+          },
+          {
+            "check": "BENEFICIARY_VERIFIED",
+            "result": "FAIL",
+            "hard_blocker": true,
+            "detail": "A beneficiary change request (illustrative) arrived by email and is unverified. Release is blocked until it is verified, regardless of amount.",
+            "case_id": null
+          },
+          {
+            "check": "CASH_RESERVED",
+            "result": "PASS",
+            "hard_blocker": true,
+            "detail": "Cash for this payout is reserved.",
+            "case_id": null
+          },
+          {
+            "check": "DAILY_AUTO_LIMIT",
+            "result": "PASS",
+            "hard_blocker": false,
+            "detail": "Within the $5,000 automatic daily limit for this vendor.",
+            "case_id": null
+          }
+        ],
+        "daily_limit": {
+          "limit_cents": "500000",
+          "prior_cumulative_cents": "0",
+          "cumulative_with_this_cents": "25500",
+          "exceeds_limit": false
+        }
+      },
+      "state_history": [
+        {
+          "state": "DRAFT",
+          "at": "2026-10-17T16:02:00Z",
+          "actor_ref": "system:payout-gate",
+          "note": "Held: beneficiary change unverified."
+        }
+      ],
+      "updated_at": "2026-10-17T16:02:00Z"
+    }
+  ],
+  "payout_batches": [
+    {
+      "id": "illus_pbatch_n1",
+      "version": 3,
+      "business_date": "2026-10-16",
+      "release_at": "2026-10-17T17:00:00Z",
+      "payment_mode": "SIMULATED",
+      "payout_count": 4,
+      "total_cents": "942500",
+      "run_id": "illus_run_n1",
+      "by_state": [
+        {
+          "state": "DRAFT",
+          "count": 2,
+          "amount_cents": "772500"
+        },
+        {
+          "state": "CONFIRMED",
+          "count": 1,
+          "amount_cents": "102000"
+        },
+        {
+          "state": "UNKNOWN",
+          "count": 1,
+          "amount_cents": "68000"
+        }
+      ]
+    }
+  ],
+  "cash_positions": [
+    {
+      "id": "illus_cash_2026_10_17_0930",
+      "version": 3,
+      "as_of": "2026-10-17T16:30:00Z",
+      "bank_balance_cents": "3900000",
+      "available_cents": "2737800",
+      "pending_cents": "486000",
+      "reserved_cents": "1162200",
+      "reservations": [
+        {
+          "kind": "SALES_TAX",
+          "label": "Sales tax collected (organizer liability, DRAFT)",
+          "amount_cents": "101700",
+          "spendable": false
+        },
+        {
+          "kind": "TIPS",
+          "label": "Tips owed to vendors",
+          "amount_cents": "27500",
+          "spendable": false
+        },
+        {
+          "kind": "PAYOUTS_RESERVED",
+          "label": "Payout reserved: Sunrise Smoothies (awaiting approval)",
+          "amount_cents": "747000",
+          "spendable": false
+        },
+        {
+          "kind": "PAYOUTS_UNKNOWN",
+          "label": "Payout outcome UNKNOWN: Late Bloom Lemonade (reserved until reconciled)",
+          "amount_cents": "68000",
+          "spendable": false
+        },
+        {
+          "kind": "SUPPLIER_PAYMENTS",
+          "label": "Supplier payment in flight: Bayline Waste W-0931",
+          "amount_cents": "218000",
+          "spendable": false
+        }
+      ],
+      "obligations": [
+        {
+          "id": "illus_cobl_sunrise",
+          "kind": "VENDOR_PAYOUT",
+          "label": "Sunrise Smoothies payout, 2026-10-16",
+          "due_date": "2026-10-17",
+          "amount_cents": "747000",
+          "status": "AWAITING_APPROVAL",
+          "ref_id": "illus_payout_n1_sunrise"
+        },
+        {
+          "id": "illus_cobl_churro",
+          "kind": "VENDOR_PAYOUT",
+          "label": "Churro Cart payout, 2026-10-16",
+          "due_date": "2026-10-17",
+          "amount_cents": "25500",
+          "status": "HELD",
+          "ref_id": "illus_payout_n1_churro"
+        },
+        {
+          "id": "illus_cobl_n2",
+          "kind": "VENDOR_PAYOUT_FORECAST",
+          "label": "Vendor payouts for 2026-10-17 (estimate)",
+          "due_date": "2026-10-18",
+          "amount_cents": "1650000",
+          "status": "FORECAST",
+          "ref_id": null
+        },
+        {
+          "id": "illus_cobl_n3",
+          "kind": "VENDOR_PAYOUT_FORECAST",
+          "label": "Vendor payouts for 2026-10-18 incl. final settlements (estimate)",
+          "due_date": "2026-10-19",
+          "amount_cents": "4300000",
+          "status": "FORECAST",
+          "ref_id": null
+        },
+        {
+          "id": "illus_cobl_waste",
+          "kind": "SUPPLIER_INVOICE",
+          "label": "Bayline Waste W-0931",
+          "due_date": "2026-10-25",
+          "amount_cents": "218000",
+          "status": "PAYMENT_IN_FLIGHT",
+          "ref_id": "illus_inv_waste_0931"
+        },
+        {
+          "id": "illus_cobl_ice",
+          "kind": "SUPPLIER_INVOICE",
+          "label": "Coastal Ice INV-7781 (net of credit note)",
+          "due_date": "2026-10-31",
+          "amount_cents": "320000",
+          "status": "OPEN",
+          "ref_id": "illus_inv_ice_7781"
+        },
+        {
+          "id": "illus_cobl_tax",
+          "kind": "TAX_REMITTANCE",
+          "label": "Sales tax remittance (DRAFT, NOT FILED)",
+          "due_date": "2026-10-31",
+          "amount_cents": "101700",
+          "status": "RESERVED",
+          "ref_id": "illus_tax_draft_n1"
+        }
+      ],
+      "shortfalls": [
+        {
+          "date": "2026-10-19",
+          "amount_cents": "306200",
+          "description": "Projected available cash falls below zero if final vendor payouts are due before the ticketing settlement arrives. Payouts that do not fit stay held for insufficient cash; nothing is released on credit.",
+          "affected_ids": [
+            "illus_cobl_n3"
+          ]
+        },
+        {
+          "date": "2026-10-20",
+          "amount_cents": "106200",
+          "description": "Still short until the sponsorship installment arrives.",
+          "affected_ids": [
+            "illus_cobl_n3"
+          ]
+        }
+      ],
+      "receipts": [
+        {
+          "kind": "TICKETS",
+          "label": "Ticketing settlements",
+          "received_cents": "1800000",
+          "pending_cents": "200000",
+          "recognition_note": "Deferred revenue; recognized on 2026-10-18."
+        },
+        {
+          "kind": "SPONSORSHIP",
+          "label": "Sponsorship receipts",
+          "received_cents": "1000000",
+          "pending_cents": "350000",
+          "recognition_note": "Recognized on a cash basis."
+        }
+      ],
+      "forecast": {
+        "horizon_days": 7,
+        "horizon_end": "2026-10-23",
+        "method": "Daily projection from available cash: adds expected deposits and receipts on their expected bank date, subtracts obligations on their due date. Reserved tax, tips and in-flight payments are excluded from available cash and never counted as spendable.",
+        "assumptions": [
+          "Night 2 and night 3 vendor payouts are estimates until their statements exist.",
+          "Pending processor deposits arrive on their usual settlement day.",
+          "No new supplier invoices beyond those recorded."
+        ],
+        "points": [
+          {
+            "date": "2026-10-17",
+            "opening_cents": "2737800",
+            "inflows_cents": "286000",
+            "outflows_cents": "0",
+            "projected_available_cents": "3023800",
+            "shortfall": false
+          },
+          {
+            "date": "2026-10-18",
+            "opening_cents": "3023800",
+            "inflows_cents": "1240000",
+            "outflows_cents": "1650000",
+            "projected_available_cents": "2613800",
+            "shortfall": false
+          },
+          {
+            "date": "2026-10-19",
+            "opening_cents": "2613800",
+            "inflows_cents": "1380000",
+            "outflows_cents": "4300000",
+            "projected_available_cents": "-306200",
+            "shortfall": true
+          },
+          {
+            "date": "2026-10-20",
+            "opening_cents": "-306200",
+            "inflows_cents": "200000",
+            "outflows_cents": "0",
+            "projected_available_cents": "-106200",
+            "shortfall": true
+          },
+          {
+            "date": "2026-10-21",
+            "opening_cents": "-106200",
+            "inflows_cents": "350000",
+            "outflows_cents": "0",
+            "projected_available_cents": "243800",
+            "shortfall": false
+          },
+          {
+            "date": "2026-10-22",
+            "opening_cents": "243800",
+            "inflows_cents": "0",
+            "outflows_cents": "0",
+            "projected_available_cents": "243800",
+            "shortfall": false
+          },
+          {
+            "date": "2026-10-23",
+            "opening_cents": "243800",
+            "inflows_cents": "0",
+            "outflows_cents": "0",
+            "projected_available_cents": "243800",
+            "shortfall": false
+          }
+        ]
+      },
+      "config_version": "illus-demo-config-1",
+      "source_refs": [
+        {
+          "source_id": "src_1fdc84e50a1715ef",
+          "source_version": 1,
+          "content_hash": "sha256:7d93a748e6f6a1c9b342cb68d6964b2b11bd513572ecf2fefbef407a5766aeb7",
+          "locator_kind": "row",
+          "locator": "row=1"
+        }
+      ]
+    }
+  ],
+  "suppliers": [
+    {
+      "id": "illus_sup_ice",
+      "version": 1,
+      "name": "Coastal Ice Supply (fictional)",
+      "category": "Ice and cold storage",
+      "payment_terms_days": 15,
+      "outstanding_cents": "320000",
+      "beneficiary_version": 1,
+      "status": "ACTIVE",
+      "source_refs": [
+        {
+          "source_id": "illus_src_supplier_ice",
+          "source_version": 1,
+          "content_hash": "sha256:e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1",
+          "locator_kind": "page",
+          "locator": "page=1"
+        }
+      ]
+    },
+    {
+      "id": "illus_sup_tents",
+      "version": 1,
+      "name": "Harbor Tent and Event Rentals (fictional)",
+      "category": "Tents and staging",
+      "payment_terms_days": 30,
+      "outstanding_cents": "0",
+      "beneficiary_version": 1,
+      "status": "ACTIVE",
+      "source_refs": [
+        {
+          "source_id": "illus_src_supplier_tents",
+          "source_version": 1,
+          "content_hash": "sha256:e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2",
+          "locator_kind": "page",
+          "locator": "page=1"
+        }
+      ]
+    },
+    {
+      "id": "illus_sup_waste",
+      "version": 1,
+      "name": "Bayline Waste Services (fictional)",
+      "category": "Waste hauling",
+      "payment_terms_days": 30,
+      "outstanding_cents": "218000",
+      "beneficiary_version": 1,
+      "status": "ACTIVE",
+      "source_refs": [
+        {
+          "source_id": "illus_src_supplier_waste",
+          "source_version": 1,
+          "content_hash": "sha256:e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3",
+          "locator_kind": "page",
+          "locator": "page=1"
+        }
+      ]
+    }
+  ],
+  "purchase_orders": [
+    {
+      "id": "illus_po_ice_001",
+      "version": 2,
+      "supplier_id": "illus_sup_ice",
+      "amount_cents": "480000",
+      "po_number": "PO-ICE-001",
+      "issued_date": "2026-10-01",
+      "status": "PARTIALLY_INVOICED",
+      "description": "Ice deliveries, festival nights",
+      "invoiced_cents": "360000",
+      "invoice_ids": [
+        "illus_inv_ice_7781",
+        "illus_cn_ice_7781_1"
+      ],
+      "source_refs": [
+        {
+          "source_id": "illus_src_po_ice_001",
+          "source_version": 1,
+          "content_hash": "sha256:d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1",
+          "locator_kind": "page",
+          "locator": "page=1"
+        }
+      ]
+    },
+    {
+      "id": "illus_po_tent_001",
+      "version": 3,
+      "supplier_id": "illus_sup_tents",
+      "amount_cents": "1253500",
+      "po_number": "PO-TENT-001",
+      "issued_date": "2026-09-28",
+      "status": "CLOSED",
+      "description": "Vendor tents and staging",
+      "invoiced_cents": "1253500",
+      "invoice_ids": [
+        "illus_inv_tents_2210"
+      ],
+      "source_refs": [
+        {
+          "source_id": "illus_src_po_tent_001",
+          "source_version": 1,
+          "content_hash": "sha256:d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2",
+          "locator_kind": "page",
+          "locator": "page=1"
+        }
+      ]
+    },
+    {
+      "id": "illus_po_waste_001",
+      "version": 2,
+      "supplier_id": "illus_sup_waste",
+      "amount_cents": "218000",
+      "po_number": "PO-WST-001",
+      "issued_date": "2026-10-02",
+      "status": "INVOICED",
+      "description": "Waste hauling, festival weekend",
+      "invoiced_cents": "218000",
+      "invoice_ids": [
+        "illus_inv_waste_0931"
+      ],
+      "source_refs": [
+        {
+          "source_id": "illus_src_po_waste_001",
+          "source_version": 1,
+          "content_hash": "sha256:d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3",
+          "locator_kind": "page",
+          "locator": "page=1"
+        }
+      ]
+    }
+  ],
+  "supplier_invoices": [
+    {
+      "id": "illus_inv_ice_7781",
+      "version": 3,
+      "status": "OPEN",
+      "supplier_id": "illus_sup_ice",
+      "po_refs": [
+        "illus_po_ice_001"
+      ],
+      "invoice_number": "INV-7781",
+      "invoice_date": "2026-10-16",
+      "currency": "USD",
+      "gross_cents": "360000",
+      "tax_cents": "0",
+      "net_cents": "360000",
+      "due_date": "2026-10-31",
+      "outstanding_cents": "320000",
+      "source_refs": [
+        {
+          "source_id": "illus_src_inv_ice_7781",
+          "source_version": 1,
+          "content_hash": "sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+          "locator_kind": "page",
+          "locator": "page=1",
+          "quoted_excerpt": "Invoice INV-7781 \u00b7 Block and cube ice, Oct 16 delivery \u00b7 Total due $3,600.00"
+        }
+      ],
+      "kind": "INVOICE",
+      "applies_to_invoice_id": null,
+      "duplicate_of_invoice_id": null,
+      "duplicate_reason": null,
+      "payment_ids": [],
+      "journal_entry_ids": [
+        "illus_je_inv_ice",
+        "illus_je_inv_ice_rev",
+        "illus_je_inv_ice_corr"
+      ]
+    },
+    {
+      "id": "illus_cn_ice_7781_1",
+      "version": 1,
+      "status": "APPLIED",
+      "supplier_id": "illus_sup_ice",
+      "po_refs": [
+        "illus_po_ice_001"
+      ],
+      "invoice_number": "CN-7781-1",
+      "invoice_date": "2026-10-17",
+      "currency": "USD",
+      "gross_cents": "-40000",
+      "tax_cents": "0",
+      "net_cents": "-40000",
+      "due_date": "2026-10-31",
+      "outstanding_cents": "0",
+      "source_refs": [
+        {
+          "source_id": "illus_src_cn_ice_7781_1",
+          "source_version": 1,
+          "content_hash": "sha256:a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3",
+          "locator_kind": "page",
+          "locator": "page=1",
+          "quoted_excerpt": "Credit note CN-7781-1 against INV-7781 \u00b7 melted delivery \u00b7 $400.00"
+        }
+      ],
+      "kind": "CREDIT_NOTE",
+      "applies_to_invoice_id": "illus_inv_ice_7781",
+      "duplicate_of_invoice_id": null,
+      "duplicate_reason": null,
+      "payment_ids": [],
+      "journal_entry_ids": [
+        "illus_je_cn_ice"
+      ]
+    },
+    {
+      "id": "illus_inv_ice_7781_dup",
+      "version": 1,
+      "status": "DUPLICATE_FLAGGED",
+      "supplier_id": "illus_sup_ice",
+      "po_refs": [
+        "illus_po_ice_001"
+      ],
+      "invoice_number": "INV-7781",
+      "invoice_date": "2026-10-16",
+      "currency": "USD",
+      "gross_cents": "360000",
+      "tax_cents": "0",
+      "net_cents": "360000",
+      "due_date": "2026-10-31",
+      "outstanding_cents": "0",
+      "source_refs": [
+        {
+          "source_id": "illus_src_inv_ice_7781_resent",
+          "source_version": 1,
+          "content_hash": "sha256:a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2",
+          "locator_kind": "page",
+          "locator": "page=1",
+          "quoted_excerpt": "Invoice INV-7781 (resent) \u00b7 Total due $3,600.00"
+        }
+      ],
+      "kind": "INVOICE",
+      "applies_to_invoice_id": null,
+      "duplicate_of_invoice_id": "illus_inv_ice_7781",
+      "duplicate_reason": "Same supplier, invoice number, date and amount as an invoice already recorded. Not posted and never payable.",
+      "payment_ids": [],
+      "journal_entry_ids": []
+    },
+    {
+      "id": "illus_inv_tents_2210",
+      "version": 4,
+      "status": "PAID",
+      "supplier_id": "illus_sup_tents",
+      "po_refs": [
+        "illus_po_tent_001"
+      ],
+      "invoice_number": "T-2210",
+      "invoice_date": "2026-09-30",
+      "currency": "USD",
+      "gross_cents": "1253500",
+      "tax_cents": "103500",
+      "net_cents": "1150000",
+      "due_date": "2026-10-20",
+      "outstanding_cents": "0",
+      "source_refs": [
+        {
+          "source_id": "illus_src_inv_tents_2210",
+          "source_version": 1,
+          "content_hash": "sha256:b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1",
+          "locator_kind": "page",
+          "locator": "page=1",
+          "quoted_excerpt": "Invoice T-2210 \u00b7 Vendor tents and staging \u00b7 Total $12,535.00"
+        }
+      ],
+      "kind": "INVOICE",
+      "applies_to_invoice_id": null,
+      "duplicate_of_invoice_id": null,
+      "duplicate_reason": null,
+      "payment_ids": [
+        "illus_spay_tents_2210"
+      ],
+      "journal_entry_ids": [
+        "illus_je_inv_tents",
+        "illus_je_spay_tents"
+      ]
+    },
+    {
+      "id": "illus_inv_waste_0931",
+      "version": 2,
+      "status": "PAYMENT_IN_FLIGHT",
+      "supplier_id": "illus_sup_waste",
+      "po_refs": [
+        "illus_po_waste_001"
+      ],
+      "invoice_number": "W-0931",
+      "invoice_date": "2026-10-10",
+      "currency": "USD",
+      "gross_cents": "218000",
+      "tax_cents": "18000",
+      "net_cents": "200000",
+      "due_date": "2026-10-25",
+      "outstanding_cents": "218000",
+      "source_refs": [
+        {
+          "source_id": "illus_src_inv_waste_0931",
+          "source_version": 1,
+          "content_hash": "sha256:c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1",
+          "locator_kind": "page",
+          "locator": "page=1",
+          "quoted_excerpt": "Invoice W-0931 \u00b7 Festival waste hauling \u00b7 Total $2,180.00"
+        }
+      ],
+      "kind": "INVOICE",
+      "applies_to_invoice_id": null,
+      "duplicate_of_invoice_id": null,
+      "duplicate_reason": null,
+      "payment_ids": [
+        "illus_spay_waste_0931"
+      ],
+      "journal_entry_ids": []
+    }
+  ],
+  "supplier_payments": [
+    {
+      "id": "illus_spay_tents_2210",
+      "version": 4,
+      "supplier_id": "illus_sup_tents",
+      "invoice_ids": [
+        "illus_inv_tents_2210"
+      ],
+      "amount_cents": "1253500",
+      "state": "CONFIRMED",
+      "idempotency_key": "illus_idem_spay_tents_2210",
+      "payment_mode": "SIMULATED",
+      "scheduled_date": "2026-10-15",
+      "approval_ref": "illus_appr_spay_tents",
+      "provider_reference": "illus_simrail_0002",
+      "outcome_detail": "Confirmed by the simulated rail.",
+      "updated_at": "2026-10-15T17:01:00Z"
+    },
+    {
+      "id": "illus_spay_waste_0931",
+      "version": 3,
+      "supplier_id": "illus_sup_waste",
+      "invoice_ids": [
+        "illus_inv_waste_0931"
+      ],
+      "amount_cents": "218000",
+      "state": "SUBMITTED",
+      "idempotency_key": "illus_idem_spay_waste_0931",
+      "payment_mode": "SIMULATED",
+      "scheduled_date": "2026-10-17",
+      "approval_ref": "illus_appr_spay_waste",
+      "provider_reference": "illus_simrail_0003",
+      "outcome_detail": "Submitted to the simulated rail; awaiting confirmation.",
+      "updated_at": "2026-10-17T17:00:06Z"
+    }
+  ],
+  "journal_entries": [
+    {
+      "entry_id": "illus_je_n1_sales_kettle",
+      "posting_rule_version": "illus-posting-rules-1",
+      "source_refs": [
+        {
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1,
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator_kind": "row",
+          "locator": "business_date=2026-10-16"
+        }
+      ],
+      "correction_of": null,
+      "lines": [
+        {
+          "line_id": "illus_je_n1_sales_kettle_l1",
+          "account": "1100",
+          "account_name": "Processor clearing",
+          "debit_cents": "130800",
+          "credit_cents": "0",
+          "memo": null,
+          "vendor_id": "ven_bdccc4a0fab46f90"
+        },
+        {
+          "line_id": "illus_je_n1_sales_kettle_l2",
+          "account": "2100",
+          "account_name": "Vendor funds payable",
+          "debit_cents": "0",
+          "credit_cents": "120000",
+          "memo": null,
+          "vendor_id": "ven_bdccc4a0fab46f90"
+        },
+        {
+          "line_id": "illus_je_n1_sales_kettle_l3",
+          "account": "2200",
+          "account_name": "Sales tax liability (DEMO)",
+          "debit_cents": "0",
+          "credit_cents": "10800",
+          "memo": "Protected; not organizer revenue",
+          "vendor_id": "ven_bdccc4a0fab46f90"
+        }
+      ],
+      "posted_at": "2026-10-17T16:05:00Z",
+      "business_date": "2026-10-16",
+      "description": "Kettle Corn Co sales held for the vendor, 2026-10-16 (daily summary)",
+      "kind": "ORIGINAL",
+      "totals": {
+        "debit_cents": "130800",
+        "credit_cents": "130800",
+        "balanced": true
+      },
+      "corrected_by": [],
+      "origin_ref": "illus_set_n1_kettle"
+    },
+    {
+      "entry_id": "illus_je_n1_fee_kettle",
+      "posting_rule_version": "illus-posting-rules-1",
+      "source_refs": [
+        {
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1,
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator_kind": "row",
+          "locator": "business_date=2026-10-16"
+        }
+      ],
+      "correction_of": null,
+      "lines": [
+        {
+          "line_id": "illus_je_n1_fee_kettle_l1",
+          "account": "2100",
+          "account_name": "Vendor funds payable",
+          "debit_cents": "18000",
+          "credit_cents": "0",
+          "memo": null,
+          "vendor_id": "ven_bdccc4a0fab46f90"
+        },
+        {
+          "line_id": "illus_je_n1_fee_kettle_l2",
+          "account": "4000",
+          "account_name": "Organizer commission revenue",
+          "debit_cents": "0",
+          "credit_cents": "18000",
+          "memo": null,
+          "vendor_id": "ven_bdccc4a0fab46f90"
+        }
+      ],
+      "posted_at": "2026-10-17T16:05:00Z",
+      "business_date": "2026-10-16",
+      "description": "Kettle Corn Co commission assessed, 2026-10-16",
+      "kind": "ORIGINAL",
+      "totals": {
+        "debit_cents": "18000",
+        "credit_cents": "18000",
+        "balanced": true
+      },
+      "corrected_by": [],
+      "origin_ref": "illus_set_n1_kettle"
+    },
+    {
+      "entry_id": "illus_je_n1_payout_kettle",
+      "posting_rule_version": "illus-posting-rules-1",
+      "source_refs": [],
+      "correction_of": null,
+      "lines": [
+        {
+          "line_id": "illus_je_n1_payout_kettle_l1",
+          "account": "2100",
+          "account_name": "Vendor funds payable",
+          "debit_cents": "102000",
+          "credit_cents": "0",
+          "memo": null,
+          "vendor_id": "ven_bdccc4a0fab46f90"
+        },
+        {
+          "line_id": "illus_je_n1_payout_kettle_l2",
+          "account": "1000",
+          "account_name": "Bank: operating account",
+          "debit_cents": "0",
+          "credit_cents": "102000",
+          "memo": "Simulated rail confirmation; no real money moved",
+          "vendor_id": "ven_bdccc4a0fab46f90"
+        }
+      ],
+      "posted_at": "2026-10-17T17:01:30Z",
+      "business_date": "2026-10-16",
+      "description": "Kettle Corn Co payout confirmed (SIMULATED)",
+      "kind": "ORIGINAL",
+      "totals": {
+        "debit_cents": "102000",
+        "credit_cents": "102000",
+        "balanced": true
+      },
+      "corrected_by": [],
+      "origin_ref": "illus_payout_n1_kettle"
+    },
+    {
+      "entry_id": "illus_je_inv_tents",
+      "posting_rule_version": "illus-posting-rules-1",
+      "source_refs": [
+        {
+          "source_id": "illus_src_inv_tents_2210",
+          "source_version": 1,
+          "content_hash": "sha256:b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1",
+          "locator_kind": "page",
+          "locator": "page=1",
+          "quoted_excerpt": "Invoice T-2210 \u00b7 Vendor tents and staging \u00b7 Total $12,535.00"
+        }
+      ],
+      "correction_of": null,
+      "lines": [
+        {
+          "line_id": "illus_je_inv_tents_l1",
+          "account": "6100",
+          "account_name": "Supplier expense",
+          "debit_cents": "1253500",
+          "credit_cents": "0",
+          "memo": "Supplier tax included in expense (DA26)",
+          "vendor_id": null
+        },
+        {
+          "line_id": "illus_je_inv_tents_l2",
+          "account": "2400",
+          "account_name": "Supplier accounts payable",
+          "debit_cents": "0",
+          "credit_cents": "1253500",
+          "memo": null,
+          "vendor_id": null
+        }
+      ],
+      "posted_at": "2026-10-01T16:00:00Z",
+      "business_date": "2026-09-30",
+      "description": "Harbor Tent invoice T-2210 recorded",
+      "kind": "ORIGINAL",
+      "totals": {
+        "debit_cents": "1253500",
+        "credit_cents": "1253500",
+        "balanced": true
+      },
+      "corrected_by": [],
+      "origin_ref": "illus_inv_tents_2210"
+    },
+    {
+      "entry_id": "illus_je_spay_tents",
+      "posting_rule_version": "illus-posting-rules-1",
+      "source_refs": [
+        {
+          "source_id": "illus_src_inv_tents_2210",
+          "source_version": 1,
+          "content_hash": "sha256:b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1",
+          "locator_kind": "page",
+          "locator": "page=1",
+          "quoted_excerpt": "Invoice T-2210 \u00b7 Vendor tents and staging \u00b7 Total $12,535.00"
+        }
+      ],
+      "correction_of": null,
+      "lines": [
+        {
+          "line_id": "illus_je_spay_tents_l1",
+          "account": "2400",
+          "account_name": "Supplier accounts payable",
+          "debit_cents": "1253500",
+          "credit_cents": "0",
+          "memo": null,
+          "vendor_id": null
+        },
+        {
+          "line_id": "illus_je_spay_tents_l2",
+          "account": "1000",
+          "account_name": "Bank: operating account",
+          "debit_cents": "0",
+          "credit_cents": "1253500",
+          "memo": "Simulated rail confirmation",
+          "vendor_id": null
+        }
+      ],
+      "posted_at": "2026-10-15T17:02:00Z",
+      "business_date": "2026-10-15",
+      "description": "Harbor Tent invoice T-2210 paid (SIMULATED)",
+      "kind": "ORIGINAL",
+      "totals": {
+        "debit_cents": "1253500",
+        "credit_cents": "1253500",
+        "balanced": true
+      },
+      "corrected_by": [],
+      "origin_ref": "illus_spay_tents_2210"
+    },
+    {
+      "entry_id": "illus_je_inv_ice",
+      "posting_rule_version": "illus-posting-rules-1",
+      "source_refs": [
+        {
+          "source_id": "illus_src_inv_ice_7781",
+          "source_version": 1,
+          "content_hash": "sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+          "locator_kind": "page",
+          "locator": "page=1",
+          "quoted_excerpt": "Invoice INV-7781 \u00b7 Block and cube ice, Oct 16 delivery \u00b7 Total due $3,600.00"
+        }
+      ],
+      "correction_of": null,
+      "lines": [
+        {
+          "line_id": "illus_je_inv_ice_l1",
+          "account": "6200",
+          "account_name": "Operating expense",
+          "debit_cents": "360000",
+          "credit_cents": "0",
+          "memo": null,
+          "vendor_id": null
+        },
+        {
+          "line_id": "illus_je_inv_ice_l2",
+          "account": "2400",
+          "account_name": "Supplier accounts payable",
+          "debit_cents": "0",
+          "credit_cents": "360000",
+          "memo": null,
+          "vendor_id": null
+        }
+      ],
+      "posted_at": "2026-10-16T22:00:00Z",
+      "business_date": "2026-10-16",
+      "description": "Coastal Ice invoice INV-7781 recorded (posted to the wrong expense account)",
+      "kind": "ORIGINAL",
+      "totals": {
+        "debit_cents": "360000",
+        "credit_cents": "360000",
+        "balanced": true
+      },
+      "corrected_by": [
+        "illus_je_inv_ice_rev",
+        "illus_je_inv_ice_corr"
+      ],
+      "origin_ref": "illus_inv_ice_7781"
+    },
+    {
+      "entry_id": "illus_je_inv_ice_rev",
+      "posting_rule_version": "illus-posting-rules-1",
+      "source_refs": [
+        {
+          "source_id": "illus_src_inv_ice_7781",
+          "source_version": 1,
+          "content_hash": "sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+          "locator_kind": "page",
+          "locator": "page=1",
+          "quoted_excerpt": "Invoice INV-7781 \u00b7 Block and cube ice, Oct 16 delivery \u00b7 Total due $3,600.00"
+        }
+      ],
+      "correction_of": "illus_je_inv_ice",
+      "lines": [
+        {
+          "line_id": "illus_je_inv_ice_rev_l1",
+          "account": "2400",
+          "account_name": "Supplier accounts payable",
+          "debit_cents": "360000",
+          "credit_cents": "0",
+          "memo": null,
+          "vendor_id": null
+        },
+        {
+          "line_id": "illus_je_inv_ice_rev_l2",
+          "account": "6200",
+          "account_name": "Operating expense",
+          "debit_cents": "0",
+          "credit_cents": "360000",
+          "memo": null,
+          "vendor_id": null
+        }
+      ],
+      "posted_at": "2026-10-17T15:00:00Z",
+      "business_date": "2026-10-16",
+      "description": "Reversal of illus_je_inv_ice (wrong expense account)",
+      "kind": "REVERSAL",
+      "totals": {
+        "debit_cents": "360000",
+        "credit_cents": "360000",
+        "balanced": true
+      },
+      "corrected_by": [],
+      "origin_ref": "illus_inv_ice_7781"
+    },
+    {
+      "entry_id": "illus_je_inv_ice_corr",
+      "posting_rule_version": "illus-posting-rules-1",
+      "source_refs": [
+        {
+          "source_id": "illus_src_inv_ice_7781",
+          "source_version": 1,
+          "content_hash": "sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+          "locator_kind": "page",
+          "locator": "page=1",
+          "quoted_excerpt": "Invoice INV-7781 \u00b7 Block and cube ice, Oct 16 delivery \u00b7 Total due $3,600.00"
+        }
+      ],
+      "correction_of": "illus_je_inv_ice",
+      "lines": [
+        {
+          "line_id": "illus_je_inv_ice_corr_l1",
+          "account": "6100",
+          "account_name": "Supplier expense",
+          "debit_cents": "360000",
+          "credit_cents": "0",
+          "memo": null,
+          "vendor_id": null
+        },
+        {
+          "line_id": "illus_je_inv_ice_corr_l2",
+          "account": "2400",
+          "account_name": "Supplier accounts payable",
+          "debit_cents": "0",
+          "credit_cents": "360000",
+          "memo": null,
+          "vendor_id": null
+        }
+      ],
+      "posted_at": "2026-10-17T15:00:01Z",
+      "business_date": "2026-10-16",
+      "description": "Corrected posting of Coastal Ice invoice INV-7781",
+      "kind": "CORRECTION",
+      "totals": {
+        "debit_cents": "360000",
+        "credit_cents": "360000",
+        "balanced": true
+      },
+      "corrected_by": [],
+      "origin_ref": "illus_inv_ice_7781"
+    },
+    {
+      "entry_id": "illus_je_cn_ice",
+      "posting_rule_version": "illus-posting-rules-1",
+      "source_refs": [
+        {
+          "source_id": "illus_src_cn_ice_7781_1",
+          "source_version": 1,
+          "content_hash": "sha256:a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3",
+          "locator_kind": "page",
+          "locator": "page=1",
+          "quoted_excerpt": "Credit note CN-7781-1 against INV-7781 \u00b7 melted delivery \u00b7 $400.00"
+        }
+      ],
+      "correction_of": null,
+      "lines": [
+        {
+          "line_id": "illus_je_cn_ice_l1",
+          "account": "2400",
+          "account_name": "Supplier accounts payable",
+          "debit_cents": "40000",
+          "credit_cents": "0",
+          "memo": null,
+          "vendor_id": null
+        },
+        {
+          "line_id": "illus_je_cn_ice_l2",
+          "account": "6100",
+          "account_name": "Supplier expense",
+          "debit_cents": "0",
+          "credit_cents": "40000",
+          "memo": null,
+          "vendor_id": null
+        }
+      ],
+      "posted_at": "2026-10-17T15:30:00Z",
+      "business_date": "2026-10-17",
+      "description": "Coastal Ice credit note CN-7781-1 applied",
+      "kind": "ORIGINAL",
+      "totals": {
+        "debit_cents": "40000",
+        "credit_cents": "40000",
+        "balanced": true
+      },
+      "corrected_by": [],
+      "origin_ref": "illus_cn_ice_7781_1"
+    }
+  ],
+  "tax_reports": [
+    {
+      "id": "illus_tax_draft_n1",
+      "version": 2,
+      "status": "DRAFT_NOT_FILED",
+      "label": "Draft sales tax summary, 2026-10-16 (DEMO assumptions)",
+      "tax_collected_cents": "101700",
+      "period_from": "2026-10-16",
+      "period_to": "2026-10-16",
+      "config_version": "illus-tax-config-1",
+      "tax_rate": "0.0900",
+      "assumptions": [
+        "Fictional DEMO rate of 9.00% for a fictional California location, exclusive of price, per line, ROUND_HALF_UP. Not a real rate.",
+        "The organizer holds and remits tax on centrally collected sales. Tax in vendor-retained cash is the vendor's liability (memo only).",
+        "Packaged water is exempt in this DEMO configuration.",
+        "A refund reduces tax on the refund's own business date, linked to the original line.",
+        "Held vendors (Taco Libre, Grill Masters) are excluded until their cases are resolved."
+      ],
+      "taxable_sales_cents": "1130000",
+      "exempt_sales_cents": "6000",
+      "refunds_tax_cents": "-900",
+      "organizer_liability_cents": "101700",
+      "vendor_liability_cents": "0",
+      "lines": [
+        {
+          "line_id": "illus_tl_sun",
+          "label": "Sunrise Smoothies: centrally collected sales",
+          "liability_owner": "ORGANIZER",
+          "vendor_id": "ven_7248fe404ac157ca",
+          "taxable_cents": "900000",
+          "exempt_cents": "0",
+          "refunds_tax_cents": "-900",
+          "tax_cents": "81000",
+          "source_refs": [
+            {
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1,
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator_kind": "row",
+              "locator": "vendor=ven_7248fe404ac157ca;business_date=2026-10-16"
+            }
+          ]
+        },
+        {
+          "line_id": "illus_tl_ket",
+          "label": "Kettle Corn Co: centrally collected sales",
+          "liability_owner": "ORGANIZER",
+          "vendor_id": "ven_bdccc4a0fab46f90",
+          "taxable_cents": "120000",
+          "exempt_cents": "0",
+          "refunds_tax_cents": "0",
+          "tax_cents": "10800",
+          "source_refs": [
+            {
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1,
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator_kind": "row",
+              "locator": "vendor=ven_bdccc4a0fab46f90;business_date=2026-10-16"
+            }
+          ]
+        },
+        {
+          "line_id": "illus_tl_lem",
+          "label": "Late Bloom Lemonade: centrally collected sales",
+          "liability_owner": "ORGANIZER",
+          "vendor_id": "ven_6d07f90ca688444e",
+          "taxable_cents": "80000",
+          "exempt_cents": "0",
+          "refunds_tax_cents": "0",
+          "tax_cents": "7200",
+          "source_refs": [
+            {
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1,
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator_kind": "row",
+              "locator": "vendor=ven_6d07f90ca688444e;business_date=2026-10-16"
+            }
+          ]
+        },
+        {
+          "line_id": "illus_tl_lem_water",
+          "label": "Late Bloom Lemonade: packaged water (exempt)",
+          "liability_owner": "ORGANIZER",
+          "vendor_id": "ven_6d07f90ca688444e",
+          "taxable_cents": "0",
+          "exempt_cents": "6000",
+          "refunds_tax_cents": "0",
+          "tax_cents": "0",
+          "source_refs": [
+            {
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1,
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator_kind": "row",
+              "locator": "vendor=ven_6d07f90ca688444e;business_date=2026-10-16"
+            }
+          ]
+        },
+        {
+          "line_id": "illus_tl_chu",
+          "label": "Churro Cart: centrally collected sales",
+          "liability_owner": "ORGANIZER",
+          "vendor_id": "ven_24b891c0ef6e9864",
+          "taxable_cents": "30000",
+          "exempt_cents": "0",
+          "refunds_tax_cents": "0",
+          "tax_cents": "2700",
+          "source_refs": [
+            {
+              "source_id": "src_6282cdeafdb52961",
+              "source_version": 1,
+              "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+              "locator_kind": "row",
+              "locator": "vendor=ven_24b891c0ef6e9864;business_date=2026-10-16"
+            }
+          ]
+        }
+      ],
+      "exempt_items": [
+        {
+          "item": "Packaged water",
+          "reason": "DEMO exemption in the tax configuration",
+          "exempt_cents": "6000"
+        }
+      ],
+      "generated_at": "2026-10-17T16:00:00Z",
+      "source_refs": [
+        {
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1,
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator_kind": "row",
+          "locator": "business_date=2026-10-16"
+        }
+      ]
+    }
+  ],
+  "reports": [
+    {
+      "id": "illus_rpt_close_n1",
+      "version": 2,
+      "kind": "DAILY_CLOSE",
+      "title": "Daily close, 2026-10-16",
+      "status": "PROVISIONAL",
+      "period_from": "2026-10-16",
+      "period_to": "2026-10-16",
+      "generated_at": "2026-10-17T16:10:00Z",
+      "basis_note": "Provisional: Taco Libre and Grill Masters are held, so their figures are not included yet.",
+      "config_version": "illus-posting-rules-1",
+      "headline": [
+        {
+          "line_id": "h_rev",
+          "label": "Organizer revenue",
+          "amount_cents": "169500",
+          "account": null,
+          "source_refs": [],
+          "journal_entry_ids": []
+        },
+        {
+          "line_id": "h_net",
+          "label": "Net result for the day (provisional)",
+          "amount_cents": "-150500",
+          "account": null,
+          "source_refs": [],
+          "journal_entry_ids": []
+        }
+      ],
+      "sections": [
+        {
+          "section_id": "revenue",
+          "title": "Organizer revenue",
+          "lines": [
+            {
+              "line_id": "rev_ket",
+              "label": "Commission: Kettle Corn Co",
+              "amount_cents": "18000",
+              "account": "4000",
+              "source_refs": [
+                {
+                  "source_id": "src_6282cdeafdb52961",
+                  "source_version": 1,
+                  "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+                  "locator_kind": "row",
+                  "locator": "business_date=2026-10-16"
+                }
+              ],
+              "journal_entry_ids": [
+                "illus_je_n1_fee_kettle"
+              ]
+            },
+            {
+              "line_id": "rev_other",
+              "label": "Commission: Sunrise Smoothies, Late Bloom Lemonade, Churro Cart",
+              "amount_cents": "151500",
+              "account": "4000",
+              "source_refs": [
+                {
+                  "source_id": "src_6282cdeafdb52961",
+                  "source_version": 1,
+                  "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+                  "locator_kind": "row",
+                  "locator": "business_date=2026-10-16"
+                }
+              ],
+              "journal_entry_ids": []
+            }
+          ],
+          "total_cents": "169500"
+        },
+        {
+          "section_id": "expenses",
+          "title": "Expenses",
+          "lines": [
+            {
+              "line_id": "exp_ice",
+              "label": "Coastal Ice INV-7781 (corrected posting)",
+              "amount_cents": "-360000",
+              "account": "6100",
+              "source_refs": [
+                {
+                  "source_id": "illus_src_inv_ice_7781",
+                  "source_version": 1,
+                  "content_hash": "sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+                  "locator_kind": "page",
+                  "locator": "page=1",
+                  "quoted_excerpt": "Invoice INV-7781 \u00b7 Block and cube ice, Oct 16 delivery \u00b7 Total due $3,600.00"
+                }
+              ],
+              "journal_entry_ids": [
+                "illus_je_inv_ice_corr"
+              ]
+            },
+            {
+              "line_id": "exp_ice_cn",
+              "label": "Coastal Ice credit note CN-7781-1",
+              "amount_cents": "40000",
+              "account": "6100",
+              "source_refs": [
+                {
+                  "source_id": "illus_src_cn_ice_7781_1",
+                  "source_version": 1,
+                  "content_hash": "sha256:a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3",
+                  "locator_kind": "page",
+                  "locator": "page=1",
+                  "quoted_excerpt": "Credit note CN-7781-1 against INV-7781 \u00b7 melted delivery \u00b7 $400.00"
+                }
+              ],
+              "journal_entry_ids": [
+                "illus_je_cn_ice"
+              ]
+            }
+          ],
+          "total_cents": "-320000"
+        },
+        {
+          "section_id": "payouts",
+          "title": "Vendor payouts (SIMULATED)",
+          "lines": [
+            {
+              "line_id": "po_conf",
+              "label": "Confirmed",
+              "amount_cents": "102000",
+              "account": null,
+              "source_refs": [],
+              "journal_entry_ids": [
+                "illus_je_n1_payout_kettle"
+              ]
+            },
+            {
+              "line_id": "po_unknown",
+              "label": "Outcome UNKNOWN: reconciliation required (cash stays reserved)",
+              "amount_cents": "68000",
+              "account": null,
+              "source_refs": [],
+              "journal_entry_ids": []
+            },
+            {
+              "line_id": "po_await",
+              "label": "Awaiting finance-lead approval",
+              "amount_cents": "747000",
+              "account": null,
+              "source_refs": [],
+              "journal_entry_ids": []
+            },
+            {
+              "line_id": "po_held",
+              "label": "Held: beneficiary change unverified",
+              "amount_cents": "25500",
+              "account": null,
+              "source_refs": [],
+              "journal_entry_ids": []
+            }
+          ],
+          "total_cents": "942500"
+        },
+        {
+          "section_id": "protected",
+          "title": "Protected: not organizer money",
+          "lines": [
+            {
+              "line_id": "pr_tax",
+              "label": "Sales tax collected (organizer liability, DRAFT, NOT FILED)",
+              "amount_cents": "101700",
+              "account": "2200",
+              "source_refs": [
+                {
+                  "source_id": "src_6282cdeafdb52961",
+                  "source_version": 1,
+                  "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+                  "locator_kind": "row",
+                  "locator": "business_date=2026-10-16"
+                }
+              ],
+              "journal_entry_ids": [
+                "illus_je_n1_sales_kettle"
+              ]
+            },
+            {
+              "line_id": "pr_tips",
+              "label": "Tips held for vendors",
+              "amount_cents": "27500",
+              "account": null,
+              "source_refs": [
+                {
+                  "source_id": "src_6282cdeafdb52961",
+                  "source_version": 1,
+                  "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+                  "locator_kind": "row",
+                  "locator": "business_date=2026-10-16"
+                }
+              ],
+              "journal_entry_ids": []
+            }
+          ],
+          "total_cents": "129200"
+        }
+      ],
+      "source_refs": [
+        {
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1,
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator_kind": "row",
+          "locator": "business_date=2026-10-16"
+        }
+      ]
+    },
+    {
+      "id": "illus_rpt_pnl_fest",
+      "version": 1,
+      "kind": "FESTIVAL_PNL",
+      "title": "Festival P&L to date (provisional)",
+      "status": "PROVISIONAL",
+      "period_from": "2026-10-16",
+      "period_to": "2026-10-18",
+      "generated_at": "2026-10-17T16:12:00Z",
+      "basis_note": "Vendor gross sales are not organizer revenue; only commission is. Ticket revenue is deferred until 2026-10-18.",
+      "config_version": "illus-posting-rules-1",
+      "headline": [
+        {
+          "line_id": "h_net",
+          "label": "Net result to date (provisional)",
+          "amount_cents": "-622000",
+          "account": null,
+          "source_refs": [],
+          "journal_entry_ids": []
+        }
+      ],
+      "sections": [
+        {
+          "section_id": "revenue",
+          "title": "Revenue",
+          "lines": [
+            {
+              "line_id": "rev_comm",
+              "label": "Commission revenue",
+              "amount_cents": "169500",
+              "account": "4000",
+              "source_refs": [
+                {
+                  "source_id": "src_6282cdeafdb52961",
+                  "source_version": 1,
+                  "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+                  "locator_kind": "row",
+                  "locator": "business_date=2026-10-16"
+                }
+              ],
+              "journal_entry_ids": [
+                "illus_je_n1_fee_kettle"
+              ]
+            },
+            {
+              "line_id": "rev_spons",
+              "label": "Sponsorship revenue (cash basis)",
+              "amount_cents": "1000000",
+              "account": "4300",
+              "source_refs": [],
+              "journal_entry_ids": []
+            },
+            {
+              "line_id": "rev_tix",
+              "label": "Ticket revenue (deferred until 2026-10-18)",
+              "amount_cents": "0",
+              "account": "4200",
+              "source_refs": [],
+              "journal_entry_ids": []
+            }
+          ],
+          "total_cents": "1169500"
+        },
+        {
+          "section_id": "expenses",
+          "title": "Expenses",
+          "lines": [
+            {
+              "line_id": "exp_tents",
+              "label": "Tents and staging",
+              "amount_cents": "-1253500",
+              "account": "6100",
+              "source_refs": [
+                {
+                  "source_id": "illus_src_inv_tents_2210",
+                  "source_version": 1,
+                  "content_hash": "sha256:b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1",
+                  "locator_kind": "page",
+                  "locator": "page=1",
+                  "quoted_excerpt": "Invoice T-2210 \u00b7 Vendor tents and staging \u00b7 Total $12,535.00"
+                }
+              ],
+              "journal_entry_ids": [
+                "illus_je_inv_tents"
+              ]
+            },
+            {
+              "line_id": "exp_ice",
+              "label": "Ice (net of credit note)",
+              "amount_cents": "-320000",
+              "account": "6100",
+              "source_refs": [
+                {
+                  "source_id": "illus_src_inv_ice_7781",
+                  "source_version": 1,
+                  "content_hash": "sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+                  "locator_kind": "page",
+                  "locator": "page=1",
+                  "quoted_excerpt": "Invoice INV-7781 \u00b7 Block and cube ice, Oct 16 delivery \u00b7 Total due $3,600.00"
+                },
+                {
+                  "source_id": "illus_src_cn_ice_7781_1",
+                  "source_version": 1,
+                  "content_hash": "sha256:a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3",
+                  "locator_kind": "page",
+                  "locator": "page=1",
+                  "quoted_excerpt": "Credit note CN-7781-1 against INV-7781 \u00b7 melted delivery \u00b7 $400.00"
+                }
+              ],
+              "journal_entry_ids": [
+                "illus_je_inv_ice_corr",
+                "illus_je_cn_ice"
+              ]
+            },
+            {
+              "line_id": "exp_waste",
+              "label": "Waste hauling",
+              "amount_cents": "-218000",
+              "account": "6100",
+              "source_refs": [
+                {
+                  "source_id": "illus_src_inv_waste_0931",
+                  "source_version": 1,
+                  "content_hash": "sha256:c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1",
+                  "locator_kind": "page",
+                  "locator": "page=1",
+                  "quoted_excerpt": "Invoice W-0931 \u00b7 Festival waste hauling \u00b7 Total $2,180.00"
+                }
+              ],
+              "journal_entry_ids": []
+            }
+          ],
+          "total_cents": "-1791500"
+        }
+      ],
+      "source_refs": [
+        {
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1,
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator_kind": "row",
+          "locator": "business_date=2026-10-16"
+        }
+      ]
+    },
+    {
+      "id": "illus_rpt_cash_fest",
+      "version": 1,
+      "kind": "FESTIVAL_CASH",
+      "title": "Festival cash report to date",
+      "status": "PROVISIONAL",
+      "period_from": "2026-10-16",
+      "period_to": "2026-10-18",
+      "generated_at": "2026-10-17T16:14:00Z",
+      "basis_note": "Bank cash only. Pending deposits are not cash until the bank entry exists. Payouts are SIMULATED.",
+      "config_version": "illus-posting-rules-1",
+      "headline": [
+        {
+          "line_id": "h_open",
+          "label": "Opening bank balance",
+          "amount_cents": "2500000",
+          "account": null,
+          "source_refs": [
+            {
+              "source_id": "src_1fdc84e50a1715ef",
+              "source_version": 1,
+              "content_hash": "sha256:7d93a748e6f6a1c9b342cb68d6964b2b11bd513572ecf2fefbef407a5766aeb7",
+              "locator_kind": "row",
+              "locator": "row=1"
+            }
+          ],
+          "journal_entry_ids": []
+        },
+        {
+          "line_id": "h_close",
+          "label": "Closing bank balance",
+          "amount_cents": "3900000",
+          "account": null,
+          "source_refs": [
+            {
+              "source_id": "src_1fdc84e50a1715ef",
+              "source_version": 1,
+              "content_hash": "sha256:7d93a748e6f6a1c9b342cb68d6964b2b11bd513572ecf2fefbef407a5766aeb7",
+              "locator_kind": "row",
+              "locator": "row=1"
+            }
+          ],
+          "journal_entry_ids": []
+        }
+      ],
+      "sections": [
+        {
+          "section_id": "receipts",
+          "title": "Receipts",
+          "lines": [
+            {
+              "line_id": "rc_proc",
+              "label": "Processor deposits",
+              "amount_cents": "2655000",
+              "account": null,
+              "source_refs": [
+                {
+                  "source_id": "src_1fdc84e50a1715ef",
+                  "source_version": 1,
+                  "content_hash": "sha256:7d93a748e6f6a1c9b342cb68d6964b2b11bd513572ecf2fefbef407a5766aeb7",
+                  "locator_kind": "row",
+                  "locator": "row=1"
+                }
+              ],
+              "journal_entry_ids": []
+            },
+            {
+              "line_id": "rc_tix",
+              "label": "Ticketing settlements",
+              "amount_cents": "1800000",
+              "account": null,
+              "source_refs": [
+                {
+                  "source_id": "src_1fdc84e50a1715ef",
+                  "source_version": 1,
+                  "content_hash": "sha256:7d93a748e6f6a1c9b342cb68d6964b2b11bd513572ecf2fefbef407a5766aeb7",
+                  "locator_kind": "row",
+                  "locator": "row=1"
+                }
+              ],
+              "journal_entry_ids": []
+            },
+            {
+              "line_id": "rc_spons",
+              "label": "Sponsorship receipts",
+              "amount_cents": "1000000",
+              "account": null,
+              "source_refs": [
+                {
+                  "source_id": "src_1fdc84e50a1715ef",
+                  "source_version": 1,
+                  "content_hash": "sha256:7d93a748e6f6a1c9b342cb68d6964b2b11bd513572ecf2fefbef407a5766aeb7",
+                  "locator_kind": "row",
+                  "locator": "row=1"
+                }
+              ],
+              "journal_entry_ids": []
+            }
+          ],
+          "total_cents": "5455000"
+        },
+        {
+          "section_id": "payments",
+          "title": "Payments (SIMULATED)",
+          "lines": [
+            {
+              "line_id": "pm_tents",
+              "label": "Supplier: Harbor Tent T-2210",
+              "amount_cents": "-1253500",
+              "account": null,
+              "source_refs": [
+                {
+                  "source_id": "illus_src_inv_tents_2210",
+                  "source_version": 1,
+                  "content_hash": "sha256:b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1",
+                  "locator_kind": "page",
+                  "locator": "page=1",
+                  "quoted_excerpt": "Invoice T-2210 \u00b7 Vendor tents and staging \u00b7 Total $12,535.00"
+                }
+              ],
+              "journal_entry_ids": [
+                "illus_je_spay_tents"
+              ]
+            },
+            {
+              "line_id": "pm_kettle",
+              "label": "Vendor payout: Kettle Corn Co",
+              "amount_cents": "-102000",
+              "account": null,
+              "source_refs": [],
+              "journal_entry_ids": [
+                "illus_je_n1_payout_kettle"
+              ]
+            },
+            {
+              "line_id": "pm_ops",
+              "label": "Other operating payments",
+              "amount_cents": "-2699500",
+              "account": null,
+              "source_refs": [
+                {
+                  "source_id": "src_1fdc84e50a1715ef",
+                  "source_version": 1,
+                  "content_hash": "sha256:7d93a748e6f6a1c9b342cb68d6964b2b11bd513572ecf2fefbef407a5766aeb7",
+                  "locator_kind": "row",
+                  "locator": "row=1"
+                }
+              ],
+              "journal_entry_ids": []
+            }
+          ],
+          "total_cents": "-4055000"
+        }
+      ],
+      "source_refs": [
+        {
+          "source_id": "src_1fdc84e50a1715ef",
+          "source_version": 1,
+          "content_hash": "sha256:7d93a748e6f6a1c9b342cb68d6964b2b11bd513572ecf2fefbef407a5766aeb7",
+          "locator_kind": "row",
+          "locator": "row=1"
+        }
+      ]
+    }
+  ]
+}

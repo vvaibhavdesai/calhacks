@@ -1,0 +1,55 @@
+{
+  "currency": "USD",
+  "custody_rules": {
+    "CARD": "CENTRALLY_COLLECTED",
+    "CASH": "BY_CASH_DRAWER: VENDOR -> VENDOR_RETAINED, ORGANIZER_CASH_OFFICE -> CENTRALLY_COLLECTED"
+  },
+  "default_terms": {
+    "commission_bps": 1500,
+    "festival_minimum_cents": "50000"
+  },
+  "draft_assumptions": {
+    "DA01_tax_rate": "DRAFT ASSUMPTION - needs A review: fictional DEMO sales-tax rate 0.0900, exclusive pricing, applied per line with ROUND_HALF_UP to whole cents. Not a real California rate; no compliance claim.",
+    "DA02_tax_remitter": "DRAFT ASSUMPTION - needs A review: organizer records and remits tax on CENTRALLY_COLLECTED sales (tax liability/control account). Tax collected in VENDOR_RETAINED cash is the vendor's own responsibility and is memo-only on organizer books.",
+    "DA03_tips": "DRAFT ASSUMPTION - needs A review: centrally collected tips belong to the vendor and are passed through in full as a separate tips_passthrough amount; they are never used to collect fees or unpaid balances. Tips in vendor-retained cash stay with the vendor.",
+    "DA04_processor_fee_model": "DRAFT ASSUMPTION - needs A review: fictional processor 'CardCo' charges 2.50% of each captured payment gross (incl. tax and tip) ROUND_HALF_UP plus 10 cents fixed; refunds carry no fee and no fee is returned.",
+    "DA05_processor_fee_allocation": "DRAFT ASSUMPTION - needs A review: when a contract permits deduction, the vendor bears the full fee on its own payments (incl. the tax/tip portion of the payment), deducted from eligible entitlement only; otherwise the organizer expenses it.",
+    "DA06_custody": "DRAFT ASSUMPTION - needs A review: custody is set per payment from the POS cash-drawer field, never from method alone. Card = CENTRALLY_COLLECTED. Cash is VENDOR_RETAINED when the vendor's own drawer holds it, CENTRALLY_COLLECTED when the organizer cash office holds it.",
+    "DA07_signed_amounts": "DRAFT ASSUMPTION - needs A review: order/payment/batch money strings are signed canonical integers (refunds negative, regex ^-?(0|[1-9][0-9]*)$, no '-0'). Bank entries use a positive amount plus direction (credit/debit) per C03.",
+    "DA08_refund_tax": "DRAFT ASSUMPTION - needs A review: refund tax = original line tax * refunded_qty / original_qty, ROUND_HALF_UP; refund is recognised on its own business_date and references the original order line.",
+    "DA09_processor_batches": "DRAFT ASSUMPTION - needs A review: CardCo batches by America/Los_Angeles business_date; deposits are net of fees; one payout reference may cover several batches.",
+    "DA10_matching_window": "DRAFT ASSUMPTION - needs A review: a processor deposit within 3 calendar days of batch business_date is a timing item (not a case); delayed funds are not available cash until the bank entry exists.",
+    "DA11_compact_aggregation": "DRAFT ASSUMPTION: for hand-checkability the compact fixture aggregates many POS tickets into a few summary orders with large quantities. B02 will generate realistic ticket-level orders.",
+    "DA12_opening_bank_balance": "DRAFT ASSUMPTION - needs A review: organizer operating bank opening balance 2026-10-15 is $25,000.00 (2500000 cents), supplied as bank-statement opening balance, not a journal entry."
+  },
+  "draft_notice": "DRAFT configuration (C05 not frozen). Assumptions listed in draft_assumptions.",
+  "festival_id": "fest_bf25e974c723d827",
+  "id": "cfg_fae7c3173048935f",
+  "matching": {
+    "deposit_window_days": 3
+  },
+  "payout_controls": {
+    "auto_limit_cents_per_vendor_day": "500000",
+    "payment_mode": "SIMULATED",
+    "payout_local_time": "10:00",
+    "statement_local_time": "09:00"
+  },
+  "processor_fee_model": {
+    "fixed_cents": "10",
+    "percent": "0.0250",
+    "processor": "CardCo (fictional processor)",
+    "refund_fee_cents": "0",
+    "rounding": "ROUND_HALF_UP"
+  },
+  "status": "DRAFT",
+  "tax": {
+    "boundary": "line",
+    "label": "DEMO_FICTIONAL_RATE - not a real California rate, no compliance claim",
+    "price_mode": "exclusive",
+    "rate": "0.0900",
+    "report_status": "DRAFT, NOT FILED",
+    "rounding": "ROUND_HALF_UP"
+  },
+  "timezone": "America/Los_Angeles",
+  "version": 1
+}

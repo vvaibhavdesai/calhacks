@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+# B02: full-dataset scenario manifests, expected answers and scored candidates (evaluator-only, rebuilt locally)
+generated/
+# B07: acceptance harness run reports (self-test and live); collected into docs/release evidence by hand
+acceptance-runs/

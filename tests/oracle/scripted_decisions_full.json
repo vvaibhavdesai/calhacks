@@ -1,0 +1,45 @@
+{
+  "note": "EVALUATOR-ONLY scripted HUMAN decisions for the full datasets (any split). Rules match reviews by reason_code and optional business_date / vendor_name / subject_kind, first match wins. They are what the evaluator (playing the human, possibly holding every capability in v1) clicks; they are NOT agent actions and NOT a hidden correct answer. Rules avoid vendor names so the same sets work on shuffled held-out splits.",
+  "decision_sets": {
+    "F0_no_decision": {
+      "description": "No human has answered anything. Every blocking review stays HELD for its affected obligations only; unrelated vendors continue.",
+      "rules": []
+    },
+    "F1_story": {
+      "description": "Three-night story plus every other review answered. Night 1: the human picks the producer-email rate for the conflict vendor and approves REUSABLE scope; night 2 auto-applies the policy; night 3: the human challenges with the signed amendment, approves the correction (offset recovery). Finance lead approves above-limit payouts; other reviews resolved as listed.",
+      "rules": [
+        {"rule_id": "F1-TERMS-N1", "reason_code": "CONFLICTING_TERMS", "business_date": "2026-10-16", "decision": "CHOOSE_OTHER_CLAIM", "scope": "REUSABLE_VENDOR_FESTIVAL"},
+        {"rule_id": "F1-CHALLENGE-N3", "reason_code": "SUPERSEDING_EVIDENCE", "decision": "APPLY_NEW_TERMS_AND_APPROVE_CORRECTION", "human_action": "CHALLENGE_WITH_SUPERSEDING_EVIDENCE"},
+        {"rule_id": "F1-LIMIT", "reason_code": "PAYOUT_ABOVE_AUTO_LIMIT", "decision": "APPROVE", "capability": "finance_lead"},
+        {"rule_id": "F1-BENEFICIARY", "reason_code": "BENEFICIARY_CHANGED_UNVERIFIED", "decision": "VERIFIED_BY_CALLBACK", "capability": "payments_admin"},
+        {"rule_id": "F1-CASH-VARIANCE", "reason_code": "CASH_VARIANCE", "decision": "ORGANIZER_ABSORBS_SHORTAGE"},
+        {"rule_id": "F1-MISSING-COUNT", "reason_code": "MISSING_CASH_COUNT", "decision": "ACCEPT_POS_AND_BANK_DEPOSIT_AS_EVIDENCE"},
+        {"rule_id": "F1-DUP-CHARGE", "reason_code": "DUPLICATE_CHARGE", "decision": "CONFIRM_DUPLICATE_CUSTOMER_REFUND"},
+        {"rule_id": "F1-TAX", "reason_code": "TAX_MISMATCH", "decision": "ACKNOWLEDGE_FOR_DRAFT_TAX_SCHEDULE"},
+        {"rule_id": "F1-MIN-CLAIM", "reason_code": "MINIMUM_PERIOD_CLAIM", "decision": "KEEP_CONTRACT_FESTIVAL_MINIMUM"},
+        {"rule_id": "F1-UNPAID", "reason_code": "UNPAID_BALANCE", "decision": "RECORD_FOR_COLLECTION"},
+        {"rule_id": "F1-LATE-REFUND", "reason_code": "LATE_REFUND_RECOVERY", "decision": "PURSUE_RECOVERY"},
+        {"rule_id": "F1-CHARGEBACK", "reason_code": "CHARGEBACK_RECOVERY", "decision": "PURSUE_RECOVERY"},
+        {"rule_id": "F1-PAYOUT-FAILED", "reason_code": "PAYOUT_FAILED", "decision": "HOLD_PENDING_NEW_BENEFICIARY"},
+        {"rule_id": "F1-DUP-INVOICE", "reason_code": "DUPLICATE_SUPPLIER_INVOICE", "decision": "REJECT_DUPLICATE"},
+        {"rule_id": "F1-EXCEEDS-PO", "reason_code": "INVOICE_EXCEEDS_PO", "decision": "APPROVE_VARIANCE"},
+        {"rule_id": "F1-UNMATCHED-BANK", "reason_code": "UNMATCHED_BANK_ENTRY", "decision": "BOOK_AS_BANK_FEE"}
+      ]
+    },
+    "F2_one_time": {
+      "description": "Like F1 but the human resolves the rate conflict ONE-TIME each night (no reuse approval), so the conflict must re-escalate on night 2; night 3 still brings the superseding amendment.",
+      "rules": [
+        {"rule_id": "F2-TERMS", "reason_code": "CONFLICTING_TERMS", "decision": "CHOOSE_OTHER_CLAIM", "scope": "ONE_TIME"},
+        {"rule_id": "F2-CHALLENGE-N3", "reason_code": "SUPERSEDING_EVIDENCE", "decision": "APPLY_NEW_TERMS_AND_APPROVE_CORRECTION", "human_action": "CHALLENGE_WITH_SUPERSEDING_EVIDENCE"},
+        {"rule_id": "F2-LIMIT", "reason_code": "PAYOUT_ABOVE_AUTO_LIMIT", "decision": "APPROVE", "capability": "finance_lead"},
+        {"rule_id": "F2-BENEFICIARY", "reason_code": "BENEFICIARY_CHANGED_UNVERIFIED", "decision": "VERIFIED_BY_CALLBACK", "capability": "payments_admin"},
+        {"rule_id": "F2-CASH-VARIANCE", "reason_code": "CASH_VARIANCE", "decision": "ORGANIZER_ABSORBS_SHORTAGE"},
+        {"rule_id": "F2-MISSING-COUNT", "reason_code": "MISSING_CASH_COUNT", "decision": "ACCEPT_POS_AND_BANK_DEPOSIT_AS_EVIDENCE"},
+        {"rule_id": "F2-DUP-CHARGE", "reason_code": "DUPLICATE_CHARGE", "decision": "CONFIRM_DUPLICATE_CUSTOMER_REFUND"},
+        {"rule_id": "F2-UNPAID", "reason_code": "UNPAID_BALANCE", "decision": "RECORD_FOR_COLLECTION"},
+        {"rule_id": "F2-PAYOUT-FAILED", "reason_code": "PAYOUT_FAILED", "decision": "HOLD_PENDING_NEW_BENEFICIARY"},
+        {"rule_id": "F2-DUP-INVOICE", "reason_code": "DUPLICATE_SUPPLIER_INVOICE", "decision": "REJECT_DUPLICATE"}
+      ]
+    }
+  }
+}

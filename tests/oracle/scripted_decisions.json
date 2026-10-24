@@ -1,0 +1,45 @@
+{
+  "note": "EVALUATOR-ONLY scripted HUMAN decisions. These are what the evaluator (playing the human) will click; they are NOT agent actions and NOT a hidden correct answer. Expected outcomes in expected/ are conditional on each set. Vendors are referenced by display name because IDs depend on the seed.",
+  "decision_sets": {
+    "S0_no_decision": {
+      "description": "Human has not yet resolved anything. Taco Libre must stay HELD on every night (cumulative math cannot proceed); all other vendors continue unaffected.",
+      "decisions": [
+        {"decision_id": "S0-UNPAID-LATEBLOOM", "vendor_name": "Late Bloom Lemonade", "reason_code": "UNPAID_BALANCE", "business_date": "2026-10-18", "decision": "RECORD_FOR_COLLECTION"},
+        {"decision_id": "S0-UNPAID-GRILL", "vendor_name": "Grill Masters", "reason_code": "UNPAID_BALANCE", "business_date": "2026-10-18", "decision": "RECORD_FOR_COLLECTION"},
+        {"decision_id": "S0-LATEREFUND-CHURRO", "vendor_name": "Churro Cart", "reason_code": "LATE_REFUND_RECOVERY", "business_date": "2026-10-20", "decision": "PURSUE_RECOVERY"}
+      ]
+    },
+    "S1_reusable_10pct": {
+      "description": "Three-night story, nights 1-2: on 2026-10-16 the human chooses the producer email's 10% for Taco Libre and explicitly approves REUSABLE scope (this vendor, this festival). Nights 2-3 must auto-apply the policy with citation and no new approval. Finance lead approves the night-1 payout above $5,000.",
+      "decisions": [
+        {"decision_id": "S1-TERMS-TACO-N1", "vendor_name": "Taco Libre", "reason_code": "CONFLICTING_TERMS", "business_date": "2026-10-16", "choice": "EMAIL_RATE", "commission_bps": 1000, "scope": "REUSABLE_VENDOR_FESTIVAL"},
+        {"decision_id": "S1-LIMIT-TACO-N1", "vendor_name": "Taco Libre", "reason_code": "PAYOUT_ABOVE_AUTO_LIMIT", "business_date": "2026-10-16", "decision": "APPROVE", "capability": "finance_lead"},
+        {"decision_id": "S1-UNPAID-LATEBLOOM", "vendor_name": "Late Bloom Lemonade", "reason_code": "UNPAID_BALANCE", "business_date": "2026-10-18", "decision": "RECORD_FOR_COLLECTION"},
+        {"decision_id": "S1-UNPAID-GRILL", "vendor_name": "Grill Masters", "reason_code": "UNPAID_BALANCE", "business_date": "2026-10-18", "decision": "RECORD_FOR_COLLECTION"},
+        {"decision_id": "S1-LATEREFUND-CHURRO", "vendor_name": "Churro Cart", "reason_code": "LATE_REFUND_RECOVERY", "business_date": "2026-10-20", "decision": "PURSUE_RECOVERY"}
+      ]
+    },
+    "S2_one_time_10pct": {
+      "description": "Human chooses 10% each night as a ONE-TIME resolution (no reuse approval). The conflict must re-escalate on nights 2 and 3; numbers equal S1 but review count differs.",
+      "decisions": [
+        {"decision_id": "S2-TERMS-TACO-N1", "vendor_name": "Taco Libre", "reason_code": "CONFLICTING_TERMS", "business_date": "2026-10-16", "choice": "EMAIL_RATE", "commission_bps": 1000, "scope": "ONE_TIME"},
+        {"decision_id": "S2-TERMS-TACO-N2", "vendor_name": "Taco Libre", "reason_code": "CONFLICTING_TERMS", "business_date": "2026-10-17", "choice": "EMAIL_RATE", "commission_bps": 1000, "scope": "ONE_TIME"},
+        {"decision_id": "S2-TERMS-TACO-N3", "vendor_name": "Taco Libre", "reason_code": "CONFLICTING_TERMS", "business_date": "2026-10-18", "choice": "EMAIL_RATE", "commission_bps": 1000, "scope": "ONE_TIME"},
+        {"decision_id": "S2-LIMIT-TACO-N1", "vendor_name": "Taco Libre", "reason_code": "PAYOUT_ABOVE_AUTO_LIMIT", "business_date": "2026-10-16", "decision": "APPROVE", "capability": "finance_lead"},
+        {"decision_id": "S2-UNPAID-LATEBLOOM", "vendor_name": "Late Bloom Lemonade", "reason_code": "UNPAID_BALANCE", "business_date": "2026-10-18", "decision": "RECORD_FOR_COLLECTION"},
+        {"decision_id": "S2-UNPAID-GRILL", "vendor_name": "Grill Masters", "reason_code": "UNPAID_BALANCE", "business_date": "2026-10-18", "decision": "RECORD_FOR_COLLECTION"},
+        {"decision_id": "S2-LATEREFUND-CHURRO", "vendor_name": "Churro Cart", "reason_code": "LATE_REFUND_RECOVERY", "business_date": "2026-10-20", "decision": "PURSUE_RECOVERY"}
+      ]
+    },
+    "S3_reusable_contract_15pct": {
+      "description": "Human rejects the email and keeps the signed contract's 15% for Taco Libre, approving reuse. Night-1 payout is still above $5,000 and needs finance-lead approval.",
+      "decisions": [
+        {"decision_id": "S3-TERMS-TACO-N1", "vendor_name": "Taco Libre", "reason_code": "CONFLICTING_TERMS", "business_date": "2026-10-16", "choice": "CONTRACT_RATE", "commission_bps": 1500, "scope": "REUSABLE_VENDOR_FESTIVAL"},
+        {"decision_id": "S3-LIMIT-TACO-N1", "vendor_name": "Taco Libre", "reason_code": "PAYOUT_ABOVE_AUTO_LIMIT", "business_date": "2026-10-16", "decision": "APPROVE", "capability": "finance_lead"},
+        {"decision_id": "S3-UNPAID-LATEBLOOM", "vendor_name": "Late Bloom Lemonade", "reason_code": "UNPAID_BALANCE", "business_date": "2026-10-18", "decision": "RECORD_FOR_COLLECTION"},
+        {"decision_id": "S3-UNPAID-GRILL", "vendor_name": "Grill Masters", "reason_code": "UNPAID_BALANCE", "business_date": "2026-10-18", "decision": "RECORD_FOR_COLLECTION"},
+        {"decision_id": "S3-LATEREFUND-CHURRO", "vendor_name": "Churro Cart", "reason_code": "LATE_REFUND_RECOVERY", "business_date": "2026-10-20", "decision": "PURSUE_RECOVERY"}
+      ]
+    }
+  }
+}

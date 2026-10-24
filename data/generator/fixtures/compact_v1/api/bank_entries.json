@@ -1,0 +1,89 @@
+{
+  "items": [
+    {
+      "account_id": "bacct_26c664a5ec9da411",
+      "amount_cents": "1480174",
+      "currency": "USD",
+      "description": "CARDCO PAYOUT PO-0001",
+      "direction": "credit",
+      "id": "bank_eda31709b5bab40e",
+      "occurred_at": "2026-10-17T15:00:00Z",
+      "provider_reference": "CARDCO-PO-0001",
+      "source_refs": [
+        {
+          "content_hash": "sha256:7d93a748e6f6a1c9b342cb68d6964b2b11bd513572ecf2fefbef407a5766aeb7",
+          "locator": "row=2",
+          "locator_kind": "row",
+          "source_id": "src_1fdc84e50a1715ef",
+          "source_version": 1
+        }
+      ],
+      "status": "POSTED",
+      "version": 1
+    },
+    {
+      "account_id": "bacct_26c664a5ec9da411",
+      "amount_cents": "2295483",
+      "currency": "USD",
+      "description": "CARDCO PAYOUT PO-0002",
+      "direction": "credit",
+      "id": "bank_f15bf8119301aad8",
+      "occurred_at": "2026-10-19T15:00:00Z",
+      "provider_reference": "CARDCO-PO-0002",
+      "source_refs": [
+        {
+          "content_hash": "sha256:7d93a748e6f6a1c9b342cb68d6964b2b11bd513572ecf2fefbef407a5766aeb7",
+          "locator": "row=3",
+          "locator_kind": "row",
+          "source_id": "src_1fdc84e50a1715ef",
+          "source_version": 1
+        }
+      ],
+      "status": "POSTED",
+      "version": 1
+    },
+    {
+      "account_id": "bacct_26c664a5ec9da411",
+      "amount_cents": "10900",
+      "currency": "USD",
+      "description": "BRANCH CASH DEPOSIT - ORGANIZER CASH OFFICE",
+      "direction": "credit",
+      "id": "bank_7ef37f34db70ec74",
+      "occurred_at": "2026-10-19T19:00:00Z",
+      "provider_reference": "CASHDEP-CASH-DEP-0001",
+      "source_refs": [
+        {
+          "content_hash": "sha256:7d93a748e6f6a1c9b342cb68d6964b2b11bd513572ecf2fefbef407a5766aeb7",
+          "locator": "row=4",
+          "locator_kind": "row",
+          "source_id": "src_1fdc84e50a1715ef",
+          "source_version": 1
+        }
+      ],
+      "status": "POSTED",
+      "version": 1
+    },
+    {
+      "account_id": "bacct_26c664a5ec9da411",
+      "amount_cents": "10900",
+      "currency": "USD",
+      "description": "CARDCO PAYOUT PO-0003",
+      "direction": "debit",
+      "id": "bank_3744a59b3b217d39",
+      "occurred_at": "2026-10-21T15:00:00Z",
+      "provider_reference": "CARDCO-PO-0003",
+      "source_refs": [
+        {
+          "content_hash": "sha256:7d93a748e6f6a1c9b342cb68d6964b2b11bd513572ecf2fefbef407a5766aeb7",
+          "locator": "row=5",
+          "locator_kind": "row",
+          "source_id": "src_1fdc84e50a1715ef",
+          "source_version": 1
+        }
+      ],
+      "status": "POSTED",
+      "version": 1
+    }
+  ],
+  "next_cursor": null
+}
