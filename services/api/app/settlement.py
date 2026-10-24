@@ -186,12 +186,13 @@ def gather_reconciled_day_facts(
             )
             continue
 
-        # matched_amount_cents from A03's classification already nets
-        # refunds/chargebacks against the order's captures -- this IS the
-        # eligible-sales basis for this order (gross minus tax/tips is
-        # applied below via order.tax_cents/order.tips_cents; refunds are
-        # already reflected in matched_amount_cents by construction of
-        # classify_order_capture).
+        # matched_amount_cents from A03's classification is the order's
+        # captures NET of every refund/chargeback booked against it (see
+        # app/reconciliation.py's classify_order_capture, which computes
+        # `net_captured` for every branch) -- this IS the eligible-sales
+        # basis for this order, and refunds must NOT be subtracted a
+        # second time here. Tax/tips are removed below from
+        # order.tax_cents/order.tips_cents.
         eligible_for_order = group.matched_amount_cents - order.tax_cents - order.tips_cents
         if eligible_for_order < 0:
             eligible_for_order = 0
