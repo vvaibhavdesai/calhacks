@@ -89,7 +89,7 @@ describe('recorder stand-in: events', () => {
     expect((await client.list('listEvents', { query: { branch_id: 'illus_branch_taco_15', limit: 50 } })).items.every((e) => e.branch_id === 'illus_branch_taco_15')).toBe(true);
     await expect(client.list('listEvents', { query: { category: 'MAYBE' as never } })).rejects.toMatchObject({ kind: 'invalid' });
     await expect(client.list('listEvents', { query: { recorded_from: '2026-10-18' } })).rejects.toMatchObject({ kind: 'invalid' });
-    expect((await client.get('getEvent', { path: { id: all.items[0]!.event_id } })).event_id).toBe(all.items[0]!.event_id);
+    expect((await client.get('getEvent', { path: { event_id: all.items[0]!.event_id } })).event_id).toBe(all.items[0]!.event_id);
   });
 
   it('stays 501 without the night3 story', async () => {
@@ -109,12 +109,12 @@ describe('recorder stand-in: challenge, preview, approval', () => {
     await expect(send(2, { ...base, reason: '  ' })).rejects.toMatchObject({ code: 'REASON_REQUIRED' });
     await expect(send(2, { ...base, superseding_evidence: [{ source_id: 'illus_src_taco_followup', source_version: 1, content_hash: `sha256:${'00'.repeat(32)}` }] })).rejects.toMatchObject({ code: 'UNKNOWN_EVIDENCE' });
     const id = await challengeTacoPolicy(client);
-    const ch = await client.get('getChallenge', { path: { id } });
+    const ch = await client.get('getChallenge', { path: { challenge_id: id } });
     expect(ch.policy_effect).toMatchObject({ status_before: 'ACTIVE', status_now: 'SUSPENDED' });
-    expect((await client.get('getPolicyVersion', { path: { id: TACO_POLICY } })).status).toBe('SUSPENDED');
-    expect((await client.get('getPayout', { path: { id: 'illus_payout_n3_taco' } })).holds?.[0]?.reason_code).toBe('POLICY_UNDER_CHALLENGE');
+    expect((await client.get('getPolicyVersion', { path: { policy_version_id: TACO_POLICY } })).status).toBe('SUSPENDED');
+    expect((await client.get('getPayout', { path: { payout_id: 'illus_payout_n3_taco' } })).holds?.[0]?.reason_code).toBe('POLICY_UNDER_CHALLENGE');
     // No money changed by the challenge itself.
-    expect((await client.get('getPayout', { path: { id: 'illus_payout_n3_taco' } })).amount_cents).toBe('27000');
+    expect((await client.get('getPayout', { path: { payout_id: 'illus_payout_n3_taco' } })).amount_cents).toBe('27000');
     await expect(challengeTacoPolicy(client)).rejects.toMatchObject({ code: 'CHALLENGE_ALREADY_OPEN' });
   });
 
@@ -122,26 +122,26 @@ describe('recorder stand-in: challenge, preview, approval', () => {
     const { client } = make(['fixture.read', 'challenge.create']);
     const chId = await challengeTacoPolicy(client);
     const cId = await previewFor(client, chId);
-    const c = await client.get('getCorrection', { path: { id: cId } });
+    const c = await client.get('getCorrection', { path: { correction_id: cId } });
     expect(c.status).toBe('PREVIEW_READY');
     expect(new Set(c.items.map((i) => i.state_group))).toEqual(new Set(['DRAFT', 'PENDING', 'COMPLETED', 'POSTED', 'NO_REMAINING_PAYOUT', 'STATEMENT']));
     // A session that may challenge but not approve corrections gets 403 on approval.
     await expect(
-      client.command('approveCorrection', prepareCommand({ expectedVersion: c.version, payload: approvalPayload(c) }), { path: { id: cId } }),
+      client.command('approveCorrection', prepareCommand({ expectedVersion: c.version, payload: approvalPayload(c) }), { path: { correction_id: cId } }),
     ).rejects.toMatchObject({ kind: 'forbidden' });
     const fresh = make();
     const fId = await previewFor(fresh.client, await challengeTacoPolicy(fresh.client));
-    const fc = await fresh.client.get('getCorrection', { path: { id: fId } });
-    const fsend = (expected: number, payload: R) => fresh.client.command('approveCorrection', prepareCommand({ expectedVersion: expected, payload }), { path: { id: fId } });
+    const fc = await fresh.client.get('getCorrection', { path: { correction_id: fId } });
+    const fsend = (expected: number, payload: R) => fresh.client.command('approveCorrection', prepareCommand({ expectedVersion: expected, payload }), { path: { correction_id: fId } });
     const fp = approvalPayload(fc);
     await expect(fsend(fc.version + 1, fp)).rejects.toMatchObject({ kind: 'conflict', currentVersion: fc.version });
     await expect(fsend(fc.version, { ...fp, preview_hash: 'sha256:stale' })).rejects.toMatchObject({ code: 'PREVIEW_CHANGED' });
     await expect(fsend(fc.version, { ...fp, evidence_hash: 'sha256:stale' })).rejects.toMatchObject({ code: 'EVIDENCE_CHANGED' });
     await expect(fsend(fc.version, { ...fp, item_ids: fp.item_ids.slice(1) })).rejects.toMatchObject({ code: 'ITEMS_MISMATCH' });
     const cmd = prepareCommand({ expectedVersion: fc.version, payload: fp });
-    const first = await fresh.client.command('approveCorrection', cmd, { path: { id: fId } });
+    const first = await fresh.client.command('approveCorrection', cmd, { path: { correction_id: fId } });
     expect(first.kind).toBe('accepted');
-    expect(await fresh.client.command('approveCorrection', cmd, { path: { id: fId } })).toEqual(first); // same key replays
+    expect(await fresh.client.command('approveCorrection', cmd, { path: { correction_id: fId } })).toEqual(first); // same key replays
     await expect(fsend(fc.version + 1, fp)).rejects.toMatchObject({ code: 'INVALID_TRANSITION' });
   });
 
@@ -149,7 +149,7 @@ describe('recorder stand-in: challenge, preview, approval', () => {
     const { client } = make();
     const before = await client.get('getJournalEntry', { path: { id: 'illus_je_n1_fee_taco' } });
     const { correctionId } = await runNight3Correction(client);
-    const c = await client.get('getCorrection', { path: { id: correctionId } });
+    const c = await client.get('getCorrection', { path: { correction_id: correctionId } });
     expect(c.status).toBe('COMPLETED');
     expect(c.progress?.every((s) => s.status === 'DONE')).toBe(true);
     const original = await client.get('getJournalEntry', { path: { id: 'illus_je_n1_fee_taco' } });
@@ -160,10 +160,10 @@ describe('recorder stand-in: challenge, preview, approval', () => {
     const old = await client.get('getSettlement', { path: { id: 'illus_set_n1_taco' }, query: { version: 2 } });
     expect(old.assessed_fee_cents).toBe('8000');
     expect(old.applied_policies?.[0]?.policy_version_id).toBe(TACO_POLICY);
-    expect((await client.get('getPayout', { path: { id: 'illus_payout_n2_taco' } })).state).toBe('CANCELLED');
-    expect((await client.get('getPayout', { path: { id: 'illus_payout_n2_taco_c1' } })).amount_cents).toBe('425000');
-    expect((await client.get('getPayout', { path: { id: 'illus_payout_n1_taco' } })).state).toBe('CONFIRMED'); // money is not "unsent"
-    expect((await client.get('getPolicyVersion', { path: { id: TACO_POLICY } })).status).toBe('REVOKED');
+    expect((await client.get('getPayout', { path: { payout_id: 'illus_payout_n2_taco' } })).state).toBe('CANCELLED');
+    expect((await client.get('getPayout', { path: { payout_id: 'illus_payout_n2_taco_c1' } })).amount_cents).toBe('425000');
+    expect((await client.get('getPayout', { path: { payout_id: 'illus_payout_n1_taco' } })).state).toBe('CONFIRMED'); // money is not "unsent"
+    expect((await client.get('getPolicyVersion', { path: { policy_version_id: TACO_POLICY } })).status).toBe('REVOKED');
   });
 });
 
@@ -201,8 +201,8 @@ describe('recorder stand-in: history, branches and replays never mutate producti
     expect(b.kind).toBe('completed');
     const r = await client.command('createReplay', prepareCommand({ expectedVersion: null, payload: { action: 'START_REPLAY', run_id: 'illus_run_n1', mode: 'RECORDED_RESULTS_ONLY' } }));
     if (r.kind !== 'completed') throw new Error('expected 200');
-    for (let i = 0; i < 6; i += 1) await client.get('getReplay', { path: { id: r.result.aggregate_id } });
-    const replay = await client.get('getReplay', { path: { id: r.result.aggregate_id } });
+    for (let i = 0; i < 6; i += 1) await client.get('getReplay', { path: { replay_id: r.result.aggregate_id } });
+    const replay = await client.get('getReplay', { path: { replay_id: r.result.aggregate_id } });
     expect(replay).toMatchObject({ status: 'COMPLETED', effects: { live_model_calls: 0, payment_effects: 0, production_postings: 0 } });
     expect(await snapshotProduction(client)).toBe(before);
     await expect(client.command('createBranch', prepareCommand({ expectedVersion: null, payload: { action: 'CREATE_WHAT_IF_BRANCH', label: 'x', base_knowledge_cutoff: '2026-10-19T16:45:00Z', overrides: [{ policy_version_id: TACO_POLICY, commission_bps: 1200 }] } }))).rejects.toMatchObject({ code: 'FIXTURE_SCENARIO_UNAVAILABLE' });

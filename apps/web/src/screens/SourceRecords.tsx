@@ -7,6 +7,7 @@ import { EvidenceButton } from '../components/EvidenceButton';
 import { EvidenceDrawer } from '../components/EvidenceDrawer';
 import { FilterBar, type FilterField } from '../components/FilterBar';
 import { BusinessDate, Code, Instant, Money } from '../components/Formatted';
+import { BackendGapNote } from '../components/BackendGapNote';
 import { PageHeader } from '../components/PageHeader';
 import { Pagination } from '../components/Pagination';
 import { EmptyState, ErrorState, Loading } from '../components/QueryState';
@@ -241,6 +242,7 @@ function RecordList({ def }: { def: CollectionDef<ListOperationId> }) {
       <h2 id="records-heading" className="panel-title">
         {def.label}
       </h2>
+      <BackendGapNote ops={[def.op]} />
       {filterFields.length > 0 ? <FilterBar fields={filterFields} values={params.filters} onApply={setFilters} /> : null}
       {result.status === 'loading' ? <Loading label={`Loading ${def.label.toLowerCase()}`} /> : null}
       {result.status === 'error' ? <ErrorState error={result.error} onRetry={result.refetch} /> : null}

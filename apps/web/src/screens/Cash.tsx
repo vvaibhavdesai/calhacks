@@ -7,6 +7,7 @@ import { EvidenceButton } from '../components/EvidenceButton';
 import { EvidenceDrawer } from '../components/EvidenceDrawer';
 import { ForecastChart } from '../components/ForecastChart';
 import { BusinessDate, Code, Instant, Money } from '../components/Formatted';
+import { BackendGapNote } from '../components/BackendGapNote';
 import { IllustrativeNote } from '../components/IllustrativeNote';
 import { PageHeader } from '../components/PageHeader';
 import { EmptyState, ErrorState, Loading } from '../components/QueryState';
@@ -49,6 +50,7 @@ export function CashScreen() {
         qualifier="Available, pending and reserved cash, obligations and forecast, as calculated by the server. Payments are SIMULATED."
       />
       <IllustrativeNote />
+      <BackendGapNote ops={['listCashPositions']} />
       {result.status === 'loading' ? <Loading label="Loading cash position" /> : null}
       {result.status === 'error' ? <ErrorState error={result.error} onRetry={result.refetch} /> : null}
       {result.status === 'success' && !c ? <EmptyState title="No cash position yet">The server has not produced a cash position.</EmptyState> : null}

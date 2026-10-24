@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useApp } from '../app/AppContext';
 import { CommandSubmission, prepareCommand, type PreparedCommand } from '../api/commands';
+import type { PathArgs } from '../api/client';
 import { isApiError } from '../api/errors';
 import type { CommandOperationId, CommandResult, JobAccepted } from '../api/types';
 
@@ -34,7 +35,12 @@ export interface UseCommandOptions {
  * - 409 triggers a refetch and ends the intent (the user must review again);
  * - 403 reloads the session capabilities.
  */
-export function useCommand(op: CommandOperationId, path: Record<string, string>, options: UseCommandOptions) {
+export function useCommand<K extends CommandOperationId>(
+  op: K,
+  /** Path parameters by the BACKEND's names (see src/api/operations.ts). */
+  path: Record<PathArgs<K>, string>,
+  options: UseCommandOptions,
+) {
   const { client, reloadSession } = useApp();
   const [state, setState] = useState<CommandUiState>({ phase: 'idle' });
   const [prepared, setPrepared] = useState<PreparedCommand | null>(null);

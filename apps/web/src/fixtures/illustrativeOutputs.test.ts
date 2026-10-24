@@ -144,7 +144,7 @@ describe('fixture transport with illustrative outputs', () => {
     const { client } = make();
     expect((await client.list('listRunVendors', { path: { id: 'illus_run_n1' }, query: { state: 'HELD' } })).items).toHaveLength(3);
     expect((await client.list('listCases', { query: { status: 'OPEN' } })).items.map((c) => c.id)).toEqual(['illus_case_taco_rate']);
-    expect((await client.get('getPolicyVersion', { path: { id: 'illus_pv_kettle_bag_v2' } })).status).toBe('ACTIVE');
+    expect((await client.get('getPolicyVersion', { path: { policy_version_id: 'illus_pv_kettle_bag_v2' } })).status).toBe('ACTIVE');
     await expect(client.get('getSettlement', { path: { id: 'nope' } })).rejects.toMatchObject({ kind: 'not_found' });
     await expect(client.list('listEvents')).rejects.toMatchObject({ status: 501 }); // B06 outputs are not faked
   });
@@ -182,7 +182,7 @@ describe('fixture transport with illustrative outputs', () => {
 
   it('policy approval checks the echoed scope and exact version', async () => {
     const { client } = make();
-    const p = await client.get('getPolicyVersion', { path: { id: 'illus_pv_taco_rate_v1' } });
+    const p = await client.get('getPolicyVersion', { path: { policy_version_id: 'illus_pv_taco_rate_v1' } });
     const base = { action: 'APPROVE_REUSABLE_POLICY', policy_id: p.policy_id, policy_version: p.version, evidence_hash: p.evidence_hash, scope: p.scope };
     const widened = prepareCommand({ expectedVersion: 1, payload: { ...base, scope: { ...p.scope, vendor_ids: [] } } });
     await expect(client.command('approvePolicy', widened, { path: { id: p.id } })).rejects.toMatchObject({ code: 'SCOPE_MISMATCH' });
@@ -195,7 +195,7 @@ describe('fixture transport with illustrative outputs', () => {
   it('payout approval binds the exact amount, beneficiary version and version; it never clears hard blockers', async () => {
     const caps = ['fixture.read', 'payout.approve_above_limit'];
     const { client } = make(caps);
-    const p = await client.get('getPayout', { path: { id: 'illus_payout_n1_sunrise' } });
+    const p = await client.get('getPayout', { path: { payout_id: 'illus_payout_n1_sunrise' } });
     const payload = {
       action: 'APPROVE_PAYOUT_ABOVE_LIMIT',
       logical_obligation_id: p.logical_obligation_id,
@@ -213,10 +213,10 @@ describe('fixture transport with illustrative outputs', () => {
     expect(ok).toMatchObject({ kind: 'completed', result: { status: 'APPROVED', version: 3 } });
 
     // Churro: below the limit and blocked by a changed beneficiary. No amount approval is pending, so none is accepted.
-    const c = await client.get('getPayout', { path: { id: 'illus_payout_n1_churro' } });
+    const c = await client.get('getPayout', { path: { payout_id: 'illus_payout_n1_churro' } });
     const cPayload = { ...payload, logical_obligation_id: c.logical_obligation_id, amount_cents: c.amount_cents, vendor_id: c.vendor_id };
     await expect(client.command('approvePayout', prepareCommand({ expectedVersion: c.version, payload: cPayload }), { path: { id: c.id } })).rejects.toMatchObject({ code: 'INVALID_TRANSITION' });
-    expect((await client.get('getPayout', { path: { id: c.id } })).state).toBe('DRAFT');
+    expect((await client.get('getPayout', { path: { payout_id: c.id } })).state).toBe('DRAFT');
   });
 
   it('serves finance lists, filters and details (journal by entry_id, tax under /reports/tax)', async () => {

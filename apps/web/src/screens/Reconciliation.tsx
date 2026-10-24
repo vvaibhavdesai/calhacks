@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useApp } from '../app/AppContext';
+import type { Cents } from '../lib/money';
 import type { MatchGroup, Schemas, SourceRef } from '../api/types';
 import { DataTable, type Column } from '../components/DataTable';
 import { EvidenceButton } from '../components/EvidenceButton';
 import { EvidenceDrawer } from '../components/EvidenceDrawer';
 import { FilterBar } from '../components/FilterBar';
 import { BusinessDate, Code, Money } from '../components/Formatted';
+import { BackendGapNote } from '../components/BackendGapNote';
 import { IllustrativeNote } from '../components/IllustrativeNote';
 import { PageHeader } from '../components/PageHeader';
 import { Pagination } from '../components/Pagination';
@@ -59,6 +61,7 @@ export function ReconciliationList() {
     <>
       <PageHeader title="Reconciliation" qualifier="Server match groups. Unexplained variances stay open as cases; nothing is written off here." />
       <IllustrativeNote />
+      <BackendGapNote ops={['listMatchGroups']} />
       <section className="panel" aria-labelledby="mg-heading">
         <h2 id="mg-heading" className="panel-title">
           Match groups
@@ -96,7 +99,7 @@ export function ReconciliationList() {
 interface MemberRow {
   ref: string;
   kind: string | null;
-  amount: string | null;
+  amount: Cents | null;
 }
 
 /** DA39: matched_amounts[i] belongs to member_refs[i]; if the server's arrays differ in length they are shown unpaired. */
@@ -127,6 +130,7 @@ export function MatchGroupDetail() {
         </Link>
       </PageHeader>
       <IllustrativeNote />
+      <BackendGapNote ops={['getMatchGroup']} />
       {result.status === 'loading' ? <Loading label="Loading match group" /> : null}
       {result.status === 'error' ? <ErrorState error={result.error} onRetry={result.refetch} /> : null}
       {g ? (

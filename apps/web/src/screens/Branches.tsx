@@ -6,6 +6,7 @@ import type { Branch, CreateBranchPayload, Schemas } from '../api/types';
 import { CommandStatus } from '../components/CommandStatus';
 import { DataTable, type Column } from '../components/DataTable';
 import { Code, Instant, Money } from '../components/Formatted';
+import { BackendGapNote } from '../components/BackendGapNote';
 import { IllustrativeNote } from '../components/IllustrativeNote';
 import { PageHeader } from '../components/PageHeader';
 import { EmptyState, ErrorState, Loading } from '../components/QueryState';
@@ -171,6 +172,7 @@ export function BranchesScreen() {
       <RecorderTabs />
       <BranchBanner />
       <IllustrativeNote />
+      <BackendGapNote ops={['listBranches']} />
       <section className="panel" aria-labelledby="new-branch-heading">
         <h2 id="new-branch-heading" className="panel-title">
           Open a what-if branch
@@ -195,7 +197,7 @@ export function BranchesScreen() {
 export function BranchDetail() {
   const { branchId = '' } = useParams();
   const { client } = useApp();
-  const result = useApiQuery(`branch:${branchId}`, (signal) => client.get('getBranch', { signal, path: { id: branchId } }));
+  const result = useApiQuery(`branch:${branchId}`, (signal) => client.get('getBranch', { signal, path: { branch_id: branchId } }));
   const b = result.data;
   const isolated = b ? b.isolation.storage === 'ISOLATED' && b.isolation.external_effects === 'DISABLED' && b.isolation.production_writes === 'NONE' : true;
   const columns: Column<ComparisonRow>[] = [
@@ -214,6 +216,7 @@ export function BranchDetail() {
       <RecorderTabs />
       <BranchBanner />
       <IllustrativeNote />
+      <BackendGapNote ops={['getBranch', 'listPolicies']} />
       {result.status === 'loading' ? <Loading label="Loading branch" /> : null}
       {result.status === 'error' ? <ErrorState error={result.error} onRetry={result.refetch} /> : null}
       {b ? (

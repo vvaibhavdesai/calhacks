@@ -11,7 +11,7 @@ export const TACO_POLICY = 'illus_pv_taco_rate_v1';
 export const FOLLOWUP = { source_id: 'illus_src_taco_followup', source_version: 1, content_hash: `sha256:${'c4'.repeat(32)}` };
 
 export async function challengeTacoPolicy(client: ApiClient, reason = 'Producer confirmed 15% for festival nights.') {
-  const p = await client.get('getPolicyVersion', { path: { id: TACO_POLICY } });
+  const p = await client.get('getPolicyVersion', { path: { policy_version_id: TACO_POLICY } });
   const out = await client.command(
     'createChallenge',
     prepareCommand({
@@ -24,7 +24,7 @@ export async function challengeTacoPolicy(client: ApiClient, reason = 'Producer 
 }
 
 export async function previewFor(client: ApiClient, challengeId: string) {
-  const ch = await client.get('getChallenge', { path: { id: challengeId } });
+  const ch = await client.get('getChallenge', { path: { challenge_id: challengeId } });
   const out = await client.command('previewCorrection', prepareCommand({ expectedVersion: ch.version, payload: { action: 'PREVIEW_CORRECTION', challenge_id: challengeId } }));
   if (out.kind !== 'completed') throw new Error('expected 200');
   return out.result.aggregate_id;
@@ -45,8 +45,8 @@ export function approvalPayload(c: { id: string; challenge_id: string; preview_h
 export async function runNight3Correction(client: ApiClient) {
   const challengeId = await challengeTacoPolicy(client);
   const correctionId = await previewFor(client, challengeId);
-  const c = await client.get('getCorrection', { path: { id: correctionId } });
-  const out = await client.command('approveCorrection', prepareCommand({ expectedVersion: c.version, payload: approvalPayload(c) }), { path: { id: c.id } });
+  const c = await client.get('getCorrection', { path: { correction_id: correctionId } });
+  const out = await client.command('approveCorrection', prepareCommand({ expectedVersion: c.version, payload: approvalPayload(c) }), { path: { correction_id: c.id } });
   if (out.kind !== 'accepted') throw new Error('expected 202');
   for (let i = 0; i < 20; i += 1) {
     const job = await client.get('getJob', { path: { id: out.job.job_id } });

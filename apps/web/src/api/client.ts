@@ -1,6 +1,6 @@
 import { API_PREFIX } from '../config/env';
 import { ApiError, errorFromResponse, malformedError, networkError } from './errors';
-import { OPERATIONS, buildPath } from './operations';
+import { OPERATIONS, buildPath, type OperationTable } from './operations';
 import type { PreparedCommand } from './commands';
 import type {
   CommandOperationId,
@@ -24,15 +24,43 @@ export interface ApiClientOptions {
   /** API origin, '' for same origin. The /api/v1 prefix is added here. */
   origin?: string;
   credentials?: RequestCredentials;
+  /**
+   * Bearer token for Authorization. The backend authenticates with a JWT from
+   * POST /api/v1/auth/login (see ./auth.ts), not with a cookie, so live mode
+   * reads the token here on every request instead of relying on credentials.
+   */
+  token?: () => string | null;
   /** Called for every 401 so the shell can show the unauthenticated state. */
   onUnauthenticated?: (error: ApiError) => void;
 }
 
-export interface CallOptions {
-  path?: Record<string, string>;
+/** Path parameter names in a route template, e.g. '/cases/{case_id}' -> 'case_id'. */
+type PathParamNames<T extends string> = T extends `${string}{${infer P}}${infer Rest}`
+  ? P | PathParamNames<Rest>
+  : never;
+
+/**
+ * Path parameters an operation needs, by the BACKEND's names. A renamed
+ * parameter (the backend says case_id where the draft said id) is a compile
+ * error at the call site, not a runtime "missing path parameter".
+ */
+export type PathArgs<K extends OperationId> = PathParamNames<OperationTable[K]['path']>;
+
+export interface CallOptions<K extends OperationId = OperationId> {
+  path?: Record<PathArgs<K>, string>;
   query?: Record<string, string | number | undefined | null>;
   signal?: AbortSignal;
 }
+
+/**
+ * Call arguments for one operation: `path` is required exactly when the route
+ * has parameters, and its keys are the backend's parameter names.
+ */
+export type CallArgs<K extends OperationId, Q> = K extends OperationId
+  ? [PathArgs<K>] extends [never]
+    ? [opts?: { query?: Q; signal?: AbortSignal }]
+    : [opts: { path: Record<PathArgs<K>, string>; query?: Q; signal?: AbortSignal }]
+  : never;
 
 export type CommandOutcome =
   | { kind: 'completed'; status: 200 | 201; result: CommandResult }
@@ -43,12 +71,23 @@ export interface ListPage<T> {
   next_cursor: string | null;
 }
 
-function toQueryString(query: CallOptions['query']): string {
+/**
+ * Query string for one operation, after applying the operation's parameter
+ * map: the backend names some filters differently (status_ for status) and
+ * accepts no paging parameters on most list routes, so those are renamed or
+ * dropped here rather than being sent and silently ignored.
+ */
+function toQueryString(op: OperationId, query: CallOptions['query']): string {
   if (!query) return '';
+  const spec = OPERATIONS[op];
+  const map: Readonly<Record<string, string | null>> =
+    spec.backend === 'live' && 'query' in spec && spec.query ? spec.query : {};
   const params = new URLSearchParams();
   for (const [k, v] of Object.entries(query)) {
     if (v === undefined || v === null || v === '') continue;
-    params.set(k, String(v));
+    const name = k in map ? map[k] : k;
+    if (name === null || name === undefined) continue; // the backend does not accept this parameter
+    params.set(name, String(v));
   }
   const s = params.toString();
   return s ? `?${s}` : '';
@@ -70,24 +109,32 @@ export class ApiClient {
   private readonly transport: Transport;
   private readonly origin: string;
   private readonly credentials: RequestCredentials;
+  private readonly token: (() => string | null) | undefined;
   private readonly onUnauthenticated: ((e: ApiError) => void) | undefined;
 
   constructor(options: ApiClientOptions) {
     this.transport = options.transport;
     this.origin = options.origin ?? '';
     this.credentials = options.credentials ?? (this.origin ? 'include' : 'same-origin');
+    this.token = options.token;
     this.onUnauthenticated = options.onUnauthenticated;
   }
 
-  url(op: OperationId, opts: Pick<CallOptions, 'path' | 'query'> = {}): string {
+  url<K extends OperationId>(op: K, opts: Partial<CallOptions<K>> = {}): string {
     const spec = OPERATIONS[op];
-    return `${this.origin}${API_PREFIX}${buildPath(spec.path, opts.path)}${toQueryString(opts.query)}`;
+    return `${this.origin}${API_PREFIX}${buildPath(spec.path, opts.path)}${toQueryString(op, opts.query)}`;
+  }
+
+  /** Authorization for the backend's JWT bearer scheme, when a token is held. */
+  authHeaders(): Record<string, string> {
+    const token = this.token?.() ?? null;
+    return token ? { Authorization: `Bearer ${token}` } : {};
   }
 
   private async send(
     op: OperationId,
     init: RequestInit,
-    opts: CallOptions,
+    opts: Partial<CallOptions>,
   ): Promise<{ status: number; headers: Headers; body: unknown }> {
     const spec = OPERATIONS[op];
     let res: Response;
@@ -95,6 +142,7 @@ export class ApiClient {
       res = await this.transport(this.url(op, opts), {
         ...init,
         method: spec.method,
+        headers: { ...(init.headers as Record<string, string>), ...this.authHeaders() },
         credentials: this.credentials,
         signal: opts.signal,
       });
@@ -112,27 +160,31 @@ export class ApiClient {
   }
 
   /** GET an operation and return its 200 JSON body (typed from the contract). */
-  async get<K extends OperationId>(
-    op: K,
-    opts: Omit<CallOptions, 'query'> & { query?: QueryOf<K> } = {},
-  ): Promise<OkBody<K>> {
+  async get<K extends OperationId>(op: K, ...args: CallArgs<K, QueryOf<K>>): Promise<OkBody<K>> {
     if (OPERATIONS[op].method !== 'GET') throw new Error(`${op} is not a read operation`);
-    const { body } = await this.send(op, { headers: { Accept: 'application/json' } }, opts as CallOptions);
+    const opts = (args[0] ?? {}) as Partial<CallOptions<K>>;
+    const { body } = await this.send(op, { headers: { Accept: 'application/json' } }, opts);
     if (body === undefined || body === null || typeof body !== 'object') {
       throw malformedError(200, 'expected a JSON object');
     }
     return body as OkBody<K>;
   }
 
-  /** GET a C03 list endpoint: {items, next_cursor}. The cursor is passed through opaquely. */
-  async list<K extends ListOperationId>(
-    op: K,
-    opts: Omit<CallOptions, 'query'> & { query?: QueryOf<K> } = {},
-  ): Promise<OkBody<K>> {
-    const body = (await this.get(op, opts)) as unknown;
-    const b = body as Partial<ListPage<unknown>>;
-    if (!Array.isArray(b.items) || !(typeof b.next_cursor === 'string' || b.next_cursor === null)) {
-      throw malformedError(200, 'expected {items, next_cursor}');
+  /**
+   * GET a list endpoint. The C03 envelope is {items, next_cursor}; the backend
+   * serves that envelope on its newer routes and a BARE ARRAY on the older
+   * ones (/cases, /payouts, /policies, /settlements, /reconciliation/*), so a
+   * bare array is accepted and normalised to an unpaged single page. Cursors
+   * stay opaque.
+   */
+  async list<K extends ListOperationId>(op: K, ...args: CallArgs<K, QueryOf<K>>): Promise<OkBody<K>> {
+    if (OPERATIONS[op].method !== 'GET') throw new Error(`${op} is not a read operation`);
+    const opts = (args[0] ?? {}) as Partial<CallOptions<K>>;
+    const { body } = await this.send(op, { headers: { Accept: 'application/json' } }, opts);
+    if (Array.isArray(body)) return { items: body, next_cursor: null } as OkBody<K>;
+    const b = body as Partial<ListPage<unknown>> | null;
+    if (!b || !Array.isArray(b.items) || !(typeof b.next_cursor === 'string' || b.next_cursor === null)) {
+      throw malformedError(200, 'expected {items, next_cursor} or a JSON array');
     }
     return body as OkBody<K>;
   }
@@ -145,7 +197,7 @@ export class ApiClient {
   async command<K extends CommandOperationId>(
     op: K,
     prepared: PreparedCommand,
-    opts: Pick<CallOptions, 'path' | 'signal'> = {},
+    opts: { path?: Record<PathArgs<K>, string>; signal?: AbortSignal } = {},
   ): Promise<CommandOutcome> {
     if (OPERATIONS[op].method !== 'POST') throw new Error(`${op} is not a command`);
     const { status, body } = await this.send(
@@ -158,7 +210,7 @@ export class ApiClient {
         },
         body: prepared.body,
       },
-      opts,
+      opts as Partial<CallOptions>,
     );
     const b = (body ?? {}) as Record<string, unknown>;
     if (status === 202) {

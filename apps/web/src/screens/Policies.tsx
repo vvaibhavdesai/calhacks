@@ -9,6 +9,7 @@ import { EvidenceButton } from '../components/EvidenceButton';
 import { EvidenceDrawer } from '../components/EvidenceDrawer';
 import { FilterBar } from '../components/FilterBar';
 import { BusinessDate, Code, Instant } from '../components/Formatted';
+import { BackendGapNote } from '../components/BackendGapNote';
 import { IllustrativeNote } from '../components/IllustrativeNote';
 import { PageHeader } from '../components/PageHeader';
 import { Pagination } from '../components/Pagination';
@@ -303,6 +304,7 @@ export function PoliciesList() {
     <>
       <PageHeader title="Policies" qualifier="Versioned, human-approved rules. A prior case is not a rule; only an ACTIVE version in scope is applied." />
       <IllustrativeNote />
+      <BackendGapNote ops={['listPolicies']} />
       <section className="panel" aria-labelledby="pol-heading">
         <h2 id="pol-heading" className="panel-title">
           Policy versions
@@ -334,7 +336,7 @@ export function PolicyDetail() {
   const { client } = useApp();
   const { lookups, describeSource } = useLookups();
   const [evidence, setEvidence] = useState<{ title: string; refs: SourceRef[] } | null>(null);
-  const result = useApiQuery(`policy:${policyVersionId}`, (signal) => client.get('getPolicyVersion', { signal, path: { id: policyVersionId } }));
+  const result = useApiQuery(`policy:${policyVersionId}`, (signal) => client.get('getPolicyVersion', { signal, path: { policy_version_id: policyVersionId } }));
   const p = result.data;
   const history = useApiQuery(`policy-history:${p?.policy_id ?? ''}`, (signal) =>
     p ? client.list('listPolicies', { signal, query: { policy_id: p.policy_id, limit: 50 } }) : Promise.resolve({ items: [], next_cursor: null }),
@@ -365,6 +367,7 @@ export function PolicyDetail() {
         </Link>
       </PageHeader>
       <IllustrativeNote />
+      <BackendGapNote ops={['getPolicyVersion', 'approvePolicy']} />
       {result.status === 'loading' ? <Loading label="Loading policy" /> : null}
       {result.status === 'error' ? <ErrorState error={result.error} onRetry={result.refetch} /> : null}
       {p ? (

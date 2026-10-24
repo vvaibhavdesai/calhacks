@@ -2,6 +2,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useApp } from '../app/AppContext';
 import type { Case } from '../api/types';
 import { BusinessDate, Money } from '../components/Formatted';
+import { BackendGapNote } from '../components/BackendGapNote';
 import { IllustrativeNote } from '../components/IllustrativeNote';
 import { PageHeader } from '../components/PageHeader';
 import { EmptyState, ErrorState, Loading } from '../components/QueryState';
@@ -83,6 +84,7 @@ function LatestRun() {
         Close run
       </h2>
       <IllustrativeNote />
+      <BackendGapNote ops={['getFestival', 'listRuns', 'listCases']} />
       {runs.status === 'loading' ? <Loading label="Loading close runs" /> : null}
       {runs.status === 'error' ? <ErrorState error={runs.error} onRetry={runs.refetch} /> : null}
       {runs.status === 'success' && !run ? <EmptyState title="No close run has started yet" /> : null}
