@@ -1,0 +1,128 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "a-track-implementation", "b-track-implementation"]
+  pull_request:
+
+env:
+  PYTHON_VERSION: "3.11"
+  NODE_VERSION: "20"
+
+jobs:
+  python-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: uv sync --all-extras --dev
+      - run: uv run ruff check .
+      - run: uv run black --check .
+
+  web-lint:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+
+  python-tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: encore
+          POSTGRES_PASSWORD: encore_ci_password
+          POSTGRES_DB: encore_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U encore -d encore_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql+psycopg://encore:encore_ci_password@localhost:5432/encore_test
+      DATABASE_URL: postgresql+psycopg://encore:encore_ci_password@localhost:5432/encore_test
+      AUTH_JWT_SECRET: ci-only-secret-not-for-production-use
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: uv sync --all-extras --dev
+      - run: uv run pytest -v
+
+  migrations-fresh-db:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: encore
+          POSTGRES_PASSWORD: encore_ci_password
+          POSTGRES_DB: encore_migrations_check
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U encore -d encore_migrations_check"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql+psycopg://encore:encore_ci_password@localhost:5432/encore_migrations_check
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: uv sync --all-extras --dev
+      - name: Run migrations against a fresh database
+        run: uv run alembic -c db/migrations/alembic.ini upgrade head
+      - name: Downgrade back to base (round-trip sanity check)
+        run: uv run alembic -c db/migrations/alembic.ini downgrade base
+
+  contracts-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: uv sync --all-extras --dev
+      - name: Minimal C01 contract unit tests
+        run: uv run pytest packages/contracts/tests -v
+      - name: Generate-TS-types stub is wired and runnable
+        run: uv run python packages/contracts/scripts/generate_ts_types.py
+
+  web-typecheck-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
