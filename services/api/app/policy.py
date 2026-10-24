@@ -266,10 +266,48 @@ def detect_contract_term_conflicts(
         )
         db.add(case)
         db.flush()
+
+        # The policy decides the rate; a term is what A04 actually bills
+        # from (resolve_vendor_terms reads `vendor_contract_terms`, not
+        # cases or policies), so activate this night's own single-day term
+        # from the policy's effect. Without it this night would fall back
+        # to the festival default -- i.e. bill the vendor the contract
+        # rate the human's approved policy replaced. Scoped to this
+        # business_date for the same reason the one-time resolution is
+        # (see `_activate_resolved_term`): the next night gets its own
+        # case, re-checked against the policy as it stands then (it may
+        # have expired, been suspended or been revised by A09 since).
+        # `approved_by` stays NULL -- a policy already approved by a human
+        # is the approval here; no human acted on this night.
+        policy_effect = active_policy.effect if isinstance(active_policy.effect, dict) else {}
+        effect_bps = policy_effect.get("commission_bps")
+        auto_term_id = None
+        if isinstance(effect_bps, int):
+            auto_term = _activate_resolved_term(
+                db,
+                case=case,
+                commission_bps=effect_bps,
+                minimum_fee_cents=policy_effect.get("minimum_fee_cents"),
+                source_refs=evidence_refs
+                + [
+                    {
+                        "ref_kind": "policy_version",
+                        "ref_id": active_policy.id,
+                        "role": "auto_applied_policy",
+                        "policy_id": active_policy.policy_id,
+                        "policy_version": active_policy.version,
+                    }
+                ],
+                approved_by=None,
+            )
+            auto_term_id = auto_term.id
+
         lineage = [
             {"ref_kind": "case", "ref_id": case.id},
             {"ref_kind": "policy_version", "ref_id": active_policy.id},
         ]
+        if auto_term_id is not None:
+            lineage.append({"ref_kind": "vendor_contract_term", "ref_id": auto_term_id})
         if active_policy.source_case_id:
             lineage.append({"ref_kind": "case", "ref_id": active_policy.source_case_id})
         uow.append_event(
@@ -292,6 +330,7 @@ def detect_contract_term_conflicts(
                 "applied_policy_version": active_policy.version,
                 "origin_case_id": active_policy.source_case_id,
                 "effect": active_policy.effect,
+                "new_contract_term_id": auto_term_id,
             },
             lineage_refs=lineage,
         )
