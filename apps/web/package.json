@@ -1,0 +1,53 @@
+{
+  "name": "@encore/web",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Encore operator frontend (lane B). DRAFT: built against a lane-B draft of CONTRACTS.md C03.",
+  "type": "module",
+  "engines": {
+    "node": ">=18.18.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "dev:fixtures": "vite --mode fixtures",
+    "dev:fixtures:night1": "vite --mode fixtures-night1",
+    "gen:api": "openapi-typescript contracts-draft/openapi.draft.yaml -o src/api/generated/schema.ts",
+    "check:api": "node scripts/check-generated.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build": "vite build && node scripts/check-prod-bundle.mjs",
+    "preview": "vite preview",
+    "check": "npm run check:api && npm run typecheck && npm run lint && npm run test && npm run build"
+  },
+  "dependencies": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-router-dom": "6.30.6"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.4",
+    "@testing-library/dom": "10.4.0",
+    "@testing-library/jest-dom": "6.6.3",
+    "@testing-library/react": "16.1.0",
+    "@testing-library/user-event": "14.5.2",
+    "@types/node": "18.19.68",
+    "@types/react": "18.3.18",
+    "@types/react-dom": "18.3.5",
+    "@vitejs/plugin-react": "4.3.4",
+    "ajv": "8.18.0",
+    "ajv-formats": "3.0.1",
+    "axe-core": "4.10.2",
+    "eslint": "9.39.4",
+    "eslint-plugin-react-hooks": "5.1.0",
+    "globals": "15.14.0",
+    "jsdom": "25.0.1",
+    "openapi-typescript": "7.4.4",
+    "typescript": "5.6.3",
+    "typescript-eslint": "8.18.2",
+    "vite": "5.4.21",
+    "vitest": "2.1.9",
+    "yaml": "2.8.3"
+  }
+}

@@ -1,0 +1,1085 @@
+{
+  "fixture_id": "illustrative_outputs_v1",
+  "notice": "ILLUSTRATIVE, hand-authored dev/test sample outputs for UI development only. Not oracle-derived, not calculated from compact_v1 inputs, not expected answers.",
+  "runs": [
+    {
+      "id": "illus_run_n1",
+      "version": 7,
+      "status": "WAITING_REVIEW",
+      "business_date": "2026-10-16",
+      "branch_id": null,
+      "festival_id": "fest_bf25e974c723d827",
+      "started_at": "2026-10-17T08:05:00Z",
+      "completed_at": null,
+      "vendor_summary": {
+        "total": 6,
+        "active": 1,
+        "held": 3,
+        "failed": 0,
+        "completed": 2
+      }
+    },
+    {
+      "id": "illus_run_n2",
+      "version": 1,
+      "status": "QUEUED",
+      "business_date": "2026-10-17",
+      "branch_id": null,
+      "festival_id": "fest_bf25e974c723d827",
+      "started_at": "2026-10-18T08:05:00Z",
+      "completed_at": null,
+      "vendor_summary": {
+        "total": 0,
+        "active": 0,
+        "held": 0,
+        "failed": 0,
+        "completed": 0
+      }
+    }
+  ],
+  "vendor_runs": [
+    {
+      "id": "illus_vrun_n1_sunrise",
+      "version": 3,
+      "run_id": "illus_run_n1",
+      "vendor_id": "ven_7248fe404ac157ca",
+      "business_date": "2026-10-16",
+      "milestone": "CONTROLS_CHECKED",
+      "state": "HELD",
+      "holds": [
+        {
+          "reason_code": "PAYOUT_ABOVE_AUTO_LIMIT",
+          "description": "Payout is above the $5,000 automatic daily limit; a finance lead must approve the simulated release (Payouts screen, B05). The statement is not held.",
+          "blocking": true,
+          "case_id": null,
+          "since": "2026-10-17T09:02:00Z"
+        }
+      ],
+      "case_ids": [],
+      "settlement_id": "illus_set_n1_sunrise",
+      "failure": null,
+      "updated_at": "2026-10-17T09:10:00Z"
+    },
+    {
+      "id": "illus_vrun_n1_taco",
+      "version": 3,
+      "run_id": "illus_run_n1",
+      "vendor_id": "ven_c309836b4f9601f2",
+      "business_date": "2026-10-16",
+      "milestone": "RECONCILED",
+      "state": "HELD",
+      "holds": [
+        {
+          "reason_code": "TERMS_CONFLICT",
+          "description": "Contract and producer email state different commission rates; terms cannot be resolved without a human decision.",
+          "blocking": true,
+          "case_id": "illus_case_taco_rate",
+          "since": "2026-10-17T08:21:00Z"
+        }
+      ],
+      "case_ids": [
+        "illus_case_taco_rate"
+      ],
+      "settlement_id": null,
+      "failure": null,
+      "updated_at": "2026-10-17T08:21:00Z"
+    },
+    {
+      "id": "illus_vrun_n1_kettle",
+      "version": 3,
+      "run_id": "illus_run_n1",
+      "vendor_id": "ven_bdccc4a0fab46f90",
+      "business_date": "2026-10-16",
+      "milestone": "CONTROLS_CHECKED",
+      "state": "COMPLETED",
+      "holds": [],
+      "case_ids": [
+        "illus_case_kettle_bag"
+      ],
+      "settlement_id": "illus_set_n1_kettle",
+      "failure": null,
+      "updated_at": "2026-10-17T09:10:00Z"
+    },
+    {
+      "id": "illus_vrun_n1_lemon",
+      "version": 3,
+      "run_id": "illus_run_n1",
+      "vendor_id": "ven_6d07f90ca688444e",
+      "business_date": "2026-10-16",
+      "milestone": "CALCULATED",
+      "state": "ACTIVE",
+      "holds": [],
+      "case_ids": [],
+      "settlement_id": "illus_set_n1_lemon",
+      "failure": null,
+      "updated_at": "2026-10-17T09:12:00Z"
+    },
+    {
+      "id": "illus_vrun_n1_grill",
+      "version": 3,
+      "run_id": "illus_run_n1",
+      "vendor_id": "ven_5b3b7298e61a7172",
+      "business_date": "2026-10-16",
+      "milestone": "INGESTED",
+      "state": "HELD",
+      "holds": [
+        {
+          "reason_code": "CASH_COUNT_SHORT",
+          "description": "Vendor drawer count is below POS cash sales (illustrative); reconciliation needs a decision.",
+          "blocking": true,
+          "case_id": "illus_case_grill_cash",
+          "since": "2026-10-17T08:15:00Z"
+        }
+      ],
+      "case_ids": [
+        "illus_case_grill_cash"
+      ],
+      "settlement_id": null,
+      "failure": null,
+      "updated_at": "2026-10-17T08:15:00Z"
+    },
+    {
+      "id": "illus_vrun_n1_churro",
+      "version": 3,
+      "run_id": "illus_run_n1",
+      "vendor_id": "ven_24b891c0ef6e9864",
+      "business_date": "2026-10-16",
+      "milestone": "CONTROLS_CHECKED",
+      "state": "COMPLETED",
+      "holds": [],
+      "case_ids": [],
+      "settlement_id": "illus_set_n1_churro",
+      "failure": null,
+      "updated_at": "2026-10-17T09:10:00Z"
+    }
+  ],
+  "settlements": [
+    {
+      "id": "illus_set_n1_sunrise",
+      "version": 2,
+      "status": "CALCULATED",
+      "vendor_id": "ven_7248fe404ac157ca",
+      "festival_id": "fest_bf25e974c723d827",
+      "business_date": "2026-10-16",
+      "calculation_version": "illus-calc-0.1",
+      "source_manifest_hash": "sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+      "policy_refs": [],
+      "line_items": [
+        {
+          "line_id": "illus_li_sun_sales",
+          "kind": "ELIGIBLE_SALES",
+          "label": "Eligible sales (excludes tax and tips, net of refunds)",
+          "amount_cents": "900000",
+          "treatment": "FEE_BASIS",
+          "source_refs": [],
+          "policy_version_id": null
+        },
+        {
+          "line_id": "illus_li_sun_comm",
+          "kind": "COMMISSION",
+          "label": "Commission assessed: 15% cumulative, less prior nights",
+          "amount_cents": "-135000",
+          "treatment": "FEE",
+          "source_refs": [
+            {
+              "source_id": "src_88169f1ed8b0d222",
+              "source_version": 1,
+              "content_hash": "sha256:406591995e7336b96918bb73060eee6a5e8bb7232fdff2bc1de98db31264231c",
+              "locator_kind": "page",
+              "locator": "page=1"
+            }
+          ],
+          "policy_version_id": null
+        },
+        {
+          "line_id": "illus_li_sun_proc",
+          "kind": "PROCESSOR_FEES",
+          "label": "Card processing fees (contract permits deduction)",
+          "amount_cents": "-18000",
+          "treatment": "DEDUCTION",
+          "source_refs": [],
+          "policy_version_id": null
+        },
+        {
+          "line_id": "illus_li_sun_payout",
+          "kind": "PAYOUT",
+          "label": "Vendor payout payable",
+          "amount_cents": "747000",
+          "treatment": "PAYOUT",
+          "source_refs": [],
+          "policy_version_id": null
+        },
+        {
+          "line_id": "illus_li_sun_tips",
+          "kind": "TIPS",
+          "label": "Tips collected: passed through in full, never used for fees",
+          "amount_cents": "24000",
+          "treatment": "PROTECTED",
+          "source_refs": [],
+          "policy_version_id": null
+        },
+        {
+          "line_id": "illus_li_sun_tax",
+          "kind": "SALES_TAX",
+          "label": "Sales tax collected: organizer liability (DEMO rate), never used for fees",
+          "amount_cents": "81000",
+          "treatment": "PROTECTED",
+          "source_refs": [],
+          "policy_version_id": null
+        }
+      ],
+      "assessed_fee_cents": "135000",
+      "collected_fee_cents": "135000",
+      "payout_cents": "747000",
+      "unpaid_balance_cents": "0",
+      "holds": [
+        {
+          "reason_code": "PAYOUT_ABOVE_AUTO_LIMIT",
+          "description": "Payout is above the $5,000 automatic daily limit; a finance lead must approve the simulated release.",
+          "blocking": true,
+          "case_id": null,
+          "since": "2026-10-17T09:02:00Z"
+        }
+      ],
+      "tips_passthrough_cents": "24000",
+      "tax_collected_cents": "81000",
+      "phase": "INTERIM",
+      "statement_status": "PROVISIONAL",
+      "statement_generated_at": "2026-10-17T16:00:00Z",
+      "applied_policies": [],
+      "run_id": "illus_run_n1"
+    },
+    {
+      "id": "illus_set_n1_kettle",
+      "version": 2,
+      "status": "CALCULATED",
+      "vendor_id": "ven_bdccc4a0fab46f90",
+      "festival_id": "fest_bf25e974c723d827",
+      "business_date": "2026-10-16",
+      "calculation_version": "illus-calc-0.1",
+      "source_manifest_hash": "sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+      "policy_refs": [
+        "illus_pv_kettle_bag_v1"
+      ],
+      "line_items": [
+        {
+          "line_id": "illus_li_ket_sales",
+          "kind": "ELIGIBLE_SALES",
+          "label": "Eligible sales (excludes tax and tips, net of refunds)",
+          "amount_cents": "120000",
+          "treatment": "FEE_BASIS",
+          "source_refs": [],
+          "policy_version_id": null
+        },
+        {
+          "line_id": "illus_li_ket_bag",
+          "kind": "CASH_OFFICE_ATTRIBUTION",
+          "label": "Cash-office bag counted next morning, attributed to this night (approved rule)",
+          "amount_cents": "15000",
+          "treatment": "MEMO",
+          "source_refs": [],
+          "policy_version_id": "illus_pv_kettle_bag_v1"
+        },
+        {
+          "line_id": "illus_li_ket_comm",
+          "kind": "COMMISSION",
+          "label": "Commission assessed: 15% cumulative, less prior nights",
+          "amount_cents": "-18000",
+          "treatment": "FEE",
+          "source_refs": [
+            {
+              "source_id": "src_0a53137b3e9b6d72",
+              "source_version": 1,
+              "content_hash": "sha256:47a778da9183c1a076c2c844d7f940cdeb66ad5a7ad054a431bb09905d584dd5",
+              "locator_kind": "span",
+              "locator": "chars=654-771",
+              "quoted_excerpt": "3.1 Commission: 15% of eligible festival sales. Eligible sales exclude sales tax and tips and are reduced by refunds."
+            }
+          ],
+          "policy_version_id": null
+        },
+        {
+          "line_id": "illus_li_ket_payout",
+          "kind": "PAYOUT",
+          "label": "Vendor payout payable",
+          "amount_cents": "102000",
+          "treatment": "PAYOUT",
+          "source_refs": [],
+          "policy_version_id": null
+        },
+        {
+          "line_id": "illus_li_ket_tax",
+          "kind": "SALES_TAX",
+          "label": "Sales tax collected: organizer liability (DEMO rate), never used for fees",
+          "amount_cents": "10800",
+          "treatment": "PROTECTED",
+          "source_refs": [],
+          "policy_version_id": null
+        }
+      ],
+      "assessed_fee_cents": "18000",
+      "collected_fee_cents": "18000",
+      "payout_cents": "102000",
+      "unpaid_balance_cents": "0",
+      "holds": [],
+      "tips_passthrough_cents": "0",
+      "tax_collected_cents": "10800",
+      "phase": "INTERIM",
+      "statement_status": "PROVISIONAL",
+      "statement_generated_at": "2026-10-17T16:00:00Z",
+      "applied_policies": [
+        {
+          "policy_version_id": "illus_pv_kettle_bag_v1",
+          "policy_id": "illus_pol_kettle_bag",
+          "version": 1,
+          "title": "Kettle Corn Co: next-morning cash-office count belongs to the prior night",
+          "origin_case_id": "illus_case_kettle_bag",
+          "status_at_application": "ACTIVE",
+          "applied_at": "2026-10-17T08:40:00Z"
+        }
+      ],
+      "run_id": "illus_run_n1"
+    },
+    {
+      "id": "illus_set_n1_lemon",
+      "version": 1,
+      "status": "CALCULATED",
+      "vendor_id": "ven_6d07f90ca688444e",
+      "festival_id": "fest_bf25e974c723d827",
+      "business_date": "2026-10-16",
+      "calculation_version": "illus-calc-0.1",
+      "source_manifest_hash": "sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+      "policy_refs": [],
+      "line_items": [
+        {
+          "line_id": "illus_li_lem_sales",
+          "kind": "ELIGIBLE_SALES",
+          "label": "Eligible sales (excludes tax and tips, net of refunds)",
+          "amount_cents": "80000",
+          "treatment": "FEE_BASIS",
+          "source_refs": [],
+          "policy_version_id": null
+        },
+        {
+          "line_id": "illus_li_lem_comm",
+          "kind": "COMMISSION",
+          "label": "Commission assessed: 15% cumulative, less prior nights",
+          "amount_cents": "-12000",
+          "treatment": "FEE",
+          "source_refs": [],
+          "policy_version_id": null
+        },
+        {
+          "line_id": "illus_li_lem_payout",
+          "kind": "PAYOUT",
+          "label": "Vendor payout payable",
+          "amount_cents": "68000",
+          "treatment": "PAYOUT",
+          "source_refs": [],
+          "policy_version_id": null
+        },
+        {
+          "line_id": "illus_li_lem_tips",
+          "kind": "TIPS",
+          "label": "Tips collected: passed through in full, never used for fees",
+          "amount_cents": "3500",
+          "treatment": "PROTECTED",
+          "source_refs": [],
+          "policy_version_id": null
+        },
+        {
+          "line_id": "illus_li_lem_tax",
+          "kind": "SALES_TAX",
+          "label": "Sales tax collected: organizer liability (DEMO rate), never used for fees",
+          "amount_cents": "7200",
+          "treatment": "PROTECTED",
+          "source_refs": [],
+          "policy_version_id": null
+        }
+      ],
+      "assessed_fee_cents": "12000",
+      "collected_fee_cents": "12000",
+      "payout_cents": "68000",
+      "unpaid_balance_cents": "0",
+      "holds": [],
+      "tips_passthrough_cents": "3500",
+      "tax_collected_cents": "7200",
+      "phase": "INTERIM",
+      "statement_status": "PROVISIONAL",
+      "statement_generated_at": "2026-10-17T16:00:00Z",
+      "applied_policies": [],
+      "run_id": "illus_run_n1"
+    },
+    {
+      "id": "illus_set_n1_churro",
+      "version": 2,
+      "status": "CALCULATED",
+      "vendor_id": "ven_24b891c0ef6e9864",
+      "festival_id": "fest_bf25e974c723d827",
+      "business_date": "2026-10-16",
+      "calculation_version": "illus-calc-0.1",
+      "source_manifest_hash": "sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+      "policy_refs": [],
+      "line_items": [
+        {
+          "line_id": "illus_li_chu_sales",
+          "kind": "ELIGIBLE_SALES",
+          "label": "Eligible sales (excludes tax and tips, net of refunds)",
+          "amount_cents": "30000",
+          "treatment": "FEE_BASIS",
+          "source_refs": [],
+          "policy_version_id": null
+        },
+        {
+          "line_id": "illus_li_chu_comm",
+          "kind": "COMMISSION",
+          "label": "Commission assessed: 15% cumulative, less prior nights (festival minimum is checked on the final night)",
+          "amount_cents": "-4500",
+          "treatment": "FEE",
+          "source_refs": [],
+          "policy_version_id": null
+        },
+        {
+          "line_id": "illus_li_chu_payout",
+          "kind": "PAYOUT",
+          "label": "Vendor payout payable",
+          "amount_cents": "25500",
+          "treatment": "PAYOUT",
+          "source_refs": [],
+          "policy_version_id": null
+        },
+        {
+          "line_id": "illus_li_chu_tax",
+          "kind": "SALES_TAX",
+          "label": "Sales tax collected: organizer liability (DEMO rate), never used for fees",
+          "amount_cents": "2700",
+          "treatment": "PROTECTED",
+          "source_refs": [],
+          "policy_version_id": null
+        }
+      ],
+      "assessed_fee_cents": "4500",
+      "collected_fee_cents": "4500",
+      "payout_cents": "25500",
+      "unpaid_balance_cents": "0",
+      "holds": [],
+      "tips_passthrough_cents": "0",
+      "tax_collected_cents": "2700",
+      "phase": "INTERIM",
+      "statement_status": "PROVISIONAL",
+      "statement_generated_at": "2026-10-17T16:00:00Z",
+      "applied_policies": [],
+      "run_id": "illus_run_n1"
+    }
+  ],
+  "cases": [
+    {
+      "id": "illus_case_taco_rate",
+      "version": 3,
+      "status": "OPEN",
+      "vendor_id": "ven_c309836b4f9601f2",
+      "run_id": "illus_run_n1",
+      "reason_code": "TERMS_CONFLICT",
+      "title": "Commission rate conflict: contract says 15%, producer email says 10%",
+      "business_date": "2026-10-16",
+      "opened_at": "2026-10-17T08:21:00Z",
+      "evidence_refs": [
+        {
+          "source_id": "src_4dcc7ce9f370b56b",
+          "source_version": 1,
+          "content_hash": "sha256:95cdf9fef2d12e9874a9023440b8324939971416066fa3ca526463cffbf4f0c5",
+          "locator_kind": "span",
+          "locator": "chars=586-703",
+          "quoted_excerpt": "3.1 Commission: 15% of eligible festival sales. Eligible sales exclude sales tax and tips and are reduced by refunds."
+        },
+        {
+          "source_id": "src_1b532360bfaa3697",
+          "source_version": 1,
+          "content_hash": "sha256:7852507296d8ef4d2428b978272b508d4bc95959f7f6accd8e2df819ae6f77dc",
+          "locator_kind": "span",
+          "locator": "chars=718-972",
+          "quoted_excerpt": "Confirming what we discussed: for this year we agreed 10% commission for Taco Libre, with the same $500.00 festival minimum. I will ask finance to update the paperwork. Please just push this through on settlement night without waiting for a new contract."
+        }
+      ],
+      "evidence_hash": "sha256:3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c",
+      "financial_impact": {
+        "amount_cents": "4000",
+        "description": "Commission for this night differs by this amount between the two options (illustrative figure).",
+        "basis": "Server-calculated: 15% option minus 10% option for 2026-10-16.",
+        "affected_settlement_ids": []
+      },
+      "proposed_resolution": null,
+      "required_capability": "case.resolve",
+      "resolution_options": [
+        {
+          "option_id": "opt_contract_rate",
+          "label": "Apply the signed contract rate (15%)",
+          "effect_summary": "Settle Taco Libre for 2026-10-16 at 15%. The email is recorded but not applied.",
+          "impact_cents": "0",
+          "is_proposed": false
+        },
+        {
+          "option_id": "opt_email_rate",
+          "label": "Apply the producer email rate (10%)",
+          "effect_summary": "Settle Taco Libre for 2026-10-16 at 10%, citing the email.",
+          "impact_cents": "-4000",
+          "is_proposed": false
+        }
+      ],
+      "policy_candidate_id": "illus_pv_taco_rate_v1",
+      "resolution": null,
+      "applied_policies": []
+    },
+    {
+      "id": "illus_case_grill_cash",
+      "version": 2,
+      "status": "IN_REVIEW",
+      "vendor_id": "ven_5b3b7298e61a7172",
+      "run_id": "illus_run_n1",
+      "reason_code": "CASH_COUNT_SHORT",
+      "title": "Vendor drawer cash count below POS cash sales (illustrative)",
+      "business_date": "2026-10-16",
+      "opened_at": "2026-10-17T08:15:00Z",
+      "evidence_refs": [
+        {
+          "source_id": "src_60f06f465cc4a421",
+          "source_version": 1,
+          "content_hash": "sha256:49ae40162c281bd43a2670713c263d08087f326b713de718ba29b31db38bb9bc",
+          "locator_kind": "row",
+          "locator": "row=2"
+        }
+      ],
+      "evidence_hash": "sha256:7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d",
+      "financial_impact": {
+        "amount_cents": "-2500",
+        "description": "Unexplained cash difference for this night (illustrative figure).",
+        "basis": null,
+        "affected_settlement_ids": []
+      },
+      "proposed_resolution": "Agent proposal: request a recount before settling. This is a proposal, not an approval.",
+      "required_capability": "case.resolve",
+      "resolution_options": [
+        {
+          "option_id": "opt_recount",
+          "label": "Request a recount",
+          "effect_summary": "Keep Grill Masters held until a new count arrives.",
+          "impact_cents": null,
+          "is_proposed": true
+        },
+        {
+          "option_id": "opt_receivable",
+          "label": "Record the difference as a vendor receivable",
+          "effect_summary": "Settle now and track the difference for collection.",
+          "impact_cents": "-2500",
+          "is_proposed": false
+        }
+      ],
+      "policy_candidate_id": null,
+      "resolution": null,
+      "applied_policies": []
+    },
+    {
+      "id": "illus_case_kettle_bag",
+      "version": 4,
+      "status": "RESOLVED",
+      "vendor_id": "ven_bdccc4a0fab46f90",
+      "run_id": "illus_run_n1",
+      "reason_code": "CASH_TIMING",
+      "title": "Cash-office bag counted the next morning",
+      "business_date": "2026-10-16",
+      "opened_at": "2026-10-17T08:12:00Z",
+      "evidence_refs": [
+        {
+          "source_id": "src_60f06f465cc4a421",
+          "source_version": 1,
+          "content_hash": "sha256:49ae40162c281bd43a2670713c263d08087f326b713de718ba29b31db38bb9bc",
+          "locator_kind": "row",
+          "locator": "row=1"
+        }
+      ],
+      "evidence_hash": "sha256:5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e",
+      "financial_impact": {
+        "amount_cents": "15000",
+        "description": "Cash attributed to this night once the decision applies (illustrative figure).",
+        "basis": null,
+        "affected_settlement_ids": [
+          "illus_set_n1_kettle"
+        ]
+      },
+      "proposed_resolution": "Attribute the bag to the night it was collected.",
+      "required_capability": "case.resolve",
+      "resolution_options": [
+        {
+          "option_id": "opt_prior_night",
+          "label": "Attribute to the night it was collected",
+          "effect_summary": "Count the bag toward 2026-10-16.",
+          "impact_cents": "15000",
+          "is_proposed": true
+        }
+      ],
+      "policy_candidate_id": "illus_pv_kettle_bag_v1",
+      "resolution": {
+        "decision": "RESOLVED_ONE_TIME",
+        "option_id": "opt_prior_night",
+        "approval_id": "illus_appr_case_kettle",
+        "actor_id": "illus-actor-finance",
+        "capability": "case.resolve",
+        "decided_at": "2026-10-17T08:35:00Z",
+        "policy_version_id": null
+      },
+      "applied_policies": []
+    },
+    {
+      "id": "illus_case_kettle_bag_n2",
+      "version": 2,
+      "status": "RESOLVED",
+      "vendor_id": "ven_bdccc4a0fab46f90",
+      "run_id": "illus_run_n2",
+      "reason_code": "CASH_TIMING",
+      "title": "Cash-office bag counted the next morning (recurrence)",
+      "business_date": "2026-10-17",
+      "opened_at": "2026-10-18T08:12:00Z",
+      "evidence_refs": [
+        {
+          "source_id": "src_60f06f465cc4a421",
+          "source_version": 1,
+          "content_hash": "sha256:49ae40162c281bd43a2670713c263d08087f326b713de718ba29b31db38bb9bc",
+          "locator_kind": "row",
+          "locator": "row=1"
+        }
+      ],
+      "evidence_hash": "sha256:6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f",
+      "financial_impact": {
+        "amount_cents": "9000",
+        "description": "Cash attributed to this night by the approved rule (illustrative figure).",
+        "basis": null,
+        "affected_settlement_ids": []
+      },
+      "proposed_resolution": null,
+      "required_capability": "case.resolve",
+      "resolution_options": [],
+      "policy_candidate_id": null,
+      "resolution": {
+        "decision": "AUTO_POLICY",
+        "option_id": null,
+        "approval_id": null,
+        "actor_id": null,
+        "capability": null,
+        "decided_at": "2026-10-18T08:12:30Z",
+        "policy_version_id": "illus_pv_kettle_bag_v2"
+      },
+      "applied_policies": [
+        {
+          "policy_version_id": "illus_pv_kettle_bag_v2",
+          "policy_id": "illus_pol_kettle_bag",
+          "version": 2,
+          "title": "Kettle Corn Co: next-morning cash-office count belongs to the prior night",
+          "origin_case_id": "illus_case_kettle_bag",
+          "status_at_application": "ACTIVE",
+          "applied_at": "2026-10-18T08:12:30Z"
+        }
+      ]
+    }
+  ],
+  "policies": [
+    {
+      "id": "illus_pv_taco_rate_v1",
+      "policy_id": "illus_pol_taco_rate",
+      "version": 1,
+      "record_version": 1,
+      "status": "DRAFT",
+      "title": "Taco Libre: apply the producer email rate (10%) for this festival",
+      "scope": {
+        "festival_id": "fest_bf25e974c723d827",
+        "vendor_ids": [
+          "ven_c309836b4f9601f2"
+        ],
+        "business_date_from": "2026-10-16",
+        "business_date_to": "2026-10-18",
+        "description": "Taco Libre only, Golden Coast 2026 festival nights"
+      },
+      "predicates": [
+        {
+          "field": "contract.commission_bps",
+          "operator": "equals",
+          "value": "1500",
+          "description": "Signed contract version 1 still states 15%."
+        },
+        {
+          "field": "producer_email.commission_bps",
+          "operator": "equals",
+          "value": "1000",
+          "description": "The cited producer email still states 10%."
+        },
+        {
+          "field": "source_versions",
+          "operator": "unchanged",
+          "value": "src_4dcc7ce9f370b56b@1, src_1b532360bfaa3697@1",
+          "description": "Re-escalate if either source gets a new version."
+        }
+      ],
+      "effect": {
+        "kind": "SET_COMMISSION_BPS",
+        "description": "Use 10% commission for Taco Libre settlements in scope.",
+        "commission_bps": 1000
+      },
+      "evidence_refs": [
+        {
+          "source_id": "src_4dcc7ce9f370b56b",
+          "source_version": 1,
+          "content_hash": "sha256:95cdf9fef2d12e9874a9023440b8324939971416066fa3ca526463cffbf4f0c5",
+          "locator_kind": "span",
+          "locator": "chars=586-703",
+          "quoted_excerpt": "3.1 Commission: 15% of eligible festival sales. Eligible sales exclude sales tax and tips and are reduced by refunds."
+        },
+        {
+          "source_id": "src_1b532360bfaa3697",
+          "source_version": 1,
+          "content_hash": "sha256:7852507296d8ef4d2428b978272b508d4bc95959f7f6accd8e2df819ae6f77dc",
+          "locator_kind": "span",
+          "locator": "chars=718-972",
+          "quoted_excerpt": "Confirming what we discussed: for this year we agreed 10% commission for Taco Libre, with the same $500.00 festival minimum. I will ask finance to update the paperwork. Please just push this through on settlement night without waiting for a new contract."
+        }
+      ],
+      "evidence_hash": "sha256:3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c",
+      "approver_ref": null,
+      "approval": null,
+      "valid_from": "2026-10-16T07:00:00Z",
+      "valid_to": "2026-10-19T07:00:00Z",
+      "supersedes_version": null,
+      "origin_case_id": "illus_case_taco_rate",
+      "status_reason": "Drafted for review; not usable until a human approves reuse.",
+      "required_capability": "policy.approve",
+      "application_count": 0
+    },
+    {
+      "id": "illus_pv_kettle_bag_v1",
+      "policy_id": "illus_pol_kettle_bag",
+      "version": 1,
+      "record_version": 3,
+      "status": "SUPERSEDED",
+      "title": "Kettle Corn Co: next-morning cash-office count belongs to the prior night",
+      "scope": {
+        "festival_id": "fest_bf25e974c723d827",
+        "vendor_ids": [
+          "ven_bdccc4a0fab46f90"
+        ],
+        "business_date_from": null,
+        "business_date_to": null,
+        "description": "Kettle Corn Co only, any festival night"
+      },
+      "predicates": [
+        {
+          "field": "cash_count.location",
+          "operator": "equals",
+          "value": "ORGANIZER_CASH_OFFICE",
+          "description": "Bag counted at the organizer cash office."
+        },
+        {
+          "field": "cash_count.counted_at",
+          "operator": "before",
+          "value": "12:00 PT next day",
+          "description": "Counted before noon the following day."
+        }
+      ],
+      "effect": {
+        "kind": "ATTRIBUTE_CASH_TO_PRIOR_NIGHT",
+        "description": "Attribute the bag to the night it was collected.",
+        "commission_bps": null
+      },
+      "evidence_refs": [
+        {
+          "source_id": "src_60f06f465cc4a421",
+          "source_version": 1,
+          "content_hash": "sha256:49ae40162c281bd43a2670713c263d08087f326b713de718ba29b31db38bb9bc",
+          "locator_kind": "row",
+          "locator": "row=1"
+        }
+      ],
+      "evidence_hash": "sha256:5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e",
+      "approver_ref": "illus_appr_pol_kettle_v1",
+      "approval": {
+        "approval_id": "illus_appr_pol_kettle_v1",
+        "actor_id": "illus-actor-finance",
+        "capability": "policy.approve",
+        "decided_at": "2026-10-17T08:38:00Z"
+      },
+      "valid_from": "2026-10-17T08:38:00Z",
+      "valid_to": null,
+      "supersedes_version": null,
+      "origin_case_id": "illus_case_kettle_bag",
+      "status_reason": "Superseded by version 2, which limits the scope to this festival.",
+      "required_capability": "policy.approve",
+      "application_count": 1
+    },
+    {
+      "id": "illus_pv_kettle_bag_v2",
+      "policy_id": "illus_pol_kettle_bag",
+      "version": 2,
+      "record_version": 2,
+      "status": "ACTIVE",
+      "title": "Kettle Corn Co: next-morning cash-office count belongs to the prior night",
+      "scope": {
+        "festival_id": "fest_bf25e974c723d827",
+        "vendor_ids": [
+          "ven_bdccc4a0fab46f90"
+        ],
+        "business_date_from": "2026-10-16",
+        "business_date_to": "2026-10-18",
+        "description": "Kettle Corn Co only, Golden Coast 2026 festival nights"
+      },
+      "predicates": [
+        {
+          "field": "cash_count.location",
+          "operator": "equals",
+          "value": "ORGANIZER_CASH_OFFICE",
+          "description": "Bag counted at the organizer cash office."
+        },
+        {
+          "field": "cash_count.counted_at",
+          "operator": "before",
+          "value": "12:00 PT next day",
+          "description": "Counted before noon the following day."
+        }
+      ],
+      "effect": {
+        "kind": "ATTRIBUTE_CASH_TO_PRIOR_NIGHT",
+        "description": "Attribute the bag to the night it was collected.",
+        "commission_bps": null
+      },
+      "evidence_refs": [
+        {
+          "source_id": "src_60f06f465cc4a421",
+          "source_version": 1,
+          "content_hash": "sha256:49ae40162c281bd43a2670713c263d08087f326b713de718ba29b31db38bb9bc",
+          "locator_kind": "row",
+          "locator": "row=1"
+        }
+      ],
+      "evidence_hash": "sha256:5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e",
+      "approver_ref": "illus_appr_pol_kettle_v2",
+      "approval": {
+        "approval_id": "illus_appr_pol_kettle_v2",
+        "actor_id": "illus-actor-finance",
+        "capability": "policy.approve",
+        "decided_at": "2026-10-17T10:05:00Z"
+      },
+      "valid_from": "2026-10-17T10:05:00Z",
+      "valid_to": "2026-10-19T07:00:00Z",
+      "supersedes_version": 1,
+      "origin_case_id": "illus_case_kettle_bag",
+      "status_reason": null,
+      "required_capability": "policy.approve",
+      "application_count": 1
+    },
+    {
+      "id": "illus_pv_prior_tips_v1",
+      "policy_id": "illus_pol_prior_tips",
+      "version": 1,
+      "record_version": 2,
+      "status": "EXPIRED",
+      "title": "2025 festival: card tips paid out the next morning",
+      "scope": {
+        "festival_id": "illus_fest_2025",
+        "vendor_ids": [],
+        "business_date_from": "2025-10-17",
+        "business_date_to": "2025-10-19",
+        "description": "All vendors, 2025 festival only"
+      },
+      "predicates": [
+        {
+          "field": "payment.tips_cents",
+          "operator": "greater_than",
+          "value": "0",
+          "description": "Card payment carries a tip."
+        }
+      ],
+      "effect": {
+        "kind": "TIPS_PAYOUT_TIMING",
+        "description": "Release tips with the next-morning payout.",
+        "commission_bps": null
+      },
+      "evidence_refs": [],
+      "evidence_hash": "sha256:9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a",
+      "approver_ref": "illus_appr_pol_2025",
+      "approval": {
+        "approval_id": "illus_appr_pol_2025",
+        "actor_id": "illus-actor-2025",
+        "capability": "policy.approve",
+        "decided_at": "2025-10-16T17:00:00Z"
+      },
+      "valid_from": "2025-10-16T17:00:00Z",
+      "valid_to": "2025-10-20T07:00:00Z",
+      "supersedes_version": null,
+      "origin_case_id": null,
+      "status_reason": "Validity ended 2025-10-20. Never applied to 2026.",
+      "required_capability": "policy.approve",
+      "application_count": 0
+    }
+  ],
+  "match_groups": [
+    {
+      "id": "illus_mg_cardco_po1",
+      "version": 1,
+      "status": "MATCHED",
+      "match_kind": "PROCESSOR_DEPOSIT",
+      "business_date": "2026-10-16",
+      "vendor_id": null,
+      "case_id": null,
+      "member_refs": [
+        "pbatch_9f243421b1a9ba6c",
+        "bank_eda31709b5bab40e"
+      ],
+      "member_kinds": [
+        "PROCESSOR_BATCH",
+        "BANK_ENTRY"
+      ],
+      "matched_amounts": [
+        "1480174",
+        "1480174"
+      ],
+      "variance_cents": "0",
+      "reason_code": "NET_OF_PROCESSOR_FEES",
+      "explanation": "The batch net (gross less processor fees) equals the bank credit.",
+      "source_refs": [
+        {
+          "source_id": "src_f0f18c3019f7dd39",
+          "source_version": 1,
+          "content_hash": "sha256:9cba4966948746a116aeee2a6dfbd14f9bb88afc2f62b6def8ba00ab7057d56c",
+          "locator_kind": "row",
+          "locator": "row=1"
+        },
+        {
+          "source_id": "src_1fdc84e50a1715ef",
+          "source_version": 1,
+          "content_hash": "sha256:7d93a748e6f6a1c9b342cb68d6964b2b11bd513572ecf2fefbef407a5766aeb7",
+          "locator_kind": "row",
+          "locator": "row=2"
+        }
+      ]
+    },
+    {
+      "id": "illus_mg_cardco_po2",
+      "version": 1,
+      "status": "MATCHED",
+      "match_kind": "PROCESSOR_DEPOSIT",
+      "business_date": "2026-10-17",
+      "vendor_id": null,
+      "case_id": null,
+      "member_refs": [
+        "pbatch_cad97763adbe0571",
+        "pbatch_617494454fab66b1",
+        "bank_f15bf8119301aad8"
+      ],
+      "member_kinds": [
+        "PROCESSOR_BATCH",
+        "PROCESSOR_BATCH",
+        "BANK_ENTRY"
+      ],
+      "matched_amounts": [
+        "1195061",
+        "1100422",
+        "2295483"
+      ],
+      "variance_cents": "0",
+      "reason_code": "GROUPED_DEPOSIT",
+      "explanation": "One bank credit covers two processor batches.",
+      "source_refs": [
+        {
+          "source_id": "src_f0f18c3019f7dd39",
+          "source_version": 1,
+          "content_hash": "sha256:9cba4966948746a116aeee2a6dfbd14f9bb88afc2f62b6def8ba00ab7057d56c",
+          "locator_kind": "row",
+          "locator": "row=2"
+        },
+        {
+          "source_id": "src_f0f18c3019f7dd39",
+          "source_version": 1,
+          "content_hash": "sha256:9cba4966948746a116aeee2a6dfbd14f9bb88afc2f62b6def8ba00ab7057d56c",
+          "locator_kind": "row",
+          "locator": "row=3"
+        },
+        {
+          "source_id": "src_1fdc84e50a1715ef",
+          "source_version": 1,
+          "content_hash": "sha256:7d93a748e6f6a1c9b342cb68d6964b2b11bd513572ecf2fefbef407a5766aeb7",
+          "locator_kind": "row",
+          "locator": "row=3"
+        }
+      ]
+    },
+    {
+      "id": "illus_mg_cash_dep1",
+      "version": 1,
+      "status": "MATCHED",
+      "match_kind": "CASH_DEPOSIT",
+      "business_date": "2026-10-18",
+      "vendor_id": "ven_bdccc4a0fab46f90",
+      "case_id": null,
+      "member_refs": [
+        "cashct_126c9c06fcabf497",
+        "bank_7ef37f34db70ec74"
+      ],
+      "member_kinds": [
+        "CASH_COUNT",
+        "BANK_ENTRY"
+      ],
+      "matched_amounts": [
+        "10900",
+        "10900"
+      ],
+      "variance_cents": "0",
+      "reason_code": "CASH_OFFICE_DEPOSIT",
+      "explanation": "Cash-office count equals the deposited amount.",
+      "source_refs": [
+        {
+          "source_id": "src_60f06f465cc4a421",
+          "source_version": 1,
+          "content_hash": "sha256:49ae40162c281bd43a2670713c263d08087f326b713de718ba29b31db38bb9bc",
+          "locator_kind": "row",
+          "locator": "row=1"
+        },
+        {
+          "source_id": "src_1fdc84e50a1715ef",
+          "source_version": 1,
+          "content_hash": "sha256:7d93a748e6f6a1c9b342cb68d6964b2b11bd513572ecf2fefbef407a5766aeb7",
+          "locator_kind": "row",
+          "locator": "row=4"
+        }
+      ]
+    },
+    {
+      "id": "illus_mg_grill_cash",
+      "version": 2,
+      "status": "CASE_REQUIRED",
+      "match_kind": "CASH_COUNT",
+      "business_date": "2026-10-16",
+      "vendor_id": "ven_5b3b7298e61a7172",
+      "case_id": "illus_case_grill_cash",
+      "member_refs": [
+        "illus_pos_cash_grill_n1",
+        "illus_cashct_grill_n1"
+      ],
+      "member_kinds": [
+        "POS_CASH_SUMMARY",
+        "CASH_COUNT"
+      ],
+      "matched_amounts": [
+        "438500",
+        "436000"
+      ],
+      "variance_cents": "-2500",
+      "reason_code": "CASH_COUNT_SHORT",
+      "explanation": "Illustrative: the drawer count is below POS cash sales; no explanation found, so a case was opened. Never written off silently.",
+      "source_refs": [
+        {
+          "source_id": "src_60f06f465cc4a421",
+          "source_version": 1,
+          "content_hash": "sha256:49ae40162c281bd43a2670713c263d08087f326b713de718ba29b31db38bb9bc",
+          "locator_kind": "row",
+          "locator": "row=2"
+        }
+      ]
+    }
+  ]
+}

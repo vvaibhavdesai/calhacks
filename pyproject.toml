@@ -1,0 +1,74 @@
+[project]
+name = "encore"
+version = "0.0.1"
+description = "Encore festival finance system: single Python environment for API, worker, domain and contracts packages (A01 bootstrap)."
+requires-python = ">=3.11,<3.12"
+readme = "README.md"
+dependencies = [
+    "fastapi==0.115.6",
+    "uvicorn[standard]==0.34.0",
+    "sqlalchemy==2.0.36",
+    "psycopg[binary]==3.2.3",
+    "alembic==1.14.0",
+    "pydantic==2.10.4",
+    "pydantic-settings==2.7.0",
+    "pyjwt==2.10.1",
+    "bcrypt==4.2.1",
+    "anthropic>=2.3.0",
+    "pypdf>=6.21.2",
+]
+
+[dependency-groups]
+dev = [
+    "pytest==8.3.4",
+    "pytest-asyncio==0.25.0",
+    "httpx==0.28.1",
+    "ruff==0.8.4",
+    "black==24.10.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = [
+    "services/api/app",
+    "services/worker/worker",
+    "packages/domain/domain",
+    "packages/contracts/contracts",
+    "db/migrations",
+    "scripts",
+]
+
+# Lane B's evaluator (independent oracle/scorer) and synthetic-data generator
+# are stdlib-only and written to lane B's own conventions; they are not
+# linted or reformatted by lane A's toolchain, so the answer key is never
+# touched by the code it grades. Lane B verifies them with its own tests.
+extend-exclude = ["tests/oracle", "data/generator"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+extend-exclude = "^/(tests/oracle|data/generator)/"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "--import-mode=importlib"
+testpaths = [
+    "services/api/tests",
+    "services/worker/tests",
+    "packages/contracts/tests",
+]
+pythonpath = [
+    "services/api",
+    "services/worker",
+    "packages/domain",
+    "packages/contracts",
+]
+
+[tool.uv]
+package = false
+

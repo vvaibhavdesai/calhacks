@@ -1,0 +1,143 @@
+{
+  "items": [
+    {
+      "active_contract_version": {
+        "source_id": "src_88169f1ed8b0d222",
+        "source_version": 1
+      },
+      "beneficiary_id": "ben_251d2cf2bff5965a",
+      "beneficiary_version": 1,
+      "booth_ids": [
+        "booth_4dcaa0b9d833272f"
+      ],
+      "booths": [
+        {
+          "id": "booth_4dcaa0b9d833272f",
+          "label": "B-01"
+        }
+      ],
+      "festival_id": "fest_bf25e974c723d827",
+      "fictional_notice": "Fictional vendor",
+      "id": "ven_7248fe404ac157ca",
+      "name": "Sunrise Smoothies",
+      "status": "ACTIVE",
+      "version": 1
+    },
+    {
+      "active_contract_version": {
+        "source_id": "src_4dcc7ce9f370b56b",
+        "source_version": 1
+      },
+      "beneficiary_id": "ben_2f757b8de04fa5d1",
+      "beneficiary_version": 1,
+      "booth_ids": [
+        "booth_24721659e5a0e531"
+      ],
+      "booths": [
+        {
+          "id": "booth_24721659e5a0e531",
+          "label": "B-02"
+        }
+      ],
+      "festival_id": "fest_bf25e974c723d827",
+      "fictional_notice": "Fictional vendor",
+      "id": "ven_c309836b4f9601f2",
+      "name": "Taco Libre",
+      "status": "ACTIVE",
+      "version": 1
+    },
+    {
+      "active_contract_version": {
+        "source_id": "src_0a53137b3e9b6d72",
+        "source_version": 1
+      },
+      "beneficiary_id": "ben_59b4858fa4468f6f",
+      "beneficiary_version": 1,
+      "booth_ids": [
+        "booth_bc4d1fc834e12d44"
+      ],
+      "booths": [
+        {
+          "id": "booth_bc4d1fc834e12d44",
+          "label": "B-03"
+        }
+      ],
+      "festival_id": "fest_bf25e974c723d827",
+      "fictional_notice": "Fictional vendor",
+      "id": "ven_bdccc4a0fab46f90",
+      "name": "Kettle Corn Co",
+      "status": "ACTIVE",
+      "version": 1
+    },
+    {
+      "active_contract_version": {
+        "source_id": "src_2a3a620d79211299",
+        "source_version": 1
+      },
+      "beneficiary_id": "ben_f8db5ab2a678abae",
+      "beneficiary_version": 1,
+      "booth_ids": [
+        "booth_4d248f0209f72401"
+      ],
+      "booths": [
+        {
+          "id": "booth_4d248f0209f72401",
+          "label": "B-04"
+        }
+      ],
+      "festival_id": "fest_bf25e974c723d827",
+      "fictional_notice": "Fictional vendor",
+      "id": "ven_6d07f90ca688444e",
+      "name": "Late Bloom Lemonade",
+      "status": "ACTIVE",
+      "version": 1
+    },
+    {
+      "active_contract_version": {
+        "source_id": "src_de85106c79ea966b",
+        "source_version": 1
+      },
+      "beneficiary_id": "ben_16af3bdcb88e3109",
+      "beneficiary_version": 1,
+      "booth_ids": [
+        "booth_429785af7ec72a84"
+      ],
+      "booths": [
+        {
+          "id": "booth_429785af7ec72a84",
+          "label": "B-05"
+        }
+      ],
+      "festival_id": "fest_bf25e974c723d827",
+      "fictional_notice": "Fictional vendor",
+      "id": "ven_5b3b7298e61a7172",
+      "name": "Grill Masters",
+      "status": "ACTIVE",
+      "version": 1
+    },
+    {
+      "active_contract_version": {
+        "source_id": "src_4472f9097a6e390e",
+        "source_version": 1
+      },
+      "beneficiary_id": "ben_56224b8310fe2598",
+      "beneficiary_version": 1,
+      "booth_ids": [
+        "booth_12ef4706aac744c3"
+      ],
+      "booths": [
+        {
+          "id": "booth_12ef4706aac744c3",
+          "label": "B-06"
+        }
+      ],
+      "festival_id": "fest_bf25e974c723d827",
+      "fictional_notice": "Fictional vendor",
+      "id": "ven_24b891c0ef6e9864",
+      "name": "Churro Cart",
+      "status": "ACTIVE",
+      "version": 1
+    }
+  ],
+  "next_cursor": null
+}

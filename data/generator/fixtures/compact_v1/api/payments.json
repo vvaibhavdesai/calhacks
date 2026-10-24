@@ -1,0 +1,963 @@
+{
+  "items": [
+    {
+      "amount_cents": "277500",
+      "business_date": "2026-10-16",
+      "cash_drawer": null,
+      "currency": "USD",
+      "custody": "CENTRALLY_COLLECTED",
+      "festival_id": "fest_bf25e974c723d827",
+      "id": "pay_0b68388bc3306ad7",
+      "kind": "CAPTURE",
+      "method": "CARD",
+      "occurred_at": "2026-10-16T20:16:30Z",
+      "order_refs": [
+        {
+          "amount_cents": "277500",
+          "order_id": "ord_5edd8d06ed14c498"
+        }
+      ],
+      "processor_batch_id": "pbatch_9f243421b1a9ba6c",
+      "processor_fee_cents": "6948",
+      "provider": "CARDCO",
+      "provider_reference": "CARDCO-PAY-000001",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=1-2",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        },
+        {
+          "content_hash": "sha256:818f6104ed18e47d9814e8a11614eb6784c5b84a58c7a7d402c498bda2fe0786",
+          "locator": "row=1",
+          "locator_kind": "row",
+          "source_id": "src_24ec866b5eb3849e",
+          "source_version": 1
+        }
+      ],
+      "status": "SUCCEEDED",
+      "vendor_id": "ven_7248fe404ac157ca",
+      "version": 1
+    },
+    {
+      "amount_cents": "165500",
+      "business_date": "2026-10-16",
+      "cash_drawer": null,
+      "currency": "USD",
+      "custody": "CENTRALLY_COLLECTED",
+      "festival_id": "fest_bf25e974c723d827",
+      "id": "pay_6c8b8c5238c8553e",
+      "kind": "CAPTURE",
+      "method": "CARD",
+      "occurred_at": "2026-10-17T06:30:30Z",
+      "order_refs": [
+        {
+          "amount_cents": "165500",
+          "order_id": "ord_e4c42f764bef189c"
+        }
+      ],
+      "processor_batch_id": "pbatch_9f243421b1a9ba6c",
+      "processor_fee_cents": "4148",
+      "provider": "CARDCO",
+      "provider_reference": "CARDCO-PAY-000002",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=3-4",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        },
+        {
+          "content_hash": "sha256:818f6104ed18e47d9814e8a11614eb6784c5b84a58c7a7d402c498bda2fe0786",
+          "locator": "row=2",
+          "locator_kind": "row",
+          "source_id": "src_24ec866b5eb3849e",
+          "source_version": 1
+        }
+      ],
+      "status": "SUCCEEDED",
+      "vendor_id": "ven_7248fe404ac157ca",
+      "version": 1
+    },
+    {
+      "amount_cents": "330000",
+      "business_date": "2026-10-17",
+      "cash_drawer": null,
+      "currency": "USD",
+      "custody": "CENTRALLY_COLLECTED",
+      "festival_id": "fest_bf25e974c723d827",
+      "id": "pay_409cc5d4e94a3529",
+      "kind": "CAPTURE",
+      "method": "CARD",
+      "occurred_at": "2026-10-18T03:34:30Z",
+      "order_refs": [
+        {
+          "amount_cents": "330000",
+          "order_id": "ord_022a52eceab460c7"
+        }
+      ],
+      "processor_batch_id": "pbatch_cad97763adbe0571",
+      "processor_fee_cents": "8260",
+      "provider": "CARDCO",
+      "provider_reference": "CARDCO-PAY-000003",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=5-7",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        },
+        {
+          "content_hash": "sha256:818f6104ed18e47d9814e8a11614eb6784c5b84a58c7a7d402c498bda2fe0786",
+          "locator": "row=8",
+          "locator_kind": "row",
+          "source_id": "src_24ec866b5eb3849e",
+          "source_version": 1
+        }
+      ],
+      "status": "SUCCEEDED",
+      "vendor_id": "ven_7248fe404ac157ca",
+      "version": 1
+    },
+    {
+      "amount_cents": "331001",
+      "business_date": "2026-10-18",
+      "cash_drawer": null,
+      "currency": "USD",
+      "custody": "CENTRALLY_COLLECTED",
+      "festival_id": "fest_bf25e974c723d827",
+      "id": "pay_324a2235f47d792d",
+      "kind": "CAPTURE",
+      "method": "CARD",
+      "occurred_at": "2026-10-19T02:47:30Z",
+      "order_refs": [
+        {
+          "amount_cents": "331001",
+          "order_id": "ord_28997c11f851c845"
+        }
+      ],
+      "processor_batch_id": "pbatch_617494454fab66b1",
+      "processor_fee_cents": "8285",
+      "provider": "CARDCO",
+      "provider_reference": "CARDCO-PAY-000004",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=8-11",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        },
+        {
+          "content_hash": "sha256:818f6104ed18e47d9814e8a11614eb6784c5b84a58c7a7d402c498bda2fe0786",
+          "locator": "row=14",
+          "locator_kind": "row",
+          "source_id": "src_24ec866b5eb3849e",
+          "source_version": 1
+        }
+      ],
+      "status": "SUCCEEDED",
+      "vendor_id": "ven_7248fe404ac157ca",
+      "version": 1
+    },
+    {
+      "amount_cents": "660000",
+      "business_date": "2026-10-16",
+      "cash_drawer": null,
+      "currency": "USD",
+      "custody": "CENTRALLY_COLLECTED",
+      "festival_id": "fest_bf25e974c723d827",
+      "id": "pay_9ca7191e617c9085",
+      "kind": "CAPTURE",
+      "method": "CARD",
+      "occurred_at": "2026-10-17T05:19:30Z",
+      "order_refs": [
+        {
+          "amount_cents": "660000",
+          "order_id": "ord_87bd4e5dfec1d10b"
+        }
+      ],
+      "processor_batch_id": "pbatch_9f243421b1a9ba6c",
+      "processor_fee_cents": "16510",
+      "provider": "CARDCO",
+      "provider_reference": "CARDCO-PAY-000005",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=12-14",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        },
+        {
+          "content_hash": "sha256:818f6104ed18e47d9814e8a11614eb6784c5b84a58c7a7d402c498bda2fe0786",
+          "locator": "row=3",
+          "locator_kind": "row",
+          "source_id": "src_24ec866b5eb3849e",
+          "source_version": 1
+        }
+      ],
+      "status": "SUCCEEDED",
+      "vendor_id": "ven_c309836b4f9601f2",
+      "version": 1
+    },
+    {
+      "amount_cents": "547000",
+      "business_date": "2026-10-17",
+      "cash_drawer": null,
+      "currency": "USD",
+      "custody": "CENTRALLY_COLLECTED",
+      "festival_id": "fest_bf25e974c723d827",
+      "id": "pay_910595afaf544fa2",
+      "kind": "CAPTURE",
+      "method": "CARD",
+      "occurred_at": "2026-10-18T05:37:30Z",
+      "order_refs": [
+        {
+          "amount_cents": "547000",
+          "order_id": "ord_b8371203296e7657"
+        }
+      ],
+      "processor_batch_id": "pbatch_cad97763adbe0571",
+      "processor_fee_cents": "13685",
+      "provider": "CARDCO",
+      "provider_reference": "CARDCO-PAY-000006",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=15-17",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        },
+        {
+          "content_hash": "sha256:818f6104ed18e47d9814e8a11614eb6784c5b84a58c7a7d402c498bda2fe0786",
+          "locator": "row=9",
+          "locator_kind": "row",
+          "source_id": "src_24ec866b5eb3849e",
+          "source_version": 1
+        }
+      ],
+      "status": "SUCCEEDED",
+      "vendor_id": "ven_c309836b4f9601f2",
+      "version": 1
+    },
+    {
+      "amount_cents": "437500",
+      "business_date": "2026-10-18",
+      "cash_drawer": null,
+      "currency": "USD",
+      "custody": "CENTRALLY_COLLECTED",
+      "festival_id": "fest_bf25e974c723d827",
+      "id": "pay_d067826d875a0258",
+      "kind": "CAPTURE",
+      "method": "CARD",
+      "occurred_at": "2026-10-19T01:00:30Z",
+      "order_refs": [
+        {
+          "amount_cents": "437500",
+          "order_id": "ord_84e06a9c666caab8"
+        }
+      ],
+      "processor_batch_id": "pbatch_617494454fab66b1",
+      "processor_fee_cents": "10948",
+      "provider": "CARDCO",
+      "provider_reference": "CARDCO-PAY-000007",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=18-20",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        },
+        {
+          "content_hash": "sha256:818f6104ed18e47d9814e8a11614eb6784c5b84a58c7a7d402c498bda2fe0786",
+          "locator": "row=15",
+          "locator_kind": "row",
+          "source_id": "src_24ec866b5eb3849e",
+          "source_version": 1
+        }
+      ],
+      "status": "SUCCEEDED",
+      "vendor_id": "ven_c309836b4f9601f2",
+      "version": 1
+    },
+    {
+      "amount_cents": "43600",
+      "business_date": "2026-10-16",
+      "cash_drawer": null,
+      "currency": "USD",
+      "custody": "CENTRALLY_COLLECTED",
+      "festival_id": "fest_bf25e974c723d827",
+      "id": "pay_962754171daa8057",
+      "kind": "CAPTURE",
+      "method": "CARD",
+      "occurred_at": "2026-10-17T03:20:30Z",
+      "order_refs": [
+        {
+          "amount_cents": "43600",
+          "order_id": "ord_f85d7a5a9129c20a"
+        }
+      ],
+      "processor_batch_id": "pbatch_9f243421b1a9ba6c",
+      "processor_fee_cents": "1100",
+      "provider": "CARDCO",
+      "provider_reference": "CARDCO-PAY-000008",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=21-21",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        },
+        {
+          "content_hash": "sha256:818f6104ed18e47d9814e8a11614eb6784c5b84a58c7a7d402c498bda2fe0786",
+          "locator": "row=4",
+          "locator_kind": "row",
+          "source_id": "src_24ec866b5eb3849e",
+          "source_version": 1
+        }
+      ],
+      "status": "SUCCEEDED",
+      "vendor_id": "ven_bdccc4a0fab46f90",
+      "version": 1
+    },
+    {
+      "amount_cents": "43600",
+      "business_date": "2026-10-16",
+      "cash_drawer": null,
+      "currency": "USD",
+      "custody": "CENTRALLY_COLLECTED",
+      "festival_id": "fest_bf25e974c723d827",
+      "id": "pay_b8b390ab02b35be6",
+      "kind": "CAPTURE",
+      "method": "CARD",
+      "occurred_at": "2026-10-16T23:03:30Z",
+      "order_refs": [
+        {
+          "amount_cents": "43600",
+          "order_id": "ord_4ee5f4dd4e4eeee5"
+        }
+      ],
+      "processor_batch_id": "pbatch_9f243421b1a9ba6c",
+      "processor_fee_cents": "1100",
+      "provider": "CARDCO",
+      "provider_reference": "CARDCO-PAY-000009",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=22-22",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        },
+        {
+          "content_hash": "sha256:818f6104ed18e47d9814e8a11614eb6784c5b84a58c7a7d402c498bda2fe0786",
+          "locator": "row=5",
+          "locator_kind": "row",
+          "source_id": "src_24ec866b5eb3849e",
+          "source_version": 1
+        }
+      ],
+      "status": "SUCCEEDED",
+      "vendor_id": "ven_bdccc4a0fab46f90",
+      "version": 1
+    },
+    {
+      "amount_cents": "78044",
+      "business_date": "2026-10-17",
+      "cash_drawer": null,
+      "currency": "USD",
+      "custody": "CENTRALLY_COLLECTED",
+      "festival_id": "fest_bf25e974c723d827",
+      "id": "pay_a55d974f86e90673",
+      "kind": "CAPTURE",
+      "method": "CARD",
+      "occurred_at": "2026-10-18T01:34:30Z",
+      "order_refs": [
+        {
+          "amount_cents": "78044",
+          "order_id": "ord_e8a38da6f02484ed"
+        }
+      ],
+      "processor_batch_id": "pbatch_cad97763adbe0571",
+      "processor_fee_cents": "1961",
+      "provider": "CARDCO",
+      "provider_reference": "CARDCO-PAY-000010",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=23-24",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        },
+        {
+          "content_hash": "sha256:818f6104ed18e47d9814e8a11614eb6784c5b84a58c7a7d402c498bda2fe0786",
+          "locator": "row=10",
+          "locator_kind": "row",
+          "source_id": "src_24ec866b5eb3849e",
+          "source_version": 1
+        }
+      ],
+      "status": "SUCCEEDED",
+      "vendor_id": "ven_bdccc4a0fab46f90",
+      "version": 1
+    },
+    {
+      "amount_cents": "43600",
+      "business_date": "2026-10-18",
+      "cash_drawer": null,
+      "currency": "USD",
+      "custody": "CENTRALLY_COLLECTED",
+      "festival_id": "fest_bf25e974c723d827",
+      "id": "pay_04f9feffce880f43",
+      "kind": "CAPTURE",
+      "method": "CARD",
+      "occurred_at": "2026-10-18T20:58:30Z",
+      "order_refs": [
+        {
+          "amount_cents": "43600",
+          "order_id": "ord_b8cecacf831a7045"
+        }
+      ],
+      "processor_batch_id": "pbatch_617494454fab66b1",
+      "processor_fee_cents": "1100",
+      "provider": "CARDCO",
+      "provider_reference": "CARDCO-PAY-000011",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=25-25",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        },
+        {
+          "content_hash": "sha256:818f6104ed18e47d9814e8a11614eb6784c5b84a58c7a7d402c498bda2fe0786",
+          "locator": "row=16",
+          "locator_kind": "row",
+          "source_id": "src_24ec866b5eb3849e",
+          "source_version": 1
+        }
+      ],
+      "status": "SUCCEEDED",
+      "vendor_id": "ven_bdccc4a0fab46f90",
+      "version": 1
+    },
+    {
+      "amount_cents": "10900",
+      "business_date": "2026-10-18",
+      "cash_drawer": "ORGANIZER_CASH_OFFICE",
+      "currency": "USD",
+      "custody": "CENTRALLY_COLLECTED",
+      "festival_id": "fest_bf25e974c723d827",
+      "id": "pay_9d6cd9a385aa7503",
+      "kind": "CAPTURE",
+      "method": "CASH",
+      "occurred_at": "2026-10-18T19:40:30Z",
+      "order_refs": [
+        {
+          "amount_cents": "10900",
+          "order_id": "ord_44494b4e504c4ec1"
+        }
+      ],
+      "processor_batch_id": null,
+      "processor_fee_cents": null,
+      "provider": null,
+      "provider_reference": "CASH-POS-B-03-0012",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=26-26",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        }
+      ],
+      "status": "SUCCEEDED",
+      "vendor_id": "ven_bdccc4a0fab46f90",
+      "version": 1
+    },
+    {
+      "amount_cents": "-1744",
+      "business_date": "2026-10-17",
+      "cash_drawer": null,
+      "currency": "USD",
+      "custody": "CENTRALLY_COLLECTED",
+      "festival_id": "fest_bf25e974c723d827",
+      "id": "pay_0257ef0f5e91bde2",
+      "kind": "REFUND",
+      "method": "CARD",
+      "occurred_at": "2026-10-18T04:00:30Z",
+      "order_refs": [
+        {
+          "amount_cents": "-1744",
+          "order_id": "ord_21934b0d5cbb81e6"
+        }
+      ],
+      "processor_batch_id": "pbatch_cad97763adbe0571",
+      "processor_fee_cents": "0",
+      "provider": "CARDCO",
+      "provider_reference": "CARDCO-PAY-000013",
+      "refund_of_payment_id": "pay_b8b390ab02b35be6",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=27-27",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        },
+        {
+          "content_hash": "sha256:818f6104ed18e47d9814e8a11614eb6784c5b84a58c7a7d402c498bda2fe0786",
+          "locator": "row=11",
+          "locator_kind": "row",
+          "source_id": "src_24ec866b5eb3849e",
+          "source_version": 1
+        }
+      ],
+      "status": "SUCCEEDED",
+      "vendor_id": "ven_bdccc4a0fab46f90",
+      "version": 1
+    },
+    {
+      "amount_cents": "44100",
+      "business_date": "2026-10-18",
+      "cash_drawer": null,
+      "currency": "USD",
+      "custody": "CENTRALLY_COLLECTED",
+      "festival_id": "fest_bf25e974c723d827",
+      "id": "pay_559acf9b6b4c0e03",
+      "kind": "CAPTURE",
+      "method": "CARD",
+      "occurred_at": "2026-10-19T02:58:30Z",
+      "order_refs": [
+        {
+          "amount_cents": "44100",
+          "order_id": "ord_94ebdf02a99dcce7"
+        }
+      ],
+      "processor_batch_id": "pbatch_617494454fab66b1",
+      "processor_fee_cents": "1113",
+      "provider": "CARDCO",
+      "provider_reference": "CARDCO-PAY-000014",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=28-29",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        },
+        {
+          "content_hash": "sha256:818f6104ed18e47d9814e8a11614eb6784c5b84a58c7a7d402c498bda2fe0786",
+          "locator": "row=17",
+          "locator_kind": "row",
+          "source_id": "src_24ec866b5eb3849e",
+          "source_version": 1
+        }
+      ],
+      "status": "SUCCEEDED",
+      "vendor_id": "ven_6d07f90ca688444e",
+      "version": 1
+    },
+    {
+      "amount_cents": "436000",
+      "business_date": "2026-10-16",
+      "cash_drawer": "VENDOR",
+      "currency": "USD",
+      "custody": "VENDOR_RETAINED",
+      "festival_id": "fest_bf25e974c723d827",
+      "id": "pay_05401b4436730a51",
+      "kind": "CAPTURE",
+      "method": "CASH",
+      "occurred_at": "2026-10-16T21:56:30Z",
+      "order_refs": [
+        {
+          "amount_cents": "436000",
+          "order_id": "ord_b639f5851b19e9c6"
+        }
+      ],
+      "processor_batch_id": null,
+      "processor_fee_cents": null,
+      "provider": null,
+      "provider_reference": "CASH-POS-B-05-0015",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=30-30",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        }
+      ],
+      "status": "SUCCEEDED",
+      "vendor_id": "ven_5b3b7298e61a7172",
+      "version": 1
+    },
+    {
+      "amount_cents": "110000",
+      "business_date": "2026-10-16",
+      "cash_drawer": null,
+      "currency": "USD",
+      "custody": "CENTRALLY_COLLECTED",
+      "festival_id": "fest_bf25e974c723d827",
+      "id": "pay_d799e2d4793924f7",
+      "kind": "CAPTURE",
+      "method": "CARD",
+      "occurred_at": "2026-10-17T03:02:30Z",
+      "order_refs": [
+        {
+          "amount_cents": "110000",
+          "order_id": "ord_5e99a869e02eade7"
+        }
+      ],
+      "processor_batch_id": "pbatch_9f243421b1a9ba6c",
+      "processor_fee_cents": "2760",
+      "provider": "CARDCO",
+      "provider_reference": "CARDCO-PAY-000016",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=31-32",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        },
+        {
+          "content_hash": "sha256:818f6104ed18e47d9814e8a11614eb6784c5b84a58c7a7d402c498bda2fe0786",
+          "locator": "row=6",
+          "locator_kind": "row",
+          "source_id": "src_24ec866b5eb3849e",
+          "source_version": 1
+        }
+      ],
+      "status": "SUCCEEDED",
+      "vendor_id": "ven_5b3b7298e61a7172",
+      "version": 1
+    },
+    {
+      "amount_cents": "327000",
+      "business_date": "2026-10-17",
+      "cash_drawer": "VENDOR",
+      "currency": "USD",
+      "custody": "VENDOR_RETAINED",
+      "festival_id": "fest_bf25e974c723d827",
+      "id": "pay_4f936a2a1b9e3454",
+      "kind": "CAPTURE",
+      "method": "CASH",
+      "occurred_at": "2026-10-17T22:35:30Z",
+      "order_refs": [
+        {
+          "amount_cents": "327000",
+          "order_id": "ord_ccbff642c7881f5f"
+        }
+      ],
+      "processor_batch_id": null,
+      "processor_fee_cents": null,
+      "provider": null,
+      "provider_reference": "CASH-POS-B-05-0017",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=33-33",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        }
+      ],
+      "status": "SUCCEEDED",
+      "vendor_id": "ven_5b3b7298e61a7172",
+      "version": 1
+    },
+    {
+      "amount_cents": "54500",
+      "business_date": "2026-10-17",
+      "cash_drawer": null,
+      "currency": "USD",
+      "custody": "CENTRALLY_COLLECTED",
+      "festival_id": "fest_bf25e974c723d827",
+      "id": "pay_715c3d3661adb65c",
+      "kind": "CAPTURE",
+      "method": "CARD",
+      "occurred_at": "2026-10-17T18:54:30Z",
+      "order_refs": [
+        {
+          "amount_cents": "54500",
+          "order_id": "ord_f628ead2e95ec2b9"
+        }
+      ],
+      "processor_batch_id": "pbatch_cad97763adbe0571",
+      "processor_fee_cents": "1373",
+      "provider": "CARDCO",
+      "provider_reference": "CARDCO-PAY-000018",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=34-34",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        },
+        {
+          "content_hash": "sha256:818f6104ed18e47d9814e8a11614eb6784c5b84a58c7a7d402c498bda2fe0786",
+          "locator": "row=12",
+          "locator_kind": "row",
+          "source_id": "src_24ec866b5eb3849e",
+          "source_version": 1
+        }
+      ],
+      "status": "SUCCEEDED",
+      "vendor_id": "ven_5b3b7298e61a7172",
+      "version": 1
+    },
+    {
+      "amount_cents": "327000",
+      "business_date": "2026-10-18",
+      "cash_drawer": "VENDOR",
+      "currency": "USD",
+      "custody": "VENDOR_RETAINED",
+      "festival_id": "fest_bf25e974c723d827",
+      "id": "pay_cc5ac2ec1d786e32",
+      "kind": "CAPTURE",
+      "method": "CASH",
+      "occurred_at": "2026-10-18T20:50:30Z",
+      "order_refs": [
+        {
+          "amount_cents": "327000",
+          "order_id": "ord_2e2fd2eb1d2fce6c"
+        }
+      ],
+      "processor_batch_id": null,
+      "processor_fee_cents": null,
+      "provider": null,
+      "provider_reference": "CASH-POS-B-05-0019",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=35-35",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        }
+      ],
+      "status": "SUCCEEDED",
+      "vendor_id": "ven_5b3b7298e61a7172",
+      "version": 1
+    },
+    {
+      "amount_cents": "54500",
+      "business_date": "2026-10-18",
+      "cash_drawer": null,
+      "currency": "USD",
+      "custody": "CENTRALLY_COLLECTED",
+      "festival_id": "fest_bf25e974c723d827",
+      "id": "pay_c4fb17a1f40b8895",
+      "kind": "CAPTURE",
+      "method": "CARD",
+      "occurred_at": "2026-10-19T04:42:30Z",
+      "order_refs": [
+        {
+          "amount_cents": "54500",
+          "order_id": "ord_716a19b00162abef"
+        }
+      ],
+      "processor_batch_id": "pbatch_617494454fab66b1",
+      "processor_fee_cents": "1373",
+      "provider": "CARDCO",
+      "provider_reference": "CARDCO-PAY-000020",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=36-36",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        },
+        {
+          "content_hash": "sha256:818f6104ed18e47d9814e8a11614eb6784c5b84a58c7a7d402c498bda2fe0786",
+          "locator": "row=18",
+          "locator_kind": "row",
+          "source_id": "src_24ec866b5eb3849e",
+          "source_version": 1
+        }
+      ],
+      "status": "SUCCEEDED",
+      "vendor_id": "ven_5b3b7298e61a7172",
+      "version": 1
+    },
+    {
+      "amount_cents": "218000",
+      "business_date": "2026-10-16",
+      "cash_drawer": null,
+      "currency": "USD",
+      "custody": "CENTRALLY_COLLECTED",
+      "festival_id": "fest_bf25e974c723d827",
+      "id": "pay_a9ac3e6d1e7e5012",
+      "kind": "CAPTURE",
+      "method": "CARD",
+      "occurred_at": "2026-10-17T04:48:30Z",
+      "order_refs": [
+        {
+          "amount_cents": "218000",
+          "order_id": "ord_eec98ad7b7565a60"
+        }
+      ],
+      "processor_batch_id": "pbatch_9f243421b1a9ba6c",
+      "processor_fee_cents": "5460",
+      "provider": "CARDCO",
+      "provider_reference": "CARDCO-PAY-000021",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=37-37",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        },
+        {
+          "content_hash": "sha256:818f6104ed18e47d9814e8a11614eb6784c5b84a58c7a7d402c498bda2fe0786",
+          "locator": "row=7",
+          "locator_kind": "row",
+          "source_id": "src_24ec866b5eb3849e",
+          "source_version": 1
+        }
+      ],
+      "status": "SUCCEEDED",
+      "vendor_id": "ven_24b891c0ef6e9864",
+      "version": 1
+    },
+    {
+      "amount_cents": "218000",
+      "business_date": "2026-10-17",
+      "cash_drawer": null,
+      "currency": "USD",
+      "custody": "CENTRALLY_COLLECTED",
+      "festival_id": "fest_bf25e974c723d827",
+      "id": "pay_8ee80b03b58a2180",
+      "kind": "CAPTURE",
+      "method": "CARD",
+      "occurred_at": "2026-10-18T04:58:30Z",
+      "order_refs": [
+        {
+          "amount_cents": "218000",
+          "order_id": "ord_79223892b5ba8c8b"
+        }
+      ],
+      "processor_batch_id": "pbatch_cad97763adbe0571",
+      "processor_fee_cents": "5460",
+      "provider": "CARDCO",
+      "provider_reference": "CARDCO-PAY-000022",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=38-38",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        },
+        {
+          "content_hash": "sha256:818f6104ed18e47d9814e8a11614eb6784c5b84a58c7a7d402c498bda2fe0786",
+          "locator": "row=13",
+          "locator_kind": "row",
+          "source_id": "src_24ec866b5eb3849e",
+          "source_version": 1
+        }
+      ],
+      "status": "SUCCEEDED",
+      "vendor_id": "ven_24b891c0ef6e9864",
+      "version": 1
+    },
+    {
+      "amount_cents": "218000",
+      "business_date": "2026-10-18",
+      "cash_drawer": null,
+      "currency": "USD",
+      "custody": "CENTRALLY_COLLECTED",
+      "festival_id": "fest_bf25e974c723d827",
+      "id": "pay_52bed800646571f7",
+      "kind": "CAPTURE",
+      "method": "CARD",
+      "occurred_at": "2026-10-19T05:11:30Z",
+      "order_refs": [
+        {
+          "amount_cents": "218000",
+          "order_id": "ord_7a7330c5d63b0af4"
+        }
+      ],
+      "processor_batch_id": "pbatch_617494454fab66b1",
+      "processor_fee_cents": "5460",
+      "provider": "CARDCO",
+      "provider_reference": "CARDCO-PAY-000023",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=39-39",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        },
+        {
+          "content_hash": "sha256:818f6104ed18e47d9814e8a11614eb6784c5b84a58c7a7d402c498bda2fe0786",
+          "locator": "row=19",
+          "locator_kind": "row",
+          "source_id": "src_24ec866b5eb3849e",
+          "source_version": 1
+        }
+      ],
+      "status": "SUCCEEDED",
+      "vendor_id": "ven_24b891c0ef6e9864",
+      "version": 1
+    },
+    {
+      "amount_cents": "-10900",
+      "business_date": "2026-10-20",
+      "cash_drawer": null,
+      "currency": "USD",
+      "custody": "CENTRALLY_COLLECTED",
+      "festival_id": "fest_bf25e974c723d827",
+      "id": "pay_3cf074af7b362259",
+      "kind": "REFUND",
+      "method": "CARD",
+      "occurred_at": "2026-10-20T19:02:30Z",
+      "order_refs": [
+        {
+          "amount_cents": "-10900",
+          "order_id": "ord_8d468861193d4b88"
+        }
+      ],
+      "processor_batch_id": "pbatch_037647e85beb814c",
+      "processor_fee_cents": "0",
+      "provider": "CARDCO",
+      "provider_reference": "CARDCO-PAY-000024",
+      "refund_of_payment_id": "pay_52bed800646571f7",
+      "source_refs": [
+        {
+          "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+          "locator": "row=40-40",
+          "locator_kind": "row",
+          "source_id": "src_6282cdeafdb52961",
+          "source_version": 1
+        },
+        {
+          "content_hash": "sha256:818f6104ed18e47d9814e8a11614eb6784c5b84a58c7a7d402c498bda2fe0786",
+          "locator": "row=20",
+          "locator_kind": "row",
+          "source_id": "src_24ec866b5eb3849e",
+          "source_version": 1
+        }
+      ],
+      "status": "SUCCEEDED",
+      "vendor_id": "ven_24b891c0ef6e9864",
+      "version": 1
+    }
+  ],
+  "next_cursor": null
+}

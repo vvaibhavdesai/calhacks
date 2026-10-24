@@ -1,0 +1,1852 @@
+{
+  "config_sha256": "d3d983e656a20b6c394f1fea3f5ff1a62d369ecd6f5e10d3d06042f148d36490",
+  "config_version": "1",
+  "expected_record_counts": {
+    "bank_entries": 33,
+    "beneficiary_change_requests": 1,
+    "cash_counts": 95,
+    "cash_deposit_slips": 3,
+    "email_threads": 8,
+    "expenses": 8,
+    "menu_items": 290,
+    "opening_balances": 1,
+    "order_lines": 73161,
+    "orders": 40168,
+    "payments": 40201,
+    "pdf_documents": 100,
+    "prior_cases": 4,
+    "prior_policies": 3,
+    "prior_settlements": 68,
+    "processor_batches": 9,
+    "purchase_orders": 8,
+    "refund_orders": 168,
+    "sales_orders": 40000,
+    "scenarios": 30,
+    "source_documents": 128,
+    "sponsors": 4,
+    "sponsorship_receipts": 4,
+    "supplier_invoices": 13,
+    "supplier_payments": 6,
+    "suppliers": 8,
+    "ticket_settlements": 5,
+    "vendors": 80
+  },
+  "festival_id": "fest_caff20630e5fe937",
+  "files": [
+    {
+      "bytes": 22722,
+      "path": "api/bank_entries.json",
+      "sha256": "6b6cdf281d9995ac2d84d9f62460a0fb3ccaac8e8316a3799c8bb2a3447a4daf"
+    },
+    {
+      "bytes": 868,
+      "path": "api/beneficiary_change_requests.json",
+      "sha256": "62a93fed094c66b66a4bac7cd8d3d77a621278f5f9cd7ad4ab48be73f0c9fa83"
+    },
+    {
+      "bytes": 6306,
+      "path": "api/business_config.json",
+      "sha256": "1bbbecdadc3f1fbf7a710b95f1f34fcaf7be4bdb0181a91800008d56e11b6fc5"
+    },
+    {
+      "bytes": 80113,
+      "path": "api/cash_counts.json",
+      "sha256": "23e474c417fce96ca4c0d105fa91a4c37f82054bd8f69c4e91b0eca115bd49d9"
+    },
+    {
+      "bytes": 8611,
+      "path": "api/cash_deposit_slips.json",
+      "sha256": "131eac352071a1d6901370b7e09ef78d53c5efc1b7df54f4f2bd32831f72f6d8"
+    },
+    {
+      "bytes": 5187,
+      "path": "api/expenses.json",
+      "sha256": "6964f388ed88f9a505da6a3650828fd0df399a47ab48992a0837073cf820ee67"
+    },
+    {
+      "bytes": 1135,
+      "path": "api/festival.json",
+      "sha256": "beb7dfb996cd0ab37f7e4a90c6dcd80f8c1b6e8939212159473154c8e74c738e"
+    },
+    {
+      "bytes": 170515,
+      "path": "api/menu_items.json",
+      "sha256": "801d7cc82febe863864abd82826cda1675606694658f565209c123c811966345"
+    },
+    {
+      "bytes": 580,
+      "path": "api/opening_balances.json",
+      "sha256": "7eb76d5bb18bf6b3edbfbf67aecafc2d5b58758a3eeacb3b1b7e3c96f5828662"
+    },
+    {
+      "bytes": 56575972,
+      "path": "api/orders.json",
+      "sha256": "652a70ea7670dcb7022523e771778c29692834bc07150fbc8114ae59cda21f79"
+    },
+    {
+      "bytes": 37944598,
+      "path": "api/payments.json",
+      "sha256": "8a769a836f52ff9b64457b17ef9fbf3822c2d33f9ee308cc2f6f3da2d034e1d9"
+    },
+    {
+      "bytes": 2708,
+      "path": "api/prior_cases.json",
+      "sha256": "fb05031e060e525ffae893ce3595ac47755d6b8771d3f042562a601010477712"
+    },
+    {
+      "bytes": 2881,
+      "path": "api/prior_policies.json",
+      "sha256": "6b82d04d9ae02265e44b8f29bc2093faac5f5bba9bd74d915bcf04e7a01cc972"
+    },
+    {
+      "bytes": 44530,
+      "path": "api/prior_settlements.json",
+      "sha256": "293a88a3c783bad908d134f9895b27a76730ad5990259ef6421dfbc302b18891"
+    },
+    {
+      "bytes": 846319,
+      "path": "api/processor_batches.json",
+      "sha256": "e3a93a04afb92c6105ef413d33db039694c0ca52dafc95ca82b3519cd4efdaab"
+    },
+    {
+      "bytes": 4848,
+      "path": "api/purchase_orders.json",
+      "sha256": "2e7f2a3a27e68bd757d061bf8c1ee8bc0e077c6396006d3f49d5f9db2461306b"
+    },
+    {
+      "bytes": 78266,
+      "path": "api/source_documents.json",
+      "sha256": "1f443e7198b18df001e25521af027082b2f1faa3bb39ba8e4f8eda0e4f9fa32f"
+    },
+    {
+      "bytes": 3051,
+      "path": "api/sponsors.json",
+      "sha256": "fd62b3bcc2f65dc61ef58fc16d4d30f0a75e1bc58713e349463a30f206963fa9"
+    },
+    {
+      "bytes": 2470,
+      "path": "api/sponsorship_receipts.json",
+      "sha256": "48c274f34942cc60308d15e68cb6fc5b265765dddf0e9cad596cb37d05a4e096"
+    },
+    {
+      "bytes": 10986,
+      "path": "api/supplier_invoices.json",
+      "sha256": "9bf07fa704888b2a06ea9ccb4e2449820735a47dc663a096a6894a60dfeecf9d"
+    },
+    {
+      "bytes": 4003,
+      "path": "api/supplier_payments.json",
+      "sha256": "b7d8a75e2517c00f50f483dc809fbd4fa69f15e905175244a85f8ac94dd58579"
+    },
+    {
+      "bytes": 1573,
+      "path": "api/suppliers.json",
+      "sha256": "3fa2823ebeec606d9cb2a919e4c4a713c9fb7940e98e45399b578ceff4f11f46"
+    },
+    {
+      "bytes": 3851,
+      "path": "api/ticket_settlements.json",
+      "sha256": "99a84266fce3ca46244e136f909de9320d060c7318551578023b39e8275d132b"
+    },
+    {
+      "bytes": 47424,
+      "path": "api/vendors.json",
+      "sha256": "62ed4eaf6b56618f74b7a880d6d33a609f07e9dfd4136b9339f36cd219051f4d"
+    },
+    {
+      "bytes": 1315,
+      "path": "simulator_only/payout_outcome_script.json",
+      "sha256": "20b9cca2e334140321da0d360b4c7c1153fa343c338dc6bfe97c5ca395870fc2"
+    },
+    {
+      "bytes": 3661,
+      "path": "sources/bank/operating_account_statement.csv",
+      "sha256": "e1fb7531b5140037e5cc57570308cac096682a9e08644e130d168c2af50698c9"
+    },
+    {
+      "bytes": 12050,
+      "path": "sources/cash/cash_counts.csv",
+      "sha256": "497177a8b0f58141249a0fd438929248dd2d7a04cf0cc8c9ff328d2991d776a6"
+    },
+    {
+      "bytes": 2536,
+      "path": "sources/cash/cash_office_deposit_slips.csv",
+      "sha256": "9bc1f21b329f06aea2b3292911e00ac72c709345d89cfcbc7961763ee3335b58"
+    },
+    {
+      "bytes": 3364,
+      "path": "sources/contracts/acai-atoll_agreement_v1.pdf",
+      "sha256": "16910f7a3010daf3dd8ecce7280c7dfbd9c036d08e0ff0a01dfbfe493c687e55"
+    },
+    {
+      "bytes": 3233,
+      "path": "sources/contracts/agua-azul_agreement_v1.pdf",
+      "sha256": "035a391b6cf64b7543a726be93477365170c3fa078c8284904a5f7992b74d3a3"
+    },
+    {
+      "bytes": 1464,
+      "path": "sources/contracts/amendments/agua-azul_amendment_1.pdf",
+      "sha256": "6804c80a12f20eb4e67466188ac305c664e302b365c4df8e55458b00172d0449"
+    },
+    {
+      "bytes": 1488,
+      "path": "sources/contracts/amendments/cold-brew-cove_amendment_1.pdf",
+      "sha256": "2239cd40b3946e3bfe9a94398f26e4c80d20f7e48c6c0bb1e72bf35c6809b2aa"
+    },
+    {
+      "bytes": 1460,
+      "path": "sources/contracts/amendments/smoke-signal-bbq_amendment_1.pdf",
+      "sha256": "0f7e80387bd6af7bc1c0677cdb55a0fc90e7c0faffc7788ff2bb6493d81410f5"
+    },
+    {
+      "bytes": 3770,
+      "path": "sources/contracts/banh-mi-breeze_agreement_v1.pdf",
+      "sha256": "cdc2ff554168cd22d1e9a96d40696b0a8125b53439a12eb0a08c60cd257ed5f0"
+    },
+    {
+      "bytes": 3752,
+      "path": "sources/contracts/bao-down_agreement_v1.pdf",
+      "sha256": "d61d092a0af151cf8f027253199fd3bf337690c9b0f8b7e4936181ac4a4b7f1e"
+    },
+    {
+      "bytes": 3047,
+      "path": "sources/contracts/batter-bay_agreement_v1.pdf",
+      "sha256": "6808b1847b729a72548b79580e7fbe260d97ec8df64c5253ca67aedc0da14b47"
+    },
+    {
+      "bytes": 3388,
+      "path": "sources/contracts/birria-boardwalk_agreement_v1.pdf",
+      "sha256": "0f2dbec139f74913ccb5800e1a35843abb055c2a7d42f27d4e90c487016ba7fe"
+    },
+    {
+      "bytes": 3451,
+      "path": "sources/contracts/blend-shore_agreement_v1.pdf",
+      "sha256": "ef4e47be6d4132d76ffa3bce15bf04db3290ff0861d6cc0ee477d5d497fff51e"
+    },
+    {
+      "bytes": 3368,
+      "path": "sources/contracts/brisket-bay_agreement_v1.pdf",
+      "sha256": "d310d6ee3496e8b2f806387e73cf67919ad338c0587aa864abd55275cf3952bc"
+    },
+    {
+      "bytes": 3391,
+      "path": "sources/contracts/bun-voyage_agreement_v1.pdf",
+      "sha256": "1ac97bb9dde6c2ea8d73ce2fa908dd7e19cd38028cf10df49ac93aafa4cdeb76"
+    },
+    {
+      "bytes": 3180,
+      "path": "sources/contracts/calamari-cove_agreement_v1.pdf",
+      "sha256": "ba20aa4cb029adfd340c25b0e2bd360622dd2ef16f0fbd3f01821279afb17865"
+    },
+    {
+      "bytes": 3271,
+      "path": "sources/contracts/churro-cart_agreement_v1.pdf",
+      "sha256": "7b63028e076080eaee8ca47abb251d34138111a2b0bf3beb9cbcea6433f0088b"
+    },
+    {
+      "bytes": 3584,
+      "path": "sources/contracts/citrus-current_agreement_v1.pdf",
+      "sha256": "6692fb5b627bfff287ff0dffd3f0913760ddef9015a1c30a987d3ed6ca7c8062"
+    },
+    {
+      "bytes": 3457,
+      "path": "sources/contracts/cocoa-coast_agreement_v1.pdf",
+      "sha256": "1b867787a3d16736de129ae3d69665c128c4e8f873d65925001e4d9b4b97401f"
+    },
+    {
+      "bytes": 3350,
+      "path": "sources/contracts/coconut-cabana_agreement_v1.pdf",
+      "sha256": "d68e6c83230f29bb783812fc658afe35374ec9bc1eae4d59faea3f543c5a3a24"
+    },
+    {
+      "bytes": 3283,
+      "path": "sources/contracts/cold-brew-cove_agreement_v1.pdf",
+      "sha256": "0b57039f15d95c579e31ba924692c0d49b76d22d81b31056644c8ab6cc921b93"
+    },
+    {
+      "bytes": 3652,
+      "path": "sources/contracts/comal-collective_agreement_v1.pdf",
+      "sha256": "6d31381a09c1c634fbe0b7dd1333b2f6527aa015cd1c4653afc5f666dd2a0498"
+    },
+    {
+      "bytes": 3062,
+      "path": "sources/contracts/corn-dog-corner_agreement_v1.pdf",
+      "sha256": "0b31c16e58ad6dde70e11a309e01dd0a8cb30d9cbe51578a8e58b8e3c2920272"
+    },
+    {
+      "bytes": 3741,
+      "path": "sources/contracts/crab-shack-coast_agreement_v1.pdf",
+      "sha256": "27a20f800acc405e5adf9e932ba2acd99debb52789b27cc4655babc22fc87d0c"
+    },
+    {
+      "bytes": 3053,
+      "path": "sources/contracts/crepe-escape_agreement_v1.pdf",
+      "sha256": "75aba762f8321c7290e6a7c0790a7f60671d7a3560491b4f58671e6d1f398de9"
+    },
+    {
+      "bytes": 3457,
+      "path": "sources/contracts/crust-coast_agreement_v1.pdf",
+      "sha256": "4f46aaa69b36accd05eee8695079d3a5bc3606d64991907b8695d03b0ec3f0f0"
+    },
+    {
+      "bytes": 3059,
+      "path": "sources/contracts/dog-days-diner_agreement_v1.pdf",
+      "sha256": "ac0d381b4085d80e583c15dfa5674d1853d9666fdaab349121194a3bf0bfe9e3"
+    },
+    {
+      "bytes": 3761,
+      "path": "sources/contracts/donut-dunes_agreement_v1.pdf",
+      "sha256": "f04f7be3b9e66107e63204cd82d3a31bab195b94c3bb4b07cf8f7492dc78ab36"
+    },
+    {
+      "bytes": 3634,
+      "path": "sources/contracts/dough-rays_agreement_v1.pdf",
+      "sha256": "38fdc7571069bc3b03e95d9a8daae037faa4fa6a93a0b79e26eacf0aba0afdf2"
+    },
+    {
+      "bytes": 3291,
+      "path": "sources/contracts/driftwood-coffee_agreement_v1.pdf",
+      "sha256": "b446702dac53b9ac5ce4bde3ad00a765aed245f8f1dc8179a5f8f34647e28aa6"
+    },
+    {
+      "bytes": 3177,
+      "path": "sources/contracts/dumpling-drift_agreement_v1.pdf",
+      "sha256": "49aaed149a88f38e6faac5c7471d039d028175e089757c75d1572c1124cc221e"
+    },
+    {
+      "bytes": 3261,
+      "path": "sources/contracts/ember-burger-bar_agreement_v1.pdf",
+      "sha256": "6077e602e5cda8c5544173abee0234e7233c7000f239c0fc640913f2190f14b6"
+    },
+    {
+      "bytes": 3466,
+      "path": "sources/contracts/falafel-fathom_agreement_v1.pdf",
+      "sha256": "1a2739c1cebe8b823fbb2e4fb05c72c1ddb123418d43421aa0e9fb70c12559c1"
+    },
+    {
+      "bytes": 3472,
+      "path": "sources/contracts/ferro-pizza-cart_agreement_v1.pdf",
+      "sha256": "66a8518a9b2c732a817ee2ccb6f2e43fba56fe0dced10b18fdf51b923a97755f"
+    },
+    {
+      "bytes": 3652,
+      "path": "sources/contracts/fish-taco-tide_agreement_v1.pdf",
+      "sha256": "64e6a38b85e4b122452e180ba644f4889e1f6183fad4a86bb8ca9f074d1da66a"
+    },
+    {
+      "bytes": 3056,
+      "path": "sources/contracts/frankly-coastal_agreement_v1.pdf",
+      "sha256": "b37723be2c571aa1e6a478cb4546362682f7f13e860e2b0a0ef815a5f537c008"
+    },
+    {
+      "bytes": 3557,
+      "path": "sources/contracts/frosted-pier_agreement_v1.pdf",
+      "sha256": "de1698687d95c58dc80ce270df45bdd740730ce1cb8de786acfb59ae529c940a"
+    },
+    {
+      "bytes": 3590,
+      "path": "sources/contracts/golden-griddle_agreement_v1.pdf",
+      "sha256": "9ea07b82bdaf4133d26baebbd33dfdca1f32e6c51bed3cff1e0c7ce2b243b087"
+    },
+    {
+      "bytes": 3478,
+      "path": "sources/contracts/green-wave-juicery_agreement_v1.pdf",
+      "sha256": "8343d2bd126f516bcb5fe6af2475e58e9d8219de1062569e10cbdccabb5945d1"
+    },
+    {
+      "bytes": 3720,
+      "path": "sources/contracts/gyro-gulf_agreement_v1.pdf",
+      "sha256": "9f7c04f7024d7f34f7b5209381eed998335ee472514761d624c468639185ba14"
+    },
+    {
+      "bytes": 3303,
+      "path": "sources/contracts/half-and-half-stand_agreement_v1.pdf",
+      "sha256": "fd3e248eee435067c9ce574966c7af65c46594f5e0251da3ce4e767f0c16d38a"
+    },
+    {
+      "bytes": 3050,
+      "path": "sources/contracts/harbor-bean_agreement_v1.pdf",
+      "sha256": "0a8ad94f3f3101ad2014b094518e78a4e3761c8c919b1e3247b649e7b7836d54"
+    },
+    {
+      "bytes": 3695,
+      "path": "sources/contracts/hickory-hollow_agreement_v1.pdf",
+      "sha256": "fd1f09626aaa689860a99ecd469ed302d0b534e17b9380b590fb2eead254da6b"
+    },
+    {
+      "bytes": 3056,
+      "path": "sources/contracts/hummus-harbor_agreement_v1.pdf",
+      "sha256": "ba7f9ddd791f8688d6c5c806cd7e7825e0389f31a9ea07c9c5a75b0d6f62530c"
+    },
+    {
+      "bytes": 3784,
+      "path": "sources/contracts/kettle-corn-co_agreement_v1.pdf",
+      "sha256": "e5a74cd892edcfcc17fd039a85e1088fe12b19a995d86dac439e163d4ba2f2cd"
+    },
+    {
+      "bytes": 3643,
+      "path": "sources/contracts/kombucha-kove_agreement_v1.pdf",
+      "sha256": "7fc25b57e11869eeca8680ed23166a24ad3a814edce68f2f2c6a3411e5ea3dc3"
+    },
+    {
+      "bytes": 3299,
+      "path": "sources/contracts/lantern-noodle-bar_agreement_v1.pdf",
+      "sha256": "6a3fadb08139b30c42e1e334ac0f2b7fe55a82354cd2d699054dcbbea1de3bdb"
+    },
+    {
+      "bytes": 3165,
+      "path": "sources/contracts/late-bloom-lemonade_agreement_v1.pdf",
+      "sha256": "51a744ff8d702083c11743233024382aeae90a11dada24519b6a547626e4157b"
+    },
+    {
+      "bytes": 3153,
+      "path": "sources/contracts/leafy-landing_agreement_v1.pdf",
+      "sha256": "7ef8facbbc89caa1cb9149286c52aa8c9e5a880e0b6bc6dd9e3c288032ff2874"
+    },
+    {
+      "bytes": 3481,
+      "path": "sources/contracts/low-tide-smokehouse_agreement_v1.pdf",
+      "sha256": "800fdddda990e5cc82bc2ab0c47ccc30a348d436b53aea83e49cb65a2df7e84d"
+    },
+    {
+      "bytes": 3050,
+      "path": "sources/contracts/mango-current_agreement_v1.pdf",
+      "sha256": "2ff4ac3765c5aee9f96f16c3dc18eeed833fdc4ab8e5ef1d4d30f40098258c18"
+    },
+    {
+      "bytes": 3412,
+      "path": "sources/contracts/morning-swell-roasters_agreement_v1.pdf",
+      "sha256": "de15d96c23c25c69e9c2ce2ad0cfde969ded62ac78879cf565f82bb40a3d0d67"
+    },
+    {
+      "bytes": 3279,
+      "path": "sources/contracts/mustard-point_agreement_v1.pdf",
+      "sha256": "bde0efaa88052c632ee9385640ce233488f3e9434936a086f5a27b58ded0a6c5"
+    },
+    {
+      "bytes": 3557,
+      "path": "sources/contracts/nacho-harbor_agreement_v1.pdf",
+      "sha256": "e56723b0216c5bf335b7b0d726c3281f4234e72f1afcb59ad1d6acb3aca3f48a"
+    },
+    {
+      "bytes": 3059,
+      "path": "sources/contracts/noodle-current_agreement_v1.pdf",
+      "sha256": "84b06035b1f133e45aca339201dac9d09c39f5f3e58b385e306f0b56db576f65"
+    },
+    {
+      "bytes": 3144,
+      "path": "sources/contracts/olive-tide_agreement_v1.pdf",
+      "sha256": "7c284369822a50080f15893bf5014ec699d429db810fe42699dff41e85a8e185"
+    },
+    {
+      "bytes": 3338,
+      "path": "sources/contracts/patty-point_agreement_v1.pdf",
+      "sha256": "d0b22fa2b5f8a63aa3fc5f1551d64f0bc744be89761699e03556792814ac849c"
+    },
+    {
+      "bytes": 3652,
+      "path": "sources/contracts/pho-real-kitchen_agreement_v1.pdf",
+      "sha256": "f156db3c111317a073f265036364addd5a90bd4bab92ca0209e80a7229826db1"
+    },
+    {
+      "bytes": 3475,
+      "path": "sources/contracts/pit-lane-barbecue_agreement_v1.pdf",
+      "sha256": "1cf8c8e722d1d42b3dfc69c54942ab96bb4f28ea9a76d1a72dfa8f5587526aaa"
+    },
+    {
+      "bytes": 3451,
+      "path": "sources/contracts/pita-pier_agreement_v1.pdf",
+      "sha256": "8a1343e61af190da6eed2930b8104e0746a4732387d013b51fac79a6adf2b9f3"
+    },
+    {
+      "bytes": 3047,
+      "path": "sources/contracts/plant-wave_agreement_v1.pdf",
+      "sha256": "b74f38ed791f7eeb2383f0e772407451bc396013265748289448a2da61408fae"
+    },
+    {
+      "bytes": 3174,
+      "path": "sources/contracts/poke-lagoon_agreement_v1.pdf",
+      "sha256": "57c846e4a84c8c98ecea816dc53c1a4ca951d2b75820dbe1b839e169fc31f93a"
+    },
+    {
+      "bytes": 3275,
+      "path": "sources/contracts/popcorn-pier_agreement_v1.pdf",
+      "sha256": "1c61a4d64c1c2f7dc6973f9ce37d63c275817f9b167e0f9ace636f5d69661964"
+    },
+    {
+      "bytes": 3469,
+      "path": "sources/contracts/potsticker-pier_agreement_v1.pdf",
+      "sha256": "3dbd59a04379eeea228823436052ff45279b1af149650ea548fa491cb108e5aa"
+    },
+    {
+      "bytes": 3153,
+      "path": "sources/contracts/pretzel-point_agreement_v1.pdf",
+      "sha256": "51553984e1893ddd89d824d901f1bc0a2b27d20fbcbdb1f88aeefdef5ba30b87"
+    },
+    {
+      "bytes": 3578,
+      "path": "sources/contracts/relish-row_agreement_v1.pdf",
+      "sha256": "befb1c887c50652a505581277110391ead2c6b2555862c42b47d32da8103ffbe"
+    },
+    {
+      "bytes": 3150,
+      "path": "sources/contracts/root-bowl-co_agreement_v1.pdf",
+      "sha256": "8ca08b8aab1dc0185bc992b43a2a34ee116d2cbfc6b75eff9bfed92d486f13e4"
+    },
+    {
+      "bytes": 3640,
+      "path": "sources/contracts/saigon-swell_agreement_v1.pdf",
+      "sha256": "ae4a3f0d19d9a5bb1180558085d11f2b66bb2ee41c200130b2cf307b8aa8b9cf"
+    },
+    {
+      "bytes": 3074,
+      "path": "sources/contracts/salsa-verde-kitchen_agreement_v1.pdf",
+      "sha256": "3aaaa4ed6bf89a3acc4e5d4321ba567f7ac0b555a15b1201529b8ab7283b141e"
+    },
+    {
+      "bytes": 3475,
+      "path": "sources/contracts/salty-gull-snacks_agreement_v1.pdf",
+      "sha256": "7a90bafbebf9566f39e6688572aba29d46d3a6c06fa6b276b45ff858ff5b0913"
+    },
+    {
+      "bytes": 3271,
+      "path": "sources/contracts/scoop-shack_agreement_v1.pdf",
+      "sha256": "c7f7e43f0add3f2e9a7b15275791fd67e5ac5bbf9fc133ba86980bb90497e8a7"
+    },
+    {
+      "bytes": 3551,
+      "path": "sources/contracts/shrimp-shoal_agreement_v1.pdf",
+      "sha256": "ceb259ff5623ed990fa2edde290fd76e046fccae8aedff01e1e4600ebae90db9"
+    },
+    {
+      "bytes": 3177,
+      "path": "sources/contracts/slice-harbor_agreement_v1.pdf",
+      "sha256": "e9e2edcdc9dcd65c2c1aac6a01da50ad9415efe48ee3d5a94937cbe68ff7b4fc"
+    },
+    {
+      "bytes": 3572,
+      "path": "sources/contracts/smash-lane_agreement_v1.pdf",
+      "sha256": "293e4ebd38b268c4f173ceca8fd1aac495892366b2065decbfcd107e0bf17aac"
+    },
+    {
+      "bytes": 3065,
+      "path": "sources/contracts/smoke-signal-bbq_agreement_v1.pdf",
+      "sha256": "6ad0d3e58ca0aa1900f716d32b7fe84108bdbde605380caf88bec37f811b1e30"
+    },
+    {
+      "bytes": 3053,
+      "path": "sources/contracts/sprout-stand_agreement_v1.pdf",
+      "sha256": "eb1088ce8338408339da17b26341a3f67e2577d244f6a01c49ea8a2878a057f0"
+    },
+    {
+      "bytes": 3186,
+      "path": "sources/contracts/steam-basket-co_agreement_v1.pdf",
+      "sha256": "d53181424cea04f651befc7e535095053b42c783399c8da45eb14d6746479eca"
+    },
+    {
+      "bytes": 3634,
+      "path": "sources/contracts/sugar-reef_agreement_v1.pdf",
+      "sha256": "47df672f935f3b9628d5e13540eb958a767ccec1519498b09eadde7cb7d9e9ee"
+    },
+    {
+      "bytes": 3744,
+      "path": "sources/contracts/sunrise-smoothies_agreement_v1.pdf",
+      "sha256": "0aaca266ee4e5c1b6b1875670e6b266481ffc00a8b24f7fb834d48e8d3bf83ca"
+    },
+    {
+      "bytes": 3551,
+      "path": "sources/contracts/sunset-slice_agreement_v1.pdf",
+      "sha256": "51942b985c5ced3508890d95669eed655c1f3fad8eaa8ed9c71f87f0ab8ecefe"
+    },
+    {
+      "bytes": 3395,
+      "path": "sources/contracts/sweet-swell_agreement_v1.pdf",
+      "sha256": "72d699702512a0c82b952251fa3032df035ea4b2f5344b4061691863a9d1b7ff"
+    },
+    {
+      "bytes": 3267,
+      "path": "sources/contracts/taco-libre_agreement_v1.pdf",
+      "sha256": "d35f7b6a3cd8be3f037e108b23250fc090a8e75556d69a3b8311dac1ea94db39"
+    },
+    {
+      "bytes": 3068,
+      "path": "sources/contracts/tidepool-espresso_agreement_v1.pdf",
+      "sha256": "493b41e7e1db151254c53df964c6e1704deee261c9f727b985ef400053c2569d"
+    },
+    {
+      "bytes": 3463,
+      "path": "sources/contracts/tortilla-tide_agreement_v1.pdf",
+      "sha256": "760445f3ad948effe54414185914b2dd3b47f37d090a95d991c02ad78d686e83"
+    },
+    {
+      "bytes": 3640,
+      "path": "sources/contracts/waffle-wharf_agreement_v1.pdf",
+      "sha256": "1ee1e0cbfc3a9c0df556157d289908f871565a38e7b3389d418e5d5832c6c0d1"
+    },
+    {
+      "bytes": 3147,
+      "path": "sources/contracts/wonton-wave_agreement_v1.pdf",
+      "sha256": "7ebd8ea78a8ebb3841e4e3576a46f686477ab1c5bcaa2a6fe9e76937a1f364df"
+    },
+    {
+      "bytes": 750,
+      "path": "sources/email/banh-mi-breeze_terms_check.eml",
+      "sha256": "2bef2ca808f0ce005bfd4e77a079d1bf78fb81460e8e2d9a378a51f2aa57b024"
+    },
+    {
+      "bytes": 766,
+      "path": "sources/email/birria-boardwalk_beneficiary_change.eml",
+      "sha256": "27f485587a58cd99c549ce880b338d94639c9c46164df35763ae7fe9692dbdce"
+    },
+    {
+      "bytes": 1070,
+      "path": "sources/email/cold-brew-cove_terms_thread.eml",
+      "sha256": "703d3739ef012f114ec38fa2c19e9b8769007acad721f31b7670f35629c41f05"
+    },
+    {
+      "bytes": 452,
+      "path": "sources/email/green-wave-juicery_minimum_question.eml",
+      "sha256": "6554ccfff572b9eb559532f9f7616afa65e04e9244fe8ac79fba3733976e93ac"
+    },
+    {
+      "bytes": 360,
+      "path": "sources/email/salsa-verde-kitchen_logistics.eml",
+      "sha256": "6e6e9566e23f53f49eb32de3965010383cd87c0accab119691aaec03cab898cd"
+    },
+    {
+      "bytes": 346,
+      "path": "sources/email/shrimp-shoal_logistics.eml",
+      "sha256": "352c18879b9b08e6bd7ab951cd9adce3f9da0e2e0b055251562592003009b72b"
+    },
+    {
+      "bytes": 414,
+      "path": "sources/email/staff_discount_notice.eml",
+      "sha256": "5e4bfa6175ca13036f5db8ff6d86ad9ccab81353708d6635deae1c53954a01b3"
+    },
+    {
+      "bytes": 352,
+      "path": "sources/email/steam-basket-co_logistics.eml",
+      "sha256": "b9b51df2dd47c596ff5230aa5ed214221ab4186cff7b438e11e1ee19b2789ae7"
+    },
+    {
+      "bytes": 828,
+      "path": "sources/expenses/expense_register.csv",
+      "sha256": "1b310a63a605ae692269ffbee17b3133c5911547fa1c7167f1b26fd4df96ab66"
+    },
+    {
+      "bytes": 1067,
+      "path": "sources/history/gcmf_2025_cases.json",
+      "sha256": "3b65c6ec5907965c4e44a11fedaa68f6d68caa47784604f182e0b541a5a5f75d"
+    },
+    {
+      "bytes": 1647,
+      "path": "sources/history/gcmf_2025_policies.json",
+      "sha256": "123d57488ed8f54a06e06840478ea871ed3abb7afe6768c651cd0d3523d983a0"
+    },
+    {
+      "bytes": 3946,
+      "path": "sources/history/gcmf_2025_settlement_summary.csv",
+      "sha256": "59b94a564573dd1805211fb7ff2837275014aaf3ffd96fbf499fa95fcbc13727"
+    },
+    {
+      "bytes": 15045,
+      "path": "sources/pos/menu_catalog.csv",
+      "sha256": "afbdbc04a2147df29120e6c4719a7c99a247979f9e6c082c1e6eb147bd9ab61c"
+    },
+    {
+      "bytes": 2689173,
+      "path": "sources/pos/pos_order_lines_2026-10-16.csv",
+      "sha256": "7c4e68b93704511e1ec6eec35f86ac79ae9ae4607ed32b61ce4c339d75b30217"
+    },
+    {
+      "bytes": 3359643,
+      "path": "sources/pos/pos_order_lines_2026-10-17.csv",
+      "sha256": "9e18ce0a66137bbaee5e38ad3d0d2f17a29dfe7be67df767a4835f548eb8c95c"
+    },
+    {
+      "bytes": 2993502,
+      "path": "sources/pos/pos_order_lines_2026-10-18.csv",
+      "sha256": "b77da4d0b89a69a74bd5a50bc9cfc65ba88195a5d12b3b8f24db43906a741514"
+    },
+    {
+      "bytes": 1472,
+      "path": "sources/pos/pos_order_lines_post_festival.csv",
+      "sha256": "a305b08b9479d8393816af09998bbfc16fa7222a0d3bf712b210620c3b0c0afc"
+    },
+    {
+      "bytes": 530,
+      "path": "sources/processor/cardco_batches.csv",
+      "sha256": "90bfb2b46493ce59932da01080fdad7c992a56dfbc3f427d7b791573368f81bf"
+    },
+    {
+      "bytes": 3566786,
+      "path": "sources/processor/cardco_payments.csv",
+      "sha256": "e0dec5f0b14e32ba0972ff1979377c14f3dfb22aa5d86a25325f209d52e1d9c1"
+    },
+    {
+      "bytes": 3699,
+      "path": "sources/processor/cardco_payments_2026-10-17_reexport.csv",
+      "sha256": "a2d2ce39cd81abdb348b29a78e49354e4bb46cd2aa2148e3117b7f51d4b6d04a"
+    },
+    {
+      "bytes": 316,
+      "path": "sources/processor/tapband_batches.csv",
+      "sha256": "050aac81b3959b0e614f6da78ab77396b3f3f28b3a82c09f32b979d3a4953e49"
+    },
+    {
+      "bytes": 815347,
+      "path": "sources/processor/tapband_payments.csv",
+      "sha256": "f34f033c9cc12da1d23d8644a9060d8124b92b3c538c3353d194215c1dae8909"
+    },
+    {
+      "bytes": 1277,
+      "path": "sources/sponsorship/brightwave_GCFP-SP-2026-001.pdf",
+      "sha256": "8b7c0d67ddac938127ef672bd7e604ba1925ae2543b06953114e0b72f32a829c"
+    },
+    {
+      "bytes": 1265,
+      "path": "sources/sponsorship/northbay_GCFP-SP-2026-004.pdf",
+      "sha256": "bf71d9da0db98f38fbba48673b750e5770a5a3e2407d08f67febe1e10d09070c"
+    },
+    {
+      "bytes": 1270,
+      "path": "sources/sponsorship/seabreeze_GCFP-SP-2026-002.pdf",
+      "sha256": "fbb97016afe19fd94c4b23d50921636dc13f8720c5460914b6d68f2b07157b32"
+    },
+    {
+      "bytes": 1264,
+      "path": "sources/sponsorship/tidal_GCFP-SP-2026-003.pdf",
+      "sha256": "98a3ab7ce5fe53c140060bc84baf2e2af1225f4c611fba0d8863f002886499d6"
+    },
+    {
+      "bytes": 588,
+      "path": "sources/suppliers/ap_payment_register.csv",
+      "sha256": "ce50f611a39b8ccb916287b52ee415f6b8663a5c196178f345c0a65e61f0ddb6"
+    },
+    {
+      "bytes": 1165,
+      "path": "sources/suppliers/bayline_BS-90311.pdf",
+      "sha256": "d41fc198354916ec6fd4ef2fc08b68fb813db6c163bef9399eb8334fc86fb5e2"
+    },
+    {
+      "bytes": 1151,
+      "path": "sources/suppliers/brightline_BLS-3305.pdf",
+      "sha256": "bcdc08e9579d736660c3f5f5250a4e4221142a919521b0410d0994e410ebb0ee"
+    },
+    {
+      "bytes": 1233,
+      "path": "sources/suppliers/brightline_BLS-3305_resent.pdf",
+      "sha256": "5042300e9379383debcd6491cdd0dc5902862d93d10d4d67d145e9e7ca021322"
+    },
+    {
+      "bytes": 1178,
+      "path": "sources/suppliers/coastline_CSS-4471.pdf",
+      "sha256": "b73e59d8437144c4ed1ebf7bd5cd7ed15d81066bc0f684f59369294f693ac0a7"
+    },
+    {
+      "bytes": 1178,
+      "path": "sources/suppliers/coastline_CSS-4519.pdf",
+      "sha256": "014fe4f305a0241fb620fb0b4f4dc24e68a189ea5e7520cc4138fbc17db871cb"
+    },
+    {
+      "bytes": 1143,
+      "path": "sources/suppliers/glacier_GIS-1101.pdf",
+      "sha256": "cbfa92fff77e3888905d5346af1d5f8d98cb3ff54d341ccc85f25a5009d2795a"
+    },
+    {
+      "bytes": 1143,
+      "path": "sources/suppliers/glacier_GIS-1102.pdf",
+      "sha256": "5873796d4fa6d7715b5d015c89a98e27097117b47f7303dfccf2663163c45c42"
+    },
+    {
+      "bytes": 1143,
+      "path": "sources/suppliers/glacier_GIS-1103.pdf",
+      "sha256": "78ae7db30ab86557881318d9ab8c942a07150b7755333aa17bd52baa30a4721d"
+    },
+    {
+      "bytes": 1225,
+      "path": "sources/suppliers/glacier_GIS-CN-0042.pdf",
+      "sha256": "000dcf1d745d66500215141f5fb6461932d41bb713ba9d868b2503527fe09ade"
+    },
+    {
+      "bytes": 1156,
+      "path": "sources/suppliers/harborfence_HFB-2208.pdf",
+      "sha256": "0c47775930d809480d7843cf81c178a17d55c3bc349fb5011769622be9e18a14"
+    },
+    {
+      "bytes": 1165,
+      "path": "sources/suppliers/northstar_NSS-7720.pdf",
+      "sha256": "7b16e770b7152150ead3633f282aa0c59edd714cfc37945a2b6d63d04837a2ff"
+    },
+    {
+      "bytes": 1165,
+      "path": "sources/suppliers/northstar_NSS-7781.pdf",
+      "sha256": "597eaefc368d9fbe9acfe2066deb52358a3e9af9a1602bbad6547b3e56d30824"
+    },
+    {
+      "bytes": 777,
+      "path": "sources/suppliers/purchase_orders.csv",
+      "sha256": "214a650ff0e821b8919ba4727c439ab8477665b9fff2d508dc16c4c5e67142d9"
+    },
+    {
+      "bytes": 1156,
+      "path": "sources/suppliers/volt_VGR-5512.pdf",
+      "sha256": "d0fc70dd647f4b8640facade60a9c5a5ea90d52bdce122c3526190238b92cc3f"
+    },
+    {
+      "bytes": 582,
+      "path": "sources/tickets/tixwave_settlements.csv",
+      "sha256": "696a464d5fad3a7704d6e9872446ffbf77f6bfebf32583591dba56c4a546c6ab"
+    }
+  ],
+  "fixture_id": "full_v1_heldout",
+  "generator": "data/generator/generate_full.py",
+  "generator_version": "0.2.0",
+  "input_totals": {
+    "bank_closing_balance_cents": "130866644",
+    "refund_eligible_cents": "-199575",
+    "sales_eligible_cents": "77028875",
+    "tax_cents": "6826721",
+    "tips_cents": "3167100"
+  },
+  "not_runtime_facing": [
+    "simulator_only/ (payout simulator + evaluator input)",
+    "manifest.json"
+  ],
+  "python_requirement": "CPython 3.13 (stdlib random.Random string seeds)",
+  "runtime_facing_dirs": [
+    "api/",
+    "sources/"
+  ],
+  "scenario_manifest_sha256": "079183e63cabb7dd88fa36026b3c6246415f4dab20487784b46507488d69e6b3",
+  "schema_note": "CONTRACTS.md v0.1 DRAFT C01/C03 field minimums (not frozen) + lane B additive proposals",
+  "seed": 20270611,
+  "source_versions": [
+    {
+      "content_hash": "sha256:e1fb7531b5140037e5cc57570308cac096682a9e08644e130d168c2af50698c9",
+      "kind": "BANK_STATEMENT",
+      "path": "sources/bank/operating_account_statement.csv",
+      "received_at": "2026-11-02T14:00:00Z",
+      "source_id": "src_083a24eb58a44f5e",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:497177a8b0f58141249a0fd438929248dd2d7a04cf0cc8c9ff328d2991d776a6",
+      "kind": "CASH_COUNT",
+      "path": "sources/cash/cash_counts.csv",
+      "received_at": "2026-10-19T13:00:00Z",
+      "source_id": "src_ea01b36ce41a234a",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:9bc1f21b329f06aea2b3292911e00ac72c709345d89cfcbc7961763ee3335b58",
+      "kind": "CASH_DEPOSIT_SLIP",
+      "path": "sources/cash/cash_office_deposit_slips.csv",
+      "received_at": "2026-10-19T19:00:00Z",
+      "source_id": "src_a45d6d3aeaf20715",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:16910f7a3010daf3dd8ecce7280c7dfbd9c036d08e0ff0a01dfbfe493c687e55",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/acai-atoll_agreement_v1.pdf",
+      "received_at": "2026-09-04T23:00:00Z",
+      "source_id": "src_81ca1440e1b227cf",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:035a391b6cf64b7543a726be93477365170c3fa078c8284904a5f7992b74d3a3",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/agua-azul_agreement_v1.pdf",
+      "received_at": "2026-08-17T23:00:00Z",
+      "source_id": "src_f7a06a3a03c4dcec",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:6804c80a12f20eb4e67466188ac305c664e302b365c4df8e55458b00172d0449",
+      "kind": "CONTRACT_AMENDMENT",
+      "path": "sources/contracts/amendments/agua-azul_amendment_1.pdf",
+      "received_at": "2026-10-05T22:30:00Z",
+      "source_id": "src_5a0a938f2aa0c3dd",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:2239cd40b3946e3bfe9a94398f26e4c80d20f7e48c6c0bb1e72bf35c6809b2aa",
+      "kind": "CONTRACT_AMENDMENT",
+      "path": "sources/contracts/amendments/cold-brew-cove_amendment_1.pdf",
+      "received_at": "2026-10-19T14:05:00Z",
+      "source_id": "src_05c9e9dc964b428b",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:0f7e80387bd6af7bc1c0677cdb55a0fc90e7c0faffc7788ff2bb6493d81410f5",
+      "kind": "CONTRACT_AMENDMENT",
+      "path": "sources/contracts/amendments/smoke-signal-bbq_amendment_1.pdf",
+      "received_at": "2026-10-06T22:30:00Z",
+      "source_id": "src_cc1ee1b3be142a5f",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:cdc2ff554168cd22d1e9a96d40696b0a8125b53439a12eb0a08c60cd257ed5f0",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/banh-mi-breeze_agreement_v1.pdf",
+      "received_at": "2026-08-08T23:00:00Z",
+      "source_id": "src_f0c388aaea40d0b2",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:d61d092a0af151cf8f027253199fd3bf337690c9b0f8b7e4936181ac4a4b7f1e",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/bao-down_agreement_v1.pdf",
+      "received_at": "2026-08-18T23:00:00Z",
+      "source_id": "src_3fe6d9a4915f97a8",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:6808b1847b729a72548b79580e7fbe260d97ec8df64c5253ca67aedc0da14b47",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/batter-bay_agreement_v1.pdf",
+      "received_at": "2026-08-21T23:00:00Z",
+      "source_id": "src_cac7435c3e6e0833",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:0f2dbec139f74913ccb5800e1a35843abb055c2a7d42f27d4e90c487016ba7fe",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/birria-boardwalk_agreement_v1.pdf",
+      "received_at": "2026-08-16T23:00:00Z",
+      "source_id": "src_a7dc7bc9f54c9c08",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:ef4e47be6d4132d76ffa3bce15bf04db3290ff0861d6cc0ee477d5d497fff51e",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/blend-shore_agreement_v1.pdf",
+      "received_at": "2026-09-06T23:00:00Z",
+      "source_id": "src_3492178cdb320fbd",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:d310d6ee3496e8b2f806387e73cf67919ad338c0587aa864abd55275cf3952bc",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/brisket-bay_agreement_v1.pdf",
+      "received_at": "2026-08-27T23:00:00Z",
+      "source_id": "src_75fffeba71638eb6",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:1ac97bb9dde6c2ea8d73ce2fa908dd7e19cd38028cf10df49ac93aafa4cdeb76",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/bun-voyage_agreement_v1.pdf",
+      "received_at": "2026-08-08T23:00:00Z",
+      "source_id": "src_6827613d740a7643",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:ba20aa4cb029adfd340c25b0e2bd360622dd2ef16f0fbd3f01821279afb17865",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/calamari-cove_agreement_v1.pdf",
+      "received_at": "2026-08-18T23:00:00Z",
+      "source_id": "src_88b29c03e1a4bd87",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:7b63028e076080eaee8ca47abb251d34138111a2b0bf3beb9cbcea6433f0088b",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/churro-cart_agreement_v1.pdf",
+      "received_at": "2026-08-30T23:00:00Z",
+      "source_id": "src_50bc0cfdcf72b9b2",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:6692fb5b627bfff287ff0dffd3f0913760ddef9015a1c30a987d3ed6ca7c8062",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/citrus-current_agreement_v1.pdf",
+      "received_at": "2026-08-28T23:00:00Z",
+      "source_id": "src_8547404d0d2e10f6",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:1b867787a3d16736de129ae3d69665c128c4e8f873d65925001e4d9b4b97401f",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/cocoa-coast_agreement_v1.pdf",
+      "received_at": "2026-08-22T23:00:00Z",
+      "source_id": "src_38e8065af49fd202",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:d68e6c83230f29bb783812fc658afe35374ec9bc1eae4d59faea3f543c5a3a24",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/coconut-cabana_agreement_v1.pdf",
+      "received_at": "2026-08-22T23:00:00Z",
+      "source_id": "src_14c18e6b343263e5",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:0b57039f15d95c579e31ba924692c0d49b76d22d81b31056644c8ab6cc921b93",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/cold-brew-cove_agreement_v1.pdf",
+      "received_at": "2026-08-29T23:00:00Z",
+      "source_id": "src_597a5cad816d44d5",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:6d31381a09c1c634fbe0b7dd1333b2f6527aa015cd1c4653afc5f666dd2a0498",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/comal-collective_agreement_v1.pdf",
+      "received_at": "2026-09-06T23:00:00Z",
+      "source_id": "src_2e119e9656b4c771",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:0b31c16e58ad6dde70e11a309e01dd0a8cb30d9cbe51578a8e58b8e3c2920272",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/corn-dog-corner_agreement_v1.pdf",
+      "received_at": "2026-08-28T23:00:00Z",
+      "source_id": "src_5857a21a37b6737f",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:27a20f800acc405e5adf9e932ba2acd99debb52789b27cc4655babc22fc87d0c",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/crab-shack-coast_agreement_v1.pdf",
+      "received_at": "2026-08-22T23:00:00Z",
+      "source_id": "src_01bb253327f4dc3e",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:75aba762f8321c7290e6a7c0790a7f60671d7a3560491b4f58671e6d1f398de9",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/crepe-escape_agreement_v1.pdf",
+      "received_at": "2026-08-08T23:00:00Z",
+      "source_id": "src_2dbd517b00b7112e",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:4f46aaa69b36accd05eee8695079d3a5bc3606d64991907b8695d03b0ec3f0f0",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/crust-coast_agreement_v1.pdf",
+      "received_at": "2026-08-24T23:00:00Z",
+      "source_id": "src_329db46ee8eba276",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:ac0d381b4085d80e583c15dfa5674d1853d9666fdaab349121194a3bf0bfe9e3",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/dog-days-diner_agreement_v1.pdf",
+      "received_at": "2026-08-15T23:00:00Z",
+      "source_id": "src_c0a28401ef2e2364",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:f04f7be3b9e66107e63204cd82d3a31bab195b94c3bb4b07cf8f7492dc78ab36",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/donut-dunes_agreement_v1.pdf",
+      "received_at": "2026-08-21T23:00:00Z",
+      "source_id": "src_45f1ca3a36dc5f8d",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:38fdc7571069bc3b03e95d9a8daae037faa4fa6a93a0b79e26eacf0aba0afdf2",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/dough-rays_agreement_v1.pdf",
+      "received_at": "2026-08-31T23:00:00Z",
+      "source_id": "src_008fe9ec9103f5a6",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:b446702dac53b9ac5ce4bde3ad00a765aed245f8f1dc8179a5f8f34647e28aa6",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/driftwood-coffee_agreement_v1.pdf",
+      "received_at": "2026-09-02T23:00:00Z",
+      "source_id": "src_1bdfa0f7b8299485",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:49aaed149a88f38e6faac5c7471d039d028175e089757c75d1572c1124cc221e",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/dumpling-drift_agreement_v1.pdf",
+      "received_at": "2026-08-04T23:00:00Z",
+      "source_id": "src_86e5a23912092eb7",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:6077e602e5cda8c5544173abee0234e7233c7000f239c0fc640913f2190f14b6",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/ember-burger-bar_agreement_v1.pdf",
+      "received_at": "2026-09-02T23:00:00Z",
+      "source_id": "src_cd02bee7fca7ee39",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:1a2739c1cebe8b823fbb2e4fb05c72c1ddb123418d43421aa0e9fb70c12559c1",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/falafel-fathom_agreement_v1.pdf",
+      "received_at": "2026-08-11T23:00:00Z",
+      "source_id": "src_3be6142f08a30d01",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:66a8518a9b2c732a817ee2ccb6f2e43fba56fe0dced10b18fdf51b923a97755f",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/ferro-pizza-cart_agreement_v1.pdf",
+      "received_at": "2026-09-02T23:00:00Z",
+      "source_id": "src_50e6cb0d930f9e79",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:64e6a38b85e4b122452e180ba644f4889e1f6183fad4a86bb8ca9f074d1da66a",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/fish-taco-tide_agreement_v1.pdf",
+      "received_at": "2026-09-06T23:00:00Z",
+      "source_id": "src_3c184f06154cddf5",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:b37723be2c571aa1e6a478cb4546362682f7f13e860e2b0a0ef815a5f537c008",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/frankly-coastal_agreement_v1.pdf",
+      "received_at": "2026-08-30T23:00:00Z",
+      "source_id": "src_358849a15d85f8ca",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:de1698687d95c58dc80ce270df45bdd740730ce1cb8de786acfb59ae529c940a",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/frosted-pier_agreement_v1.pdf",
+      "received_at": "2026-08-31T23:00:00Z",
+      "source_id": "src_aa1fa77170d6bf92",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:9ea07b82bdaf4133d26baebbd33dfdca1f32e6c51bed3cff1e0c7ce2b243b087",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/golden-griddle_agreement_v1.pdf",
+      "received_at": "2026-08-27T23:00:00Z",
+      "source_id": "src_064a16c84879d05c",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:8343d2bd126f516bcb5fe6af2475e58e9d8219de1062569e10cbdccabb5945d1",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/green-wave-juicery_agreement_v1.pdf",
+      "received_at": "2026-09-02T23:00:00Z",
+      "source_id": "src_e0e90fce0fed42d4",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:9f7c04f7024d7f34f7b5209381eed998335ee472514761d624c468639185ba14",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/gyro-gulf_agreement_v1.pdf",
+      "received_at": "2026-08-11T23:00:00Z",
+      "source_id": "src_71f45b5d93e1323f",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:fd3e248eee435067c9ce574966c7af65c46594f5e0251da3ce4e767f0c16d38a",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/half-and-half-stand_agreement_v1.pdf",
+      "received_at": "2026-08-10T23:00:00Z",
+      "source_id": "src_66fbfd5077d45e6b",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:0a8ad94f3f3101ad2014b094518e78a4e3761c8c919b1e3247b649e7b7836d54",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/harbor-bean_agreement_v1.pdf",
+      "received_at": "2026-08-22T23:00:00Z",
+      "source_id": "src_432052e1d24453a3",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:fd1f09626aaa689860a99ecd469ed302d0b534e17b9380b590fb2eead254da6b",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/hickory-hollow_agreement_v1.pdf",
+      "received_at": "2026-08-31T23:00:00Z",
+      "source_id": "src_00e297928755d5d5",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:ba7f9ddd791f8688d6c5c806cd7e7825e0389f31a9ea07c9c5a75b0d6f62530c",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/hummus-harbor_agreement_v1.pdf",
+      "received_at": "2026-08-15T23:00:00Z",
+      "source_id": "src_9127c190fd195542",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:e5a74cd892edcfcc17fd039a85e1088fe12b19a995d86dac439e163d4ba2f2cd",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/kettle-corn-co_agreement_v1.pdf",
+      "received_at": "2026-08-14T23:00:00Z",
+      "source_id": "src_f0de43f926e4ed31",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:7fc25b57e11869eeca8680ed23166a24ad3a814edce68f2f2c6a3411e5ea3dc3",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/kombucha-kove_agreement_v1.pdf",
+      "received_at": "2026-08-27T23:00:00Z",
+      "source_id": "src_a4a114492daae00d",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:6a3fadb08139b30c42e1e334ac0f2b7fe55a82354cd2d699054dcbbea1de3bdb",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/lantern-noodle-bar_agreement_v1.pdf",
+      "received_at": "2026-08-05T23:00:00Z",
+      "source_id": "src_a449288ec57e047a",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:51a744ff8d702083c11743233024382aeae90a11dada24519b6a547626e4157b",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/late-bloom-lemonade_agreement_v1.pdf",
+      "received_at": "2026-08-13T23:00:00Z",
+      "source_id": "src_a132687db7e594ed",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:7ef8facbbc89caa1cb9149286c52aa8c9e5a880e0b6bc6dd9e3c288032ff2874",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/leafy-landing_agreement_v1.pdf",
+      "received_at": "2026-08-18T23:00:00Z",
+      "source_id": "src_f566c60a15b19886",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:800fdddda990e5cc82bc2ab0c47ccc30a348d436b53aea83e49cb65a2df7e84d",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/low-tide-smokehouse_agreement_v1.pdf",
+      "received_at": "2026-08-18T23:00:00Z",
+      "source_id": "src_3d0e63173c9e5333",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:2ff4ac3765c5aee9f96f16c3dc18eeed833fdc4ab8e5ef1d4d30f40098258c18",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/mango-current_agreement_v1.pdf",
+      "received_at": "2026-08-03T23:00:00Z",
+      "source_id": "src_91271ac1dc5559fa",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:de15d96c23c25c69e9c2ce2ad0cfde969ded62ac78879cf565f82bb40a3d0d67",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/morning-swell-roasters_agreement_v1.pdf",
+      "received_at": "2026-08-24T23:00:00Z",
+      "source_id": "src_b16693e5a09c0d28",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:bde0efaa88052c632ee9385640ce233488f3e9434936a086f5a27b58ded0a6c5",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/mustard-point_agreement_v1.pdf",
+      "received_at": "2026-08-03T23:00:00Z",
+      "source_id": "src_ef639b2db4745d38",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:e56723b0216c5bf335b7b0d726c3281f4234e72f1afcb59ad1d6acb3aca3f48a",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/nacho-harbor_agreement_v1.pdf",
+      "received_at": "2026-08-09T23:00:00Z",
+      "source_id": "src_bf8c2c08726086b9",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:84b06035b1f133e45aca339201dac9d09c39f5f3e58b385e306f0b56db576f65",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/noodle-current_agreement_v1.pdf",
+      "received_at": "2026-08-14T23:00:00Z",
+      "source_id": "src_bb9451366360e2b6",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:7c284369822a50080f15893bf5014ec699d429db810fe42699dff41e85a8e185",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/olive-tide_agreement_v1.pdf",
+      "received_at": "2026-08-04T23:00:00Z",
+      "source_id": "src_42b51cf876477a43",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:d0b22fa2b5f8a63aa3fc5f1551d64f0bc744be89761699e03556792814ac849c",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/patty-point_agreement_v1.pdf",
+      "received_at": "2026-08-19T23:00:00Z",
+      "source_id": "src_c5c24cac5ec8190b",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:f156db3c111317a073f265036364addd5a90bd4bab92ca0209e80a7229826db1",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/pho-real-kitchen_agreement_v1.pdf",
+      "received_at": "2026-09-03T23:00:00Z",
+      "source_id": "src_4e3011b6ebd19b99",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:1cf8c8e722d1d42b3dfc69c54942ab96bb4f28ea9a76d1a72dfa8f5587526aaa",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/pit-lane-barbecue_agreement_v1.pdf",
+      "received_at": "2026-08-11T23:00:00Z",
+      "source_id": "src_a13ff65a075282d8",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:8a1343e61af190da6eed2930b8104e0746a4732387d013b51fac79a6adf2b9f3",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/pita-pier_agreement_v1.pdf",
+      "received_at": "2026-08-31T23:00:00Z",
+      "source_id": "src_086e91a6af28e559",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:b74f38ed791f7eeb2383f0e772407451bc396013265748289448a2da61408fae",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/plant-wave_agreement_v1.pdf",
+      "received_at": "2026-09-03T23:00:00Z",
+      "source_id": "src_ac54b62aa1ac78e8",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:57c846e4a84c8c98ecea816dc53c1a4ca951d2b75820dbe1b839e169fc31f93a",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/poke-lagoon_agreement_v1.pdf",
+      "received_at": "2026-08-07T23:00:00Z",
+      "source_id": "src_bc6b484f0e9987e1",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:1c61a4d64c1c2f7dc6973f9ce37d63c275817f9b167e0f9ace636f5d69661964",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/popcorn-pier_agreement_v1.pdf",
+      "received_at": "2026-08-27T23:00:00Z",
+      "source_id": "src_e07ed5a2bf75e980",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:3dbd59a04379eeea228823436052ff45279b1af149650ea548fa491cb108e5aa",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/potsticker-pier_agreement_v1.pdf",
+      "received_at": "2026-08-06T23:00:00Z",
+      "source_id": "src_6ed080393cfa654b",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:51553984e1893ddd89d824d901f1bc0a2b27d20fbcbdb1f88aeefdef5ba30b87",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/pretzel-point_agreement_v1.pdf",
+      "received_at": "2026-08-13T23:00:00Z",
+      "source_id": "src_2b917950e3ab2dd7",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:befb1c887c50652a505581277110391ead2c6b2555862c42b47d32da8103ffbe",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/relish-row_agreement_v1.pdf",
+      "received_at": "2026-08-16T23:00:00Z",
+      "source_id": "src_1cad09130ed82328",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:8ca08b8aab1dc0185bc992b43a2a34ee116d2cbfc6b75eff9bfed92d486f13e4",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/root-bowl-co_agreement_v1.pdf",
+      "received_at": "2026-08-09T23:00:00Z",
+      "source_id": "src_2e198d8a94726984",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:ae4a3f0d19d9a5bb1180558085d11f2b66bb2ee41c200130b2cf307b8aa8b9cf",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/saigon-swell_agreement_v1.pdf",
+      "received_at": "2026-08-23T23:00:00Z",
+      "source_id": "src_585d5ce1b6aa3aa1",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:3aaaa4ed6bf89a3acc4e5d4321ba567f7ac0b555a15b1201529b8ab7283b141e",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/salsa-verde-kitchen_agreement_v1.pdf",
+      "received_at": "2026-08-17T23:00:00Z",
+      "source_id": "src_1bc38f699bdc8940",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:7a90bafbebf9566f39e6688572aba29d46d3a6c06fa6b276b45ff858ff5b0913",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/salty-gull-snacks_agreement_v1.pdf",
+      "received_at": "2026-08-06T23:00:00Z",
+      "source_id": "src_8263cd7a3497da16",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:c7f7e43f0add3f2e9a7b15275791fd67e5ac5bbf9fc133ba86980bb90497e8a7",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/scoop-shack_agreement_v1.pdf",
+      "received_at": "2026-08-10T23:00:00Z",
+      "source_id": "src_bd7de4f8bbf43721",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:ceb259ff5623ed990fa2edde290fd76e046fccae8aedff01e1e4600ebae90db9",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/shrimp-shoal_agreement_v1.pdf",
+      "received_at": "2026-08-23T23:00:00Z",
+      "source_id": "src_87f1a7d128a05a90",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:e9e2edcdc9dcd65c2c1aac6a01da50ad9415efe48ee3d5a94937cbe68ff7b4fc",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/slice-harbor_agreement_v1.pdf",
+      "received_at": "2026-08-28T23:00:00Z",
+      "source_id": "src_007f72ea72ec749d",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:293e4ebd38b268c4f173ceca8fd1aac495892366b2065decbfcd107e0bf17aac",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/smash-lane_agreement_v1.pdf",
+      "received_at": "2026-08-18T23:00:00Z",
+      "source_id": "src_fbc52497e098a504",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:6ad0d3e58ca0aa1900f716d32b7fe84108bdbde605380caf88bec37f811b1e30",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/smoke-signal-bbq_agreement_v1.pdf",
+      "received_at": "2026-08-10T23:00:00Z",
+      "source_id": "src_0468c939addc07a5",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:eb1088ce8338408339da17b26341a3f67e2577d244f6a01c49ea8a2878a057f0",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/sprout-stand_agreement_v1.pdf",
+      "received_at": "2026-08-26T23:00:00Z",
+      "source_id": "src_237873757d1256ba",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:d53181424cea04f651befc7e535095053b42c783399c8da45eb14d6746479eca",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/steam-basket-co_agreement_v1.pdf",
+      "received_at": "2026-08-21T23:00:00Z",
+      "source_id": "src_aeba85f01815ec64",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:47df672f935f3b9628d5e13540eb958a767ccec1519498b09eadde7cb7d9e9ee",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/sugar-reef_agreement_v1.pdf",
+      "received_at": "2026-08-17T23:00:00Z",
+      "source_id": "src_6f48f68249582dc1",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:0aaca266ee4e5c1b6b1875670e6b266481ffc00a8b24f7fb834d48e8d3bf83ca",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/sunrise-smoothies_agreement_v1.pdf",
+      "received_at": "2026-08-23T23:00:00Z",
+      "source_id": "src_776277589ce488dd",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:51942b985c5ced3508890d95669eed655c1f3fad8eaa8ed9c71f87f0ab8ecefe",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/sunset-slice_agreement_v1.pdf",
+      "received_at": "2026-08-13T23:00:00Z",
+      "source_id": "src_b79e46d375c3a90a",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:72d699702512a0c82b952251fa3032df035ea4b2f5344b4061691863a9d1b7ff",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/sweet-swell_agreement_v1.pdf",
+      "received_at": "2026-08-29T23:00:00Z",
+      "source_id": "src_fb2ad307af1dcbbd",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:d35f7b6a3cd8be3f037e108b23250fc090a8e75556d69a3b8311dac1ea94db39",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/taco-libre_agreement_v1.pdf",
+      "received_at": "2026-08-03T23:00:00Z",
+      "source_id": "src_9e4665c230ae9d4c",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:493b41e7e1db151254c53df964c6e1704deee261c9f727b985ef400053c2569d",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/tidepool-espresso_agreement_v1.pdf",
+      "received_at": "2026-08-04T23:00:00Z",
+      "source_id": "src_f48bb732b9cbedea",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:760445f3ad948effe54414185914b2dd3b47f37d090a95d991c02ad78d686e83",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/tortilla-tide_agreement_v1.pdf",
+      "received_at": "2026-08-24T23:00:00Z",
+      "source_id": "src_e62f889b1fa76322",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:1ee1e0cbfc3a9c0df556157d289908f871565a38e7b3389d418e5d5832c6c0d1",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/waffle-wharf_agreement_v1.pdf",
+      "received_at": "2026-08-17T23:00:00Z",
+      "source_id": "src_6c1cd813641af1d8",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:7ebd8ea78a8ebb3841e4e3576a46f686477ab1c5bcaa2a6fe9e76937a1f364df",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/wonton-wave_agreement_v1.pdf",
+      "received_at": "2026-08-12T23:00:00Z",
+      "source_id": "src_dec8e4acf7ca191e",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:2bef2ca808f0ce005bfd4e77a079d1bf78fb81460e8e2d9a378a51f2aa57b024",
+      "kind": "EMAIL_THREAD",
+      "path": "sources/email/banh-mi-breeze_terms_check.eml",
+      "received_at": "2026-09-30T22:22:00Z",
+      "source_id": "src_37666feff004de4f",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:27f485587a58cd99c549ce880b338d94639c9c46164df35763ae7fe9692dbdce",
+      "kind": "EMAIL_THREAD",
+      "path": "sources/email/birria-boardwalk_beneficiary_change.eml",
+      "received_at": "2026-10-17T22:20:00Z",
+      "source_id": "src_622747d6e58dd20c",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:703d3739ef012f114ec38fa2c19e9b8769007acad721f31b7670f35629c41f05",
+      "kind": "EMAIL_THREAD",
+      "path": "sources/email/cold-brew-cove_terms_thread.eml",
+      "received_at": "2026-09-28T16:41:00Z",
+      "source_id": "src_0e89b94134f43498",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:6554ccfff572b9eb559532f9f7616afa65e04e9244fe8ac79fba3733976e93ac",
+      "kind": "EMAIL_THREAD",
+      "path": "sources/email/green-wave-juicery_minimum_question.eml",
+      "received_at": "2026-10-15T23:40:00Z",
+      "source_id": "src_7f6ca9230b80aee7",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:6e6e9566e23f53f49eb32de3965010383cd87c0accab119691aaec03cab898cd",
+      "kind": "EMAIL_THREAD",
+      "path": "sources/email/salsa-verde-kitchen_logistics.eml",
+      "received_at": "2026-10-12T17:15:00Z",
+      "source_id": "src_1ef710b0c84b769e",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:352c18879b9b08e6bd7ab951cd9adce3f9da0e2e0b055251562592003009b72b",
+      "kind": "EMAIL_THREAD",
+      "path": "sources/email/shrimp-shoal_logistics.eml",
+      "received_at": "2026-10-10T17:15:00Z",
+      "source_id": "src_e2bf9de0c9b1cac6",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:5e4bfa6175ca13036f5db8ff6d86ad9ccab81353708d6635deae1c53954a01b3",
+      "kind": "EMAIL_THREAD",
+      "path": "sources/email/staff_discount_notice.eml",
+      "received_at": "2026-10-12T18:00:00Z",
+      "source_id": "src_0725dc749960b4ed",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:b9b51df2dd47c596ff5230aa5ed214221ab4186cff7b438e11e1ee19b2789ae7",
+      "kind": "EMAIL_THREAD",
+      "path": "sources/email/steam-basket-co_logistics.eml",
+      "received_at": "2026-10-11T17:15:00Z",
+      "source_id": "src_f8c9493b0131012d",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:1b310a63a605ae692269ffbee17b3133c5911547fa1c7167f1b26fd4df96ab66",
+      "kind": "EXPENSE_REGISTER",
+      "path": "sources/expenses/expense_register.csv",
+      "received_at": "2026-10-28T19:00:00Z",
+      "source_id": "src_2a6f3a43fe97cb00",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:3b65c6ec5907965c4e44a11fedaa68f6d68caa47784604f182e0b541a5a5f75d",
+      "kind": "HISTORY_EXPORT",
+      "path": "sources/history/gcmf_2025_cases.json",
+      "received_at": "2025-11-15T20:00:00Z",
+      "source_id": "src_463355728a9dcf40",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:123d57488ed8f54a06e06840478ea871ed3abb7afe6768c651cd0d3523d983a0",
+      "kind": "HISTORY_EXPORT",
+      "path": "sources/history/gcmf_2025_policies.json",
+      "received_at": "2025-11-15T20:00:00Z",
+      "source_id": "src_bdaf6686a8a06b20",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:59b94a564573dd1805211fb7ff2837275014aaf3ffd96fbf499fa95fcbc13727",
+      "kind": "HISTORY_EXPORT",
+      "path": "sources/history/gcmf_2025_settlement_summary.csv",
+      "received_at": "2025-11-15T20:00:00Z",
+      "source_id": "src_77914c811c25a983",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:afbdbc04a2147df29120e6c4719a7c99a247979f9e6c082c1e6eb147bd9ab61c",
+      "kind": "MENU_CATALOG",
+      "path": "sources/pos/menu_catalog.csv",
+      "received_at": "2026-10-14T19:00:00Z",
+      "source_id": "src_71aeeac231a4fae4",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:7c4e68b93704511e1ec6eec35f86ac79ae9ae4607ed32b61ce4c339d75b30217",
+      "kind": "POS_EXPORT",
+      "path": "sources/pos/pos_order_lines_2026-10-16.csv",
+      "received_at": "2026-10-17T08:33:58Z",
+      "source_id": "src_d96cb1cdff48cc85",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:9e18ce0a66137bbaee5e38ad3d0d2f17a29dfe7be67df767a4835f548eb8c95c",
+      "kind": "POS_EXPORT",
+      "path": "sources/pos/pos_order_lines_2026-10-17.csv",
+      "received_at": "2026-10-18T08:26:01Z",
+      "source_id": "src_0c3952684b53fe68",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:b77da4d0b89a69a74bd5a50bc9cfc65ba88195a5d12b3b8f24db43906a741514",
+      "kind": "POS_EXPORT",
+      "path": "sources/pos/pos_order_lines_2026-10-18.csv",
+      "received_at": "2026-10-19T08:24:48Z",
+      "source_id": "src_a17c62057f05de40",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:a305b08b9479d8393816af09998bbfc16fa7222a0d3bf712b210620c3b0c0afc",
+      "kind": "POS_EXPORT",
+      "path": "sources/pos/pos_order_lines_post_festival.csv",
+      "received_at": "2026-10-26T13:00:00Z",
+      "source_id": "src_3ba1dced0e742f62",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:90bfb2b46493ce59932da01080fdad7c992a56dfbc3f427d7b791573368f81bf",
+      "kind": "PROCESSOR_REPORT",
+      "path": "sources/processor/cardco_batches.csv",
+      "received_at": "2026-10-26T13:00:00Z",
+      "source_id": "src_a3fefdeb4393a86e",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:e0dec5f0b14e32ba0972ff1979377c14f3dfb22aa5d86a25325f209d52e1d9c1",
+      "kind": "PROCESSOR_REPORT",
+      "path": "sources/processor/cardco_payments.csv",
+      "received_at": "2026-10-26T13:00:00Z",
+      "source_id": "src_b44781a2a95318ad",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:a2d2ce39cd81abdb348b29a78e49354e4bb46cd2aa2148e3117b7f51d4b6d04a",
+      "kind": "PROCESSOR_REPORT",
+      "path": "sources/processor/cardco_payments_2026-10-17_reexport.csv",
+      "received_at": "2026-10-18T14:30:00Z",
+      "source_id": "src_b0b8a65545515345",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:050aac81b3959b0e614f6da78ab77396b3f3f28b3a82c09f32b979d3a4953e49",
+      "kind": "PROCESSOR_REPORT",
+      "path": "sources/processor/tapband_batches.csv",
+      "received_at": "2026-10-26T13:00:00Z",
+      "source_id": "src_865b754fcc1810fc",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:f34f033c9cc12da1d23d8644a9060d8124b92b3c538c3353d194215c1dae8909",
+      "kind": "PROCESSOR_REPORT",
+      "path": "sources/processor/tapband_payments.csv",
+      "received_at": "2026-10-26T13:00:00Z",
+      "source_id": "src_9724cb0d21022522",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:8b7c0d67ddac938127ef672bd7e604ba1925ae2543b06953114e0b72f32a829c",
+      "kind": "SPONSORSHIP_INVOICE",
+      "path": "sources/sponsorship/brightwave_GCFP-SP-2026-001.pdf",
+      "received_at": "2026-09-01T17:00:00Z",
+      "source_id": "src_4f85ea4507208b02",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:bf71d9da0db98f38fbba48673b750e5770a5a3e2407d08f67febe1e10d09070c",
+      "kind": "SPONSORSHIP_INVOICE",
+      "path": "sources/sponsorship/northbay_GCFP-SP-2026-004.pdf",
+      "received_at": "2026-09-10T17:00:00Z",
+      "source_id": "src_f835f5749ea7d9eb",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:fbb97016afe19fd94c4b23d50921636dc13f8720c5460914b6d68f2b07157b32",
+      "kind": "SPONSORSHIP_INVOICE",
+      "path": "sources/sponsorship/seabreeze_GCFP-SP-2026-002.pdf",
+      "received_at": "2026-09-01T17:00:00Z",
+      "source_id": "src_92150059ae4c2516",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:98a3ab7ce5fe53c140060bc84baf2e2af1225f4c611fba0d8863f002886499d6",
+      "kind": "SPONSORSHIP_INVOICE",
+      "path": "sources/sponsorship/tidal_GCFP-SP-2026-003.pdf",
+      "received_at": "2026-09-05T17:00:00Z",
+      "source_id": "src_77cf335081951669",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:ce50f611a39b8ccb916287b52ee415f6b8663a5c196178f345c0a65e61f0ddb6",
+      "kind": "AP_PAYMENT_REGISTER",
+      "path": "sources/suppliers/ap_payment_register.csv",
+      "received_at": "2026-10-28T19:00:00Z",
+      "source_id": "src_b5c687ae9a25d032",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:d41fc198354916ec6fd4ef2fc08b68fb813db6c163bef9399eb8334fc86fb5e2",
+      "kind": "SUPPLIER_INVOICE",
+      "path": "sources/suppliers/bayline_BS-90311.pdf",
+      "received_at": "2026-10-20T22:00:00Z",
+      "source_id": "src_1011b6a0cfb3b5b7",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:bcdc08e9579d736660c3f5f5250a4e4221142a919521b0410d0994e410ebb0ee",
+      "kind": "SUPPLIER_INVOICE",
+      "path": "sources/suppliers/brightline_BLS-3305.pdf",
+      "received_at": "2026-09-20T22:00:00Z",
+      "source_id": "src_cae2ea537b219f05",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:5042300e9379383debcd6491cdd0dc5902862d93d10d4d67d145e9e7ca021322",
+      "kind": "SUPPLIER_INVOICE",
+      "path": "sources/suppliers/brightline_BLS-3305_resent.pdf",
+      "received_at": "2026-10-20T16:10:00Z",
+      "source_id": "src_53316376e54a8043",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:b73e59d8437144c4ed1ebf7bd5cd7ed15d81066bc0f684f59369294f693ac0a7",
+      "kind": "SUPPLIER_INVOICE",
+      "path": "sources/suppliers/coastline_CSS-4471.pdf",
+      "received_at": "2026-09-15T22:00:00Z",
+      "source_id": "src_a28a1d023b8b6b3e",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:014fe4f305a0241fb620fb0b4f4dc24e68a189ea5e7520cc4138fbc17db871cb",
+      "kind": "SUPPLIER_INVOICE",
+      "path": "sources/suppliers/coastline_CSS-4519.pdf",
+      "received_at": "2026-10-10T22:00:00Z",
+      "source_id": "src_17421fe60ad1c76f",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:cbfa92fff77e3888905d5346af1d5f8d98cb3ff54d341ccc85f25a5009d2795a",
+      "kind": "SUPPLIER_INVOICE",
+      "path": "sources/suppliers/glacier_GIS-1101.pdf",
+      "received_at": "2026-10-16T22:00:00Z",
+      "source_id": "src_10d8919d1c18d204",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:5873796d4fa6d7715b5d015c89a98e27097117b47f7303dfccf2663163c45c42",
+      "kind": "SUPPLIER_INVOICE",
+      "path": "sources/suppliers/glacier_GIS-1102.pdf",
+      "received_at": "2026-10-17T22:00:00Z",
+      "source_id": "src_423857892a0c1cdd",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:78ae7db30ab86557881318d9ab8c942a07150b7755333aa17bd52baa30a4721d",
+      "kind": "SUPPLIER_INVOICE",
+      "path": "sources/suppliers/glacier_GIS-1103.pdf",
+      "received_at": "2026-10-18T22:00:00Z",
+      "source_id": "src_d3ce59f40d9e6572",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:000dcf1d745d66500215141f5fb6461932d41bb713ba9d868b2503527fe09ade",
+      "kind": "SUPPLIER_CREDIT_NOTE",
+      "path": "sources/suppliers/glacier_GIS-CN-0042.pdf",
+      "received_at": "2026-10-19T22:00:00Z",
+      "source_id": "src_16953fee54bf239e",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:0c47775930d809480d7843cf81c178a17d55c3bc349fb5011769622be9e18a14",
+      "kind": "SUPPLIER_INVOICE",
+      "path": "sources/suppliers/harborfence_HFB-2208.pdf",
+      "received_at": "2026-10-01T22:00:00Z",
+      "source_id": "src_cfd6aabafea39b71",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:7b16e770b7152150ead3633f282aa0c59edd714cfc37945a2b6d63d04837a2ff",
+      "kind": "SUPPLIER_INVOICE",
+      "path": "sources/suppliers/northstar_NSS-7720.pdf",
+      "received_at": "2026-09-30T22:00:00Z",
+      "source_id": "src_58610af24790755d",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:597eaefc368d9fbe9acfe2066deb52358a3e9af9a1602bbad6547b3e56d30824",
+      "kind": "SUPPLIER_INVOICE",
+      "path": "sources/suppliers/northstar_NSS-7781.pdf",
+      "received_at": "2026-10-19T22:00:00Z",
+      "source_id": "src_6ef0fb610a8ea8a9",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:214a650ff0e821b8919ba4727c439ab8477665b9fff2d508dc16c4c5e67142d9",
+      "kind": "PURCHASE_ORDER_EXPORT",
+      "path": "sources/suppliers/purchase_orders.csv",
+      "received_at": "2026-09-15T19:00:00Z",
+      "source_id": "src_0a4801c763c9bede",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:d0fc70dd647f4b8640facade60a9c5a5ea90d52bdce122c3526190238b92cc3f",
+      "kind": "SUPPLIER_INVOICE",
+      "path": "sources/suppliers/volt_VGR-5512.pdf",
+      "received_at": "2026-10-11T22:00:00Z",
+      "source_id": "src_2bee0d5e86bb77a4",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:696a464d5fad3a7704d6e9872446ffbf77f6bfebf32583591dba56c4a546c6ab",
+      "kind": "TICKET_SETTLEMENT_REPORT",
+      "path": "sources/tickets/tixwave_settlements.csv",
+      "received_at": "2026-10-20T17:00:00Z",
+      "source_id": "src_9ac853fe0b06e8ab",
+      "source_version": 1
+    }
+  ],
+  "split": "heldout",
+  "status": "DRAFT - inputs only; evaluator expectations and scenario labels live under tests/oracle (never shipped to runtime)"
+}

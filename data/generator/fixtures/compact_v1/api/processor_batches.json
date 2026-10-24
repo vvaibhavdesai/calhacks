@@ -1,0 +1,125 @@
+{
+  "items": [
+    {
+      "business_date": "2026-10-16",
+      "currency": "USD",
+      "fees_cents": "38026",
+      "gross_cents": "1518200",
+      "id": "pbatch_9f243421b1a9ba6c",
+      "net_cents": "1480174",
+      "payment_count": 7,
+      "payment_ids": [
+        "pay_0b68388bc3306ad7",
+        "pay_6c8b8c5238c8553e",
+        "pay_9ca7191e617c9085",
+        "pay_962754171daa8057",
+        "pay_b8b390ab02b35be6",
+        "pay_d799e2d4793924f7",
+        "pay_a9ac3e6d1e7e5012"
+      ],
+      "payout_reference": "CARDCO-PO-0001",
+      "provider": "CARDCO",
+      "provider_reference": "CARDCO-BATCH-20261016",
+      "source_refs": [
+        {
+          "content_hash": "sha256:9cba4966948746a116aeee2a6dfbd14f9bb88afc2f62b6def8ba00ab7057d56c",
+          "locator": "row=1",
+          "locator_kind": "row",
+          "source_id": "src_f0f18c3019f7dd39",
+          "source_version": 1
+        }
+      ],
+      "status": "SETTLED",
+      "version": 1
+    },
+    {
+      "business_date": "2026-10-17",
+      "currency": "USD",
+      "fees_cents": "30739",
+      "gross_cents": "1225800",
+      "id": "pbatch_cad97763adbe0571",
+      "net_cents": "1195061",
+      "payment_count": 6,
+      "payment_ids": [
+        "pay_409cc5d4e94a3529",
+        "pay_910595afaf544fa2",
+        "pay_a55d974f86e90673",
+        "pay_0257ef0f5e91bde2",
+        "pay_715c3d3661adb65c",
+        "pay_8ee80b03b58a2180"
+      ],
+      "payout_reference": "CARDCO-PO-0002",
+      "provider": "CARDCO",
+      "provider_reference": "CARDCO-BATCH-20261017",
+      "source_refs": [
+        {
+          "content_hash": "sha256:9cba4966948746a116aeee2a6dfbd14f9bb88afc2f62b6def8ba00ab7057d56c",
+          "locator": "row=2",
+          "locator_kind": "row",
+          "source_id": "src_f0f18c3019f7dd39",
+          "source_version": 1
+        }
+      ],
+      "status": "SETTLED",
+      "version": 1
+    },
+    {
+      "business_date": "2026-10-18",
+      "currency": "USD",
+      "fees_cents": "28279",
+      "gross_cents": "1128701",
+      "id": "pbatch_617494454fab66b1",
+      "net_cents": "1100422",
+      "payment_count": 6,
+      "payment_ids": [
+        "pay_324a2235f47d792d",
+        "pay_d067826d875a0258",
+        "pay_04f9feffce880f43",
+        "pay_559acf9b6b4c0e03",
+        "pay_c4fb17a1f40b8895",
+        "pay_52bed800646571f7"
+      ],
+      "payout_reference": "CARDCO-PO-0002",
+      "provider": "CARDCO",
+      "provider_reference": "CARDCO-BATCH-20261018",
+      "source_refs": [
+        {
+          "content_hash": "sha256:9cba4966948746a116aeee2a6dfbd14f9bb88afc2f62b6def8ba00ab7057d56c",
+          "locator": "row=3",
+          "locator_kind": "row",
+          "source_id": "src_f0f18c3019f7dd39",
+          "source_version": 1
+        }
+      ],
+      "status": "SETTLED",
+      "version": 1
+    },
+    {
+      "business_date": "2026-10-20",
+      "currency": "USD",
+      "fees_cents": "0",
+      "gross_cents": "-10900",
+      "id": "pbatch_037647e85beb814c",
+      "net_cents": "-10900",
+      "payment_count": 1,
+      "payment_ids": [
+        "pay_3cf074af7b362259"
+      ],
+      "payout_reference": "CARDCO-PO-0003",
+      "provider": "CARDCO",
+      "provider_reference": "CARDCO-BATCH-20261020",
+      "source_refs": [
+        {
+          "content_hash": "sha256:9cba4966948746a116aeee2a6dfbd14f9bb88afc2f62b6def8ba00ab7057d56c",
+          "locator": "row=4",
+          "locator_kind": "row",
+          "source_id": "src_f0f18c3019f7dd39",
+          "source_version": 1
+        }
+      ],
+      "status": "SETTLED",
+      "version": 1
+    }
+  ],
+  "next_cursor": null
+}

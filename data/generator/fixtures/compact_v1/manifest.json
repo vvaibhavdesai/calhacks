@@ -1,0 +1,283 @@
+{
+  "config_path": "data/generator/config/compact_v1.json",
+  "config_sha256": "7f988f2a2c393dd5042c3e6379bb86492dad8c85a3530b0df223ce25dc08b9f8",
+  "config_version": "1",
+  "expected_record_counts": {
+    "bank_entries": 4,
+    "cash_counts": 4,
+    "dev_only_evidence_locators": 19,
+    "order_lines": 40,
+    "orders": 24,
+    "payments": 24,
+    "processor_batches": 4,
+    "source_documents": 12,
+    "vendors": 6
+  },
+  "festival_id": "fest_bf25e974c723d827",
+  "files": [
+    {
+      "bytes": 2699,
+      "path": "api/bank_entries.json",
+      "sha256": "9b55d1256d253ce50579d9a24afa69eb6e9e40f580f45fb8134a1f84de6fb700"
+    },
+    {
+      "bytes": 4160,
+      "path": "api/business_config.json",
+      "sha256": "2b47257a84d9c79c1d55f15a4f91188bd94bb7f5515aaa14926106756a894ed3"
+    },
+    {
+      "bytes": 3405,
+      "path": "api/cash_counts.json",
+      "sha256": "b848c71b53b961d12ea57c05686ebc0f26c540f8706bd85f405e45fb6b2b4de0"
+    },
+    {
+      "bytes": 1034,
+      "path": "api/festival.json",
+      "sha256": "07ea7cf544df0eefa1cdb39873ea922d67673fe19fb9d04d0bcaca28ea51582d"
+    },
+    {
+      "bytes": 49409,
+      "path": "api/orders.json",
+      "sha256": "c8938e7b7b919d992c8c5fe626ef92b8a9e35d5bd3a34b12350e69c7754957ed"
+    },
+    {
+      "bytes": 30223,
+      "path": "api/payments.json",
+      "sha256": "0975a6f62cf49dcedd19e0f3f384666497fed77ade494e7cf1e0276233ed3cc2"
+    },
+    {
+      "bytes": 3581,
+      "path": "api/processor_batches.json",
+      "sha256": "e8cd77dbcc3719f957a86aaef8534354193ddea73d379cfe28fa0924d22d0055"
+    },
+    {
+      "bytes": 5556,
+      "path": "api/source_documents.json",
+      "sha256": "ad6d98b1c6c70aaa42e55a0380f48acadd1c06507f3742df5f89f23ff2579d9d"
+    },
+    {
+      "bytes": 3601,
+      "path": "api/vendors.json",
+      "sha256": "0ef6e09d61921a4b0f0f3c241fd1269ce532cb94a6d548264e10f80f803eba7f"
+    },
+    {
+      "bytes": 11336,
+      "path": "dev_only/evidence_locators.json",
+      "sha256": "0a85d5e1b90caf34fd2ef4af025adfdd532e01679cc80f9aaf0a1b4058e534d9"
+    },
+    {
+      "bytes": 454,
+      "path": "sources/bank/operating_account_statement.csv",
+      "sha256": "7d93a748e6f6a1c9b342cb68d6964b2b11bd513572ecf2fefbef407a5766aeb7"
+    },
+    {
+      "bytes": 584,
+      "path": "sources/cash/cash_counts.csv",
+      "sha256": "49ae40162c281bd43a2670713c263d08087f326b713de718ba29b31db38bb9bc"
+    },
+    {
+      "bytes": 1473,
+      "path": "sources/contracts/churro_agreement_v1.md",
+      "sha256": "3f4c46c983f32af346b8210eea08abcb5a12ac1d947bd4b2afdc1c9273c41f39"
+    },
+    {
+      "bytes": 1549,
+      "path": "sources/contracts/grill_agreement_v1.md",
+      "sha256": "79bd312566b05b62c558fd294b67c5f077ae0cdc511557267aaefe26fb7f092c"
+    },
+    {
+      "bytes": 1539,
+      "path": "sources/contracts/kettle_agreement_v1.md",
+      "sha256": "47a778da9183c1a076c2c844d7f940cdeb66ad5a7ad054a431bb09905d584dd5"
+    },
+    {
+      "bytes": 1489,
+      "path": "sources/contracts/latebloom_agreement_v1.md",
+      "sha256": "41d0a55735e769aa36646a1cb87e0eeb1fcf06a3013bda81a2d9b340e5ebcb77"
+    },
+    {
+      "bytes": 1479,
+      "path": "sources/contracts/sunrise_agreement_v1.md",
+      "sha256": "406591995e7336b96918bb73060eee6a5e8bb7232fdff2bc1de98db31264231c"
+    },
+    {
+      "bytes": 1471,
+      "path": "sources/contracts/taco_agreement_v1.md",
+      "sha256": "95cdf9fef2d12e9874a9023440b8324939971416066fa3ca526463cffbf4f0c5"
+    },
+    {
+      "bytes": 1035,
+      "path": "sources/email/taco_libre_terms_thread.eml",
+      "sha256": "7852507296d8ef4d2428b978272b508d4bc95959f7f6accd8e2df819ae6f77dc"
+    },
+    {
+      "bytes": 5385,
+      "path": "sources/pos/pos_order_lines.csv",
+      "sha256": "95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb"
+    },
+    {
+      "bytes": 372,
+      "path": "sources/processor/cardco_batches.csv",
+      "sha256": "9cba4966948746a116aeee2a6dfbd14f9bb88afc2f62b6def8ba00ab7057d56c"
+    },
+    {
+      "bytes": 2167,
+      "path": "sources/processor/cardco_payments.csv",
+      "sha256": "818f6104ed18e47d9814e8a11614eb6784c5b84a58c7a7d402c498bda2fe0786"
+    }
+  ],
+  "fixture_id": "compact_v1",
+  "fixture_wide_scenarios": [
+    "DELAYED_GROUPED_PROCESSOR_DEPOSIT",
+    "PROCESSOR_NET_OF_FEES",
+    "POST_FESTIVAL_REFUND_BANK_DEBIT",
+    "C02_FIXTURE_6"
+  ],
+  "generator": "data/generator/generate.py",
+  "generator_version": "0.1.0",
+  "python_requirement": "CPython 3.13 (stdlib random.Random(seed) stream)",
+  "scenario_labels": {
+    "ven_24b891c0ef6e9864": {
+      "labels": [
+        "NORMAL_15_PERCENT",
+        "LATE_REFUND_AFTER_FINAL_PAYOUT",
+        "C02_FIXTURE_5"
+      ],
+      "vendor_name": "Churro Cart"
+    },
+    "ven_5b3b7298e61a7172": {
+      "labels": [
+        "VENDOR_RETAINED_CASH",
+        "FEE_OFFSET_FROM_CENTRAL_FUNDS",
+        "FEE_RECEIVABLE",
+        "C02_FIXTURE_4"
+      ],
+      "vendor_name": "Grill Masters"
+    },
+    "ven_6d07f90ca688444e": {
+      "labels": [
+        "BELOW_MINIMUM_UNPAID_BALANCE",
+        "TIPS_PROTECTED",
+        "FINAL_DAY_ONLY_VENDOR",
+        "C02_FIXTURE_3"
+      ],
+      "vendor_name": "Late Bloom Lemonade"
+    },
+    "ven_7248fe404ac157ca": {
+      "labels": [
+        "NORMAL_15_PERCENT",
+        "PROCESSOR_FEES_DEDUCTIBLE",
+        "LINE_TAX_ROUNDING",
+        "UTC_MIDNIGHT_BUSINESS_DATE",
+        "C02_FIXTURE_1"
+      ],
+      "vendor_name": "Sunrise Smoothies"
+    },
+    "ven_bdccc4a0fab46f90": {
+      "labels": [
+        "FESTIVAL_MINIMUM_FINAL_DAY_ADJUSTMENT",
+        "IN_FESTIVAL_REFUND",
+        "CENTRAL_CASH_OFFICE",
+        "C02_FIXTURE_2"
+      ],
+      "vendor_name": "Kettle Corn Co"
+    },
+    "ven_c309836b4f9601f2": {
+      "labels": [
+        "CONTRACT_EMAIL_CONFLICT_15_VS_10",
+        "PAYOUT_ABOVE_AUTO_LIMIT",
+        "THREE_NIGHT_STORY"
+      ],
+      "vendor_name": "Taco Libre"
+    }
+  },
+  "schema_note": "CONTRACTS.md v0.1 DRAFT C01/C03 field minimums (not frozen)",
+  "seed": 20261016,
+  "source_versions": [
+    {
+      "content_hash": "sha256:7d93a748e6f6a1c9b342cb68d6964b2b11bd513572ecf2fefbef407a5766aeb7",
+      "kind": "BANK_STATEMENT",
+      "path": "sources/bank/operating_account_statement.csv",
+      "source_id": "src_1fdc84e50a1715ef",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:49ae40162c281bd43a2670713c263d08087f326b713de718ba29b31db38bb9bc",
+      "kind": "CASH_COUNT",
+      "path": "sources/cash/cash_counts.csv",
+      "source_id": "src_60f06f465cc4a421",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:3f4c46c983f32af346b8210eea08abcb5a12ac1d947bd4b2afdc1c9273c41f39",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/churro_agreement_v1.md",
+      "source_id": "src_4472f9097a6e390e",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:79bd312566b05b62c558fd294b67c5f077ae0cdc511557267aaefe26fb7f092c",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/grill_agreement_v1.md",
+      "source_id": "src_de85106c79ea966b",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:47a778da9183c1a076c2c844d7f940cdeb66ad5a7ad054a431bb09905d584dd5",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/kettle_agreement_v1.md",
+      "source_id": "src_0a53137b3e9b6d72",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:41d0a55735e769aa36646a1cb87e0eeb1fcf06a3013bda81a2d9b340e5ebcb77",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/latebloom_agreement_v1.md",
+      "source_id": "src_2a3a620d79211299",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:406591995e7336b96918bb73060eee6a5e8bb7232fdff2bc1de98db31264231c",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/sunrise_agreement_v1.md",
+      "source_id": "src_88169f1ed8b0d222",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:95cdf9fef2d12e9874a9023440b8324939971416066fa3ca526463cffbf4f0c5",
+      "kind": "CONTRACT",
+      "path": "sources/contracts/taco_agreement_v1.md",
+      "source_id": "src_4dcc7ce9f370b56b",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:7852507296d8ef4d2428b978272b508d4bc95959f7f6accd8e2df819ae6f77dc",
+      "kind": "EMAIL_THREAD",
+      "path": "sources/email/taco_libre_terms_thread.eml",
+      "source_id": "src_1b532360bfaa3697",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:95c7d134b3e752978b854b8100f841346fad011523e27e60b79efd0c40ef48eb",
+      "kind": "POS_EXPORT",
+      "path": "sources/pos/pos_order_lines.csv",
+      "source_id": "src_6282cdeafdb52961",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:9cba4966948746a116aeee2a6dfbd14f9bb88afc2f62b6def8ba00ab7057d56c",
+      "kind": "PROCESSOR_REPORT",
+      "path": "sources/processor/cardco_batches.csv",
+      "source_id": "src_f0f18c3019f7dd39",
+      "source_version": 1
+    },
+    {
+      "content_hash": "sha256:818f6104ed18e47d9814e8a11614eb6784c5b84a58c7a7d402c498bda2fe0786",
+      "kind": "PROCESSOR_REPORT",
+      "path": "sources/processor/cardco_payments.csv",
+      "source_id": "src_24ec866b5eb3849e",
+      "source_version": 1
+    }
+  ],
+  "status": "DRAFT - inputs only; evaluator expectations live in tests/oracle (never shipped to runtime)"
+}

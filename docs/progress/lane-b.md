@@ -1,0 +1,801 @@
+# Lane B progress and handoff
+
+## B01: compact synthetic fixture and independent oracle
+
+| Field | Value |
+|---|---|
+| Task ID | B01 |
+| Owner | Lane B (experience/data) |
+| Branch | `lane-b` (pushed to `origin/lane-b`; nothing merged to `main`) |
+| Base commit | `3296aa6` (Add C00–C06 contracts draft) |
+| Status | **review**: awaiting lane A and human review. Not verified. Contracts it depends on (C01, C02, C03, C05) are still DRAFT, so G0 has not passed. |
+| Reviewer / merge commit | none yet |
+
+### Files added (only lane B paths)
+
+- `data/generator/generate.py`: deterministic stdlib generator (v0.1.0)
+- `data/generator/config/compact_v1.json`: scenario script, seed 20261016, **DRAFT assumptions DA01–DA12**
+- `data/generator/fixtures/compact_v1/`: `manifest.json`, `sources/` (6 contracts .md, 1 email .eml, POS/processor/bank/cash CSVs), `api/` (10 input JSON files), `dev_only/evidence_locators.json`
+- `data/generator/tests/test_generator.py`, `data/generator/README.md`, `data/generator/.gitignore`
+- `tests/oracle/oracle.py`, `tests/oracle/scripted_decisions.json`, `tests/oracle/expected/compact_v1/*.json` (common + S0–S3)
+- `tests/oracle/test_oracle.py`, `tests/oracle/HAND_WORKED_EXAMPLES.md`, `tests/oracle/README.md`, `tests/oracle/.gitignore`
+- `docs/progress/lane-b.md` (this file)
+
+Contracts were not modified, and there are no migrations or dependency changes. Nothing was added to root configuration. `pytest` is not installed, so the tests use stdlib `unittest`.
+
+### Commands actually run (Python 3.13.5, macOS)
+
+| Command | Result |
+|---|---|
+| `python3 data/generator/generate.py` | wrote 23 files; seed=20261016; config_sha256=`7f988f2a…08b9f8`; manifest_sha256=`9e2bc1c5…5b09b1e`; counts: vendors 6, orders 24, order_lines 40, payments 24, processor_batches 4, bank_entries 4, cash_counts 4, source_documents 12 |
+| `generate.py --out <scratch dir>` then `diff -r` against the committed fixture | no differences (byte-identical) |
+| `python3 tests/oracle/oracle.py` | S0: 19 settlements / 6 reviews / 53 entries; S1: 19 / 5 / 59; S2: 19 / 7 / 59; S3: 19 / 5 / 59. Every entry balanced. |
+| `python3 -m unittest discover -s data/generator/tests -v` | `Ran 11 tests … OK` |
+| `python3 -m unittest discover -s tests/oracle -v` | `Ran 13 tests … OK` |
+
+Generator tests check:
+- two runs are byte-identical, and the committed fixture has no drift;
+- manifest sha256 and byte lengths match every file;
+- source content hashes and SourceRefs resolve;
+- C03 field minimums are present (Vendor, Order/line, Payment, Bank entry);
+- all `*_cents` fields are canonical integer strings, and timestamps are UTC with Pacific business dates (including the UTC-midnight case);
+- IDs are unique;
+- no answer-like keys or file names appear in the runtime fixture;
+- cash custody is not inferred from the method name;
+- a different seed changes IDs but not amounts.
+
+Oracle tests check:
+- results equal the hand-worked values (C02 fixtures 1–5 and Taco Libre per decision set);
+- reviews match per decision set, and the conflict review has no fabricated answer;
+- terms are derived from document text;
+- all journals balance with non-negative lines;
+- ending balances are as expected;
+- the late refund produces linked entries without rewriting originals;
+- the grouped deposit matches fixture 6, and timing-pending deposits are not counted as cash;
+- cash availability is correct;
+- invariants hold: tips protected, payout never negative, minimum applied once;
+- the committed `expected/` is not stale;
+- an AST import allowlist holds (no generator or production imports);
+- oracle and runtime files are separated.
+
+Not run: no lane A code exists yet, so there was no comparison against A03/A04 output. There was also no schema validation, because Pydantic/OpenAPI models do not exist yet, and no CI.
+
+### Implemented vs incomplete
+
+Implemented:
+- the compact fixture (6 vendors) covering a normal 15% vendor, the 15% vs 10% conflict, the $500 minimum, an unpaid balance below $500, refunds (in-festival and post-payout), a delayed and grouped deposit net of fees, vendor-retained cash, organizer cash-office cash, processor fees deductible by contract, line-tax rounding, the UTC-midnight business date, and a payout above the $5,000 limit;
+- the manifest;
+- the independent oracle covering settlements, reviews, payouts, cash availability, reconciliation and journals;
+- hand-worked C02 fixtures 1–6.
+
+Fixture-only: all data is synthetic, money is simulated, and tax is a DEMO rate with no compliance claim.
+
+Not done, deferred to B02 or later:
+- Night 3 challenge with superseding evidence, which needs a new source version;
+- chargebacks, duplicates, cash variance, an expired policy, a beneficiary change, failed or unknown payouts, insufficient cash;
+- supplier POs and invoices, tickets and sponsorship, prior-year settlements;
+- PDFs;
+- the 80-vendor / 40,000-order scale;
+- the comparison harness against A's API;
+- varied contract phrasing (the oracle's regexes currently expect the generator's fixed wording).
+
+### DRAFT ASSUMPTIONS (need A review; also recorded in `config/compact_v1.json`)
+
+- DA01: the tax rate is a fictional DEMO 9.00%, exclusive, charged per line and rounded ROUND_HALF_UP.
+- DA02: the organizer remits tax on CENTRALLY_COLLECTED sales. Tax in VENDOR_RETAINED cash is the vendor's liability and is memo-only.
+- DA03: central tips belong to the vendor and pass through in full as a separate `tips_passthrough_cents`. They are never used to collect fees or unpaid balances.
+- DA04: the CardCo fee is 2.50% of payment gross (including tax and tips) ROUND_HALF_UP, plus $0.10. Refunds carry no fee.
+- DA05: if the contract permits, the vendor bears the whole fee on its own payments, deducted from eligible entitlement only.
+- DA06: custody is set per payment from the POS cash-drawer field (VENDOR → VENDOR_RETAINED, ORGANIZER_CASH_OFFICE → CENTRALLY_COLLECTED), not from the method name.
+- DA07: order, payment and batch amounts are signed integer strings (refunds negative). Bank entries are positive with a direction.
+- DA08: refund tax is the original line tax × qty / original qty, ROUND_HALF_UP. A refund is recognized on its own business_date and linked to the original line.
+- DA09: CardCo batches by Pacific business date. One payout reference may cover several batches.
+- DA10: the deposit matching window is 3 calendar days. A deposit inside the window is a timing item; delayed funds are not available cash until the bank entry exists.
+- DA11: each compact order aggregates many tickets.
+- DA12: the opening bank balance is $25,000 and is not journaled.
+
+Oracle-side assumptions:
+- Commission is assessed on all custody but collected only from central eligible proceeds. An earlier night's shortfall carries forward as a receivable and is collected from later central proceeds.
+- From the final day onward the target is max(round(rate × cumulative), minimum). After the festival, a refund can produce a negative assessment (a fee credit).
+- The $5,000 limit applies to payout + tips.
+- An unresolved terms conflict holds every later night for that vendor, because the cumulative math depends on it.
+- Payout journals post on the D+1 payout date.
+- Account numbers 1000–5100 are placeholders, and 1050 Cash office is an addition to the C02 list.
+
+### Contract questions for A (proposals; CONTRACTS.md was not edited)
+
+1. **Minimum across nights (C02).** If a vendor sells under $500 across several nights, the earlier nightly payouts are already gone, so the final unpaid balance is larger than fixture 3 suggests. Example: $200 / $120 / $80 would leave $372 unpaid, not $100. Should interim payouts hold back a reserve toward the minimum? I modeled fixture 3 as a vendor that traded only on the final day to avoid choosing this for you.
+2. **Settlement fields (C03, additive).** Proposed additions to Settlement: `tips_passthrough_cents`, `receivable_change_cents`, `terms_basis`, `phase` (INTERIM / FINAL / POST_FESTIVAL_ADJUSTMENT). Should tips be part of `payout_cents` instead? Does the $5,000 limit include tips?
+3. **Record fields (C03, additive).** Proposed: Payment `kind`, `cash_drawer`, `processor_fee_cents`, `processor_batch_id`, `refund_of_payment_id`; Order `kind`, `refund_of_order_id`, line `refund_of_line_id`, `unit_price_cents`; new records ProcessorBatch and CashCount (shapes are in `api/`).
+4. **Signed money (C01).** Is a leading `-` allowed in canonical integer strings for refunds, or should every amount be positive with direction/kind?
+5. **Refund period (C01/C02).** Should a refund reduce eligible sales on its own business_date (my assumption) or on the original sale's date?
+6. **Tax remitter (C05).** Who remits tax collected in vendor-retained cash? Who remits on centrally collected sales?
+7. **Processor fee scope (C02).** When deduction is permitted, does it cover the fee on the tax and tip portion as well?
+8. **Posting map (C02).** Please confirm account roles and numbers, whether a cash-office account (1050) is added, and whether the opening balance is journaled.
+9. **Interim receivable.** Should an unpaid amount mid-festival (Grill Masters $25 on 10-17) raise a review immediately, or only at the end of the festival (my assumption)?
+10. **Matching tolerance (C05).** Is a 3-day deposit window acceptable for the demo?
+11. **Dev-only evidence locators.** Is it acceptable for B03's evidence-drawer mocks to use `dev_only/evidence_locators.json`, given that agents never receive it?
+12. **Oracle exclusion (A01/A10).** Please exclude `tests/` and `data/generator/fixtures/*/dev_only/` from runtime images, retrieval and the document bucket.
+
+### Next
+
+- Joint G0 review of C01, C02, C03 and C05, using `tests/oracle/HAND_WORKED_EXAMPLES.md` as the C02 hand-worked fixture evidence. A should check numbers by hand, not by trusting the oracle.
+- After answers come back: update the config and assumptions, regenerate, and bump `config_version` and `GENERATOR_VERSION`.
+- Next lane B task: B03 (frontend shell against these API fixtures), which can start once C03 is reviewed. B02 (full dataset) waits for frozen schemas.
+
+## B02: full synthetic festival generation and evaluation harness
+
+| Field | Value |
+|---|---|
+| Task ID | B02 |
+| Owner | Lane B (experience/data) |
+| Branch | `lane-b` (pushed to `origin/lane-b`; nothing merged to `main`) |
+| Base commit | `ac8a612` (B01 handoff record) |
+| Status | **review**: awaiting lane A and human review. Not verified. Built on DRAFT contracts C01/C02/C03/C05 ("frozen schemas" dependency not met), so field names and money semantics may change. |
+| Reviewer / merge commit | none yet |
+
+### Files added or changed (lane B paths only)
+
+- `data/generator/generate_full.py`: full generator (v0.2.0). It reuses helpers from `generate.py`, which is unchanged, so `compact_v1` stays byte-identical.
+- `data/generator/pdfmini.py`: minimal deterministic stdlib PDF writer, so no dependency was added.
+- `data/generator/config/full_v1.json` (validation/demo, seed 20261016, roles fixed, **DRAFT assumptions DA13–DA30**).
+- `data/generator/config/full_v1_train.json` (seed 20251017) and `full_v1_heldout.json` (seed 20270611). Both extend `full_v1` and reshuffle tiers, booths and scenario roles.
+- `data/generator/manifests/{full_v1,full_v1_train,full_v1_heldout}.manifest.json`: committed manifests (counts, input totals, source versions, per-file sha256) for cross-laptop verification.
+- `data/generator/tests/test_full.py`.
+- `data/generator/.gitignore`: adds `out/`.
+- `data/generator/README.md`: B02 section.
+- `tests/oracle/oracle_full.py`: independent full-dataset oracle.
+- `tests/oracle/scripted_decisions_full.json`: F0/F1/F2 rule-based human decisions.
+- `tests/oracle/score.py`: scorer.
+- `tests/oracle/test_oracle_full.py`.
+- `tests/oracle/.gitignore`: adds `generated/`.
+- `tests/oracle/README.md`.
+- This file.
+
+Not committed, by design: `data/generator/out/<fixture>/` (about 105 MB per split) and `tests/oracle/generated/<fixture>/`, which holds the scenario manifests and all full-dataset expected answers, including held-out. No contracts, services, db, infra, apps, root config or planning docs were touched. No dependencies were added.
+
+### Commands actually run (Python 3.13.5, macOS)
+
+| Command | Result |
+|---|---|
+| `python3 data/generator/generate_full.py --verify` (and the same with `--config …full_v1_train.json` / `…full_v1_heldout.json`) | Each split wrote 154 files in 1.9 s and printed `VERIFY OK`. Manifest sha256: full_v1 `a6a5c899…c451487e`, train `7784de9c…8288d5f6`, held-out `023fafa6…f2aa3ead`. |
+| full_v1 counts | 80 vendors, 40,000 sales + 174 refund orders, 73,385 order lines, 40,207 payment records (30 of them duplicate-import records), 9 processor batches, 33 bank entries, 86 cash counts, 3 deposit slips, 128 source documents (100 PDFs, 8 email threads), 13 supplier invoice/credit-note records, 8 POs, 5 ticket settlements, 4 sponsors, 8 expenses, 60 prior-year settlements, 30 labelled scenarios. Eligible sales are $805,706.25 gross of refunds (refunds −$1,859.00), tax $71,684.10, tips $32,764.75. |
+| `python3 tests/oracle/oracle_full.py` (on each split) | 1.5 s per split, all journal entries balanced, economics checks all pass. full_v1: F0 has 242 settlements, 53 reviews and 901 entries (192 CONFIRMED, 40 HELD, 1 FAILED). F1 has 242 settlements, 57 reviews and 945 entries (230 CONFIRMED, 1 FAILED, 2 HELD, 9 nothing-to-pay). F2 has 58 reviews (the conflict re-asked on night 2) and 945 entries. |
+| `python3 tests/oracle/score.py --emit-oracle-candidate <tmp> --set F1_story` then `--candidate <tmp> --set F1_story` | `perfect=True errors_total=0`, payout accuracy 242/242, citations 291/291 valid. |
+| The F0 candidate scored against F1 expectations (sanity) | `perfect=False errors_total=91`: missed_reviews 4, false_holds 76, settlement_errors 3, journal_errors 8; payout accuracy 0.843. |
+| `python3 -m unittest discover -s data/generator/tests -v` | `Ran 25 tests in 62.5s … OK` (11 B01 + 14 B02). It generates all three splits plus a second full_v1 run (1.9 / 2.1 / 2.2 / 2.2 s); most of the remaining time is the SourceRef and format sweep over about 100 MB of JSON. |
+| `python3 -m unittest discover -s tests/oracle -v` | `Ran 30 tests … OK` (13 B01 + 17 B02), about 11 s. |
+| `qlmanage -t` on a contract PDF | The macOS Quick Look renderer showed readable text (manual visual check, one file). |
+
+B01 compact fixture: `generate.py`, `config/compact_v1.json`, `fixtures/compact_v1/` and `tests/oracle/expected/compact_v1/` were not modified. The B01 drift and staleness tests still pass.
+
+Not run:
+- comparison against lane A output, because no A system exists yet;
+- schema validation, because there are no Pydantic/OpenAPI models;
+- CI;
+- an external PDF library check (only macOS Quick Look was tried);
+- runs on a second laptop. The cross-laptop manifest match has only been shown on this machine, by running twice and by the committed-manifest test.
+
+### What the full dataset contains
+
+- **Scale and normalcy.** 80 vendors across 16 cuisine archetypes in three sales tiers, so sales are uneven: the largest vendor has more than 8× the orders of the smallest. Every sale is ticket-level with 1–3 lines. Tenders are card, wristband and cash, with cash going either to the vendor's own drawer or to the organizer cash office. About 28% of card and wristband orders carry a tip. About 0.4% of orders get an in-festival refund. Most records are normal.
+- **Contracts.**
+  - Four phrasing templates:
+    - A: numbered clauses;
+    - B: legal prose with number words;
+    - C: a schedule table;
+    - D: a letter.
+  - Ten vendors override the rate or minimum (10%, 12%, 12.5%, 18%, 20%; $300 or $750).
+  - About a quarter of vendors may have processing fees deducted.
+  - Two pre-festival amendments: one changes the rate to 12%, the other permits fee deduction.
+  - The oracle extracts the terms from PDF text, and they match the injected terms for all 80 vendors in both validation and held-out.
+- **Branches.** In F1, 14 vendors hit the $500/$750 minimum adjustment on the final day, and six of them leave an unpaid balance. All others are on the commission branch. Payouts above the $5,000 automatic limit appear 34 times in F1.
+- **Seeded scenarios.** Each scenario is labelled with its expected control behaviour in the evaluator-only scenario manifest, and the test checks that the oracle finds it on its own:
+  - **Three-night story.** On night 1 the Taco Libre contract says 15% and the producer email says 10%. On night 3 a signed amendment (12%) arrives at 2026-10-19 07:05 PT.
+  - **Duplicates.** A duplicate import (an overlapping CardCo re-export of 30 rows) and, separately, a genuine duplicate customer charge (two provider references, one POS order, reversed on 10-19).
+  - **Cash.** A cash-office count short by $40, and a missing cash count (an unlabelled bag on the deposit slip).
+  - **After the final payout.** Three late refunds on 10-21 and a chargeback with a $15 fee on 10-24.
+  - **Terms traps.** A vendor email claiming a nightly minimum, an expired 2025 policy that is still marked ACTIVE, and an email that restates the contract rate (must not be treated as a conflict).
+  - **Payment details.** An unverified beneficiary change, sent by email with an embedded prompt injection.
+  - **Tax.** Tax charged on EXEMPT water on two days, and an under-collected rate (8.5%) on one day.
+  - **Cash-heavy vendor.** A small vendor whose sales are mostly vendor-retained cash, leaving a fee receivable.
+  - **Insufficient cash.** At the 10-18 10:00 window: the night-2 card deposit is delayed and a sized production invoice was paid on 10-17.
+  - **Rail outcomes.** A FAILED payout (ACCOUNT_CLOSED); an UNKNOWN that turns out CONFIRMED; an UNKNOWN that is NOT_FOUND and is resubmitted with the same key.
+  - **Deposit timing.** Delayed and grouped CardCo and TapBand deposits.
+  - **Payables and bank.** A duplicate supplier invoice re-sent after payment, an invoice exceeding its PO, a credit note, a sponsor that paid half, and an unmatched bank fee.
+- **Splits.** Train and held-out reuse the rules with new seeds and reshuffled roles, so the conflict vendor is not Taco Libre. Their expected answers exist only under `tests/oracle/generated/`.
+
+### Oracle (`tests/oracle/oracle_full.py`) and scorer (`tests/oracle/score.py`)
+
+- **Independence.**
+  - It uses only the stdlib, enforced by an AST allowlist test.
+  - It contains no reference to the generator, config or scenario manifest.
+  - It re-verifies:
+    - line tax using menu taxability;
+    - qty × price;
+    - business dates;
+    - batch gross/fee/net;
+    - order/payment equality;
+    - source content hashes.
+- **Output for each decision set:**
+  - settlements (cumulative commission, minimum applied once, fees collected only from central proceeds, unpaid receivable, tips passed through and protected);
+  - required reviews with SourceRef evidence (PDF page plus excerpt, email char span, CSV row), the financial impact and the scripted decision;
+  - payouts, using payout windows that model cash availability, beneficiary holds, rail-script outcomes, retries at the next window and idempotency keys;
+  - night-3 corrections, with `correction_of` linking each to the original entry;
+  - policy events;
+  - payables as of 2026-11-01;
+  - the DRAFT tax summary;
+  - balanced journals for all of the above, plus tickets, sponsorship, suppliers, expenses, the opening balance and suspense;
+  - economics checks: book bank = statement − simulated payouts, processor clearing = 0, refunds-payable = 0, vendor payable = settlements, AP = outstanding, and a zero trial balance.
+- **Scorer error classes:**
+  - missed reviews;
+  - false holds (settlement, payout or blocking case);
+  - repeated questions;
+  - unexplained variances;
+  - double-counted duplicates;
+  - payout errors and accuracy rate;
+  - unsafe releases;
+  - duplicate provider payments;
+  - changed idempotency keys;
+  - cash overspend, checked against bank entries independently of the oracle's own release order;
+  - settlement field errors;
+  - invalid citations (source, version, hash, locator, excerpt, or citing the expired prior-year policy);
+  - blocking cases without citations;
+  - journal imbalance and ending balance by account role.
+- **Scorer tests.** The oracle's own answer scores perfect for F0, F1, F2 and held-out F1. Each of the 14 perturbation classes is detected.
+
+### Candidate export format (PROPOSAL for lane A, `encore-candidate-0.1-PROPOSAL`)
+
+The scorer reads a directory. Field names follow C03 where it has them.
+
+- `meta.json`: `candidate_format`, `fixture_id`, `fixture_manifest_sha256` (the sha256 of the fixture's `manifest.json` that was imported), `decision_set` (F0/F1/F2) and `system` (version).
+- `settlements.json`: `{items:[{vendor_id, business_date, status: CALCULATED|HELD, assessed_fee_cents|null, collected_fee_cents|null, payout_cents, tips_passthrough_cents, unpaid_balance_cents|null, commission_bps|null, hold_reasons[], citations[SourceRef]}]}`. There is one row per vendor and business date, including post-festival adjustment dates.
+- `payouts.json`: `{items:[{vendor_id, business_date, final_state: CONFIRMED|FAILED|HELD|NOTHING_TO_PAY, amount_cents, tips_passthrough_cents, idempotency_keys[], provider_submissions, confirmed_provider_payments, released_at_utc|null, hold_reasons[]}]}`.
+- `cases.json`: `{items:[{case_id, reason_code, subject_kind: VENDOR|SUPPLIER_INVOICE|BANK_ENTRY|SYSTEM, subject_id|null, business_date, blocking, citations[SourceRef]}]}`. Cases are matched on (reason_code, subject_id, business_date). The reason codes used are listed in `scripted_decisions_full.json`.
+- `journals.json`: `{items:[{entry_id, business_date, kind, correction_of, lines:[{account_role, debit_cents, credit_cents}]}]}`. Lines are compared by account ROLE, using the names in `oracle_full.ACCOUNTS`.
+- `reconciliation.json`: `{items:[{match_key, status: MATCHED|CASE_REQUIRED|DUPLICATE_IGNORED, variance_cents, reason_code}]}`. `match_key` takes one of these forms:
+  - `PROCESSOR_DEPOSIT:<bank provider_reference>`
+  - `CASH_DEPOSIT:<slip_reference>`
+  - `CASH_COUNT:<count source_native_id>`
+  - `MISSING_COUNT:<vendor_id>:<date>:<custody>`
+  - `DUPLICATE_IMPORT:<provider_reference>`
+  - `DUPLICATE_CHARGE:<provider_reference>`
+  - `TICKETS|SPONSOR|SUPPLIER_PAYMENT|EXPENSE:<bank provider_reference>`
+  - `BANK_UNMATCHED:<bank provider_reference>`
+
+To drive A's system with a decision set, apply the F-set rules to A's cases as they appear, after the 9 AM statement and before the 10 AM payout (DA28).
+
+### Implemented vs incomplete
+
+Implemented:
+- everything listed above, plus a deterministic generator for all three splits, committed manifests and the `--verify` flow;
+- tests for exact counts, references, SourceRefs (more than 100k checked), money and time formats, unique IDs, no leakage (no answer keys or scenario labels in runtime files, no evaluator files in runtime dirs, generated outputs untracked by git), fictional-only data and runtime under 60 s.
+
+Fixture-only: all data is synthetic, money movement is simulated, tax is a DEMO rate, reports are DRAFT and NOT FILED, and no compliance claim is made.
+
+Not done:
+- **Cash forecast.** No expected cash forecast or daily-close report; only cash windows, positions and payables are covered.
+- **Orders.** POS orders have exactly one tender each; split tenders are not generated.
+- **Tickets.** No ticket refunds and no wristband top-up liability.
+- **Vendor-retained cash.** Count variances for vendor-retained cash are reconciled but raise no review, because none are seeded.
+- **Insufficient-cash ordering.** The oracle releases in booth order. The scorer accepts any ordering that does not overspend, but settlement-level expectations assume every carried payout is released at the next window.
+- **Supplier and sponsor documents.** Supplier and sponsorship PDFs are not parsed by the oracle (it uses `api/`). Only contracts and amendments are parsed from PDF.
+- **Remote and second-laptop verification.** No artifact store for the 105 MB outputs (each laptop regenerates), and nothing has run on a second laptop yet.
+
+### New DRAFT assumptions (also in `config/full_v1.json` → `api/business_config.json`)
+
+- DA13: DEMO taxability. Only packaged water is EXEMPT.
+- DA14: TapBand wristband fee is 1.75%, centrally collected, with a weekly grouped deposit (matching window 7 days, against 3 for CardCo).
+- DA15: the opening balance (2026-09-20) is journaled (Dr bank / Cr opening equity), unlike compact DA12.
+- DA16: fees on a duplicate charge and its reversal are organizer expense.
+- DA17: a chargeback reverses the whole original payment on its own date; the $15 fee is a processor fee, deducted from the vendor only where the contract permits.
+- DA18: a signed amendment supersedes the clause it names and any earlier correspondence, from received_at.
+- DA19: every source has `received_at`; nothing may be used before then.
+- DA20: cash-office bags are deposited at D+1 11:30 PT, with a slip listing each bag.
+- DA21: an email beneficiary change is UNVERIFIED and blocks later payouts.
+- DA22: payout outcomes are scripted per (vendor_id, business_date, attempt) and default to CONFIRMED. FAILED does not consume cash; UNKNOWN does until it is resolved.
+- DA23: available cash = posted bank entries − released payouts. Payouts that do not fit are held INSUFFICIENT_CASH and retried at the next window.
+- DA24: ticket revenue is deferred and recognized on 2026-10-18; settlements received later are recognized on receipt.
+- DA25: sponsorship revenue is recognized on a cash basis, with memo receivables.
+- DA26: supplier tax is included in expense; credit notes reverse; a duplicate invoice is never posted.
+- DA27: sales and refund journals are daily summaries per vendor, date and custody asset.
+- DA28: scripted decisions are taken between the 9 AM statement and the 10 AM payout.
+- DA29: the $5,000 limit applies per (vendor, business date) obligation, on payout plus tips.
+- DA30: UNPAID_BALANCE is reviewed on the final day only.
+
+### Contract questions for A (proposals; CONTRACTS.md was not edited)
+
+13. **Record types (C03, additive).** The following API-shaped inputs exist in `api/` and need agreed schemas: `menu_items`, `cash_deposit_slips`, `beneficiary_change_requests`, `ticket_settlements`, `sponsors`, `sponsorship_receipts`, `suppliers`, `purchase_orders`, `supplier_invoices` (with `kind` INVOICE/CREDIT_NOTE and `applies_to_invoice_id`), `supplier_payments`, `expenses`, `opening_balances`, `prior_settlements`, `prior_policies` and `prior_cases`. New fields:
+    - Payment: `card_token`, `chargeback_of_payment_id` and kind `CHARGEBACK`;
+    - SourceDocument: `received_at`, `page_count`, `document_date` and `amends_source_id`.
+14. **Duplicate import representation.** Is it acceptable that `api/payments.json` contains the re-imported records with the same `provider_reference` and distinct ids, so that A's ingestion must deduplicate? Or should `api/` hold only canonical records, with the raw CSV alone carrying the duplicate?
+15. **Demo-clock visibility (C01/C06).** Will the importer honour `received_at`, so that the night-3 amendment is invisible on nights 1–2? Or does A want late documents delivered as a separate import batch?
+16. **Candidate export.** Please review the candidate format above and say whether A will export it from an endpoint or a CLI.
+17. **Insufficient cash (C04).** What release order should apply? Is partial release of a single obligation allowed (I assumed it is not)? Should the $5,000 limit be counted per obligation or per release day when a held payout is released the next day?
+18. **Failed payout (C04).** After a permanent failure, is holding later payouts for that vendor (BENEFICIARY_INVALID_AFTER_FAILED_PAYOUT) the right control?
+19. **Chargeback and tips (C02).** Should a chargeback claw back tips already passed through? The seeded chargeback has no tip, so this is deliberately avoided.
+20. **Account roles (C02).** Proposed role names, in addition to the B01 accounts: `CASH_OFFICE`, `SUSPENSE`, `SUPPLIER_AP`, `DEFERRED_TICKET_REVENUE`, `CUSTOMER_REFUNDS_PAYABLE`, `OPENING_EQUITY`, `TICKET_REVENUE`, `SPONSORSHIP_REVENUE`, `TICKETING_FEE_EXPENSE`, `CASH_OVER_SHORT`, `SUPPLIER_EXPENSE`, `OPERATING_EXPENSE`.
+21. **Exclusions (A01/A10).** In addition to B01 question 12, please also exclude `data/generator/out/*/simulator_only/` and `data/generator/out/*/manifest.json` from agent context. Only the payout simulator may read the outcome script.
+
+### Next
+
+- Joint review of the DA13–DA30 assumptions, the candidate format and questions 13–21, together with the still-open B01 questions 1–12.
+- A03/A04 can start checking against `tests/oracle/generated/full_v1/` once their engines exist. Score with `score.py`, never against the held-out split during development.
+- Next lane B task: **B03**, the frontend shell and typed API client against the B01/B02 API fixtures. It starts once C03 is reviewed.
+
+## B03: frontend foundation and typed API client
+
+| Field | Value |
+|---|---|
+| Task ID | B03 |
+| Owner | Lane B (experience/data) |
+| Branch | `lane-b` (pushed to `origin/lane-b`; nothing merged to `main`) |
+| Base commit | `7113e3c` (B02 handoff record) |
+| Commits | `bd46780` scaffold/toolchain/guards · `f70c68b` draft OpenAPI + generated types + client · `b3fa346` shell, primitives, fixture transport, tests · `3eb3945` README · this record |
+| Status | **review**: awaiting lane A and human review. Not verified against a backend. C03 is still DRAFT, so the client is built on a **lane-B draft OpenAPI**, not on A's generated contract. |
+| Reviewer / merge commit | none yet |
+
+### Files (only `apps/web/` and this note)
+
+- `apps/web/contracts-draft/openapi.draft.yaml`: a **temporary lane-B DRAFT** OpenAPI 3.1 that transcribes C03. Proposals are marked `x-encore-proposal: Qn` and undefined shapes `x-encore-unspecified`. It is to be replaced by A's `packages/contracts` OpenAPI; the swap procedure is in `apps/web/README.md`.
+- `apps/web/src/api/generated/schema.ts`: generated by openapi-typescript (never hand-edited; `npm run check:api` enforces this).
+- `apps/web/src/api/`: client, commands (idempotency), errors, SSE and capabilities.
+- `src/lib/` (money and time), `src/components/`, `src/hooks/`, `src/app/`, `src/screens/` and `src/fixtures/` (dev/test transport plus a data-free production stub).
+- `scripts/check-generated.mjs`, `scripts/check-prod-bundle.mjs`, `README.md`, `.env.example`, `.env.fixtures` (public setting only) and `package-lock.json`.
+
+### Toolchain (lane B proposal for C00; not finalized)
+
+- Node 18.18.2 with npm 9.8.1 and `package-lock.json`. npm is used rather than pnpm because it ships with Node and needs no extra setup on either laptop. `.npmrc` sets `save-exact` and `engine-strict`.
+- Runtime: react / react-dom 18.3.1 and react-router-dom 6.30.6.
+- Dev:
+  - vite 5.4.21 and @vitejs/plugin-react 4.3.4;
+  - typescript 5.6.3 and openapi-typescript 7.4.4;
+  - vitest 2.1.9 with jsdom 25.0.1;
+  - Testing Library: react 16.1.0, dom 10.4.0, jest-dom 6.6.3, user-event 14.5.2;
+  - axe-core 4.10.2;
+  - ajv 8.18.0, ajv-formats 3.0.1 and yaml 2.8.3;
+  - eslint 9.39.4, @eslint/js 9.39.4, typescript-eslint 8.18.2, eslint-plugin-react-hooks 5.1.0 and globals 15.14.0;
+  - @types/react 18.3.18, @types/react-dom 18.3.5 and @types/node 18.19.68.
+- Why these versions: they are the newest lines that support Node 18.18. Vite 6+/7, Vitest 3+/4 and React Router 7 need Node 20 or later, or they change APIs. Patch versions were raised to clear the advisories that have fixes on those lines (react-router 6.30.6, ajv 8.18.0, yaml 2.8.3, eslint 9.39.4).
+- `npm audit` results, recorded honestly:
+  - **Production dependencies:** 2 moderate advisories in react-router 6.x, an open redirect via a backslash in `<Link>`/`navigate` and an SSR hydration issue. There is no 6.x fix; the fix is in 7.18 (Node 20). The app does not use SSR and does not navigate to user-supplied URLs.
+  - **Dev-only:** advisories remain in vitest 2 / tinypool (critical), esbuild 0.21 (dev server, moderate) and @vitest/mocker. They are fixed only in Node-20 toolchains. **Recommendation for C00:** move both laptops to Node 20 LTS and then upgrade.
+
+### Commands actually run (macOS, Node v18.18.2)
+
+| Command | Result |
+|---|---|
+| `npm run gen:api` | `openapi-typescript 7.4.4 … → src/api/generated/schema.ts` |
+| `npm run check:api` | `generated API types are up to date with contracts-draft/openapi.draft.yaml` |
+| `npm run typecheck` | exit 0, no errors |
+| `npm run lint` | exit 0, no problems |
+| `npm test` | `Test Files 11 passed (11) · Tests 103 passed (103)` |
+| `npm run build` | `vite v5.4.21` built 4 files (JS 257.21 kB, gzip 82.96 kB). Then `prod bundle check OK: 4 files, 228 fixture markers, 0 hits` |
+| Planted a fixture vendor id in `dist/` and ran `node scripts/check-prod-bundle.mjs` | exit 1, `Production bundle contains fixture data (1 hits)`. The guard works; the planted file was removed. |
+| Fresh `git clone` of `lane-b` into a scratch dir, then `npm ci && npm run check` | All steps passed: generated types current, 103 tests, build, bundle check 0 hits. |
+| Headless Chrome screenshots of `npm run dev:fixtures` | See the visual check below. |
+
+### Tests (Vitest, 103)
+
+- **Money and dates.**
+  - Money: USD formatting, exactness past 2^53, rejection of `1.50`, `01`, `-0`, `+5` and numbers.
+  - Dates: business dates are not shifted under UTC+14, UTC−11 or Pacific. Instants display in PT, including the C01 UTC-midnight → previous Pacific date case and PDT/PST.
+- **API client.**
+  - `/api/v1` prefix and query encoding; money stays as strings.
+  - 401/403/404/409/422/429/503/5xx/network/malformed each map to their own kind, keeping `request_id`, `retryable`, `field_errors` and `current_version`.
+  - Retry-After is read; non-contract error bodies are replaced with safe text.
+  - Commands send the `{command_id, expected_version, payload}` envelope with an `Idempotency-Key` header and handle 202 jobs.
+  - A double click sends one request. A retry after a network failure reuses the identical key and body. A 409 is final and requires re-preparing the command. Floats in payloads are refused.
+- **SSE.** Parser (CRLF, multi-line data, chunk splits, comments); dedup by id and sequence; resume with the last cursor; gap → resync before delivery; 410 → resync and reconnect without a cursor; in-band `stream.resync_required`; backoff with jitter and Retry-After; stop on 401/403; events do not change capabilities.
+- **Contract conformance** (Ajv 2020 over the draft YAML):
+  - every schema compiles;
+  - every C03 route is present;
+  - the client operation table equals the YAML operationIds;
+  - every POST requires `Idempotency-Key` and the command envelope;
+  - all 9 compact_v1 API files validate (fixture-backed records use `additionalProperties: false`);
+  - drift is detected (an unknown field, or float money);
+  - fixture-transport responses validate across every page.
+- **Fixture gating.** `vite build` refuses fixture mode. The build alias resolves to the data-free stub. `readConfig` refuses fixture mode when `__ENCORE_BUILD__` is set. The stub throws. Live mode shows 401/403/503/network states with no fixture fallback and no banner.
+- **Fixture transport.** Opaque cursors bound to the query; filters; integer-correct money sort with id tiebreak; 422 field errors; 501 for output routes and commands; 404 for unknown ids.
+- **UI and accessibility.**
+  - axe-core finds no violations on Overview or on the Orders table page (color-contrast is disabled because jsdom has no layout).
+  - Navigation has `aria-current`. Placeholders show no `$` figures.
+  - Sorting is server-side, with `aria-sort` on `<th>` buttons. Next/Previous use history, and the sort survives back navigation. Filters go through the URL.
+  - Evidence drawer: `aria-modal`, initial focus, Escape closes and restores focus, focus trap, long excerpts (15,800 characters) collapse behind an `aria-expanded` toggle, refs reveal 25 at a time. One test uses `dev_only/evidence_locators.json` (Q11 is still open; the file is never served by the app).
+- **Money guard.** ESLint flags `*_cents` arithmetic, `Number()`/`BigInt` conversion, `reduce` totals and compound assignment outside `src/lib/money.ts`. A lint pass over `src/` finds no violations.
+
+### Visual check (actually done, limited)
+
+- Headless Chrome against `npm run dev:fixtures` at 1280×800: sidebar, FIXTURE DATA banner, Overview facts, and the Orders table with right-aligned tabular money.
+- **Narrow width.** Headless Chrome cannot go below 500 px. At 500 px the Orders table rendered and had horizontal overflow; that screenshot found real bugs, which are now fixed:
+  - the page itself overflowed horizontally;
+  - the menu toggle showed on wide screens;
+  - the mobile grid had an empty row.
+
+  For 375 px, the app ran inside a 375 px iframe. The shell, Menu button, wrapped banner, tabs and filters fit with no page-level horizontal overflow. In that run the table was still loading when the screenshot was taken, so **table rendering at exactly 375 px was not visually confirmed**. It sits in a focusable horizontal-scroll region by design.
+- No manual screen-reader test and no real mobile device test were done.
+
+### Implemented vs fixture-only vs incomplete
+
+**Implemented:**
+- The shell, with sidebar and responsive work area.
+- 13 honest placeholder routes:
+  - Overview, Close runs, Reconciliation, Settlements, Exceptions, Policies;
+  - Payouts (labelled SIMULATED), Cash, Suppliers & invoices, Journal, Tax (labelled DRAFT, NOT FILED), Reports;
+  - Flight recorder.
+- A working **Source records** screen with seven input collections. It uses the table, filter, pagination and evidence primitives and shows served values only.
+- The typed client, command idempotency helper, SSE client (wired in live mode to invalidate queries), capability snapshot from `/session`, the error, permission and sign-in states, and the build guards.
+
+**Fixture-only:** everything visible with data today. There is no backend, so live mode has only been exercised through fake transports in tests.
+
+**Incomplete:**
+- The capability-gated command UI arrives with B04 (no command screens exist yet).
+- Job polling via `status_url` has no UI.
+- Live SSE has not been run against a real server.
+- No browser end-to-end tests (B05).
+- No CI wiring; A01 owns CI and root config.
+- The draft contract must be swapped for A's.
+
+### New DRAFT assumptions
+
+- DA31: lists accept an opaque `cursor` plus `limit` (1–200, default chosen by the server). Ordering is stable, with ties broken by id.
+- DA32: server-side `sort=field|-field`. The client never sorts a single page locally.
+- DA33: the error body may omit `field_errors` and `current_version`. The client treats non-contract bodies as generic, safe errors.
+- DA34: 200/201 command responses carry an authoritative `version`; 202 responses carry `job_id` and `status_url`.
+- DA35: a client retries with the same Idempotency-Key only after network/429/503/5xx failures. 409, 422 and 403 end that intent.
+- DA36: the SSE `id:` field equals `EventEnvelope.cursor`, and events carry a monotonic `stream_sequence` per subscription.
+- DA37: session auth uses browser credentials (cookies): `same-origin`, or `include` when an API origin is configured. There is no bearer token in JS. (Pending C00.)
+- DA38: the festival time zone is fixed to America/Los_Angeles for display.
+
+### Contract questions for A (continuing numbering; CONTRACTS.md not edited)
+
+22. **Session and capabilities route.** Add `GET /api/v1/session` → `{actor_id, display_name, workspace_id, capabilities[]}`? It would be the only source of UI control gating. What are the capability names? Should records also carry `allowed_actions`?
+23. **Input read routes.** C03 lists no input collections. Can we add `/festival`, `/business-config`, `/orders`, `/payments`, `/bank-entries`, `/processor-batches`, `/cash-counts` and `/source-documents{/id}`, using the B01 fixture shapes? These shapes are already in the draft and validated against compact_v1.
+24. **List parameters.** Please confirm the `limit` and `sort` parameters, and which fields are sortable and filterable per collection.
+25. **Events.** Add `stream_sequence` (or define gap detection another way). Use HTTP 410 for an expired cursor, plus an in-band `stream.resync_required` event. Is the SSE `id` the cursor?
+26. **Jobs.** Is the `status_url` target `GET /jobs/{id}` with a `QUEUED/RUNNING/SUCCEEDED/FAILED/CANCELLED` status, as in the draft?
+27. **Auth.** Is it a cookie session or a bearer token? This affects CORS/credentials and how SSE sends auth (fetch streaming can send headers; EventSource cannot).
+28. **Toolchain (C00).** Will the team standardise on Node 20 LTS so the frontend can move to toolchains with current security fixes?
+29. **Output schemas.** Settlement line items, case financial impact, policy scope/predicates/effect, supplier/PO, tax report and cash position are placeholders (`x-encore-unspecified`). B04 needs A's Pydantic shapes.
+
+### Next
+
+- Lane A reviews the draft routes, proposals Q22–Q29 and DA31–DA38. When A's OpenAPI exists, follow the swap procedure in `apps/web/README.md`.
+- Next lane B task: **B04** (live core screens), starting from these primitives, against contract fixtures and then A's endpoints.
+
+## B04: live core screens
+
+| Field | Value |
+|---|---|
+| Task ID | B04 |
+| Owner | Lane B (experience/data) |
+| Branch | `lane-b` (pushed to `origin/lane-b`; nothing merged to `main`) |
+| Base commit | `ea970bb` (B03 handoff record) |
+| Commits | `9e1ffe5` OpenAPI proposals + types · `7299489` illustrative fixture + transport + bundle guard · `3c162d1` shared hook/components · `a538ae8` screens + tests · `cd1ab94` README · this record |
+| Status | **review: integration blocked on A03–A06.** Lane A has no backend yet, so the B04 acceptance (browser tests against a real API and database for one complete vendor flow) **has not been met and was not attempted**. Everything below was exercised only on the dev/test fixture transport. |
+| Reviewer / merge commit | none yet |
+
+### Files (only `apps/web/` and this note)
+
+- `contracts-draft/openapi.draft.yaml`: lane-B proposals Q30–Q36 (marked `x-encore-proposal`). `src/api/generated/schema.ts` was regenerated with openapi-typescript 7.4.4; `src/api/operations.ts` and `types.ts` were extended.
+- `src/fixtures/illustrative/outputs_v1.json`: **ILLUSTRATIVE** hand-authored outputs (2 runs, 6 vendor runs, 4 settlements, 4 cases, 4 policy versions, 4 match groups). Every id starts with `illus_`.
+- `src/fixtures/fixtureTransport.ts`, `compactFixture.ts`, `disabled.ts`: opt-in output routes and decision-command semantics.
+- `scripts/check-prod-bundle.mjs`: now also collects every `illus_` id from the illustrative file (285 markers, up from 228).
+- `src/hooks/useCommand.ts`, `useLookups.tsx` (extracted from SourceRecords).
+- `src/components/`: StatusBadge, MilestoneTrack, HoldList, AppliedPolicyBadge, CommandStatus, EvidenceButton, IllustrativeNote.
+- `src/screens/`: Runs, Reconciliation, Settlements, Cases, Policies and an updated Overview.
+- `src/app/`: routes and navigation (`implemented` flag). `src/main.tsx` enables illustrative outputs and decision capabilities in `dev:fixtures` only.
+- Tests: `src/screens/screens.test.tsx`, `src/screens/decisions.test.tsx`, `src/fixtures/illustrativeOutputs.test.ts`, additions to `src/api/contract.test.ts`, the helper `src/test/renderApp.tsx`, and `App.test.tsx` adapted to the multi-panel overview.
+- `src/test/setup.ts`: Testing Library async timeout raised to 4 s, because detail pages chain fetches and the parallel suite was flaky at 1 s.
+- `README.md`.
+
+No dependencies were added. No changes were made to packages/contracts, services, db, infra, data, tests/oracle, root config or planning docs.
+
+### How the illustrative fixture was made (oracle isolation)
+
+- Hand-written by lane B. Amounts are invented round figures, labelled illustrative, and **were not computed from the compact inputs, the oracle, `tests/oracle/expected/`, `scripted_decisions*` or `dev_only/`**. None of those files were opened during B04.
+- Only input artifacts were referenced: compact vendor, source-document, bank-entry, batch and cash-count ids and hashes, plus two quoted spans whose char offsets I located myself in the input contract and email.
+- Match groups pair input batch/bank/cash records whose input amounts are equal or sum. The `CASE_REQUIRED` cash group uses invented `illus_` member ids.
+- The Taco Libre conflict case has **no proposed answer**; both options are offered. The DRAFT policy candidate exists so the reuse-approval UI can be exercised.
+- A test fails if fixture code or data mentions oracle or `dev_only` paths. The UI shows "ILLUSTRATIVE sample output" on every output screen in fixture mode.
+
+### Commands actually run (macOS, Node v18.18.2)
+
+| Command | Result |
+|---|---|
+| `npm run gen:api` then `npm run check:api` | `generated API types are up to date with contracts-draft/openapi.draft.yaml` |
+| `npm run check` (check:api, typecheck, lint, test, build) | all passed. Typecheck and lint had no errors. `Test Files 14 passed (14) · Tests 140 passed (140)` (103 from B03 + 37 new). Vite built 4 files (JS 318.86 kB, gzip 96.30 kB). `prod bundle check OK: 4 files, 285 fixture markers, 0 hits` |
+| `npx vitest run`, three runs in a row after the timeout fix | 140/140 each time. Before the fix one decision test failed deterministically: it read the policy section synchronously before the candidate loaded. The test was fixed, not skipped. |
+| Planted `illus_case_taco_rate` in `dist/` and ran `node scripts/check-prod-bundle.mjs` | exit 1, `1 hits`. The planted file was removed and the guard passed again. |
+| Mutation check: removed the stale-binding discard in `Cases.tsx` | the 409 test failed as expected; the file was restored |
+| Headless Chrome screenshots of `vite --mode fixtures` | Overview, case and statement at 1280 px; case at 500 px. This found a long evidence hash overflowing at 500 px, now fixed with `code-wrap`. Not done: screen reader, real mobile, 375 px. |
+
+Not run: any browser E2E, Playwright or real-API tests (none added); integration against lane A; CI.
+
+### Tests added (fixture-only; NOT integration acceptance)
+
+- **Screens:**
+  - the overview pipeline: 6 vendors, server counts, held vendors with reasons and case links, the vendor-local isolation note, and run selection kept in `?run=` across a remount;
+  - run filter by state;
+  - reconciliation list, status filter, members paired with amounts, evidence drawer and case link;
+  - statement: protected tax/tips, hold reason, provisional label, calculation version and SIMULATED label; applied-rule badge citing the policy version and origin case;
+  - settlement vendor filter;
+  - case read view;
+  - auto-resolved recurrence citing the rule and origin case;
+  - policy detail: versions, scope, predicates, effect, approval, challenge stub; list of all statuses;
+  - live mode: an SSE event triggers a refetch of the pipeline projection (stubbed `fetch` stream), and 404 shows not-found.
+- **axe:** no violations on overview, runs, reconciliation, statement, case (read-only and decider) and policy pages. Color-contrast is disabled because jsdom has no layout.
+- **Decisions:**
+  - a read-only session gets no controls; `case.resolve` alone does not unlock policy approval;
+  - the two decisions are distinct, with explicit scope text;
+  - review binds version 3 and the evidence hash, and nothing is sent before Confirm;
+  - envelope and payload validate against `CommandEnvelope` and `ResolveCasePayload`, with an `Idempotency-Key` header;
+  - resolving does not approve the policy, and approving does not resolve the case;
+  - pending state with no success text; double click plus an extra click sends exactly one POST;
+  - 409: refetch, "now version 5", the review is cleared, and a re-review binds version 5;
+  - 422 shows field errors; 403 shows no permission;
+  - after a network failure, "Retry safely" resends the same key and body;
+  - `?decision=` survives reload, and the confirmed decision shows after a remount;
+  - policy approval sends `expected_version` = `record_version` and echoes the scope; a changed policy (409) is not approved blindly.
+- **Fixture transport:** inputs-only by default; lists, filters and details; capability 403; version 409 with `current_version`; same-key replay; same key with a different body gives 409; invalid transition 422; missing key 422; scope mismatch 422.
+- **Contract:** every illustrative list and detail validates against the draft schemas; the two payload schemas reject each other and spoofed `actor_id`.
+
+### Implemented vs fixture-only vs incomplete
+
+**Implemented (against the contract):**
+- Overview and close runs, the per-vendor pipeline with SSE-driven refetch (B03 client), reconciliation, settlements and statements, the exceptions decision workflow, and policies with applied-rule badges.
+- Capability gating comes from `/session` and the record's `required_capability`.
+- No money arithmetic: the lint money guard passes, and the UI only displays server cents.
+
+**Fixture-only:** all rendered data and all command outcomes. The fixture transport's command rules are a stand-in, not lane A's state machine.
+
+**Incomplete / not done:**
+- Integration with A03–A06 and the real-API/database browser test (the acceptance criterion).
+- Playwright E2E.
+- Job polling: written in `useCommand` but untested, because no test uses a 202 for decisions.
+- Payout approval (`/payouts/{id}/approve`) is B05: the payout-limit hold only points there.
+- Challenge is a stub link to `/recorder` (B06).
+- There is no "start/resume run" button, because no capability name or payload has been agreed.
+- Statement export/print.
+
+### New DRAFT assumptions
+
+- DA39: `MatchGroup.matched_amounts[i]` belongs to `member_refs[i]`. If the lengths differ, the UI shows them unpaired and flags it.
+- DA40: `GET /runs` lists newest business date first. The overview defaults to the newest run that is not QUEUED.
+- DA41: `VendorRun.milestone` is the last milestone reached. A HELD/FAILED vendor waits at the next milestone, and the UI does not infer progress beyond that.
+- DA42: settlement line items carry signed amounts (deductions negative) and a `treatment`. The UI groups lines by treatment and never sums them.
+- DA43: the case and policy-candidate evidence hash is an opaque server value. The UI only echoes it.
+- DA44: the decision option chosen before review may live in the URL (`?decision=`). The review step itself is not persisted, so a reload requires a fresh review.
+- DA45: illustrative capability names `case.resolve` and `policy.approve` are placeholders; the UI reads the required capability from each record.
+
+### Contract questions for A (continuing; CONTRACTS.md not edited)
+
+30. **Run vendor projection.** Add `GET /runs/{id}/vendors` → VendorRun `{milestone, state ACTIVE|HELD|FAILED|COMPLETED, holds[], case_ids[], settlement_id, failure}`, plus `Run.vendor_summary` counts derived by the server?
+31. **Match groups.** Should we add:
+    - `GET /reconciliation/{id}`;
+    - `status` and `business_date` filters;
+    - a status enum `MATCHED|TIMING_PENDING|CASE_REQUIRED|DUPLICATE_IGNORED|RESOLVED`;
+    - `match_kind`, `member_kinds`, `vendor_id`, `case_id` and `explanation`?
+
+    And please confirm the DA39 index pairing, or replace it with structured members.
+32. **Settlements.** Should we add:
+    - `GET /settlements/{id}`;
+    - structured `Hold {reason_code, description, blocking, case_id, since}`, replacing the unshaped `holds`;
+    - `SettlementLineItem {line_id, kind, label, amount_cents, treatment, source_refs, policy_version_id}`;
+    - `tax_collected_cents`, `statement_status PROVISIONAL|HELD|FINAL|ADJUSTED`, `statement_generated_at` and `run_id`?
+33. **Cases.** Should we add:
+    - `GET /cases/{id}`;
+    - structured `FinancialImpact {amount_cents, description, basis, affected_settlement_ids}`;
+    - `resolution_options[]`, `evidence_hash`, `policy_candidate_id`, `resolution {decision, option_id, approval_id, actor_id, capability, decided_at, policy_version_id}`, `title`, `business_date` and `opened_at`?
+34. **Policies.** Should we add:
+    - `GET /policies/{id}` and `policy_id`/`status` filters;
+    - structured scope, predicates and effect;
+    - `record_version`, the optimistic-concurrency revision. It is distinct from the policy `version` number, and approval needs it as `expected_version`;
+    - `title`, `origin_case_id`, `evidence_hash`, `approval {approval_id, actor_id, capability, decided_at}`, `status_reason`, `required_capability` and `application_count`?
+35. **Applied-rule badges.** Add `AppliedPolicyRef {policy_version_id, policy_id, version, title, origin_case_id, status_at_application, applied_at}` on settlements and cases, pinned to the version actually used?
+36. **Decision payloads.** Are these the agreed request bodies inside the command envelope?
+    - `ResolveCasePayload {action: RESOLVE_CASE_ONE_TIME, decision: ACCEPT_OPTION|REJECT, option_id, evidence_hash, note}`;
+    - `ApprovePolicyPayload {action: APPROVE_REUSABLE_POLICY, policy_id, policy_version, evidence_hash, scope (echoed), source_case_id, note}`.
+
+    Should the server reject an approval whose echoed scope differs from the stored one with 422 `SCOPE_MISMATCH`, and a stale evidence hash with 422 `EVIDENCE_CHANGED` (or 409)?
+37. **Capability names.** What are the capability names for case resolution, policy approval and run start? Is `required_capability` always present on cases and policy versions?
+
+### Next
+
+- Lane A: review Q30–Q37 and DA39–DA45 together with the open Q1–Q29. When A03–A06 endpoints exist, swap the draft contract (README procedure), run the screens against A's API and database locally, and add the real-API browser test for one complete vendor flow. That test is the B04 acceptance and is still outstanding.
+- Next lane B task: **B05** (remaining finance screens: payouts including finance-lead approval, cash, payables, journal, tax drafts, reports).
+
+## B05: remaining finance screens
+
+| Field | Value |
+|---|---|
+| Task ID | B05 |
+| Owner | Lane B (experience/data) |
+| Branch | `lane-b` (pushed to `origin/lane-b`; nothing merged to `main`) |
+| Base commit | `94a7099` (B04 handoff record) |
+| Commits | `080b25c` OpenAPI proposals Q38–Q44 + types · `7a7f221` illustrative finance fixture + transport + bundle guard + fixture/contract tests · `8a793d1` components (labels, payout states, export, chart) · `3e5ffa1` screens + tests · `aedd821` visual-check fixes · `b0a74f2` README · this record |
+| Status | **review — integration blocked on A07/A08.** Lane A has no payouts/payables/books/cash/tax API yet, so the B05 acceptance ("a real run and supplier-payment scenario update every affected screen without reload; export figures match API") **has not been met and was not attempted**. Everything below ran only on the dev/test fixture transport. |
+| Reviewer / merge commit | none yet |
+
+### Files (only `apps/web/` and this note)
+
+- `contracts-draft/openapi.draft.yaml`: lane-B proposals Q38–Q44 (`x-encore-proposal`); `src/api/generated/schema.ts` regenerated with openapi-typescript 7.4.4; `operations.ts` and `types.ts` extended.
+- `src/fixtures/illustrative/finance_v1.json` (new, **ILLUSTRATIVE**), `fixtureTransport.ts`, `compactFixture.ts`; `scripts/check-prod-bundle.mjs` now reads both illustrative files and more id keys (422 markers, up from 285).
+- `src/components/`: FinanceLabels (SIMULATED / DRAFT, NOT FILED), PayoutStateBadge, ExportButtons, ForecastChart; StatusBadge tones.
+- `src/lib/export.ts`, `src/lib/reportExports.ts`; `src/lib/money.ts` gained `maxAbsCents` and `centsScaleRatio` (chart geometry only).
+- `src/screens/`: Payouts, Cash, Payables, Journal, Tax, Reports; `src/app/` routes and navigation; `src/main.tsx` dev session adds `payout.approve_above_limit`; `FixtureBanner` text; styles.
+- Tests: `src/screens/finance.test.tsx` (new, 23), additions to `illustrativeOutputs.test.ts`, `contract.test.ts`, `money.test.ts`, `App.test.tsx`.
+- `README.md`.
+
+No dependencies added. No changes to packages/contracts, services, db, infra, data, tests/oracle, root config or planning docs.
+
+### How the illustrative finance fixture was made (oracle isolation)
+
+- Figures were typed by hand by lane B into a scratch authoring script (not committed) that wrote the JSON and filled in derived server-style totals (journal totals, section totals, forecast chain). No file under `tests/oracle/`, `expected/`, `scripted_decisions*`, `dev_only/` or `simulator_only/` was opened during B05.
+- Payout amounts reuse the B04 illustrative settlement figures; journal, tax and report figures are consistent with those illustrative settlements, not with any engine.
+- Only input references were reused: compact vendor ids, the POS export and bank statement source ids/hashes. Supplier documents, their ids and hashes (`sha256:a1a1…`) are invented and `illus_`-prefixed.
+- Invented scenarios: Churro Cart's unverified beneficiary change and the Coastal Ice duplicate invoice / wrong-account posting exist only in this fixture.
+- The existing isolation test (no oracle paths in fixture code or data) covers the new file; a new test checks the fixture's server-style totals are internally consistent.
+
+### Commands actually run (macOS, Node v18.18.2)
+
+| Command | Result |
+|---|---|
+| `npm run gen:api`, `npm run check:api` | `generated API types are up to date with contracts-draft/openapi.draft.yaml` |
+| `npm run check` (final run, after the last code change) | check:api, typecheck and lint clean; `Test Files 15 passed (15) · Tests 169 passed (169)`; Vite built 4 files (JS 380.82 kB, gzip 110.09 kB); `prod bundle check OK: 4 files, 422 fixture markers, 0 hits` |
+| Planted `illus_payout_n1_sunrise PO-ICE-001` in `dist/`, ran the guard | exit 1, `2 hits`; removed, guard passed again |
+| Mutation: removed the stale-review discard in `PayoutApproval` | the 409 test failed as expected; file restored (verified) |
+| Headless Chrome on `vite --mode fixtures` | `/payouts/:id`, `/cash`, `/reports/:id`, `/journal` at 1280 px; `/cash` and `/payouts` at 500 px. Found and fixed: forecast chart wasted half its height below zero and axis labels were too small at 500 px; fixture banner still said payouts/books were unavailable; banner grammar. Wide tables scroll inside their focusable regions at 500 px (by design). Not done: 375 px, screen reader, real mobile. |
+
+Not run: Playwright/browser E2E, any real-API test, CI, integration with lane A.
+
+### Tests added (fixture-only; NOT integration acceptance)
+
+- **Payouts:** batch total shown from the server; all states; filter by state and batch via the URL; all ten C04 states labelled (UNKNOWN reads "reconciliation required — not resent"); UNKNOWN detail has no resend/retry/release control and shows the stable key; gate checks, server limit figures ($5,000 / $0 / $7,470) and hold reason; read-only session gets no controls; a failing hard blocker is listed as still blocking release; a blocked below-limit payout offers no approval; axe on list, UNKNOWN, detail and review.
+- **Approval command:** nothing sent before Confirm; envelope and payload validate against `CommandEnvelope` / `ApprovePayoutPayload` with an `Idempotency-Key`; exact body (version 2, `747000`, beneficiary 1, obligation, date, vendor); success only after the server (APPROVED v3); double click plus click sends one POST and shows no success while pending; 409 refetches and the next review binds version 4; 422 field errors; 403 no permission.
+- **Cash:** tiles, five not-spendable reservations, shortfalls, obligation links, receipts; chart has a text alternative naming the shortfall; the table's exact values equal the served projection; 503 shows an error, never sample data.
+- **Payables:** supplier outstanding, duplicate and credit-note flags, evidence drawer, duplicate warning on detail, journal links, SIMULATED supplier payments with stable keys; axe.
+- **Journal:** server totals and balance flags; reversal links; original shows it is preserved and corrected; a served `balanced: false` is shown; missing totals say "not provided" and nothing is summed; axe.
+- **Tax/reports:** DRAFT, NOT FILED banner/badges, config version, assumptions, liability owner, exempt items, refund tax; tax and report CSV/JSON exports equal the served data (lines, server totals, source refs; JSON `data` deep-equals the response); report kind filter; section totals and journal links; axe.
+- **Live:** an SSE event refetches payouts and batches; another refetches cash (no reload).
+- **Fixture/contract:** every finance list/detail validates against the draft schemas; payout approval semantics (403, 409, AMOUNT_MISMATCH, BENEFICIARY_CHANGED, INVALID_TRANSITION).
+
+### Implemented vs fixture-only vs incomplete
+
+**Implemented (against the draft contract):** the six finance screens above, the payout approval command UI, exports, the accessible forecast chart, live refetch through the existing SSE client, SIMULATED / DRAFT, NOT FILED labels in every mode, empty/error/permission states, capability gating from `/session` plus each payout's `required_capability`. No money arithmetic in UI code (lint guard passes).
+
+**Fixture-only:** all rendered finance data and all payout-approval outcomes. The transport's approval rules are a stand-in, not A07.
+
+**Incomplete / not done:**
+- Integration with A07/A08 and the acceptance scenario (real run + supplier payment updating every screen; exports matched against the real API).
+- Playwright E2E.
+- No supplier-payment approval or invoice-payment command (C03 names none; see Q45).
+- No cancel/recovery actions for payouts (CANCEL_REQUESTED etc. are display-only; B06/A09).
+- Exports are client-side serializations of served JSON; a server-side export endpoint would be more authoritative (Q44).
+- SSE invalidation is global (every event refetches every mounted projection); per-event-type targeting waits for A's event catalog (Q45).
+- No dark mode (the app is light-only by design); chart validated visually only, no palette validator run (single series using the existing accent and negative tokens, with text labels).
+
+### New DRAFT assumptions
+
+- DA46: a payout's `idempotency_key` is stable for its logical obligation across every retry; the UI only displays it and never generates one for a payout.
+- DA47: an amount approval satisfies only `DAILY_AUTO_LIMIT`. With a failing hard blocker it is recorded but the payout stays DRAFT and held.
+- DA48: `GET /cash` lists positions newest `as_of` first; the Cash screen shows the first item.
+- DA49: `GET /reports?business_date=` matches reports whose period covers that date.
+- DA50: journal detail is addressed by `entry_id` (`/journal/{entry_id}`); there is no separate `id`.
+- DA51: credit notes carry negative `gross/net_cents` and `outstanding_cents = 0` once applied; the invoice's `outstanding_cents` is already net of applied credit (server value).
+- DA52: supplier payments reuse the C04 payout state enum.
+- DA53: report and tax exports may be produced client-side from the served record without recomputation, until A provides export endpoints.
+- DA54: the illustrative capability name for payout approval is `payout.approve_above_limit`; the UI reads it from `Payout.required_capability`.
+
+### Contract questions for A (continuing; CONTRACTS.md not edited)
+
+38. **Payouts.** Add `GET /payouts/{id}`, `GET /payout-batches` and `state`/`batch_id` filters? Add to Payout: `payment_mode`, `batch_id`, `settlement_id`, `run_id`, `verified_beneficiary_version`, `approval_required`, `required_capability`, `gate {evaluated_at, checks[{check, result, hard_blocker, detail, case_id}], daily_limit {limit_cents, prior_cumulative_cents, cumulative_with_this_cents, exceeds_limit}}`, `holds[]`, `state_history[]`, `outcome_detail`, `reconciliation_case_id`, `updated_at`? Does `prior_cumulative_cents` include UNKNOWN and in-flight payouts (assumed yes) and tips (DA29)?
+39. **Payout approval payload.** `ApprovePayoutPayload {action: APPROVE_PAYOUT_ABOVE_LIMIT, logical_obligation_id, amount_cents, beneficiary_version, business_date, vendor_id, note}` with `expected_version` = payout `version`. 422 codes `AMOUNT_MISMATCH`, `BENEFICIARY_CHANGED`, `TARGET_MISMATCH`, `INVALID_TRANSITION`? Is the approval accepted while a hard blocker fails (DA47), or rejected with 422?
+40. **Cash position.** Shape: `bank_balance_cents`, `pending_cents`, `reserved_cents`, `reservations[{kind, label, amount_cents, spendable}]`, `obligations[]`, `shortfalls[]`, `receipts[]` (tickets/sponsorship), `forecast {horizon_days, horizon_end, method, assumptions, points[{date, opening, inflows, outflows, projected_available, shortfall}]}`, `config_version`, `source_refs`. What forecast horizon will A configure (illustrative uses 7 days)?
+41. **Payables.** Supplier (`category`, `payment_terms_days`, `outstanding_cents`, `beneficiary_version`, `status`, `source_refs`), PurchaseOrder (`po_number`, `issued_date`, `status`, `description`, `invoiced_cents`, `invoice_ids`, `source_refs`), SupplierInvoice additions (`kind`, `applies_to_invoice_id`, `duplicate_of_invoice_id`, `duplicate_reason`, `payment_ids`, `journal_entry_ids`), `GET /invoices/{id}`, `GET /supplier-payments`, `supplier_id`/`kind` filters. Matches B02's `supplier_payments` input shape?
+42. **Journal.** Add `business_date`, `description`, `kind ORIGINAL|REVERSAL|CORRECTION`, server `totals {debit_cents, credit_cents, balanced}`, `corrected_by[]`, `origin_ref`, line `line_id`/`account_name`/`memo`/`vendor_id`, and `GET /journal/{entry_id}`?
+43. **Tax drafts.** `TaxReport` fields: `period_from/to`, `config_version`, `tax_rate`, `assumptions[]`, taxable/exempt/refund totals, organizer/vendor liability, `lines[{liability_owner, vendor_id, taxable, exempt, refunds_tax, tax, source_refs}]`, `exempt_items[]`, `generated_at`, `GET /reports/tax/{id}`. Status value `DRAFT_NOT_FILED`?
+44. **Financial reports.** New `GET /reports` (`kind`, `business_date`) and `GET /reports/{id}`: `FinancialReport {kind DAILY_CLOSE|FESTIVAL_PNL|FESTIVAL_CASH, title, status, period, generated_at, basis_note, headline[], sections[{lines[{amount_cents, account, journal_entry_ids, source_refs}], total_cents}], config_version, source_refs}`. Will A also serve authoritative CSV/JSON exports (e.g. `GET /reports/{id}/export?format=csv`) so exports are server-generated?
+45. **Capabilities and events.** Capability names for payout amount approval, supplier-payment approval and exports? Will there be a supplier-payment approval command? Which SSE event types will A emit for payouts, supplier payments, cash and journal, so invalidation can be targeted instead of global?
+
+### Next
+
+- Lane A: review Q38–Q45 and DA46–DA54 together with Q1–Q37. When A07/A08 endpoints exist, swap the draft contract (README procedure), run a real close run and a supplier payment locally, and check that every affected screen updates without reload and exports match the API. That test is the B05 acceptance and is still outstanding.
+- Next lane B task: **B06** (flight recorder and correction UX).
+
+## B06: recorder and correction UX
+
+| Field | Value |
+|---|---|
+| Task ID | B06 |
+| Owner | Lane B (experience/data) |
+| Branch | `lane-b` (pushed to `origin/lane-b`; nothing merged to `main`) |
+| Base commit | `45ad6df` (B05 handoff record) |
+| Commits | `37a7ed3` OpenAPI proposals Q46–Q53 + types · `0beac3a` illustrative night3 recorder fixture, transport stand-in, Q54 `settlement_version`, bundle guard, fixture/contract tests · `f70303e` components, Pacific datetime filters, styles · `6574665` screens, routes, dev story, tests · `5b8d4cc` visual-check fixes · `c0262f3` README · this record |
+| Status | **review — integration blocked on A02/A09.** Lane A has no event store, lineage, correction, branch or replay API. The B06 acceptance ("a reviewer can trace any shown payout back to sources and the original human instruction; history does not silently change when a later correction arrives") has been **demonstrated only on the dev/test fixture transport with ILLUSTRATIVE data**. It has not been met against a real backend and was not attempted. |
+| Reviewer / merge commit | none yet |
+
+### Files (only `apps/web/` and this note)
+
+- `contracts-draft/openapi.draft.yaml`: lane-B proposals Q46–Q54 (`x-encore-proposal`); `src/api/generated/schema.ts` regenerated with openapi-typescript 7.4.4; `operations.ts` and `types.ts` extended.
+- `src/fixtures/illustrative/recorder_v1.json` (new, **ILLUSTRATIVE**); `finance_v1.json` gained `settlement_version` on its 4 payouts; `recorderTransport.ts` (new A09 stand-in); `http.ts` (shared fixture HTTP helpers, moved out of `fixtureTransport.ts`); `fixtureTransport.ts` and `compactFixture.ts` (`story: 'night1' | 'night3'`); `scripts/check-prod-bundle.mjs` reads the recorder file and more keys (589 markers, up from 422).
+- `src/components/RecorderLabels.tsx` (category badge, record links, recorder tabs, replay/branch/history banners); `FilterBar.tsx` (text and Pacific datetime fields); `FixtureBanner.tsx`; `src/lib/time.ts` (`pacificLocalToUtc`, `utcToPacificLocal`); styles.
+- `src/screens/`: `Recorder.tsx`, `History.tsx`, `Replays.tsx`, `Branches.tsx`, `Corrections.tsx` (challenge new/detail, correction), `PayoutTrace.tsx`; links added to `Policies.tsx` (replaces the B04 challenge stub), `Settlements.tsx`, `Payouts.tsx`; routes in `src/app/App.tsx`; navigation marks the recorder implemented.
+- `src/main.tsx`, `src/vite-env.d.ts`, `.env.fixtures`, `.env.fixtures-night1` (public setting only), `package.json` script `dev:fixtures:night1`.
+- Tests: `src/screens/recorder.test.tsx` (17), `src/fixtures/recorderFixture.test.ts` (10), additions to `contract.test.ts` (2) and `time.test.ts` (2); helper `src/test/night3.ts`; `renderApp.tsx` gained `story` and an unrecorded `inner` transport; one B04 test updated for the new challenge link.
+- `README.md`.
+
+No dependencies added. No changes to packages/contracts, services, db, infra, data, tests/oracle, root config or planning docs.
+
+### How the illustrative recorder fixture was made (oracle isolation)
+
+- Typed by hand by lane B into a scratch authoring script (not committed) that wrote the JSON and computed event `hash`/`previous_hash` (sha256 over each fixture event) for a consistent chain. No file under `tests/oracle/`, `expected/`, `scripted_decisions*`, `dev_only/` or `simulator_only/` was opened during B06.
+- Reused only input references (Taco Libre vendor id, contract/email/POS source ids, hashes and the two B04 excerpts) and the B04/B05 illustrative records it overlays. All Night 2/3 figures (eligible sales $800 / $5,000 / $300, 10% vs 15%), the follow-up email, events, snapshots, the correction plan, branch comparison and replay totals are invented.
+- The existing isolation test (no oracle paths in fixture code or data) covers the new files; a new test checks ids, the hash chain, categories and overlay consistency.
+
+### Commands actually run (macOS, Node v18.18.2)
+
+| Command | Result |
+|---|---|
+| `npm run gen:api`, `npm run check:api` | `generated API types are up to date with contracts-draft/openapi.draft.yaml` |
+| `npm run check` (final run, after the last code change) | check:api, typecheck and lint clean; `Test Files 17 passed (17) · Tests 200 passed (200)`; Vite built 4 files (JS 456.35 kB, gzip 127.98 kB); `prod bundle check OK: 4 files, 589 fixture markers, 0 hits` |
+| `npx vitest run` twice in a row (before the final check) | 200/200 both times |
+| Planted `illus_payout_n1_taco` in `dist/`, ran the guard | exit 1, `1 hits`; removed, guard passed again |
+| Headless Chrome on `vite --mode fixtures` | `/recorder`, `/recorder/history?cutoff=…`, `/recorder/branches/illus_branch_taco_15`, `/payouts/illus_payout_n1_taco/trace` at 1280 px; `/recorder` and the branch at 500 px. Found and fixed: fixture banner did not mention the recorder story; amount labels ran into amounts in tables; replay audit events carried a business date and so appeared as "recorded later" facts in history. At 500 px wide tables scroll inside their focusable regions (by design). Not done: 375 px, screen reader, real mobile, a visual pass of the correction screens (covered by jsdom tests and axe only). |
+
+Not run: Playwright/browser E2E, any real-API test, CI, integration with lane A. No mutation test this round.
+
+### Tests added (fixture-only; NOT integration acceptance)
+
+- **Timeline:** every proposal says "not an approval", every intent "not confirmed" and neither says "Confirmed effect"; `payout.submitted` is an attempted action, only the provider confirmation is an effect; late email flagged "Recorded later, effective earlier"; C06 fields in details (command, correlation, hash + previous hash, display-only chain check both ways); actor/run links; sources in the evidence drawer; URL filters (category, actor type, Pacific time range sent as UTC) survive a remount; axe.
+- **Live SSE:** with the view pinned and a card expanded, another user's challenge + an SSE event shows "3 new events" without changing the list, the expanded card or the filter; "Show new events" puts them on top and keeps the filter.
+- **History:** cutoff and business date chosen separately and both sent; the past view shows the policy ACTIVE and lists the late email separately; the screen sends only GETs; after a full correction by another client and an SSE refetch, the table text is identical and the correction appears only under "Recorded after this cutoff"; axe.
+- **Replay/branch:** SIDE-EFFECT-FREE and BRANCH — not production labels; replay start is explicit, payload validates, progress reaches 7/7 with zero effect counters; no apply/promote/resend/merge/overwrite buttons; branch comparison shows server production/branch/difference; the only production path is a link to a challenge; branch creation sends one `CreateBranchPayload` with a Pacific → UTC cutoff; read-only sessions get no start control; axe.
+- **Night 3 flow:** policy page → challenge (envelope + `CreateChallengePayload` validate, `expected_version` 2, Idempotency-Key) → policy ACTIVE → SUSPENDED and draft payout held → preview grouped by all six state groups with server deltas → approval: double click + click sends one POST, "Submitting…" and no completion text while the server is held, payload binds version 1 and 9 items → "Accepted… Not complete yet" → progress → "correction completed (server confirmed)" → original vs corrected links (originals kept, reversing entries, replacement payout); 409 shows "Not applied … current version 2"; 422 shows the field error; sessions without `correction.approve` or `challenge.create` get no controls; axe on the preview.
+- **Payout trace:** Taco Libre Night 1 payout → settlement v2 (pinned) → policy v1 ACTIVE when applied → human reuse approval (actor, capability) → case decided by a human ("Apply the producer email rate (10%)") → contract, email and POS sources; after a correction the trace still shows what was paid, notes the later settlement version 3 and that the policy is now REVOKED; Kettle Corn (automatic gate + rule) and Late Bloom (no exception rule) traces; axe.
+- **Stand-in/contract:** events paging, pin, filters, 422s and 501 without the story; challenge 403/409/422 (`REASON_REQUIRED`, `UNKNOWN_EVIDENCE`, `CHALLENGE_ALREADY_OPEN`); approval 403/409/`PREVIEW_CHANGED`/`EVIDENCE_CHANGED`/`ITEMS_MISMATCH`/`INVALID_TRANSITION`, same-key replay; originals preserved and old settlement version served; history at a past cutoff byte-identical after a correction; history, branch and replay leave payouts/settlements/journal/policies unchanged; every new response validates against the draft schemas; payload schemas reject spoofed actors and a `promote_to_production` field.
+
+### Implemented vs fixture-only vs incomplete
+
+**Implemented (against the draft contract):** the recorder timeline with filters, pinning and live "new events" indication; event detail; historical state selector; replay and branch screens with their labels and no production-mutation controls; challenge → preview → approval → progress → original vs corrected; payout trace using existing reads plus `settlement_version`; capability gating from `/session` (and `Correction.required_capability`); no money arithmetic in UI code (lint guard passes).
+
+**Fixture-only:** every recorded event, historical projection, challenge effect, correction plan, progress step, result, branch comparison and replay outcome. The stand-in's rules are not A09 and only the Taco Libre policy has a correction plan.
+
+**Incomplete / not done:**
+- Integration with A02/A09 and the acceptance test against a real backend.
+- Playwright E2E (B07).
+- No challenge withdrawal, no "resolve the human recovery/waiver item" action (C03 names no command; Q55).
+- Branch overrides support only a commission rate; the fixture serves one scenario.
+- History table covers the records the server projects; there is no per-record "diff between two cutoffs" view.
+- The hash-chain check is display-only string comparison on the current page; verification is the server's job.
+- Live update targeting is still global invalidation (Q45).
+
+### New DRAFT assumptions
+
+- DA55: `GET /events` returns newest `stream_sequence` first; without `branch_id` only production events; `head_sequence` + `up_to_sequence` pin pages, `after_sequence` counts newer events.
+- DA56: the server sets `category` on every event; the UI never infers it from `type` and shows "Category not stated" if missing.
+- DA57: `backdated` is a server flag meaning "recorded after dependent results for its business date were recorded"; the UI does not compute it.
+- DA58: the historical projection includes undated records (e.g. policies) under any business-date filter; `recorded_later` lists events recorded after the cutoff that occurred at or before it or belong to a business date on or before the cutoff's festival date.
+- DA59: creating a challenge uses `expected_version` = the target's optimistic version (policy `record_version`, settlement/payout `version`) and itself pauses the affected policy and holds dependent unreleased work, changing no money.
+- DA60: requesting a preview is a command with `expected_version` = challenge version and the `challenge.create` capability; approval needs `Correction.required_capability`.
+- DA61: correction approval returns 202 + job; `GET /corrections/{id}` reports progress and, once COMPLETED, `results` linking originals to corrections.
+- DA62: a payout's `settlement_version` is the exact settlement version it pays; old settlement versions stay readable via `?version=`.
+- DA63: replay and branch creation send `expected_version: null`.
+
+### Contract questions for A (continuing; CONTRACTS.md not edited)
+
+46. **Event reads.** Add `GET /events/{id}` and filters `run_id`, `vendor_id`, `aggregate_id`, `aggregate_type`, `actor_type`, `actor_id`, `type`, `category`, `branch_id`, `correlation_id`, `recorded_from/to`, `up_to_sequence`, `after_sequence`, plus `EventList.head_sequence`? Newest-first order (DA55)?
+47. **Event fields.** Add the C06 fields missing from the C03 envelope (`stream_id`, `actor_id/type`, `capability`, `command_id`, versions, `previous_hash`/`hash`) and display fields `category`, `summary`, `aggregate_type`, `actor_label`, `business_date`, `backdated`, `input_refs`, `links: RecordRef[]`? Is the category enum FACT/PROPOSAL/INTENT/EFFECT/PROJECTION acceptable, and is a provider "submitted" an INTENT?
+48. **Historical projection.** `GET /history/projection?knowledge_cutoff=&business_date=&vendor_id=` → `HistoricalProjection {snapshot, events_applied, as_of_sequence, rows[], recorded_later[]}` (DA58)? Which projections will A reconstruct (settlements, payouts, policies, journal, cases)? Branch history?
+49. **Challenges.** `CreateChallengePayload {target {kind, id, version}, superseding_evidence[{source_id, source_version, content_hash, locator?}], reason}`, `Challenge` with `policy_effect {status_before, status_now, paused_at, paused_work[]}`, `GET /challenges?target_id=`, `GET /challenges/{id}`? One open challenge per policy version? Is there a withdraw command?
+50. **Correction preview.** `PreviewCorrectionPayload {challenge_id}` and `Correction` with `items[{record, state_at_preview, state_group, treatment, original/corrected/delta_cents, contingent_on, requires_human}]`, `policy_changes`, `paused_work`, `totals`, `progress[]`, `results[]` (shapes in the draft)? Are the six state groups and treatments the right vocabulary?
+51. **Correction approval.** `ApproveCorrectionPayload {correction_id, challenge_id, preview_hash, evidence_hash, item_ids}` with `expected_version` = correction version; 422 codes `PREVIEW_CHANGED`, `EVIDENCE_CHANGED`, `ITEMS_MISMATCH`, `INVALID_TRANSITION`; 202 + job? What happens to a `HUMAN_RECOVERY_OR_WAIVER` item — a new case?
+52. **Branches.** `CreateBranchPayload {label, base_knowledge_cutoff, business_date?, overrides[{policy_version_id, commission_bps}]}`, `Branch {isolation {storage, external_effects, production_writes}, comparison[]}`, branch event stream via `branch_id`? Which overrides will A support?
+53. **Replays.** `StartReplayPayload {run_id, mode: RECORDED_RESULTS_ONLY}`, `Replay {processed, total, effects {live_model_calls, payment_effects, production_postings}, matching, divergences[]}`, `GET /replays{/id}`?
+54. **Pinned versions.** Add `Payout.settlement_version` and `GET /settlements/{id}?version=` so a trace shows exactly what was paid?
+55. **Capabilities and commands.** Names for challenge, correction approval, branch and replay (`challenge.create`, `correction.approve`, `branch.create`, `replay.start` assumed)? Will there be commands for challenge withdrawal and for human recovery/waiver decisions, and SSE event types for challenges/corrections/replays?
+
+### Next
+
+- Lane A: review Q46–Q55 and DA55–DA63 with the open Q1–Q45. When A02/A09 endpoints exist, swap the draft contract (README procedure), run the Night 3 story against A's API and database, and check that a past-cutoff history view is unchanged after a real correction and that every payout traces to sources and a human decision. That is the B06 acceptance and is still outstanding.
+- Next lane B task: **B07** (integrated acceptance and release evidence).
