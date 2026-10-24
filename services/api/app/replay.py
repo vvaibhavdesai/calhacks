@@ -13,7 +13,9 @@ optionally one vendor/run), in recorded order:
     legal under C04's payout state machine.
   - agent extraction events: consume the RECORDED model result (the
     `document_extractions` row and its claims). No model is called.
-  - every stream touched: recompute the per-stream hash chain.
+  - every stream touched: recompute the per-stream hash chain, via
+    app/audit_chain.py (which owns that walk; this module does not keep a
+    second copy of it).
 
 What a replay can never do: it reads through a session whose transaction
 is `SET TRANSACTION READ ONLY` (Postgres refuses writes), inside
@@ -26,7 +28,6 @@ the caller's normal transaction and is not a financial mutation.
 
 from __future__ import annotations
 
-import hashlib
 from datetime import UTC, datetime
 
 from domain import history as dh
@@ -34,6 +35,7 @@ from domain.settlement import EligibleSalesInput, calculate_vendor_settlement
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
+from app.audit_chain import verify_chain
 from app.db import get_session_factory
 from app.effects_guard import effects_disabled
 from app.history import festival_event_clause
@@ -41,34 +43,8 @@ from app.models_agents import DocumentClaim, DocumentExtraction
 from app.models_corrections import Replay
 from app.models_ledger import BusinessEvent, JournalEntry, SourceDocument, Vendor
 from app.models_settlement import Settlement
-from app.uow import GENESIS_HASH, UnitOfWork, _canonical_json
+from app.uow import UnitOfWork
 from app.whatif import production_counts
-
-
-def _recompute_hash(e: BusinessEvent) -> str:
-    hashable = {
-        "event_id": e.event_id,
-        "stream_id": e.stream_id,
-        "sequence": e.sequence,
-        "schema_version": e.schema_version,
-        "event_type": e.event_type,
-        "actor_id": e.actor_id,
-        "actor_type": e.actor_type,
-        "actor_capability": e.actor_capability,
-        "occurred_at": e.occurred_at.astimezone(UTC),
-        "aggregate_id": e.aggregate_id,
-        "aggregate_version": e.aggregate_version,
-        "run_id": e.run_id,
-        "vendor_id": e.vendor_id,
-        "branch_id": e.branch_id,
-        "correlation_id": e.correlation_id,
-        "causation_id": e.causation_id,
-        "command_id": e.command_id,
-        "payload": e.payload,
-        "versions": e.versions,
-        "previous_hash": e.previous_hash,
-    }
-    return hashlib.sha256(_canonical_json(hashable).encode("utf-8")).hexdigest()
 
 
 def _scope_events(ro: Session, *, festival_id: str, vendor_id: str | None, run_id: str | None):
@@ -187,27 +163,27 @@ def _replay_events(ro: Session, events: list[BusinessEvent]) -> tuple[int, list[
             ro.execute(select(DocumentClaim.id).where(DocumentClaim.extraction_id == ext.id)).all()
             checks["recorded_model_results_consumed"] += 1
 
-    # Hash chain for every stream touched (whole stream, not just the scope).
-    for stream_id in sorted({e.stream_id for e in events}):
-        prev = GENESIS_HASH
-        expected_seq = 1
-        for se in ro.execute(
-            select(BusinessEvent)
-            .where(BusinessEvent.stream_id == stream_id)
-            .order_by(BusinessEvent.sequence)
-        ).scalars():
-            checks["events_hash_checked"] += 1
-            if se.sequence != expected_seq or se.previous_hash != prev:
-                divergences.append(
-                    {"event_id": se.event_id, "detail": f"stream {stream_id}: chain link broken"}
-                )
-            if _recompute_hash(se) != se.hash:
-                divergences.append(
-                    {"event_id": se.event_id, "detail": f"stream {stream_id}: hash mismatch"}
-                )
-            prev = se.hash
-            expected_seq = se.sequence + 1
-        checks["streams_hash_checked"] += 1
+    # Hash chain for every stream touched (whole stream, not just the
+    # scope). app/audit_chain.py owns the walk -- it recomputes with the
+    # same functions app/uow.py hashes with, and reports sequence
+    # contiguity, previous_hash linkage and hash correctness separately.
+    # `include_heads=False`: a stream_heads/business_events disagreement is
+    # not attributable to one event, and `matching` below counts distinct
+    # divergent event_ids. The ops surface watches the heads instead
+    # (app/ops.py's AUDIT_CHAIN_HEAD_MISMATCH).
+    # The caps are raised to the 500 `run_replay` already truncates its
+    # divergence list at, so a replay reports exactly what it reported
+    # before rather than the verifier's own tighter per-stream cap.
+    chain = verify_chain(
+        ro,
+        stream_ids=sorted({e.stream_id for e in events}),
+        include_heads=False,
+        max_divergences_per_stream=500,
+        max_divergences=500,
+    )
+    checks["events_hash_checked"] += chain.events_checked
+    checks["streams_hash_checked"] += chain.streams_checked
+    divergences.extend({"event_id": d.event_id, "detail": d.detail} for d in chain.divergences)
     return len(events), divergences, checks
 
 
