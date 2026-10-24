@@ -173,6 +173,38 @@ jobs:
       - name: Generate-TS-types stub is wired and runnable
         run: uv run python packages/contracts/scripts/generate_ts_types.py
 
+  api-contract-drift:
+    # The web client's TypeScript types are GENERATED from the backend's own
+    # OpenAPI document, via a committed snapshot of app.openapi()
+    # (apps/web/contracts/openapi.backend.json). Two checks, in order:
+    #   1. the snapshot still equals app.openapi() -- if a router gained, lost
+    #      or renamed a route, a parameter or a response model, this fails and
+    #      names what moved;
+    #   2. the generated client is exactly what that snapshot generates.
+    # src/api/contract.test.ts (in web-check) then asserts that every operation
+    # the client calls really exists in the snapshot, so the frontend cannot
+    # drift away from the backend without CI saying so.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: uv sync --all-extras --dev
+      - name: Backend OpenAPI snapshot is current
+        run: uv run python scripts/dump_openapi.py --check
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: apps/web/package-lock.json
+      - name: Generated client matches the snapshot
+        working-directory: apps/web
+        run: |
+          npm ci
+          npm run check:api
+
   web-check:
     # `npm run check` is lane B's own definition of green for apps/web:
     # check:api (generated types fresh), typecheck, lint, test, build (+ the
