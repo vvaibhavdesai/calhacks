@@ -1,7 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { ariaUsd, centsScaleRatio, compareCents, formatBasisPoints, formatUsd, isCanonicalCents, maxAbsCents, MoneyFormatError, parseCents } from './money';
 
-describe('money (C01 integer-cent strings)', () => {
+describe('money (C01 integer cents)', () => {
+  it('formats the backend\'s integer cents as USD', () => {
+    // The live API sends amount_cents as a JSON integer.
+    expect(formatUsd(0)).toBe('$0.00');
+    expect(formatUsd(150000)).toBe('$1,500.00');
+    expect(formatUsd(-10900)).toBe('−$109.00');
+    expect(formatUsd(2500, { signDisplay: 'always' })).toBe('+$25.00');
+    expect(parseCents(150)).toBe(150n);
+    expect(compareCents(1480174, '1480174')).toBe(0);
+  });
+
   it('formats cents strings as USD', () => {
     expect(formatUsd('0')).toBe('$0.00');
     expect(formatUsd('5')).toBe('$0.05');
@@ -23,9 +33,13 @@ describe('money (C01 integer-cent strings)', () => {
       expect(isCanonicalCents(bad)).toBe(false);
       expect(() => parseCents(bad)).toThrow(MoneyFormatError);
     }
-    expect(() => parseCents(150)).toThrow(MoneyFormatError);
-    expect(() => parseCents(1.5)).toThrow(MoneyFormatError);
+    // Money is never a float, and never a number that cannot hold cents exactly.
+    for (const bad of [1.5, NaN, Infinity, -0.01, 2 ** 53]) {
+      expect(isCanonicalCents(bad)).toBe(false);
+      expect(() => parseCents(bad)).toThrow(MoneyFormatError);
+    }
     expect(() => parseCents(null)).toThrow(MoneyFormatError);
+    expect(() => parseCents(undefined)).toThrow(MoneyFormatError);
   });
 
   it('provides a spoken form', () => {

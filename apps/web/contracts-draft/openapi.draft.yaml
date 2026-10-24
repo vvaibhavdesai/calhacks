@@ -1190,15 +1190,24 @@ components:
   schemas:
     # ------------------------------------------------------------ C01 basics
     MoneyCents:
-      type: string
       description: >-
-        USD integer cents as a canonical base-10 string (C01). A leading '-' for refunds is a
-        DRAFT assumption (DA07, open question Q4); '-0' and leading zeros are not canonical.
-      pattern: '^-?(0|[1-9][0-9]*)$'
-      not: { const: '-0' }
+        USD integer cents (C01). The backend sends a JSON integer; the dev/test fixtures carry
+        the same value as a canonical base-10 string, so both forms are accepted and
+        src/lib/money.ts is the only module that reads either. Never a float. A leading '-'
+        for refunds is a DRAFT assumption (DA07, open question Q4); '-0' and leading zeros are
+        not canonical.
+      anyOf:
+        - type: integer
+        - type: string
+          pattern: '^-?(0|[1-9][0-9]*)$'
+          not: { const: '-0' }
     NonNegativeMoneyCents:
-      type: string
-      pattern: '^(0|[1-9][0-9]*)$'
+      description: USD integer cents, never negative. Backend integer or fixture string (see MoneyCents).
+      anyOf:
+        - type: integer
+          minimum: 0
+        - type: string
+          pattern: '^(0|[1-9][0-9]*)$'
     Currency:
       type: string
       enum: [USD]
