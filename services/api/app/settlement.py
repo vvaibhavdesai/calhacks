@@ -135,14 +135,57 @@ def _round_half_up(value: Decimal) -> int:
     return int(value.quantize(Decimal("1"), rounding=ROUND_HALF_UP))
 
 
+def _latest_match_group_run_id(
+    db: Session, *, vendor_id: str, business_date_: date
+) -> tuple[str | None, bool]:
+    """The reconciliation run whose `order_capture` view of this
+    vendor/business_date is the current one, as (run_id, found_any).
+
+    `match_groups` is append-only PER RUN: re-running reconciliation for a
+    night that was already reconciled leaves the earlier run's groups in
+    place and adds a fresh set. Picked by the newest row's `run_id`
+    (`created_at` is the run's transaction timestamp, so every group a run
+    wrote shares one value) rather than by joining `runs`, because
+    `MatchGroup.run_id` is nullable -- hand-built dev fixtures and groups
+    whose run row was deleted (ON DELETE SET NULL) have none, and those
+    form their own "run" here instead of being silently dropped.
+    `found_any` distinguishes "the latest groups carry run_id IS NULL"
+    from "this vendor/day has no groups at all"."""
+    row = db.execute(
+        select(MatchGroup.run_id)
+        .where(
+            MatchGroup.vendor_id == vendor_id,
+            MatchGroup.match_type == "order_capture",
+            MatchGroup.business_date == business_date_,
+        )
+        .order_by(MatchGroup.created_at.desc(), MatchGroup.id.desc())
+        .limit(1)
+    ).first()
+    if row is None:
+        return None, False
+    return row[0], True
+
+
 def gather_reconciled_day_facts(
     db: Session, vendor: Vendor, business_date_: date
 ) -> ReconciledDayFacts:
     """Pull one vendor/business_date's eligible sales, tax, tips and
     processor-fee attribution strictly from A03's `match_groups` -- never
     from raw `orders`/`payments` directly, per the task's integration
-    requirement with A03."""
+    requirement with A03.
+
+    Scoped to the LATEST reconciliation run for this vendor/day: summing
+    every run's groups would add this vendor's sales once per
+    reconciliation run (a re-run after a fixed-up deposit or a corrected
+    order would double the night's eligible sales, and with it the
+    commission and the payout)."""
     facts = ReconciledDayFacts()
+
+    latest_run_id, has_groups = _latest_match_group_run_id(
+        db, vendor_id=vendor.id, business_date_=business_date_
+    )
+    if not has_groups:
+        return facts
 
     order_groups = (
         db.execute(
@@ -150,6 +193,11 @@ def gather_reconciled_day_facts(
                 MatchGroup.vendor_id == vendor.id,
                 MatchGroup.match_type == "order_capture",
                 MatchGroup.business_date == business_date_,
+                (
+                    MatchGroup.run_id.is_(None)
+                    if latest_run_id is None
+                    else MatchGroup.run_id == latest_run_id
+                ),
             )
         )
         .scalars()
@@ -246,6 +294,14 @@ def gather_reconciled_day_facts(
                 )
                 continue
 
+            # Same append-per-run story as the order groups above: a
+            # bank entry reconciled by several runs has one group per
+            # run, so take the newest classification of it (this one is
+            # read, not summed -- an unordered `.first()` would just make
+            # the hold decision depend on row order). Not scoped to
+            # `latest_run_id`: the bank_deposit pass is festival-level and
+            # may well have last run in a different run than this
+            # vendor's order pass.
             bank_group = (
                 db.execute(
                     select(MatchGroup)
@@ -258,6 +314,7 @@ def gather_reconciled_day_facts(
                         MatchGroupMember.member_kind == "bank_entry",
                         MatchGroupMember.member_id == payment.bank_entry_id,
                     )
+                    .order_by(MatchGroup.created_at.desc(), MatchGroup.id.desc())
                 )
                 .scalars()
                 .first()
