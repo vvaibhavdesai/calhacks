@@ -31,19 +31,38 @@ _REDACT_KEYS = {
     "anthropic_api_key",
     "document_storage_credential",
 }
+# A10: any key CONTAINING one of these fragments is also redacted, so e.g.
+# `refresh_token`, `x_api_key`, `ops_metrics_token`, `db_password` or
+# `set_cookie` are covered without listing every spelling.
+_REDACT_KEY_FRAGMENTS = ("password", "secret", "token", "api_key", "credential", "cookie", "dsn")
 
 _BEARER_RE = re.compile(r"Bearer\s+[A-Za-z0-9\-_\.]+", re.IGNORECASE)
+# A10: Anthropic-style keys and credentials embedded in URLs
+# (postgresql+psycopg://user:PASSWORD@host/db) are scrubbed from free text.
+_ANTHROPIC_KEY_RE = re.compile(r"sk-ant-[A-Za-z0-9\-_]{8,}")
+_URL_CREDENTIALS_RE = re.compile(r"(?P<scheme>[a-z][a-z0-9+.\-]*://)(?P<user>[^:/@\s]+):[^@/\s]+@")
 _REDACTED = "[REDACTED]"
 
 
+def _is_secret_key(key: str) -> bool:
+    k = key.lower()
+    return k in _REDACT_KEYS or any(f in k for f in _REDACT_KEY_FRAGMENTS)
+
+
 def _redact_value(key: str, value: Any) -> Any:
-    if key.lower() in _REDACT_KEYS:
+    if _is_secret_key(key):
         return _REDACTED
+    if isinstance(value, dict):
+        return {k: _redact_value(str(k), v) for k, v in value.items()}
+    if isinstance(value, str):
+        return _scrub_text(value)
     return value
 
 
 def _scrub_text(text: str) -> str:
-    return _BEARER_RE.sub("Bearer " + _REDACTED, text)
+    text = _BEARER_RE.sub("Bearer " + _REDACTED, text)
+    text = _ANTHROPIC_KEY_RE.sub(_REDACTED, text)
+    return _URL_CREDENTIALS_RE.sub(lambda m: f"{m['scheme']}{m['user']}:{_REDACTED}@", text)
 
 
 class RedactingJSONFormatter(logging.Formatter):
@@ -59,7 +78,7 @@ class RedactingJSONFormatter(logging.Formatter):
             for k, v in extra.items():
                 payload[k] = _redact_value(k, v)
         if record.exc_info:
-            payload["exc_info"] = self.formatException(record.exc_info)
+            payload["exc_info"] = _scrub_text(self.formatException(record.exc_info))
         return json.dumps(payload, default=str)
 
 
