@@ -16,6 +16,7 @@ from app.routers import (
     cash_office,
     corrections,
     example,
+    festivals,
     finance,
     health,
     imports,
@@ -26,6 +27,7 @@ from app.routers import (
     recorder,
     settlement,
     terms,
+    vendors,
 )
 
 _settings = get_settings()
@@ -87,6 +89,8 @@ app.include_router(orchestration.router)
 app.include_router(recorder.router)
 app.include_router(corrections.router)
 app.include_router(terms.router)
+app.include_router(festivals.router)
+app.include_router(vendors.router)
 
 
 @app.get("/")

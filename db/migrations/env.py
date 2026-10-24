@@ -18,6 +18,7 @@ from app import (  # noqa: E402,F401
     models_agents,
     models_cash_office,
     models_corrections,
+    models_festival,
     models_finance,
     models_ledger,
     models_orchestration,
