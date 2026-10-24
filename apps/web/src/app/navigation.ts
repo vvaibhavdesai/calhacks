@@ -31,12 +31,12 @@ export const NAV: NavGroup[] = [
   {
     label: 'Money',
     items: [
-      { path: '/payouts', label: 'Payouts', task: 'B05', summary: 'Payout states, approvals and confirmations.', qualifier: 'SIMULATED money movement' },
-      { path: '/cash', label: 'Cash', task: 'B05', summary: 'Cash position and forecast.' },
-      { path: '/payables', label: 'Suppliers & invoices', task: 'B05', summary: 'Suppliers, purchase orders, invoices and supplier payments.' },
-      { path: '/journal', label: 'Journal', task: 'B05', summary: 'Journal entries, posting rule versions and corrections.' },
-      { path: '/tax', label: 'Tax (draft)', task: 'B05', summary: 'Draft tax summaries.', qualifier: 'DRAFT, NOT FILED' },
-      { path: '/reports', label: 'Reports', task: 'B05', summary: 'Statements and exports with source links.' },
+      { path: '/payouts', label: 'Payouts', task: 'B05', summary: 'Payout batches, states, gate checks, finance-lead approvals and confirmations.', qualifier: 'SIMULATED money movement', implemented: true },
+      { path: '/cash', label: 'Cash', task: 'B05', summary: 'Available, pending and reserved cash, obligations, shortfalls and forecast.', implemented: true },
+      { path: '/payables', label: 'Suppliers & invoices', task: 'B05', summary: 'Suppliers, purchase orders, invoices and supplier payments.', implemented: true },
+      { path: '/journal', label: 'Journal', task: 'B05', summary: 'Journal entries, posting rule versions and corrections.', implemented: true },
+      { path: '/tax', label: 'Tax (draft)', task: 'B05', summary: 'Draft tax summaries.', qualifier: 'DRAFT, NOT FILED', implemented: true },
+      { path: '/reports', label: 'Reports', task: 'B05', summary: 'Daily close and festival P&L/cash reports with exports and source links.', implemented: true },
     ],
   },
   {

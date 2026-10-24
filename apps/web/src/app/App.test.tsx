@@ -44,9 +44,12 @@ describe('app shell', () => {
     }
   });
 
-  it('labels draft tax and simulated payouts', () => {
-    renderFixtureApp('/tax');
-    expect(screen.getByText('DRAFT, NOT FILED')).toBeInTheDocument();
+  it('labels draft tax and simulated payouts even when no output data is served (inputs-only fixture)', () => {
+    const tax = renderFixtureApp('/tax');
+    expect(screen.getAllByRole('note').some((n) => n.textContent?.includes('DRAFT, NOT FILED'))).toBe(true);
+    tax.unmount();
+    renderFixtureApp('/payouts');
+    expect(screen.getAllByRole('note').some((n) => n.textContent?.includes('SIMULATED — no real money moves'))).toBe(true);
   });
 
   it('has no axe violations on the overview and a data table page', async () => {

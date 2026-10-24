@@ -2,6 +2,12 @@ import { useEffect, useState } from 'react';
 import { RouterProvider, createBrowserRouter, createMemoryRouter, type RouteObject } from 'react-router-dom';
 import { EventStreamClient, liveStreamOpener } from '../api/sse';
 import { CaseDetail, CasesList } from '../screens/Cases';
+import { CashScreen } from '../screens/Cash';
+import { JournalDetail, JournalList } from '../screens/Journal';
+import { InvoiceDetail, PayablesScreen } from '../screens/Payables';
+import { PayoutDetail, PayoutsList } from '../screens/Payouts';
+import { ReportDetail, ReportsList } from '../screens/Reports';
+import { TaxDetail, TaxList } from '../screens/Tax';
 import { Overview } from '../screens/Overview';
 import { PoliciesList, PolicyDetail } from '../screens/Policies';
 import { MatchGroupDetail, ReconciliationList } from '../screens/Reconciliation';
@@ -38,6 +44,21 @@ export const routes: RouteObject[] = [
       { path: 'cases/:caseId', element: <CaseDetail /> },
       { path: 'policies', element: <PoliciesList /> },
       { path: 'policies/:policyVersionId', element: <PolicyDetail /> },
+      // B05 finance screens
+      { path: 'payouts', element: <PayoutsList /> },
+      { path: 'payouts/:payoutId', element: <PayoutDetail /> },
+      { path: 'cash', element: <CashScreen /> },
+      { path: 'payables', element: <PayablesScreen key="sup" tab="" /> },
+      { path: 'payables/purchase-orders', element: <PayablesScreen key="po" tab="purchase-orders" /> },
+      { path: 'payables/invoices', element: <PayablesScreen key="inv" tab="invoices" /> },
+      { path: 'payables/payments', element: <PayablesScreen key="pay" tab="payments" /> },
+      { path: 'payables/invoices/:invoiceId', element: <InvoiceDetail /> },
+      { path: 'journal', element: <JournalList /> },
+      { path: 'journal/:entryId', element: <JournalDetail /> },
+      { path: 'tax', element: <TaxList /> },
+      { path: 'tax/:taxId', element: <TaxDetail /> },
+      { path: 'reports', element: <ReportsList /> },
+      { path: 'reports/:reportId', element: <ReportDetail /> },
       ...PLACEHOLDERS.map((item) => ({ path: item.path.slice(1), element: <PlaceholderScreen item={item} /> })),
       { path: 'records/:collection', element: <SourceRecords /> },
       { path: '*', element: <NotFound /> },
