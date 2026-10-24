@@ -37,12 +37,19 @@ src = [
     "scripts",
 ]
 
+# Lane B's evaluator (independent oracle/scorer) and synthetic-data generator
+# are stdlib-only and written to lane B's own conventions; they are not
+# linted or reformatted by lane A's toolchain, so the answer key is never
+# touched by the code it grades. Lane B verifies them with its own tests.
+extend-exclude = ["tests/oracle", "data/generator"]
+
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]
 
 [tool.black]
 line-length = 100
 target-version = ["py311"]
+extend-exclude = "^/(tests/oracle|data/generator)/"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
