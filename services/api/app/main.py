@@ -15,6 +15,7 @@ from app.routers import (
     health,
     imports,
     payouts,
+    readiness,
     reconciliation,
     settlement,
 )
@@ -46,6 +47,7 @@ app.include_router(payouts.vendors_router)
 app.include_router(finance.router)
 app.include_router(agents.router)
 app.include_router(approvals.router)
+app.include_router(readiness.router)
 
 
 @app.get("/")
