@@ -14,6 +14,12 @@
 #     (contract question Qn or assumption DAnn).
 #   - `x-encore-unspecified: true` marks a schema CONTRACTS.md names but does
 #     not define; the shape is a minimal placeholder.
+#   - `x-encore-plain-body: <reason>` marks a POST that does NOT take the C03
+#     command envelope, because the real backend route does not: it declares
+#     its own request body and no Idempotency-Key. The reason says why that is
+#     safe for that route. src/api/contract.test.ts holds every other POST to
+#     the envelope convention, so this is a declared exception, never a silent
+#     one.
 #   - Fixture-backed input records use additionalProperties: false so the
 #     conformance test catches drift between the compact fixture and this
 #     draft. The runtime client does not reject unknown fields.
@@ -1169,6 +1175,161 @@ paths:
       requestBody: { $ref: '#/components/requestBodies/Command' }
       responses: *commandResponses
 
+  # ------------------------------------- prevention extension and procurement
+  # Real, merged backend routes (X0.1 approvals, R1 readiness, the
+  # analyst-assistant supplier comparison) that CONTRACTS.md does not
+  # describe. Transcribed here from the live backend's own OpenAPI document
+  # (contracts/openapi.backend.json) so the client's types are generated
+  # rather than hand-written, same as /invoices/{id}/payability above.
+  /approvals:
+    get:
+      tags: [proposals]
+      summary: >-
+        X0.1 generic approval log: every already-granted decision recorded
+        against a subject (a readiness check, a supplier invoice, a forecast
+        snapshot), newest last. Filterable by subject or by the case it cites.
+      operationId: listApprovals
+      parameters:
+        - name: subject_type
+          in: query
+          required: false
+          schema: { $ref: '#/components/schemas/ApprovalSubjectType' }
+        - name: subject_id
+          in: query
+          required: false
+          schema: { type: string }
+        - name: case_id
+          in: query
+          required: false
+          schema: { type: string }
+      responses:
+        '200':
+          description: >-
+            Approvals in creation order. The backend answers with a bare JSON
+            array; the client normalises that to this envelope (see
+            ApiClient.list), so paging fields are always null here.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApprovalRecordList' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [commands]
+      x-encore-plain-body: >-
+        X0.1's approvals endpoint is NOT a C03 envelope command: it takes a
+        flat CreateApproval body and accepts no Idempotency-Key, because the
+        capability it enforces is derived from the body's own `action`
+        (domain.approvals.required_capability_for_action) at request time.
+        Recorded here as it really is rather than declared as an envelope the
+        server would reject. The cost -- no server-side idempotency -- is
+        carried by the UI: hooks/usePlainCommand.ts allows one in-flight send
+        per prepared intent and never re-sends after a success.
+      summary: >-
+        Records one already-granted decision. The required capability comes
+        from `action`; 403 when the session does not hold it, 422 for an
+        unknown action or a subject_type that action is not legal against.
+      operationId: createApproval
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateApprovalRecord' }
+      responses:
+        '201':
+          description: The recorded approval.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApprovalRecord' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/Invalid' }
+  /approvals/{id}:
+    get:
+      tags: [proposals]
+      operationId: getApproval
+      parameters: [{ $ref: '#/components/parameters/PathId' }]
+      responses:
+        '200':
+          description: One approval record.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApprovalRecord' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /readiness:
+    get:
+      tags: [proposals]
+      summary: >-
+        R1: every counterparty's LATEST readiness check for one festival (the
+        highest version of each). Not a C03 list envelope -- the backend keys
+        the collection by `counterparties`.
+      operationId: listReadiness
+      parameters:
+        - name: festival_id
+          in: query
+          required: true
+          description: >-
+            Required by the live backend. The UI holds it from GET /festival
+            (hooks/useLookups) and holds the query until it arrives.
+          schema: { type: string }
+      responses:
+        '200':
+          description: Latest readiness check per counterparty.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReadinessList' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/Invalid' }
+  /readiness/recompute:
+    post:
+      tags: [commands]
+      x-encore-plain-body: >-
+        R1's recompute is NOT a C03 envelope command: it takes a flat
+        RecomputeReadiness body and accepts no Idempotency-Key. It needs
+        neither -- the engine is deterministic and idempotent by construction:
+        identical inputs produce the same input_fingerprint and return the
+        EXISTING row unchanged (created_new_version=false), writing no new
+        version and no new event. Same capability-gated "trigger a
+        deterministic engine" shape as POST /orchestration/runs.
+      summary: >-
+        Recomputes readiness for one counterparty, or for every vendor in the
+        festival when counterparty_id is omitted. Requires `run_readiness`.
+      operationId: recomputeReadiness
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RecomputeReadiness' }
+      responses:
+        '200':
+          description: >-
+            The readiness check per counterparty after the recompute, each
+            marked with whether this call wrote a new version.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReadinessRecomputeResult' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/Invalid' }
+  /readiness/{id}:
+    get:
+      tags: [proposals]
+      operationId: getReadiness
+      parameters: [{ $ref: '#/components/parameters/PathId' }]
+      responses:
+        '200':
+          description: One readiness check, with every check's own pass/fail.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReadinessCheck' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
 components:
   parameters:
     FestivalId:
@@ -1916,6 +2077,14 @@ components:
           description: DRAFT policy version proposed for reuse. Approving it is a SEPARATE command (/policies/{id}/approve).
         resolution: { anyOf: [{ $ref: '#/components/schemas/CaseResolution' }, { type: 'null' }], x-encore-proposal: Q33 }
         applied_policies: { type: array, items: { $ref: '#/components/schemas/AppliedPolicyRef' }, x-encore-proposal: Q35 }
+        subject_type:
+          $ref: '#/components/schemas/ApprovalSubjectType'
+          description: >-
+            What the case is about, beyond the implicit vendor/night (X0.1).
+            Optional here because the ILLUSTRATIVE fixtures predate it; the
+            live backend sends it. An approval that cites a case must name the
+            SAME subject, or the server answers 422 case_subject_mismatch.
+        subject_id: { type: [string, 'null'] }
     PolicyScope:
       type: object
       x-encore-proposal: Q34
@@ -3187,3 +3356,180 @@ components:
       properties:
         items: { type: array, items: { $ref: '#/components/schemas/Replay' } }
         next_cursor: { $ref: '#/components/schemas/NextCursor' }
+    # ----------------------------- X0.1 approvals (real backend, see /approvals)
+    ApprovalSubjectType:
+      type: string
+      description: >-
+        What an approval (or a case) can be recorded against
+        (domain.case_routing.SUBJECT_TYPES). Enumerated here because the UI
+        offers these as filters and form choices; the records themselves keep
+        `subject_type` as a plain string, so a value this list has not caught
+        up with is still displayed rather than dropped.
+      enum:
+        - vendor_run
+        - vendor_readiness
+        - supplier_readiness
+        - supplier_invoice
+        - forecast_snapshot
+        - contract_obligation
+    ApprovalAction:
+      type: string
+      description: >-
+        What is being approved (domain.approvals.ACTION_CAPABILITY). Each
+        action deterministically implies exactly one required capability and
+        one set of legal subject types -- never inferred from free text.
+      enum:
+        - approve_interpretation
+        - record_amendment
+        - approve_invoice_exception
+        - release_supplier_payment
+        - acknowledge_forecast
+        - dispute_invoice_exception
+        - request_invoice_credit
+    ApprovalRecord:
+      type: object
+      description: >-
+        One already-granted decision, append-only. Named ApprovalRecord
+        because `Approval` above is already taken by CONTRACTS.md's own
+        (different, and currently unreferenced) draft approval shape; this is
+        the one X0.1's real /approvals routes serve. `required_capability` is
+        re-derived by the server from `action` and stored -- a caller cannot
+        record a broader capability than the action needed. There is no
+        version: an approval is never edited.
+      required:
+        - id
+        - subject_type
+        - subject_id
+        - case_id
+        - action
+        - required_capability
+        - note
+        - payload
+        - actor_id
+        - actor_capability
+      properties:
+        id: { type: string }
+        subject_type: { type: string }
+        subject_id: { type: string }
+        case_id: { type: [string, 'null'] }
+        action: { type: string }
+        required_capability: { type: string }
+        note: { type: [string, 'null'] }
+        payload: { type: object }
+        actor_id: { type: [string, 'null'] }
+        actor_capability: { type: string }
+    ApprovalRecordList:
+      type: object
+      required: [items, next_cursor]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/ApprovalRecord' } }
+        next_cursor: { $ref: '#/components/schemas/NextCursor' }
+    CreateApprovalRecord:
+      type: object
+      description: >-
+        Body of POST /approvals. No actor field: the actor is the
+        authenticated session, never supplied by the client (same rule as
+        every C03 command payload).
+      additionalProperties: false
+      required: [subject_type, subject_id, action]
+      properties:
+        subject_type: { $ref: '#/components/schemas/ApprovalSubjectType' }
+        subject_id: { type: string }
+        action: { $ref: '#/components/schemas/ApprovalAction' }
+        case_id: { type: [string, 'null'] }
+        note: { type: [string, 'null'] }
+        payload: { type: [object, 'null'] }
+    # -------------------------------- R1 readiness (real backend, see /readiness)
+    ReadinessStatus:
+      type: string
+      description: >-
+        domain.readiness.STATUSES. `stale` is never produced by R1's own
+        evaluation (R3 sets it); the UI renders whatever the server sends.
+      enum: [ready, ready_with_interpretation, blocked, stale]
+    ReadinessCheckResult:
+      type: object
+      description: One of the eight deterministic checks, with its own reason.
+      required: [check, passed, reason]
+      properties:
+        check: { type: string }
+        passed: { type: boolean }
+        reason: { type: string }
+        details: { type: object }
+    ReadinessCheck:
+      type: object
+      description: >-
+        One counterparty's readiness at one version. `exposure_cents` and
+        `decision_deadline` are always null from R1: both live on the Case
+        that R2 opens for a failing counterparty, and R2 is not built. They
+        are declared (and rendered as "—") rather than hidden, so the shape
+        does not change when R2 fills them.
+      required:
+        - id
+        - festival_id
+        - counterparty_type
+        - counterparty_id
+        - version
+        - status
+        - failing_checks
+        - checks
+        - input_fingerprint
+        - computed_at
+        - exposure_cents
+        - decision_deadline
+      properties:
+        id: { type: string }
+        festival_id: { type: string }
+        counterparty_type: { type: string, enum: [vendor, supplier] }
+        counterparty_id: { type: string }
+        version: { $ref: '#/components/schemas/Version' }
+        status: { $ref: '#/components/schemas/ReadinessStatus' }
+        failing_checks: { type: array, items: { type: string } }
+        checks: { type: array, items: { $ref: '#/components/schemas/ReadinessCheckResult' } }
+        input_fingerprint:
+          type: string
+          description: >-
+            SHA-256 over the exact input versions. The same inputs recompute to
+            the same fingerprint and return the existing row unchanged.
+        computed_at: { type: string, format: date-time }
+        exposure_cents: { anyOf: [{ $ref: '#/components/schemas/MoneyCents' }, { type: 'null' }] }
+        decision_deadline: { anyOf: [{ $ref: '#/components/schemas/Instant' }, { type: 'null' }] }
+    ReadinessList:
+      type: object
+      description: >-
+        Deliberately not the C03 {items, next_cursor} envelope: this is what
+        the backend serves. One entry per counterparty, its latest version.
+      required: [festival_id, counterparties]
+      properties:
+        festival_id: { type: string }
+        counterparties: { type: array, items: { $ref: '#/components/schemas/ReadinessCheck' } }
+    RecomputeReadiness:
+      type: object
+      description: Body of POST /readiness/recompute.
+      additionalProperties: false
+      required: [festival_id, festival_start, festival_end]
+      properties:
+        festival_id: { type: string }
+        festival_start: { $ref: '#/components/schemas/BusinessDate' }
+        festival_end: { $ref: '#/components/schemas/BusinessDate' }
+        counterparty_type: { type: string, enum: [vendor, supplier] }
+        counterparty_id:
+          type: [string, 'null']
+          description: Omitted or null recomputes every vendor in the festival.
+    ReadinessRecomputeResult:
+      type: object
+      required: [festival_id, counterparties]
+      properties:
+        festival_id: { type: string }
+        counterparties:
+          type: array
+          items:
+            allOf:
+              - $ref: '#/components/schemas/ReadinessCheck'
+              - type: object
+                required: [created_new_version]
+                properties:
+                  created_new_version:
+                    type: boolean
+                    description: >-
+                      False when the inputs were unchanged: the existing row is
+                      returned as it was, with no new version and no new event.

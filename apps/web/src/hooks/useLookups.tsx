@@ -14,6 +14,14 @@ export interface Lookups {
    * because most money reads require it and answer 422 without it.
    */
   festivalId: string | undefined;
+  /**
+   * The festival window, as the server states it. Null when the festival
+   * record carries no date (the backend allows both to be null), not a guessed
+   * first/last business date: POST /readiness/recompute takes this window as
+   * input, so inventing one would change what was computed.
+   */
+  festivalStart: string | null;
+  festivalEnd: string | null;
 }
 
 /**
@@ -37,6 +45,8 @@ export function useLookups(): { lookups: Lookups; describeSource: (id: string) =
         vendorOptions: vendorList.map((v) => ({ value: v.id, label: v.name })),
         businessDates: dates.map((d) => ({ value: d, label: d })),
         festivalId: festival.data?.id,
+        festivalStart: festival.data?.start_date ?? null,
+        festivalEnd: festival.data?.end_date ?? null,
       },
       describeSource: (id) => {
         const d = docById.get(id);

@@ -33,6 +33,13 @@ const fixtureApi = path.resolve(appRoot, '../../data/generator/fixtures/compact_
 const SPEC_ID = 'https://encore.invalid/openapi.draft.json';
 const BACKEND_SPEC_ID = 'https://encore.invalid/openapi.backend.json';
 
+/** The parts of a POST operation the convention checks below look at. */
+type PostOp = {
+  parameters?: { $ref?: string }[];
+  requestBody?: { $ref?: string; content?: Record<string, { schema?: { $ref?: string } }> };
+  'x-encore-plain-body'?: string;
+};
+
 type Spec = {
   openapi: string;
   servers: { url: string }[];
@@ -134,15 +141,21 @@ describe('the client against the real backend contract', () => {
   });
 
   it('a live read never requires a query parameter the UI cannot supply', () => {
-    // festival_id is the blocker: no route exposes the festival record, so a
-    // route that demands it cannot be called and must not be marked live.
-    // Anything else required must be a value a screen asks the operator for.
-    const SUPPLIED_BY_THE_UI = ['knowledge_cutoff'];
+    // What this guards: nothing marked live may demand a parameter no screen
+    // can produce, because such a route cannot be called at all.
+    //
+    // festival_id was once listed here as THE blocker, on the premise that no
+    // route exposed the festival record. That premise is gone: GET /festival
+    // is live, hooks/useLookups holds the id it returns, and every Money
+    // screen already passes it (holding its query at `loading` until the id
+    // arrives). The remaining entries are values a screen asks the operator
+    // for -- the analyst-assistant screen puts request_key and as_of in the
+    // URL precisely so the comparison it shows is reproducible.
+    const SUPPLIED_BY_THE_UI = ['knowledge_cutoff', 'festival_id', 'request_key', 'as_of'];
     for (const [id, op] of Object.entries(OPERATIONS)) {
       if (op.backend !== 'live') continue;
       const item = backend.paths[`${PREFIX}${op.path}`]![op.method.toLowerCase()]!;
       const required = (item.parameters ?? []).filter((x) => x.in === 'query' && x.required).map((x) => x.name);
-      expect(required, `${id}: requires festival_id`).not.toContain('festival_id');
       for (const name of required) expect(SUPPLIED_BY_THE_UI, `${id}: required ${name}`).toContain(name);
     }
   });
@@ -203,10 +216,31 @@ describe('draft OpenAPI document', () => {
 
   it('every effectful command requires an Idempotency-Key header and the command envelope', () => {
     for (const [p, item] of Object.entries(spec.paths)) {
-      const post = item.post as { parameters?: { $ref?: string }[]; requestBody?: { $ref?: string } } | undefined;
+      const post = item.post as PostOp | undefined;
       if (!post) continue;
+      if (post['x-encore-plain-body']) continue; // declared exception, asserted below
       expect(post.parameters?.some((x) => x.$ref === '#/components/parameters/IdempotencyKey'), p).toBe(true);
       expect(post.requestBody?.$ref, p).toBe('#/components/requestBodies/Command');
+    }
+  });
+
+  it('a POST outside the envelope convention is declared, explained, and has its own body', () => {
+    // Two real backend routes take a flat body and accept no Idempotency-Key
+    // (X0.1's approvals endpoint derives its capability from the body's own
+    // `action`; R1's recompute is idempotent by input fingerprint). Declaring
+    // them as envelope commands would mean sending a body the server rejects,
+    // so they carry x-encore-plain-body with the reason -- and this list is
+    // pinned, so a third one cannot slip the convention silently.
+    const declared = Object.entries(spec.paths).filter(([, item]) => (item.post as PostOp | undefined)?.['x-encore-plain-body']);
+    expect(declared.map(([p]) => p).sort()).toEqual(['/approvals', '/readiness/recompute']);
+    for (const [p, item] of declared) {
+      const post = item.post as PostOp;
+      expect((post['x-encore-plain-body'] ?? '').length, `${p}: needs a reason`).toBeGreaterThan(80);
+      // Its own request body, never the shared Command envelope...
+      expect(post.requestBody?.$ref, p).toBeUndefined();
+      expect(post.requestBody?.content?.['application/json']?.schema?.$ref, p).toMatch(/^#\/components\/schemas\//);
+      // ...and no Idempotency-Key, which the server would ignore.
+      expect(post.parameters?.some((x) => x.$ref === '#/components/parameters/IdempotencyKey') ?? false, p).toBe(false);
     }
   });
 

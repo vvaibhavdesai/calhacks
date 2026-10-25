@@ -19,6 +19,85 @@
         "title": "ApplyDepositIn",
         "type": "object"
       },
+      "ApprovalOut": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "actor_capability": {
+            "title": "Actor Capability",
+            "type": "string"
+          },
+          "actor_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Id"
+          },
+          "case_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Case Id"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "payload": {
+            "title": "Payload",
+            "type": "object"
+          },
+          "required_capability": {
+            "title": "Required Capability",
+            "type": "string"
+          },
+          "subject_id": {
+            "title": "Subject Id",
+            "type": "string"
+          },
+          "subject_type": {
+            "title": "Subject Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "subject_type",
+          "subject_id",
+          "case_id",
+          "action",
+          "required_capability",
+          "note",
+          "payload",
+          "actor_id",
+          "actor_capability"
+        ],
+        "title": "ApprovalOut",
+        "type": "object"
+      },
       "ApprovePolicyRequest": {
         "description": "Approve REUSE of the decision this case already made.\n\nSeparate from resolving the case, deliberately: a one-time resolution is\nnever auto-promoted into a reusable rule. The scope is the case's own\nvendor and effect; only the validity window is chosen here.",
         "properties": {
@@ -917,6 +996,62 @@
         "title": "ConfigIn",
         "type": "object"
       },
+      "CreateApprovalRequest": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "case_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Case Id"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "payload": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payload"
+          },
+          "subject_id": {
+            "title": "Subject Id",
+            "type": "string"
+          },
+          "subject_type": {
+            "title": "Subject Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "subject_type",
+          "subject_id",
+          "action"
+        ],
+        "title": "CreateApprovalRequest",
+        "type": "object"
+      },
       "CreatePayoutRequest": {
         "properties": {
           "settlement_id": {
@@ -1131,6 +1266,17 @@
             "format": "date-time",
             "title": "Accepted At",
             "type": "string"
+          },
+          "accepted_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accepted By"
           },
           "available_at": {
             "format": "date-time",
@@ -2808,6 +2954,11 @@
             ],
             "title": "Lines"
           },
+          "partial_payment_allowed": {
+            "default": true,
+            "title": "Partial Payment Allowed",
+            "type": "boolean"
+          },
           "po_date": {
             "format": "date",
             "title": "Po Date",
@@ -2914,6 +3065,47 @@
           "business_date"
         ],
         "title": "RecognizeIn",
+        "type": "object"
+      },
+      "RecomputeIn": {
+        "properties": {
+          "counterparty_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Counterparty Id"
+          },
+          "counterparty_type": {
+            "default": "vendor",
+            "title": "Counterparty Type",
+            "type": "string"
+          },
+          "festival_end": {
+            "format": "date",
+            "title": "Festival End",
+            "type": "string"
+          },
+          "festival_id": {
+            "title": "Festival Id",
+            "type": "string"
+          },
+          "festival_start": {
+            "format": "date",
+            "title": "Festival Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "festival_id",
+          "festival_start",
+          "festival_end"
+        ],
+        "title": "RecomputeIn",
         "type": "object"
       },
       "ReconcileRequest": {
@@ -3187,120 +3379,6 @@
           "effect_summary"
         ],
         "title": "ResolutionOptionOut",
-        "type": "object"
-      },
-      "ResolveCaseRequest": {
-        "description": "Two accepted shapes for one command.\n\nThe original shape states the rate directly: `decision` of\napprove/edit/reject plus `commission_bps`. Scripts and the verify suites\nuse it and it is unchanged.\n\nThe reviewer-facing shape names the option instead:\n`decision: \"ACCEPT_OPTION\" | \"REJECT\"` with `option_id`, and binds the\ndecision to what the reviewer actually saw via `evidence_hash` and\n`expected_version`. The rate then comes from the case's own evidence, so\nthe client never supplies the number that decides money.",
-        "properties": {
-          "action": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Action"
-          },
-          "commission_bps": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Commission Bps"
-          },
-          "decision": {
-            "title": "Decision",
-            "type": "string"
-          },
-          "effective_to": {
-            "anyOf": [
-              {
-                "format": "date",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Effective To"
-          },
-          "evidence_hash": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Evidence Hash"
-          },
-          "expected_version": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Expected Version"
-          },
-          "minimum_fee_cents": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Minimum Fee Cents"
-          },
-          "note": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Note"
-          },
-          "option_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Option Id"
-          },
-          "resolution_note": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resolution Note"
-          }
-        },
-        "required": [
-          "decision"
-        ],
-        "title": "ResolveCaseRequest",
         "type": "object"
       },
       "ResolveTermsRequest": {
@@ -5513,6 +5591,28 @@
             "title": "Status",
             "type": "string"
           },
+          "subject_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject Id"
+          },
+          "subject_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject Type"
+          },
           "updated_at": {
             "anyOf": [
               {
@@ -5568,7 +5668,9 @@
           "updated_at",
           "resolved_at",
           "resolution_options",
-          "evidence_hash"
+          "evidence_hash",
+          "subject_type",
+          "subject_id"
         ],
         "title": "CaseOut",
         "type": "object"
@@ -5870,6 +5972,187 @@
         "summary": "List Extractions",
         "tags": [
           "agents"
+        ]
+      }
+    },
+    "/api/v1/approvals": {
+      "get": {
+        "operationId": "list_approvals_api_v1_approvals_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "subject_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Subject Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "subject_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Subject Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "case_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ApprovalOut"
+                  },
+                  "title": "Response List Approvals Api V1 Approvals Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Approvals",
+        "tags": [
+          "approvals"
+        ]
+      },
+      "post": {
+        "operationId": "create_approval_api_v1_approvals_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateApprovalRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Create Approval",
+        "tags": [
+          "approvals"
+        ]
+      }
+    },
+    "/api/v1/approvals/{approval_id}": {
+      "get": {
+        "operationId": "get_approval_api_v1_approvals__approval_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "approval_id",
+            "required": true,
+            "schema": {
+              "title": "Approval Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get Approval",
+        "tags": [
+          "approvals"
         ]
       }
     },
@@ -6599,7 +6882,8 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ResolveCaseRequest"
+                "title": "Raw",
+                "type": "object"
               }
             }
           },
@@ -12195,6 +12479,149 @@
         "summary": "Create Purchase Order",
         "tags": [
           "finance"
+        ]
+      }
+    },
+    "/api/v1/readiness": {
+      "get": {
+        "operationId": "list_readiness_api_v1_readiness_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "festival_id",
+            "required": true,
+            "schema": {
+              "title": "Festival Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response List Readiness Api V1 Readiness Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Readiness",
+        "tags": [
+          "readiness"
+        ]
+      }
+    },
+    "/api/v1/readiness/recompute": {
+      "post": {
+        "operationId": "recompute_readiness_api_v1_readiness_recompute_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecomputeIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Recompute Readiness Api V1 Readiness Recompute Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Recompute Readiness",
+        "tags": [
+          "readiness"
+        ]
+      }
+    },
+    "/api/v1/readiness/{readiness_check_id}": {
+      "get": {
+        "operationId": "get_readiness_api_v1_readiness__readiness_check_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "readiness_check_id",
+            "required": true,
+            "schema": {
+              "title": "Readiness Check Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Readiness Api V1 Readiness  Readiness Check Id  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get Readiness",
+        "tags": [
+          "readiness"
         ]
       }
     },

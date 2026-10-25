@@ -105,6 +105,20 @@ export type CreateBranchPayload = Schemas['CreateBranchPayload'];
 export type Replay = Schemas['Replay'];
 export type StartReplayPayload = Schemas['StartReplayPayload'];
 
+// X0.1 generic approvals, R1 readiness, and the analyst-assistant supplier
+// comparison: real backend routes, transcribed into the draft document so
+// these stay generated (see src/api/operations.ts).
+export type ApprovalRecord = Schemas['ApprovalRecord'];
+export type ApprovalSubjectType = Schemas['ApprovalSubjectType'];
+export type ApprovalAction = Schemas['ApprovalAction'];
+export type CreateApprovalRecord = Schemas['CreateApprovalRecord'];
+export type ReadinessCheck = Schemas['ReadinessCheck'];
+export type ReadinessCheckResult = Schemas['ReadinessCheckResult'];
+export type ReadinessStatus = Schemas['ReadinessStatus'];
+export type ReadinessList = Schemas['ReadinessList'];
+export type RecomputeReadiness = Schemas['RecomputeReadiness'];
+export type ReadinessRecomputeResult = Schemas['ReadinessRecomputeResult'];
+
 export type OperationId = keyof operations;
 
 type JsonOf<R> = R extends { content: { 'application/json': infer B } } ? B : never;
@@ -112,6 +126,24 @@ type JsonOf<R> = R extends { content: { 'application/json': infer B } } ? B : ne
 /** JSON body of the 200 response of an operation. */
 export type OkBody<K extends OperationId> = operations[K]['responses'] extends { 200: infer R }
   ? JsonOf<R>
+  : never;
+
+/** JSON body of the 201 response of an operation. */
+export type CreatedBody<K extends OperationId> = operations[K]['responses'] extends { 201: infer R }
+  ? JsonOf<R>
+  : never;
+
+/**
+ * The one success body an operation answers with: its 200, or its 201 when it
+ * has no 200 (POST /approvals answers 201 with the created record).
+ */
+export type SuccessBody<K extends OperationId> = [OkBody<K>] extends [never] ? CreatedBody<K> : OkBody<K>;
+
+/** JSON request body an operation takes, or never when it takes none. */
+export type RequestBodyOf<K extends OperationId> = operations[K] extends {
+  requestBody: { content: { 'application/json': infer B } };
+}
+  ? B
   : never;
 
 export type QueryOf<K extends OperationId> = operations[K]['parameters'] extends { query?: infer Q }
@@ -122,9 +154,21 @@ export type PathParamsOf<K extends OperationId> = operations[K]['parameters'] ex
   ? P
   : never;
 
-/** Operations whose 200 body is a C03 list envelope {items, next_cursor}. */
+/**
+ * Operations whose 200 body is a C03 list envelope {items, next_cursor}.
+ *
+ * The `[OkBody<K>] extends [never]` guard is load-bearing: an operation with
+ * no 200 response at all (createApproval answers 201) has `OkBody<K> = never`,
+ * and `never` is assignable to every type -- so without this it would be
+ * counted as a list operation, and `OkBody<ListOperationId>` would then
+ * collapse to `never` for every caller of client.list().
+ */
 export type ListOperationId = {
-  [K in OperationId]: OkBody<K> extends { items: unknown[]; next_cursor: string | null } ? K : never;
+  [K in OperationId]: [OkBody<K>] extends [never]
+    ? never
+    : OkBody<K> extends { items: unknown[]; next_cursor: string | null }
+      ? K
+      : never;
 }[OperationId];
 
 export type ListItem<K extends ListOperationId> = OkBody<K> extends { items: Array<infer I> } ? I : never;
@@ -134,4 +178,20 @@ export type CommandOperationId = {
   [K in OperationId]: operations[K] extends { requestBody: { content: { 'application/json': CommandEnvelope } } }
     ? K
     : never;
+}[OperationId];
+
+/**
+ * POSTs that take a PLAIN JSON body instead of the C03 command envelope.
+ *
+ * Two real backend routes are shaped this way and are marked
+ * `x-encore-plain-body` in the draft document with the reason: X0.1's
+ * POST /approvals (its required capability is derived from the body's own
+ * `action`, so it authenticates and then checks, and accepts no
+ * Idempotency-Key) and R1's POST /readiness/recompute (idempotent by input
+ * fingerprint, so it needs no key). Everything else effectful is an envelope
+ * command and must go through ApiClient.command, which is what gives it a
+ * command_id, an Idempotency-Key and expected_version.
+ */
+export type PlainBodyOperationId = {
+  [K in OperationId]: K extends CommandOperationId ? never : [RequestBodyOf<K>] extends [never] ? never : K;
 }[OperationId];

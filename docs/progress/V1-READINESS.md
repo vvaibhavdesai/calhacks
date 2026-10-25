@@ -33,9 +33,9 @@ correctness hole rather than missing surface.
 
 | # | Task | Status | Notes |
 |---|---|---|---|
-| V1-04 | Payout approval binds amount and beneficiary version | **unstarted** | `POST /payouts/{id}/approve` accepts only `{expected_version, note}`; the approved `amount_cents` and `beneficiary_version` are discarded, so the server cannot refuse an approval that no longer matches what the approver saw. Also ignores `Idempotency-Key`. |
+| V1-04 | Payout approval binds amount and beneficiary version | **merged** (`wt/idem` `cdae980`, `2549544`) | Done, and the note below was wrong on both halves. The binding already existed in `payout_dispatch.py::approve_payout` (409 on a stale `expected_version`, `amount_cents` or `beneficiary_version`); `Idempotency-Key` is now honoured on approve and release via the existing C03 ledger in `app/commands.py` — same key + same body replays the first response, same key + any other body is a 409, no header behaves exactly as before (four verify scripts and the nightly flow send none). The real double-click hole was the finance-lead escalation branch, which appended an approval and bumped the version on every call. **And the binding was unreachable from the UI**: `Payouts.tsx` nests the consent echo in the C03 envelope's `payload`, the request model read it top-level, and pydantic dropped it silently — so only `expected_version` bound, and the approver's `note` was being discarded from the audit record too. Fixed by `unwrap_envelope` + a `model_validator(mode="before")` and `extra="forbid"`, which keeps the named `requestBody` in the OpenAPI document. 19 tests; 7 fail if reverted. |
 | V1-05 | Case resolution binds the reviewed option and evidence | **unstarted** | Same root cause as V1-01; `evidence_hash` is now served on the case payload, so the binding is implementable. Fixing V1-01 correctly closes this. |
-| V1-06 | Policy approval reachable from the policy screen | **unstarted** | Only `POST /cases/{case_id}/approve-policy` exists; the policy screen has no case id. Needs `expected_version`, scope and `evidence_hash`. |
+| V1-06 | Policy approval reachable from the policy screen | **merged** (`wt/policy` `1579555`) | Done, and the note below mis-stated the cause. Two decisions were tangled: `approve-policy` on a case is how a rule is *born*, while a `PolicyVersion` row defaults to `status="DRAFT"`, only ACTIVE versions are applied, and **no command anywhere could approve a DRAFT** — a prior attempt (`e18984a`) read that as "no DRAFT exists, delete the control" and left `decisions.test.tsx`, the draft contract and the fixture transport all describing a screen that no longer existed. New `POST /policies/{id}/approve` binds `expected_version`, policy id + version, `source_case_id`, `evidence_hash`, and the whole canonical `scope` (so a widened vendor scope or a dropped `reason_code` is refused), requires `Idempotency-Key`, and refuses ACTIVE/SUSPENDED/SUPERSEDED by name. The panel renders in every unavailable state and says which one and why. Also fixed: the case-screen control was gated on `'policy.approve'`, a capability name no live session holds, so it was hidden from every live operator including a full admin; and `/cases/{id}/approve-policy` was answering `422 valid_from: Field required` to the envelope the case screen posts, i.e. unusable. 23 new tests. |
 
 ## Gate clause 3 — "full finance scope ... connected"
 
@@ -63,10 +63,10 @@ gaps remain; these are the ones the gate language names.
 
 | # | Task | Status | Notes |
 |---|---|---|---|
-| V1-16 | Independent oracle score | **in progress** | **The single largest unknown.** 0 of 242 settlements have ever been scored, because the export sends empty lists. Until it runs we have "self-consistent" (652 checks across 9 suites, all passing) and not "correct". Effort is genuinely unbounded: it may surface a handful of defects or many. |
+| V1-16 | Independent oracle score | **in progress — first real score** (`wt/oracle` `855962b`, `601bf20`) | No longer the great unknown. `scripts/export_candidate_from_db.py` (`1441b22`) closed the empty-export hole; the money has now been graded against an answer key this system never saw. **76/240 vendor-nights exact → 188/240**; `settlement_errors` 166 → 54; `errors_total` 485 → 365; fees −2.71% → +0.64%; payouts −3.92% → **−0.03%** ($631,588.72 vs $631,783.33). The eligible-sales rule was proved from the fixture independently of both systems and reproduces the oracle exactly on 235 of 242 nights, so the base was never in dispute — lane A was wrong three ways: all 174 standalone refund orders were dropped (commission assessed on refunded money), centrally-collected cash was held forever because cash never has a `bank_entry_id`, and `classify_bank_deposit` expected a processor batch gross when it arrives net of refunds. Remaining: 242 `payout_errors` (this database has no payout rows at all), 43 of the 54 settlement errors from one cause — `payments` has no `processor_fee_cents`, so the stated per-payment fee is never persisted — plus empty `cash_counts`, and a genuine `repeated_questions` defect the export surfaced. The 3 Taco Libre rows are a different human decision, not a defect. |
 | V1-17 | Automated coverage for A03–A08 | **unstarted** | Those areas are covered only by hand-run `scripts/verify_a0N_*.py`. `pytest` is 60 tests and does not touch them. Section 6 requires API integration tests against real PostgreSQL in routine CI. |
 | V1-18 | Held-out extraction evaluation | **unstarted** | 480/480 was measured on the validation split the prompt was developed against, and the verifier has since been substantially tightened. The held-out fixture and answer key both already exist; ~$1 of Claude credit. |
-| V1-19 | A03/A04 performance at 40,000 orders | **unstarted** | Never run at full size. Would be measured as a side effect of V1-16. |
+| V1-19 | A03/A04 performance at 40,000 orders | **merged** (`wt/oracle` `855962b`) | Measured and fixed. The N+1 this document points at was already gone (`69ce010` batched `_load_day_rows`); the live one was `reconcile_vendor_day`, issuing **three** queries per order. On one real night, 12,145 orders, same warm database: **36,675 queries / 11.19 s → 468 queries / 2.45 s**. Figures did not move — the 40,207 current match groups dump byte-identical (same md5) both ways and `settlements.json` is byte-identical. |
 
 ## Gate clause 6 — section 7 definition of done
 
@@ -111,9 +111,41 @@ model names mangling the generated client, `GET /finance/config` writing rows
 inside a read, the scheduler needing its festival passed in, and unset
 correlation/causation ids.
 
-Not a task and not blocking, but it governs what may be claimed: V1-16, the
-independent oracle score, has never run. Until it does, the defensible statement
-is "652 self-written checks pass across nine suites", not "the money is correct".
+### Status of the 10 as of 2026-10-25
+
+| # | Status | Where |
+|---|---|---|
+| 1 | done | case resolve takes the UI envelope; `resolution_options` served |
+| 2 | **done** | `wt/idem` `cdae980`, `2549544` — see V1-04 above |
+| 3 | done | settlement detail carries line items, manifest hash, policy refs |
+| 4 | done | source documents listable; `/sources/{id}` returns the record |
+| 5 | **done** | `wt/oracle` `855962b` — 36,675 queries → 468, figures byte-identical |
+| 6 | **done** | `wt/policy` `1579555` — see V1-06 above |
+| 7 | done (differently) | replaced by polling, not SSE — a deliberate scope change |
+| 8 | **blocked — product decision** | `processor-batches` and `payout-batches` have no tables. Not "a missing handler": nobody has decided what a batch *is* here. Needs a human. |
+| 9 | in progress | response models; `payouts.py`/`cases.py`/`policies.py` deferred while owned |
+| 10 | done | the fixture-backed screens are wired |
+
+Fixed along the way, each found by a person clicking the running app rather than
+by a test: eleven user-visible breaks, all one root cause — a screen written
+against the draft contract, fixtures that agree with the screen, and a live
+backend that sends something else. `apps/web/src/test/live-capture/` plus the
+21-route smoke test is the net that now catches that class.
+
+### What may be claimed about the money, as of 2026-10-25
+
+V1-16 has run. The money has been graded against an independent answer key this
+system never saw: **188 of 240 vendor-nights exact**, payouts within **0.03%**
+of the oracle's $631,783.33. That is a real external result, not self-agreement.
+
+It is not yet "the money is correct". 54 settlement rows still differ, 43 of
+them from one unfixed cause (`payments` has no `processor_fee_cents`), and all
+242 payouts are unscored because no payout rows exist in the graded database.
+The defensible claim today is: *the settlement engine agrees with an independent
+implementation on 188 of 240 vendor-nights and on the total payout to within
+0.03%, with the remaining differences individually identified.* Three of them
+are a different human decision, not a defect, and two are a documented
+date-attribution choice.
 
 ## Honest summary
 

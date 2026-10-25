@@ -10,7 +10,10 @@ import type {
   ListOperationId,
   OkBody,
   OperationId,
+  PlainBodyOperationId,
   QueryOf,
+  RequestBodyOf,
+  SuccessBody,
 } from './types';
 
 /**
@@ -230,6 +233,38 @@ export class ApiClient {
       throw malformedError(200, 'expected {items, next_cursor} or a JSON array');
     }
     return body as OkBody<K>;
+  }
+
+  /**
+   * POST a route that takes a PLAIN JSON body (see PlainBodyOperationId).
+   *
+   * Deliberately separate from `command()`, and deliberately narrow: it sends
+   * no command_id, no Idempotency-Key and no expected_version, because the two
+   * routes typed into PlainBodyOperationId accept none of them. That means a
+   * repeat send is NOT de-duplicated by the server, so a caller must not
+   * re-send on its own -- src/hooks/usePlainCommand.ts is the one caller, and
+   * it allows a single in-flight send per prepared intent and never retries
+   * after a failure whose outcome is unknown. Any route that does accept the
+   * envelope belongs in `command()` instead; the type rejects it here.
+   */
+  async post<K extends PlainBodyOperationId>(
+    op: K,
+    body: RequestBodyOf<K>,
+    opts: { path?: Record<PathArgs<K>, string>; signal?: AbortSignal } = {},
+  ): Promise<SuccessBody<K>> {
+    if (OPERATIONS[op].method !== 'POST') throw new Error(`${op} is not a POST`);
+    const { status, body: result } = await this.send(
+      op,
+      {
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      },
+      opts as Partial<CallOptions>,
+    );
+    if (result === undefined || result === null || typeof result !== 'object') {
+      throw malformedError(status, 'expected a JSON object');
+    }
+    return result as SuccessBody<K>;
   }
 
   /**

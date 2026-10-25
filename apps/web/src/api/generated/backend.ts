@@ -72,6 +72,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/approvals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Approvals */
+        get: operations["list_approvals_api_v1_approvals_get"];
+        put?: never;
+        /** Create Approval */
+        post: operations["create_approval_api_v1_approvals_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/approvals/{approval_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Approval */
+        get: operations["get_approval_api_v1_approvals__approval_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -1775,6 +1810,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/readiness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Readiness */
+        get: operations["list_readiness_api_v1_readiness_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/readiness/recompute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Recompute Readiness */
+        post: operations["recompute_readiness_api_v1_readiness_recompute_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/readiness/{readiness_check_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Readiness */
+        get: operations["get_readiness_api_v1_readiness__readiness_check_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reconciliation/cases": {
         parameters: {
             query?: never;
@@ -2618,6 +2704,29 @@ export interface components {
             /** Deposit Id */
             deposit_id: string;
         };
+        /** ApprovalOut */
+        ApprovalOut: {
+            /** Action */
+            action: string;
+            /** Actor Capability */
+            actor_capability: string;
+            /** Actor Id */
+            actor_id: string | null;
+            /** Case Id */
+            case_id: string | null;
+            /** Id */
+            id: string;
+            /** Note */
+            note: string | null;
+            /** Payload */
+            payload: Record<string, never>;
+            /** Required Capability */
+            required_capability: string;
+            /** Subject Id */
+            subject_id: string;
+            /** Subject Type */
+            subject_type: string;
+        };
         /**
          * ApprovePolicyRequest
          * @description Approve REUSE of the decision this case already made.
@@ -2930,6 +3039,21 @@ export interface components {
              */
             timezone: string;
         };
+        /** CreateApprovalRequest */
+        CreateApprovalRequest: {
+            /** Action */
+            action: string;
+            /** Case Id */
+            case_id?: string | null;
+            /** Note */
+            note?: string | null;
+            /** Payload */
+            payload?: Record<string, never> | null;
+            /** Subject Id */
+            subject_id: string;
+            /** Subject Type */
+            subject_type: string;
+        };
         /** CreatePayoutRequest */
         CreatePayoutRequest: {
             /** Settlement Id */
@@ -3014,6 +3138,8 @@ export interface components {
              * Format: date-time
              */
             accepted_at: string;
+            /** Accepted By */
+            accepted_by?: string | null;
             /**
              * Available At
              * Format: date-time
@@ -3590,6 +3716,11 @@ export interface components {
             /** Lines */
             lines?: components["schemas"]["PurchaseOrderLineIn"][] | null;
             /**
+             * Partial Payment Allowed
+             * @default true
+             */
+            partial_payment_allowed: boolean;
+            /**
              * Po Date
              * Format: date
              */
@@ -3634,6 +3765,28 @@ export interface components {
             business_date: string;
             /** Festival Id */
             festival_id: string;
+        };
+        /** RecomputeIn */
+        RecomputeIn: {
+            /** Counterparty Id */
+            counterparty_id?: string | null;
+            /**
+             * Counterparty Type
+             * @default vendor
+             */
+            counterparty_type: string;
+            /**
+             * Festival End
+             * Format: date
+             */
+            festival_end: string;
+            /** Festival Id */
+            festival_id: string;
+            /**
+             * Festival Start
+             * Format: date
+             */
+            festival_start: string;
         };
         /** ReconcileRequest */
         ReconcileRequest: {
@@ -3733,42 +3886,6 @@ export interface components {
             role?: string | null;
             /** Term Id */
             term_id?: string | null;
-        };
-        /**
-         * ResolveCaseRequest
-         * @description Two accepted shapes for one command.
-         *
-         *     The original shape states the rate directly: `decision` of
-         *     approve/edit/reject plus `commission_bps`. Scripts and the verify suites
-         *     use it and it is unchanged.
-         *
-         *     The reviewer-facing shape names the option instead:
-         *     `decision: "ACCEPT_OPTION" | "REJECT"` with `option_id`, and binds the
-         *     decision to what the reviewer actually saw via `evidence_hash` and
-         *     `expected_version`. The rate then comes from the case's own evidence, so
-         *     the client never supplies the number that decides money.
-         */
-        ResolveCaseRequest: {
-            /** Action */
-            action?: string | null;
-            /** Commission Bps */
-            commission_bps?: number | null;
-            /** Decision */
-            decision: string;
-            /** Effective To */
-            effective_to?: string | null;
-            /** Evidence Hash */
-            evidence_hash?: string | null;
-            /** Expected Version */
-            expected_version?: number | null;
-            /** Minimum Fee Cents */
-            minimum_fee_cents?: number | null;
-            /** Note */
-            note?: string | null;
-            /** Option Id */
-            option_id?: string | null;
-            /** Resolution Note */
-            resolution_note?: string | null;
         };
         /** ResolveTermsRequest */
         ResolveTermsRequest: {
@@ -4472,6 +4589,10 @@ export interface components {
             run_id: string | null;
             /** Status */
             status: string;
+            /** Subject Id */
+            subject_id: string | null;
+            /** Subject Type */
+            subject_type: string | null;
             /** Updated At */
             updated_at: string | null;
             /** Vendor Id */
@@ -4612,6 +4733,103 @@ export interface operations {
                 };
                 content: {
                     "application/json": Record<string, never>;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_approvals_api_v1_approvals_get: {
+        parameters: {
+            query?: {
+                subject_type?: string | null;
+                subject_id?: string | null;
+                case_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_approval_api_v1_approvals_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateApprovalRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_approval_api_v1_approvals__approval_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                approval_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalOut"];
                 };
             };
             /** @description Validation Error */
@@ -5020,7 +5238,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ResolveCaseRequest"];
+                "application/json": Record<string, never>;
             };
         };
         responses: {
@@ -8042,6 +8260,101 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_readiness_api_v1_readiness_get: {
+        parameters: {
+            query: {
+                festival_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    recompute_readiness_api_v1_readiness_recompute_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecomputeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_readiness_api_v1_readiness__readiness_check_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                readiness_check_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
