@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import base64
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -66,6 +66,134 @@ class SourceDocumentOut(BaseModel):
     source_system: str
     source_native_id: str
     versions: list[SourceVersionOut]
+    # The document record itself, flattened from the document row and its
+    # CURRENT version. Served alongside `versions` so the existing drill-down
+    # consumers are unaffected, and so an evidence drawer can show what a
+    # document is without walking the version list first.
+    id: str
+    vendor_id: str | None = None
+    kind: str | None = None
+    # The document's name in the system it came from. Not a separate stored
+    # title -- nothing invents one; `source_native_id` IS how that system
+    # identifies this document.
+    title: str
+    version: int | None = None
+    status: str | None = None
+    media_type: str | None = None
+    content_hash: str | None = None
+    byte_length: int | None = None
+    parser_version: str | None = None
+    received_at: str | None = None
+
+
+class SourceDocumentListOut(BaseModel):
+    items: list[SourceDocumentOut]
+    next_cursor: str | None = None
+
+
+def _source_document_out(
+    document: SourceDocument, versions: list[SourceVersion]
+) -> SourceDocumentOut:
+    """One document plus its versions, newest version's facts flattened on top.
+
+    `versions` must be ordered ascending, as both callers order it, so the last
+    entry is current. A document with no versions is still returned: ingestion
+    creates the row and the version together, but a reader should see the
+    document rather than a 404 if that ever changes.
+    """
+    current = versions[-1] if versions else None
+    return SourceDocumentOut(
+        source_document_id=document.id,
+        source_system=document.source_system,
+        source_native_id=document.source_native_id,
+        id=document.id,
+        vendor_id=document.vendor_id,
+        kind=document.document_kind,
+        title=document.source_native_id,
+        version=current.version if current else None,
+        status=current.status if current else None,
+        media_type=current.mime_type if current else None,
+        content_hash=current.content_hash if current else None,
+        byte_length=current.byte_size if current else None,
+        parser_version=current.parser_version if current else None,
+        received_at=current.received_at.isoformat() if current else None,
+        versions=[
+            SourceVersionOut(
+                source_document_id=document.id,
+                version=v.version,
+                content_hash=v.content_hash,
+                mime_type=v.mime_type,
+                byte_size=v.byte_size,
+                storage_locator=v.storage_locator,
+                status=v.status,
+                quarantine_reason=v.quarantine_reason,
+                received_at=v.received_at.isoformat(),
+            )
+            for v in versions
+        ],
+    )
+
+
+def _versions_for(db: Session, document_ids: list[str]) -> dict[str, list[SourceVersion]]:
+    """Every version of the given documents, ascending, in ONE query.
+
+    A per-document query would be a round trip per row; the evidence picker
+    asks for a whole page at a time.
+    """
+    if not document_ids:
+        return {}
+    rows = (
+        db.execute(
+            select(SourceVersion)
+            .where(SourceVersion.source_document_id.in_(document_ids))
+            .order_by(SourceVersion.source_document_id.asc(), SourceVersion.version.asc())
+        )
+        .scalars()
+        .all()
+    )
+    out: dict[str, list[SourceVersion]] = {}
+    for v in rows:
+        out.setdefault(v.source_document_id, []).append(v)
+    return out
+
+
+@router.get("/source-documents", response_model=SourceDocumentListOut)
+def list_source_documents(
+    kind: str | None = None,
+    vendor_id: str | None = None,
+    cursor: str | None = None,
+    limit: int = Query(default=200, ge=1, le=500),
+    db: Session = Depends(get_db),
+    user: User = Depends(require_capability(CAPABILITY_IMPORT_SOURCE)),
+) -> SourceDocumentListOut:
+    """The imported documents, newest first.
+
+    Same offset-cursor convention as `GET /vendors` and `GET /journal`: the
+    cursor is an opaque decimal offset over a stable order and `next_cursor` is
+    null on the last page. Until this existed only fetch-by-id did, so nothing
+    could populate an evidence picker or show what had been ingested.
+    """
+    offset = int(cursor) if cursor and cursor.isdigit() else 0
+    query = select(SourceDocument)
+    if kind is not None:
+        query = query.where(SourceDocument.document_kind == kind)
+    if vendor_id is not None:
+        query = query.where(SourceDocument.vendor_id == vendor_id)
+    rows = (
+        db.execute(
+            query.order_by(SourceDocument.created_at.desc(), SourceDocument.id.asc())
+            .offset(offset)
+            .limit(limit + 1)
+        )
+        .scalars()
+        .all()
+    )
+    page = list(rows[:limit])
+    by_doc = _versions_for(db, [d.id for d in page])
+    return SourceDocumentListOut(
+        items=[_source_document_out(d, by_doc.get(d.id, [])) for d in page],
+        next_cursor=str(offset + limit) if len(rows) > limit else None,
+    )
 
 
 @router.post("/imports", response_model=ImportResponse, status_code=201)
@@ -126,25 +254,7 @@ def get_source_document(
         .scalars()
         .all()
     )
-    return SourceDocumentOut(
-        source_document_id=document.id,
-        source_system=document.source_system,
-        source_native_id=document.source_native_id,
-        versions=[
-            SourceVersionOut(
-                source_document_id=document.id,
-                version=v.version,
-                content_hash=v.content_hash,
-                mime_type=v.mime_type,
-                byte_size=v.byte_size,
-                storage_locator=v.storage_locator,
-                status=v.status,
-                quarantine_reason=v.quarantine_reason,
-                received_at=v.received_at.isoformat(),
-            )
-            for v in versions
-        ],
-    )
+    return _source_document_out(document, list(versions))
 
 
 @router.get("/sources/{source_document_id}/versions/{version}", response_model=SourceVersionOut)

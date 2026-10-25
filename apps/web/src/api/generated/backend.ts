@@ -1948,6 +1948,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/source-documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Source Documents
+         * @description The imported documents, newest first.
+         *
+         *     Same offset-cursor convention as `GET /vendors` and `GET /journal`: the
+         *     cursor is an opaque decimal offset over a stable order and `next_cursor` is
+         *     null on the last page. Until this existed only fetch-by-id did, so nothing
+         *     could populate an evidence picker or show what had been ingested.
+         */
+        get: operations["list_source_documents_api_v1_source_documents_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sources/{source_document_id}": {
         parameters: {
             query?: never;
@@ -3218,14 +3243,43 @@ export interface components {
             /** Total Cents */
             total_cents: number;
         };
+        /** SourceDocumentListOut */
+        SourceDocumentListOut: {
+            /** Items */
+            items: components["schemas"]["SourceDocumentOut"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
         /** SourceDocumentOut */
         SourceDocumentOut: {
+            /** Byte Length */
+            byte_length?: number | null;
+            /** Content Hash */
+            content_hash?: string | null;
+            /** Id */
+            id: string;
+            /** Kind */
+            kind?: string | null;
+            /** Media Type */
+            media_type?: string | null;
+            /** Parser Version */
+            parser_version?: string | null;
+            /** Received At */
+            received_at?: string | null;
             /** Source Document Id */
             source_document_id: string;
             /** Source Native Id */
             source_native_id: string;
             /** Source System */
             source_system: string;
+            /** Status */
+            status?: string | null;
+            /** Title */
+            title: string;
+            /** Vendor Id */
+            vendor_id?: string | null;
+            /** Version */
+            version?: number | null;
             /** Versions */
             versions: components["schemas"]["SourceVersionOut"][];
         };
@@ -7578,6 +7632,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SettlementLineItemOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_source_documents_api_v1_source_documents_get: {
+        parameters: {
+            query?: {
+                kind?: string | null;
+                vendor_id?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceDocumentListOut"];
                 };
             };
             /** @description Validation Error */

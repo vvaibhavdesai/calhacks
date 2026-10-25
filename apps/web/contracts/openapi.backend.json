@@ -2895,8 +2895,105 @@
         "title": "SlipIn",
         "type": "object"
       },
+      "SourceDocumentListOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SourceDocumentOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "SourceDocumentListOut",
+        "type": "object"
+      },
       "SourceDocumentOut": {
         "properties": {
+          "byte_length": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Byte Length"
+          },
+          "content_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Hash"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kind"
+          },
+          "media_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Media Type"
+          },
+          "parser_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parser Version"
+          },
+          "received_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Received At"
+          },
           "source_document_id": {
             "title": "Source Document Id",
             "type": "string"
@@ -2908,6 +3005,43 @@
           "source_system": {
             "title": "Source System",
             "type": "string"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "vendor_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vendor Id"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
           },
           "versions": {
             "items": {
@@ -2921,7 +3055,9 @@
           "source_document_id",
           "source_system",
           "source_native_id",
-          "versions"
+          "versions",
+          "id",
+          "title"
         ],
         "title": "SourceDocumentOut",
         "type": "object"
@@ -11366,6 +11502,105 @@
         "summary": "Get Settlement Line Items",
         "tags": [
           "settlements"
+        ]
+      }
+    },
+    "/api/v1/source-documents": {
+      "get": {
+        "description": "The imported documents, newest first.\n\nSame offset-cursor convention as `GET /vendors` and `GET /journal`: the\ncursor is an opaque decimal offset over a stable order and `next_cursor` is\nnull on the last page. Until this existed only fetch-by-id did, so nothing\ncould populate an evidence picker or show what had been ingested.",
+        "operationId": "list_source_documents_api_v1_source_documents_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          },
+          {
+            "in": "query",
+            "name": "vendor_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Vendor Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 200,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceDocumentListOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Source Documents",
+        "tags": [
+          "imports"
         ]
       }
     },

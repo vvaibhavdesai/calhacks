@@ -108,19 +108,8 @@ export const OPERATIONS = {
     route: '/finance/cash-office',
     gap: 'GET /api/v1/cash-counts (filter vendor_id, business_date). POST /finance/cash-office/counts records counts and GET /finance/cash-office?festival_id= summarises the office, but no route lists the counts themselves.',
   },
-  listSourceDocuments: {
-    method: 'GET',
-    path: '/source-documents',
-    backend: 'absent',
-    gap: 'GET /api/v1/source-documents (filter kind, vendor_id; cursor paging). Only fetch-by-id exists, so evidence pickers cannot be populated.',
-  },
-  getSourceDocument: {
-    method: 'GET',
-    path: '/source-documents/{id}',
-    backend: 'shape',
-    route: '/sources/{source_document_id}',
-    gap: 'GET /api/v1/sources/{source_document_id} returns {source_document_id, source_system, source_native_id, versions[]}; the evidence drawer needs the document record (kind, title, media_type, content_hash, byte_length, parser_version, status).',
-  },
+  listSourceDocuments: { method: 'GET', path: '/source-documents', backend: 'live', query: { ...NO_PAGING, kind: 'kind', vendor_id: 'vendor_id' } },
+  getSourceDocument: { method: 'GET', path: '/sources/{source_document_id}', backend: 'live' },
 
   // --------------------------------------------------------- async commands
   getJob: {
