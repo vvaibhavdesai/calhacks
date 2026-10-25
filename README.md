@@ -1,71 +1,145 @@
 # Encore
 
-A festival finance system that runs the nightly settlement loop end to end, ingest, reconcile, calculate, hold or escalate, approve, pay, and record, and adds prevention on top of it, starting with supplier payables: an invoice is checked against its purchase order and real delivery evidence before a dollar is approved.
+### Keep the festival moving. Keep the money accountable.
 
-Money is always an integer number of cents. An agent may read a document and propose a number with a citation; only deterministic code decides what that means for payment. See [docs/devpost-submission.md](docs/devpost-submission.md) for the full story, the demo script, and what is real versus simulated.
+Encore pays festival vendors and suppliers only for what the evidence supports, closes the books every night, and asks a person whenever a decision could cost real money.
 
-## Architecture
+**AI reads the evidence. Code calculates the money. Humans approve consequential decisions.**
 
-- **`services/api`** — FastAPI backend. SQLAlchemy models, Alembic migrations, the domain rules in `app/payables.py`, `app/settlement.py`, `app/policy.py`, `app/readiness.py`, and friends.
-- **`packages/domain`** — Pure, side effect free business logic shared by the API and its scripts: `domain.payables`, `domain.accounting`, `domain.procurement_cash`, `domain.approvals`, `domain.case_routing`, `domain.term_precedence`.
-- **`services/worker`** — Background loops: nightly close orchestration, the outbox dispatcher that is the only thing that actually pays, and the scheduler.
-- **`apps/web`** — React and TypeScript frontend. Its API client is generated from the backend's own OpenAPI document, so it cannot silently drift from what the server actually serves. See [apps/web/README.md](apps/web/README.md) for frontend specific setup, scripts, and its data modes.
-- **`db/migrations`** — Alembic, one linear chain, 0001 through the current head. Money tables and the audit trail are append only; the restricted runtime database role cannot `UPDATE` or `DELETE` them, enforced by Postgres grants, not just application code.
-- **`fixtures/`** and **`data/generator`** — Synthetic demo data. `fixtures/encore-procurement-synthetic-v1` is the supplier payables demo pack referenced throughout this README and the devpost writeup.
-- **`scripts/`** — `import_*`, `seed_*`, and `verify_*` scripts. Every `verify_*.py` runs for real against a real Postgres instance and a real running server. There are no mocked unit tests in this repo by convention; see Testing below.
-- **`docs/`** — Architecture decisions (`docs/adr`), per ticket handoff notes (`docs/progress`), and runbooks (`docs/runbooks`).
+## Why festival finance is worth fixing
 
-## Quickstart
+### Big money, thin margins
 
-Requires Docker, `uv`, and Node 18.18 or newer.
+**$19 billion in revenue, 2.8% margin.** That's Live Nation's concerts business in 2024, keeping about $530 million. One company, not the whole market, but it shows how little room there is for error.
 
-```sh
-cp .env.example .env
-# fill in AUTH_JWT_SECRET at minimum; the API refuses to start without it
+**$114.6 million from one festival.** Coachella's gross across two weekends in 2017.
 
-cd infra
-docker compose up -d postgres
-cd ..
+**$103.7 billion in music tourism in 2025,** per Grand View Research, with festivals growing 16.4% a year through 2033. Direct festival revenue alone is about **$3.76 billion**, per Global Growth Insights.
 
-export DATABASE_URL=postgresql+psycopg://encore:encore_dev_password@localhost:5432/encore
-export AUTH_JWT_SECRET=<same value as .env>
-uv run alembic -c db/migrations/alembic.ini upgrade head
+**78 UK festivals postponed, cancelled, or closed in 2024.** That's a record, more than double 2023's 36, according to the Association of Independent Festivals.
 
-export ADMIN_EMAIL=admin@example.com
-export ADMIN_INITIAL_PASSWORD=<pick one>
-uv run python scripts/seed_admin.py
-```
+### How much leaks out
 
-That creates an admin user holding every capability. From here, running the API, the worker, and the frontend as three separate processes, and what breaks if the worker is not running, is covered exactly in [docs/runbooks/local-demo.md](docs/runbooks/local-demo.md). Do not skip the worker's outbox loop, a payout or a supplier payment will sit pending forever without it, which looks like a bug and is not one.
+These are general business benchmarks, not festival specific.
 
-To load the supplier payables demo scenario against a running API:
+**1.5%** of payments go out duplicated or wrong (APQC, 1,686 organizations).
 
-```sh
-export API_BASE_URL=http://127.0.0.1:8010   # match whatever port the API is actually on
-export ADMIN_EMAIL=admin@example.com
-export ADMIN_PASSWORD=<the password above>
-uv run python scripts/import_procurement_fixture.py --through 2026-10-18T00:00:00-07:00
-```
+**9.2%** of contract value is lost after signing because terms aren't enforced (World Commerce and Contracting).
 
-This is idempotent. Running it again against the same database creates nothing new.
+**5%** of yearly revenue is lost to fraud. The median case costs **$145,000** and runs **12 months** before anyone notices (ACFE 2024).
 
-## Core principles
+**$6.00** is the median cost to process one invoice (APQC, 5,846 organizations).
 
-- **Agents propose, code decides.** Everywhere an agent reads a contract, an email, or an invoice, what it extracts is stored with a citation back to the source. A plain deterministic function, not the agent, decides what that means for money. An agent is never the thing that moves cash.
-- **Money is cents.** Every amount is an integer number of cents, enforced from the database column type up through the API response. There is a lint rule in the frontend that fails the build if money arithmetic appears anywhere outside `apps/web/src/lib/money.ts`.
-- **Narrow holds.** A case opens against the specific record it concerns, never a blanket freeze. A non blocking exception, like a delivery shortfall or a potential SLA credit, limits only the disputed amount, and payment on the undisputed part still goes through.
-- **Idempotent by construction.** Every payment and every deposit carries a unique idempotency key with a database constraint behind it, not just application logic. A retried request or a double click can never create a second payment.
-- **Append only, provably.** The event log behind every settlement, case, and policy decision is hash chained. What a policy touched is a query, by an immutable reference, not a guess, and it still answers correctly after that policy is later suspended.
+Festivals take all of these risks and cram them into a few chaotic days, with hundreds of vendors, deliveries at 3am, terms that change over email, and a team that's gone the week after. By the time a bad payment surfaces, the trucks have left.
 
-## Testing
+### The money bleeders, and what Encore does about each
 
-No pytest files, no mocked unit tests, by explicit project convention. Every `scripts/verify_*.py` is a plain script that builds its own throwaway fixtures, runs against a real Postgres database and a real running `uvicorn` process, and asserts the exact numbers by hand, with the unit stated in the assertion label itself, for example `750_000  # $7,500 cents, not $750`. Run any of them against a fresh database, the way they are meant to be run, rather than trusting a result from a database something else has already touched.
+| Money bleeder | What it costs | What Encore does |
+|---|---|---|
+| Paying for goods that never arrived | Cash leaves before value arrives and is hard to claw back after the event | Caps every payment at what delivery evidence supports |
+| Conflicting commission terms | 15% vs 10% is **$5,000** for every **$100,000** a vendor sells | Flags the conflict and lets the signed contract beat an email |
+| Forgotten service level credits | Breaches during event week never get billed back | Opens a review item for every possible credit |
+| Duplicate invoices | **1.5%** of payments go out duplicated or wrong | Blocks exact duplicates and flags same supplier, same total bills within 7 days |
+| Deposits that break the cash cushion | A cheaper quote causes a cash crunch mid festival | Shows the lowest projected balance and first day below the safety line, per quote |
+| One wrong rule repeated at scale | A bad automation pays hundreds of vendors incorrectly | Shows every case a rule version touched, then lets you pause, fix, and preview corrections |
+| One oversized payout | A single error drains the cash pool | Any payout over **$5,000 a day** needs a human |
 
-The frontend has its own `vitest` suite under `apps/web/src`, covered in [apps/web/README.md](apps/web/README.md).
+### What that means for one festival
 
-## More
+Illustrative, not measured. A festival paying **$5 million** to vendors and suppliers in a season could lose **$460,000** to unenforced contracts at the 9.2% average, plus **$75,000** in duplicated or wrong payments at 1.5%. Recovering just a tenth of the contract leakage is **$46,000** a season.
 
-- [docs/devpost-submission.md](docs/devpost-submission.md) — the pitch, the exact demo numbers, and what is real versus simulated.
-- [CONTRACTS.md](CONTRACTS.md) — the API contract this whole system is built against.
-- [AGENT_HANDOFF.md](AGENT_HANDOFF.md) and [docs/progress/](docs/progress/) — per feature build notes, written as each piece landed, including open risks and deliberate simplifications.
-- [docs/runbooks/local-demo.md](docs/runbooks/local-demo.md) and [docs/deploy.md](docs/deploy.md) — running it locally for real, and deploying it.
+## The moment
+
+A generator supplier invoices **$22,500** for six generators. An **$8,000** deposit is already paid, so a normal team pays the **$14,500** balance.
+
+Encore checks delivery first. Only four generators were accepted. So it pays **$7,000** ($15,000 for four, minus the deposit), holds **$7,500** until the last two arrive, and sends a possible **$1,000** service level credit to a person instead of letting it slip.
+
+**$8,500 caught on one bill. That's 38% of the invoice.**
+
+Ask Encore why it paid $7,000 and it shows the purchase order, the delivery receipts, the deposit, and the cutoff it used. When the last generators arrive, it releases the rest but still remembers that only four had arrived when it decided. A later receipt can unlock a payment. It can't rewrite why an earlier one was made.
+
+At a 2.8% margin, that $8,500 is the entire profit on about **$303,000** of revenue.
+
+## How a CFO works out the return
+
+Add up the unsupported payments held back, the credits and commission errors recovered, the duplicates blocked, and the hours saved at nightly close. Subtract Encore's cost, divide by Encore's cost, and that's the return.
+
+Every one of those numbers is already in Encore's event log, so the savings can be audited, not guessed.
+
+## The seats Encore fills
+
+Accounts payable analyst, vendor settlement analyst, and nightly close accountant, with a finance controller still holding the keys.
+
+## Is it real enough
+
+**Messy on purpose.** Conflicting commission terms, an invoice for six generators with proof for four, a cheap quote that breaks the cash cushion, a likely duplicate, and a possible service level credit.
+
+**Real.** A running Python API, PostgreSQL, a LangGraph workflow with Postgres checkpoints, Claude extraction with citations, a double entry journal, and a tamper evident audit chain.
+
+**Simulated.** The payment system, the demo clock, and the festival data. No real money moves.
+
+**Proof.** Verification scripts run against a real database and a live API and check exact dollar amounts across reconciliation, settlements, rules, nightly close, payouts, supplier bills, corrections, approvals, and the audit chain. We test the controls themselves, not just the demo data.
+
+## Would you hire it
+
+**Limited access.** Every action checks permissions. The API only records that a payment should happen. One separate worker is the only thing that can send money, and a retry can never pay twice.
+
+**A clean record.** Every number traces back to its documents, decisions, and events. The audit log is hash chained, so you can check whether anything was altered and exactly where.
+
+**Knows when to ask.** Routine cases follow approved rules. Anything unusual waits for a person. Credits are never deducted automatically, likely duplicates are flagged rather than rejected, and quote comparisons never pick a winner for you.
+
+**No stale approvals.** Every decision is tied to the exact case version and evidence the reviewer saw. If anything changed, the approval is rejected.
+
+## Did we see something new
+
+We haven't seen festival finance made autonomous before. It mostly runs on spreadsheets, email threads, and exhausted people during the most chaotic week of the year.
+
+The new idea is **automation with a visible blast radius.** If a rule turns out to be wrong, you see every case that exact rule version decided, even after it's switched off, and you preview every correction before money moves.
+
+It isn't a chatbot on a ledger. Claude says what a document says. Our code decides what that means for money.
+
+## What it does, start to finish
+
+**Before the festival.** Checks every vendor and supplier is ready to transact, compares competing quotes by completeness, timing, cash impact, and track record, and ranks sources so a signed contract beats an amendment, which beats an email.
+
+**During the festival.** Matches sales, payments, bank entries, and cash counts, calculates vendor settlements on the server, and works out exactly how much of each supplier bill is safe to pay now.
+
+**At nightly close.** A LangGraph workflow runs matching, settlement, holds, payouts, and statements for each vendor, and picks up where it left off when a hold clears.
+
+**After a decision.** Disputes get a previewed fix before approval. Encore keeps both what it knew at the time and the corrected state, and runs what if scenarios in a sandbox that can't touch real data.
+
+## How we built it
+
+A Python API with permission checks, PostgreSQL with locked balance checks, LangGraph for nightly close, and Claude for document extraction with citations. Plain, predictable code handles reconciliation, settlements, invoice payability, and double entry accounting. Separate workers run nightly close, outgoing payments, scheduling, and the demo clock. The web app uses a client generated from the API's OpenAPI spec and never does money math itself.
+
+## Challenges we ran into
+
+**Finding the real money bleeders.** "Finance automation" means nothing on its own. We had to pin down exactly where festivals lose money, and every workflow in Encore exists to close one of those leaks.
+
+**Building workflows that stop the bleeding.** Spotting a problem is easy. Holding back exactly the right amount, releasing it the moment proof arrives, and keeping routine payments flowing during a live festival is not.
+
+**Understanding the blast radius.** Automation saves time until a rule is wrong, and then it's wrong hundreds of times. So every automatic decision points to the exact rule version that made it, that record survives after the rule is switched off, and every correction can be previewed before money moves.
+
+## What's next
+
+The demo proves the controls work on synthetic data. Next is proving the return on real books with real payment systems, more festival operations data, and pilots with festival finance teams measuring close time, exception effort, and leakage stopped or recovered.
+
+## Sources
+
+[Live Nation full year 2024 results](https://investors.livenationentertainment.com/sec-filings/all-sec-filings/content/0001335258-25-000027/lyv-2024q4xex991er.htm)
+
+[Coachella 2017 gross, via Dancing Astronaut citing Billboard](https://dancingastronaut.com/2017/10/coachella-officially-surpasses-festival-franchise-records-2017/)
+
+[Grand View Research, music tourism market](https://www.grandviewresearch.com/industry-analysis/music-tourism-market-report)
+
+[Global Growth Insights, music festival market](https://www.globalgrowthinsights.com/market-reports/music-festival-market-100685)
+
+[Music Week, AIF on UK festival closures](https://www.musicweek.com/public_html/index.php/live/read/aif-warns-on-festival-closures-as-sector-sees-dozens-of-events-called-off-in-2025/092117)
+
+[APQC, duplicate or erroneous disbursements](https://www.apqc.org/resources/benchmarking/open-standards-benchmarking/measures/percentage-total-annual-number)
+
+[APQC, average cost to process an invoice](https://www.apqc.org/What-Is-the-Average-Cost-to-Process-an-Invoice)
+
+[World Commerce and Contracting, contract value loss](https://worldcc.com/Resources/Content-Hub/View/ArticleID/3972)
+
+[ACFE 2024 Report to the Nations, summary by CSH](https://cshco.com/insights/breaking-down-the-acfes-latest-fraud-report)
