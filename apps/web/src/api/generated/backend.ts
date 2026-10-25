@@ -2964,20 +2964,34 @@ export interface components {
             business_date: string | null;
             /** Case Id */
             case_id: string | null;
+            /** Explanation */
+            explanation: string;
             /** Festival Id */
             festival_id: string;
             /** Id */
             id: string;
+            /** Match Kind */
+            match_kind: string;
             /** Match Type */
             match_type: string;
             /** Matched Amount Cents */
             matched_amount_cents: number;
+            /** Matched Amounts */
+            matched_amounts: {
+                [key: string]: number;
+            };
+            /** Member Kinds */
+            member_kinds: string[];
+            /** Member Refs */
+            member_refs: components["schemas"]["MatchGroupMemberOut"][];
             /** Members */
             members: components["schemas"]["MatchGroupMemberOut"][];
             /** Reason Code */
             reason_code: string;
             /** Run Id */
             run_id: string | null;
+            /** Source Refs */
+            source_refs: unknown[];
             /** Status */
             status: string;
             /** Variance Cents */

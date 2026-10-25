@@ -284,7 +284,7 @@ describe('fixture transport responses conform', () => {
     for (const s of (await out.list('listSettlements')).items) expectValid('Settlement', await out.get('getSettlement', { path: { settlement_id: s.id } }));
     for (const c of (await out.list('listCases')).items) expectValid('Case', await out.get('getCase', { path: { case_id: c.id } }));
     for (const p of (await out.list('listPolicies')).items) expectValid('PolicyVersion', await out.get('getPolicyVersion', { path: { policy_version_id: p.id } }));
-    for (const g of (await out.list('listMatchGroups')).items) expectValid('MatchGroup', await out.get('getMatchGroup', { path: { id: g.id } }));
+    for (const g of (await out.list('listMatchGroups')).items) expectValid('MatchGroup', await out.get('getMatchGroup', { path: { group_id: g.id } }));
     // B05 finance outputs (proposals Q38-Q44).
     expectValid('PayoutList', await out.list('listPayouts'));
     for (const p of (await out.list('listPayouts')).items) expectValid('Payout', await out.get('getPayout', { path: { payout_id: p.id } }));

@@ -120,7 +120,7 @@ export function MatchGroupDetail() {
   const { client } = useApp();
   const { lookups, describeSource } = useLookups();
   const [evidence, setEvidence] = useState<Evidence>(null);
-  const result = useApiQuery(`match-group:${groupId}`, (signal) => client.get('getMatchGroup', { signal, path: { id: groupId } }));
+  const result = useApiQuery(`match-group:${groupId}`, (signal) => client.get('getMatchGroup', { signal, path: { group_id: groupId } }));
   const g = result.data;
   return (
     <>

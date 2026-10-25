@@ -159,20 +159,8 @@ export const OPERATIONS = {
   },
 
   // --------------------------------------------------- reconciliation (C04)
-  listMatchGroups: {
-    method: 'GET',
-    path: '/reconciliation',
-    backend: 'shape',
-    route: '/reconciliation/groups',
-    gap: 'GET /api/v1/reconciliation/groups returns members/matched_amount_cents and no source_refs; the UI needs member_refs, per-side matched_amounts and source_refs to show what was matched against what.',
-  },
-  getMatchGroup: {
-    method: 'GET',
-    path: '/reconciliation/{id}',
-    backend: 'shape',
-    route: '/reconciliation/groups/{group_id}',
-    gap: 'Same as the list route.',
-  },
+  listMatchGroups: { method: 'GET', path: '/reconciliation/groups', backend: 'live', query: { sort: null } },
+  getMatchGroup: { method: 'GET', path: '/reconciliation/groups/{group_id}', backend: 'live' },
 
   // ---------------------------------------------------------- payables (C07)
   listSuppliers: { method: 'GET', path: '/suppliers', backend: 'live', query: NO_PAGING },

@@ -1792,12 +1792,20 @@
             ],
             "title": "Case Id"
           },
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
           "festival_id": {
             "title": "Festival Id",
             "type": "string"
           },
           "id": {
             "title": "Id",
+            "type": "string"
+          },
+          "match_kind": {
+            "title": "Match Kind",
             "type": "string"
           },
           "match_type": {
@@ -1807,6 +1815,27 @@
           "matched_amount_cents": {
             "title": "Matched Amount Cents",
             "type": "integer"
+          },
+          "matched_amounts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Matched Amounts",
+            "type": "object"
+          },
+          "member_kinds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Member Kinds",
+            "type": "array"
+          },
+          "member_refs": {
+            "items": {
+              "$ref": "#/components/schemas/MatchGroupMemberOut"
+            },
+            "title": "Member Refs",
+            "type": "array"
           },
           "members": {
             "items": {
@@ -1829,6 +1858,11 @@
               }
             ],
             "title": "Run Id"
+          },
+          "source_refs": {
+            "items": {},
+            "title": "Source Refs",
+            "type": "array"
           },
           "status": {
             "title": "Status",
@@ -1862,7 +1896,13 @@
           "reason_code",
           "status",
           "case_id",
-          "members"
+          "members",
+          "match_kind",
+          "member_refs",
+          "member_kinds",
+          "matched_amounts",
+          "source_refs",
+          "explanation"
         ],
         "title": "MatchGroupOut",
         "type": "object"
