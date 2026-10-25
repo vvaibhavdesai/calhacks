@@ -108,7 +108,13 @@ class CashCaseListOut(BaseModel):
     next_cursor: str | None
 
 
-class CashCountOut(BaseModel):
+class CashOfficeCountOut(BaseModel):
+    """A cash-office BAG count. Named for its router because
+    `records.CashCountOut` is a different thing -- a POS till count, with
+    `amount_cents` and a custody -- and two models under one name mangle
+    the generated client.
+    """
+
     id: str
     festival_id: str
     vendor_id: str
@@ -121,7 +127,7 @@ class CashCountOut(BaseModel):
 
 
 class RecordCountOut(BaseModel):
-    count: CashCountOut
+    count: CashOfficeCountOut
     # False when an identical count was already recorded (idempotent replay).
     created: bool
 
@@ -155,7 +161,7 @@ class CashOfficeOut(BaseModel):
     deposited_cents: int
     awaiting_bank_credit_cents: int
     open_cases: list[CashCaseOut]
-    counts: list[CashCountOut]
+    counts: list[CashOfficeCountOut]
     suspense: list[SuspenseItemOut]
     note: str
 

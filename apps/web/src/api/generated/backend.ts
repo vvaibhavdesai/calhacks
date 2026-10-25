@@ -2859,9 +2859,39 @@ export interface components {
         /** CashCountListOut */
         CashCountListOut: {
             /** Items */
-            items: components["schemas"]["app__routers__records__CashCountOut"][];
+            items: components["schemas"]["CashCountOut"][];
             /** Next Cursor */
             next_cursor?: string | null;
+        };
+        /** CashCountOut */
+        CashCountOut: {
+            /** Amount Cents */
+            amount_cents: number;
+            /**
+             * Business Date
+             * Format: date
+             */
+            business_date: string;
+            /**
+             * Counted At
+             * Format: date-time
+             */
+            counted_at: string;
+            /** Counted By */
+            counted_by?: string | null;
+            /**
+             * Custody
+             * @default VENDOR_RETAINED
+             */
+            custody: string;
+            /** Description */
+            description?: string | null;
+            /** Id */
+            id: string;
+            /** Source Refs */
+            source_refs: components["schemas"]["SourceRefOut"][];
+            /** Vendor Id */
+            vendor_id: string;
         };
         /** CashOfficeBlockOut */
         CashOfficeBlockOut: {
@@ -2878,12 +2908,39 @@ export interface components {
             /** Open Cases */
             open_cases: components["schemas"]["CashCaseOut"][];
         };
+        /**
+         * CashOfficeCountOut
+         * @description A cash-office BAG count. Named for its router because
+         *     `records.CashCountOut` is a different thing -- a POS till count, with
+         *     `amount_cents` and a custody -- and two models under one name mangle
+         *     the generated client.
+         */
+        CashOfficeCountOut: {
+            /** Bag Reference */
+            bag_reference: string;
+            /** Business Date */
+            business_date: string;
+            /** Counted At */
+            counted_at: string | null;
+            /** Counted By */
+            counted_by: string | null;
+            /** Counted Cents */
+            counted_cents: number;
+            /** Festival Id */
+            festival_id: string;
+            /** Id */
+            id: string;
+            /** Source Refs */
+            source_refs: unknown[];
+            /** Vendor Id */
+            vendor_id: string;
+        };
         /** CashOfficeOut */
         CashOfficeOut: {
             /** Awaiting Bank Credit Cents */
             awaiting_bank_credit_cents: number;
             /** Counts */
-            counts: components["schemas"]["app__routers__cash_office__CashCountOut"][];
+            counts: components["schemas"]["CashOfficeCountOut"][];
             /** Deposit Slips */
             deposit_slips: components["schemas"]["SlipSummaryOut"][];
             /** Deposited Cents */
@@ -5147,7 +5204,7 @@ export interface components {
         };
         /** RecordCountOut */
         RecordCountOut: {
-            count: components["schemas"]["app__routers__cash_office__CashCountOut"];
+            count: components["schemas"]["CashOfficeCountOut"];
             /** Created */
             created: boolean;
         };
@@ -6599,6 +6656,37 @@ export interface components {
             /** Vendor Id */
             vendor_id: string;
         };
+        /** VendorDetailOut */
+        VendorDetailOut: {
+            /** Beneficiary Configured */
+            beneficiary_configured: boolean;
+            /** Beneficiary Version */
+            beneficiary_version: number;
+            /** Contract Terms */
+            contract_terms: components["schemas"]["VendorContractTermOut"][];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Display Name */
+            display_name: string | null;
+            /** Festival Id */
+            festival_id: string;
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Status */
+            status: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
         /**
          * VendorGraphStateOut
          * @description A vendor's raw graph row, as `_vendor_out` builds it.
@@ -6659,6 +6747,48 @@ export interface components {
             order_groups: number;
             /** Vendor Id */
             vendor_id: string;
+        };
+        /**
+         * VendorRunDetailOut
+         * @description One vendor's position in a RUN. Not `vendors.VendorDetailOut`, which
+         *     is the vendor record itself; the names are kept apart so the generated
+         *     client does not have to fully qualify either.
+         */
+        VendorRunDetailOut: {
+            /** Cases */
+            cases: components["schemas"]["VendorCaseOut"][];
+            /** Checkpoint */
+            checkpoint: Record<string, never> | null;
+            /** Commands */
+            commands: components["schemas"]["VendorCommandOut"][];
+            /** Held At */
+            held_at: string | null;
+            /** Hold Reasons */
+            hold_reasons: Record<string, never>[];
+            /** Last Error */
+            last_error: string | null;
+            /** Milestone */
+            milestone: string | null;
+            /** Payout Id */
+            payout_id: string | null;
+            /** Retryable */
+            retryable: boolean;
+            /** Run Id */
+            run_id: string;
+            /** Settlement Id */
+            settlement_id: string | null;
+            /** Statement Id */
+            statement_id: string | null;
+            /** Status */
+            status: string;
+            /** Thread Id */
+            thread_id: string;
+            /** Updated At */
+            updated_at: string | null;
+            /** Vendor Id */
+            vendor_id: string;
+            /** Version */
+            version: number;
         };
         /** VendorRunListOut */
         VendorRunListOut: {
@@ -6790,64 +6920,6 @@ export interface components {
             /** Version */
             version: number;
         };
-        /** CashCountOut */
-        app__routers__cash_office__CashCountOut: {
-            /** Bag Reference */
-            bag_reference: string;
-            /** Business Date */
-            business_date: string;
-            /** Counted At */
-            counted_at: string | null;
-            /** Counted By */
-            counted_by: string | null;
-            /** Counted Cents */
-            counted_cents: number;
-            /** Festival Id */
-            festival_id: string;
-            /** Id */
-            id: string;
-            /** Source Refs */
-            source_refs: unknown[];
-            /** Vendor Id */
-            vendor_id: string;
-        };
-        /** VendorDetailOut */
-        app__routers__orchestration__VendorDetailOut: {
-            /** Cases */
-            cases: components["schemas"]["VendorCaseOut"][];
-            /** Checkpoint */
-            checkpoint: Record<string, never> | null;
-            /** Commands */
-            commands: components["schemas"]["VendorCommandOut"][];
-            /** Held At */
-            held_at: string | null;
-            /** Hold Reasons */
-            hold_reasons: Record<string, never>[];
-            /** Last Error */
-            last_error: string | null;
-            /** Milestone */
-            milestone: string | null;
-            /** Payout Id */
-            payout_id: string | null;
-            /** Retryable */
-            retryable: boolean;
-            /** Run Id */
-            run_id: string;
-            /** Settlement Id */
-            settlement_id: string | null;
-            /** Statement Id */
-            statement_id: string | null;
-            /** Status */
-            status: string;
-            /** Thread Id */
-            thread_id: string;
-            /** Updated At */
-            updated_at: string | null;
-            /** Vendor Id */
-            vendor_id: string;
-            /** Version */
-            version: number;
-        };
         /** CaseOut */
         app__routers__reconciliation__CaseOut: {
             /** Evidence Refs */
@@ -6868,67 +6940,6 @@ export interface components {
             status: string;
             /** Vendor Id */
             vendor_id: string | null;
-        };
-        /** CashCountOut */
-        app__routers__records__CashCountOut: {
-            /** Amount Cents */
-            amount_cents: number;
-            /**
-             * Business Date
-             * Format: date
-             */
-            business_date: string;
-            /**
-             * Counted At
-             * Format: date-time
-             */
-            counted_at: string;
-            /** Counted By */
-            counted_by?: string | null;
-            /**
-             * Custody
-             * @default VENDOR_RETAINED
-             */
-            custody: string;
-            /** Description */
-            description?: string | null;
-            /** Id */
-            id: string;
-            /** Source Refs */
-            source_refs: components["schemas"]["SourceRefOut"][];
-            /** Vendor Id */
-            vendor_id: string;
-        };
-        /** VendorDetailOut */
-        app__routers__vendors__VendorDetailOut: {
-            /** Beneficiary Configured */
-            beneficiary_configured: boolean;
-            /** Beneficiary Version */
-            beneficiary_version: number;
-            /** Contract Terms */
-            contract_terms: components["schemas"]["VendorContractTermOut"][];
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /** Display Name */
-            display_name: string | null;
-            /** Festival Id */
-            festival_id: string;
-            /** Id */
-            id: string;
-            /** Name */
-            name: string;
-            /** Status */
-            status: string;
-            /**
-             * Updated At
-             * Format: date-time
-             */
-            updated_at: string;
-            /** Version */
-            version: number;
         };
     };
     responses: never;
@@ -9648,7 +9659,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["app__routers__orchestration__VendorDetailOut"];
+                    "application/json": components["schemas"]["VendorRunDetailOut"];
                 };
             };
             /** @description Validation Error */
@@ -11590,7 +11601,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["app__routers__vendors__VendorDetailOut"];
+                    "application/json": components["schemas"]["VendorDetailOut"];
                 };
             };
             /** @description Validation Error */

@@ -1258,7 +1258,7 @@
         "properties": {
           "items": {
             "items": {
-              "$ref": "#/components/schemas/app__routers__records__CashCountOut"
+              "$ref": "#/components/schemas/CashCountOut"
             },
             "title": "Items",
             "type": "array"
@@ -1279,6 +1279,76 @@
           "items"
         ],
         "title": "CashCountListOut",
+        "type": "object"
+      },
+      "CashCountOut": {
+        "properties": {
+          "amount_cents": {
+            "title": "Amount Cents",
+            "type": "integer"
+          },
+          "business_date": {
+            "format": "date",
+            "title": "Business Date",
+            "type": "string"
+          },
+          "counted_at": {
+            "format": "date-time",
+            "title": "Counted At",
+            "type": "string"
+          },
+          "counted_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Counted By"
+          },
+          "custody": {
+            "default": "VENDOR_RETAINED",
+            "title": "Custody",
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "source_refs": {
+            "items": {
+              "$ref": "#/components/schemas/SourceRefOut"
+            },
+            "title": "Source Refs",
+            "type": "array"
+          },
+          "vendor_id": {
+            "title": "Vendor Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "vendor_id",
+          "business_date",
+          "amount_cents",
+          "counted_at",
+          "source_refs"
+        ],
+        "title": "CashCountOut",
         "type": "object"
       },
       "CashOfficeBlockOut": {
@@ -1325,6 +1395,75 @@
         "title": "CashOfficeBlockOut",
         "type": "object"
       },
+      "CashOfficeCountOut": {
+        "description": "A cash-office BAG count. Named for its router because\n`records.CashCountOut` is a different thing -- a POS till count, with\n`amount_cents` and a custody -- and two models under one name mangle\nthe generated client.",
+        "properties": {
+          "bag_reference": {
+            "title": "Bag Reference",
+            "type": "string"
+          },
+          "business_date": {
+            "title": "Business Date",
+            "type": "string"
+          },
+          "counted_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Counted At"
+          },
+          "counted_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Counted By"
+          },
+          "counted_cents": {
+            "title": "Counted Cents",
+            "type": "integer"
+          },
+          "festival_id": {
+            "title": "Festival Id",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "source_refs": {
+            "items": {},
+            "title": "Source Refs",
+            "type": "array"
+          },
+          "vendor_id": {
+            "title": "Vendor Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "festival_id",
+          "vendor_id",
+          "business_date",
+          "bag_reference",
+          "counted_cents",
+          "counted_at",
+          "counted_by",
+          "source_refs"
+        ],
+        "title": "CashOfficeCountOut",
+        "type": "object"
+      },
       "CashOfficeOut": {
         "properties": {
           "awaiting_bank_credit_cents": {
@@ -1333,7 +1472,7 @@
           },
           "counts": {
             "items": {
-              "$ref": "#/components/schemas/app__routers__cash_office__CashCountOut"
+              "$ref": "#/components/schemas/CashOfficeCountOut"
             },
             "title": "Counts",
             "type": "array"
@@ -8251,7 +8390,7 @@
       "RecordCountOut": {
         "properties": {
           "count": {
-            "$ref": "#/components/schemas/app__routers__cash_office__CashCountOut"
+            "$ref": "#/components/schemas/CashOfficeCountOut"
           },
           "created": {
             "title": "Created",
@@ -12795,6 +12934,81 @@
         "title": "VendorDayAggregateOut",
         "type": "object"
       },
+      "VendorDetailOut": {
+        "properties": {
+          "beneficiary_configured": {
+            "title": "Beneficiary Configured",
+            "type": "boolean"
+          },
+          "beneficiary_version": {
+            "title": "Beneficiary Version",
+            "type": "integer"
+          },
+          "contract_terms": {
+            "items": {
+              "$ref": "#/components/schemas/VendorContractTermOut"
+            },
+            "title": "Contract Terms",
+            "type": "array"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "festival_id": {
+            "title": "Festival Id",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "festival_id",
+          "name",
+          "display_name",
+          "status",
+          "version",
+          "beneficiary_version",
+          "beneficiary_configured",
+          "contract_terms",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "VendorDetailOut",
+        "type": "object"
+      },
       "VendorGraphStateOut": {
         "description": "A vendor's raw graph row, as `_vendor_out` builds it.",
         "properties": {
@@ -13009,6 +13223,165 @@
           "cases_opened"
         ],
         "title": "VendorResultOut",
+        "type": "object"
+      },
+      "VendorRunDetailOut": {
+        "description": "One vendor's position in a RUN. Not `vendors.VendorDetailOut`, which\nis the vendor record itself; the names are kept apart so the generated\nclient does not have to fully qualify either.",
+        "properties": {
+          "cases": {
+            "items": {
+              "$ref": "#/components/schemas/VendorCaseOut"
+            },
+            "title": "Cases",
+            "type": "array"
+          },
+          "checkpoint": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checkpoint"
+          },
+          "commands": {
+            "items": {
+              "$ref": "#/components/schemas/VendorCommandOut"
+            },
+            "title": "Commands",
+            "type": "array"
+          },
+          "held_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Held At"
+          },
+          "hold_reasons": {
+            "items": {
+              "type": "object"
+            },
+            "title": "Hold Reasons",
+            "type": "array"
+          },
+          "last_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error"
+          },
+          "milestone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Milestone"
+          },
+          "payout_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payout Id"
+          },
+          "retryable": {
+            "title": "Retryable",
+            "type": "boolean"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "settlement_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Settlement Id"
+          },
+          "statement_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Statement Id"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "thread_id": {
+            "title": "Thread Id",
+            "type": "string"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "vendor_id": {
+            "title": "Vendor Id",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "vendor_id",
+          "thread_id",
+          "milestone",
+          "status",
+          "held_at",
+          "hold_reasons",
+          "settlement_id",
+          "payout_id",
+          "statement_id",
+          "last_error",
+          "retryable",
+          "version",
+          "updated_at",
+          "run_id",
+          "checkpoint",
+          "cases",
+          "commands"
+        ],
+        "title": "VendorRunDetailOut",
         "type": "object"
       },
       "VendorRunListOut": {
@@ -13527,232 +13900,6 @@
         "title": "CaseOut",
         "type": "object"
       },
-      "app__routers__cash_office__CashCountOut": {
-        "properties": {
-          "bag_reference": {
-            "title": "Bag Reference",
-            "type": "string"
-          },
-          "business_date": {
-            "title": "Business Date",
-            "type": "string"
-          },
-          "counted_at": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Counted At"
-          },
-          "counted_by": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Counted By"
-          },
-          "counted_cents": {
-            "title": "Counted Cents",
-            "type": "integer"
-          },
-          "festival_id": {
-            "title": "Festival Id",
-            "type": "string"
-          },
-          "id": {
-            "title": "Id",
-            "type": "string"
-          },
-          "source_refs": {
-            "items": {},
-            "title": "Source Refs",
-            "type": "array"
-          },
-          "vendor_id": {
-            "title": "Vendor Id",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "festival_id",
-          "vendor_id",
-          "business_date",
-          "bag_reference",
-          "counted_cents",
-          "counted_at",
-          "counted_by",
-          "source_refs"
-        ],
-        "title": "CashCountOut",
-        "type": "object"
-      },
-      "app__routers__orchestration__VendorDetailOut": {
-        "properties": {
-          "cases": {
-            "items": {
-              "$ref": "#/components/schemas/VendorCaseOut"
-            },
-            "title": "Cases",
-            "type": "array"
-          },
-          "checkpoint": {
-            "anyOf": [
-              {
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Checkpoint"
-          },
-          "commands": {
-            "items": {
-              "$ref": "#/components/schemas/VendorCommandOut"
-            },
-            "title": "Commands",
-            "type": "array"
-          },
-          "held_at": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Held At"
-          },
-          "hold_reasons": {
-            "items": {
-              "type": "object"
-            },
-            "title": "Hold Reasons",
-            "type": "array"
-          },
-          "last_error": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Last Error"
-          },
-          "milestone": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Milestone"
-          },
-          "payout_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Payout Id"
-          },
-          "retryable": {
-            "title": "Retryable",
-            "type": "boolean"
-          },
-          "run_id": {
-            "title": "Run Id",
-            "type": "string"
-          },
-          "settlement_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Settlement Id"
-          },
-          "statement_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Statement Id"
-          },
-          "status": {
-            "title": "Status",
-            "type": "string"
-          },
-          "thread_id": {
-            "title": "Thread Id",
-            "type": "string"
-          },
-          "updated_at": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Updated At"
-          },
-          "vendor_id": {
-            "title": "Vendor Id",
-            "type": "string"
-          },
-          "version": {
-            "title": "Version",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "vendor_id",
-          "thread_id",
-          "milestone",
-          "status",
-          "held_at",
-          "hold_reasons",
-          "settlement_id",
-          "payout_id",
-          "statement_id",
-          "last_error",
-          "retryable",
-          "version",
-          "updated_at",
-          "run_id",
-          "checkpoint",
-          "cases",
-          "commands"
-        ],
-        "title": "VendorDetailOut",
-        "type": "object"
-      },
       "app__routers__reconciliation__CaseOut": {
         "properties": {
           "evidence_refs": {
@@ -13840,151 +13987,6 @@
           "status"
         ],
         "title": "CaseOut",
-        "type": "object"
-      },
-      "app__routers__records__CashCountOut": {
-        "properties": {
-          "amount_cents": {
-            "title": "Amount Cents",
-            "type": "integer"
-          },
-          "business_date": {
-            "format": "date",
-            "title": "Business Date",
-            "type": "string"
-          },
-          "counted_at": {
-            "format": "date-time",
-            "title": "Counted At",
-            "type": "string"
-          },
-          "counted_by": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Counted By"
-          },
-          "custody": {
-            "default": "VENDOR_RETAINED",
-            "title": "Custody",
-            "type": "string"
-          },
-          "description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description"
-          },
-          "id": {
-            "title": "Id",
-            "type": "string"
-          },
-          "source_refs": {
-            "items": {
-              "$ref": "#/components/schemas/SourceRefOut"
-            },
-            "title": "Source Refs",
-            "type": "array"
-          },
-          "vendor_id": {
-            "title": "Vendor Id",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "vendor_id",
-          "business_date",
-          "amount_cents",
-          "counted_at",
-          "source_refs"
-        ],
-        "title": "CashCountOut",
-        "type": "object"
-      },
-      "app__routers__vendors__VendorDetailOut": {
-        "properties": {
-          "beneficiary_configured": {
-            "title": "Beneficiary Configured",
-            "type": "boolean"
-          },
-          "beneficiary_version": {
-            "title": "Beneficiary Version",
-            "type": "integer"
-          },
-          "contract_terms": {
-            "items": {
-              "$ref": "#/components/schemas/VendorContractTermOut"
-            },
-            "title": "Contract Terms",
-            "type": "array"
-          },
-          "created_at": {
-            "format": "date-time",
-            "title": "Created At",
-            "type": "string"
-          },
-          "display_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Display Name"
-          },
-          "festival_id": {
-            "title": "Festival Id",
-            "type": "string"
-          },
-          "id": {
-            "title": "Id",
-            "type": "string"
-          },
-          "name": {
-            "title": "Name",
-            "type": "string"
-          },
-          "status": {
-            "title": "Status",
-            "type": "string"
-          },
-          "updated_at": {
-            "format": "date-time",
-            "title": "Updated At",
-            "type": "string"
-          },
-          "version": {
-            "title": "Version",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "id",
-          "festival_id",
-          "name",
-          "display_name",
-          "status",
-          "version",
-          "beneficiary_version",
-          "beneficiary_configured",
-          "contract_terms",
-          "created_at",
-          "updated_at"
-        ],
-        "title": "VendorDetailOut",
         "type": "object"
       }
     },
@@ -18934,7 +18936,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/app__routers__orchestration__VendorDetailOut"
+                  "$ref": "#/components/schemas/VendorRunDetailOut"
                 }
               }
             },
@@ -22724,7 +22726,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/app__routers__vendors__VendorDetailOut"
+                  "$ref": "#/components/schemas/VendorDetailOut"
                 }
               }
             },

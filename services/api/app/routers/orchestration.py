@@ -207,7 +207,12 @@ class VendorCommandOut(BaseModel):
     actor_id: str | None
 
 
-class VendorDetailOut(VendorGraphStateOut):
+class VendorRunDetailOut(VendorGraphStateOut):
+    """One vendor's position in a RUN. Not `vendors.VendorDetailOut`, which
+    is the vendor record itself; the names are kept apart so the generated
+    client does not have to fully qualify either.
+    """
+
     run_id: str
     # Workflow position from the LangGraph checkpoint. Null when the
     # checkpointer is unreachable, `{"started": false}` before the graph has
@@ -601,7 +606,7 @@ def _checkpoint_view(thread_id: str) -> dict | None:
     }
 
 
-@router.get("/runs/{run_id}/vendors/{vendor_id}", response_model=VendorDetailOut)
+@router.get("/runs/{run_id}/vendors/{vendor_id}", response_model=VendorRunDetailOut)
 def get_vendor(
     run_id: str,
     vendor_id: str,
