@@ -647,17 +647,27 @@ def list_supplier_quotes(
 
 
 _FIXTURE_DIR = Path(__file__).resolve().parents[4] / "fixtures" / "encore-procurement-synthetic-v1"
+_FIXTURE_DATA_DIR = _FIXTURE_DIR / "data"
 
 
 def _load_fixture_json(name: str):
-    with open(_FIXTURE_DIR / "data" / f"{name}.json") as f:
+    """Reads ONLY fixtures/encore-procurement-synthetic-v1/data/<name>.json
+    -- never evaluation/ (TICKET: supplier comparison "must be unable to
+    open evaluation/"). Resolves the final path and verifies it is still
+    inside `_FIXTURE_DATA_DIR` before opening, so a `name` containing
+    path-traversal segments (e.g. "../evaluation/answer_key") is refused
+    rather than silently escaping the data/ directory."""
+    path = (_FIXTURE_DATA_DIR / f"{name}.json").resolve()
+    if _FIXTURE_DATA_DIR.resolve() not in path.parents:
+        raise ValueError(f"fixture name {name!r} escapes the data/ directory")
+    with open(path) as f:
         return json.load(f)
 
 
 @router.get("/supplier-comparison")
 def supplier_comparison(
     request_key: str,
-    as_of: date,
+    as_of: datetime,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> dict:
@@ -666,12 +676,16 @@ def supplier_comparison(
     baseline and supplier history are read directly from the fixture's
     cash_inputs.json/historical_contracts.json -- a labelled synthetic
     comparison, never written to cash_pools/opening_balances/the journal.
-    Selection stays undecided here: no winner field, no aggregate score."""
+    Selection stays undecided here: no winner field, no aggregate score.
+
+    `as_of` is a full timezone-aware instant (not a bare date): a quote
+    available at 09:00 on its release day must not leak into a comparison
+    made at, say, 08:00 that same day."""
     import domain.procurement_cash as cash_rules
 
     from app.models_finance import SupplierQuote
 
-    cutoff = datetime.combine(as_of, datetime.min.time())
+    cutoff = as_of
     quotes = (
         db.execute(
             select(SupplierQuote).where(
