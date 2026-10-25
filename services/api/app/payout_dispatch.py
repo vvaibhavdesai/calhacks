@@ -38,6 +38,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 
+from domain.corrections import COMMITTED_STATES, DRAFT_STATES
 from domain.payout_dispatch import AUTOMATIC_RELEASE_LIMIT_CENTS, check_cumulative_limit
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -308,6 +309,54 @@ def update_vendor_beneficiary(
 # ---------------------------------------------------------------------------
 
 
+def settlement_chain_ids(db: Session, settlement: Settlement) -> list[str]:
+    """Every settlement id in this row's correction history, newest first.
+
+    A correction settlement carries `correction_of`, pointing at the row it
+    replaces, so walking that link back collects the whole entitlement: the
+    rows are different records of the SAME money owed for one vendor-night,
+    not separate debts. Any payout against any of them has therefore already
+    discharged part of this entitlement.
+    """
+    ids = [settlement.id]
+    node = settlement
+    seen = {settlement.id}
+    while node.correction_of:
+        if node.correction_of in seen:  # defensive: a cycle must not hang a close
+            break
+        ids.append(node.correction_of)
+        seen.add(node.correction_of)
+        parent = db.get(Settlement, node.correction_of)
+        if parent is None:
+            break
+        node = parent
+    return ids
+
+
+def committed_cents_for_entitlement(
+    db: Session, settlement: Settlement
+) -> tuple[int, list[Payout]]:
+    """(cents already committed, the payouts that committed them) across this
+    settlement's whole correction history.
+
+    "Committed" is domain.corrections.COMMITTED_STATES -- money that moved, or
+    that may have moved and the rail has not told us otherwise. Drafts and
+    states the rail reported as never-paid are excluded.
+    """
+    chain = settlement_chain_ids(db, settlement)
+    payouts = (
+        db.execute(
+            select(Payout)
+            .where(Payout.settlement_id.in_(chain))
+            .order_by(Payout.created_at, Payout.id)
+        )
+        .scalars()
+        .all()
+    )
+    committed = [p for p in payouts if p.state in COMMITTED_STATES]
+    return sum(p.amount_cents for p in committed), committed
+
+
 def create_payout_obligation(
     db: Session, *, settlement_id: str, actor_id: str, actor_capability: str
 ) -> tuple[Payout, bool]:
@@ -343,13 +392,58 @@ def create_payout_obligation(
     if vendor is None:
         raise PayoutNotFoundError(f"vendor {settlement.vendor_id} not found")
 
+    # An obligation covers what is STILL OWED, never the settlement's full
+    # payout figure. A vendor-night's entitlement can already be partly
+    # discharged: by a payout against an earlier settlement in this
+    # correction chain, or by an A09 ":additional" payout against this very
+    # row. Issuing the full figure again is how a vendor is paid twice, and
+    # the callers cannot be relied on to work it out -- POST /payouts, the
+    # nightly graph and A09's replacement path all call this function.
+    # An obligation that exists but has not been sent yet still covers this
+    # money. A09 creates a ":additional" payout against this same settlement
+    # for the difference after a correction; it sits in DRAFT until a finance
+    # lead approves it, so it is not "committed" money -- but issuing a
+    # second obligation beside it would mean two drafts for one difference,
+    # and approving both pays it twice. Scoped to this settlement's own
+    # obligations: drafts against SUPERSEDED rows in the chain are A09's to
+    # revise, not ours to block on.
+    outstanding = [
+        p
+        for p in db.execute(select(Payout).where(Payout.settlement_id == settlement.id))
+        .scalars()
+        .all()
+        if p.state in DRAFT_STATES
+    ]
+    if outstanding:
+        raise PayoutBlockedError(
+            "obligation_already_outstanding",
+            {
+                "settlement_id": settlement.id,
+                "payout_ids": [p.id for p in outstanding],
+                "states": [p.state for p in outstanding],
+            },
+        )
+
+    committed, committed_payouts = committed_cents_for_entitlement(db, settlement)
+    owed = settlement.payout_cents - committed
+    if owed <= 0:
+        raise PayoutBlockedError(
+            "nothing_further_owed",
+            {
+                "settlement_id": settlement.id,
+                "settlement_payout_cents": settlement.payout_cents,
+                "already_committed_cents": committed,
+                "committed_payout_ids": [p.id for p in committed_payouts],
+            },
+        )
+
     payout = Payout(
         logical_obligation_id=idempotency_key,
         idempotency_key=idempotency_key,
         vendor_id=settlement.vendor_id,
         business_date=settlement.business_date,
         beneficiary_version=vendor.version,
-        amount_cents=settlement.payout_cents,
+        amount_cents=owed,
         state="DRAFT",
         settlement_id=settlement.id,
     )
@@ -366,6 +460,8 @@ def create_payout_obligation(
             "vendor_id": settlement.vendor_id,
             "business_date": settlement.business_date.isoformat(),
             "amount_cents": payout.amount_cents,
+            "settlement_payout_cents": settlement.payout_cents,
+            "already_committed_cents": committed,
             "beneficiary_version": payout.beneficiary_version,
         },
     )

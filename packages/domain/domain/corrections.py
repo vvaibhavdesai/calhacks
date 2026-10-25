@@ -134,6 +134,22 @@ NEVER_PAID_STATES = ("FAILED", "CANCELLED", "REJECTED")
 PENDING_STATES = ("DISPATCH_PENDING", "UNKNOWN", "CANCEL_REQUESTED")
 COMPLETED_STATES = ("SUBMITTED", "CONFIRMED")
 
+# Money that has moved, or that may have moved and we have not been told
+# otherwise. This is the set to subtract before creating any further payout
+# obligation for the same entitlement.
+#
+# It is PENDING + COMPLETED rather than COMPLETED alone, and the distinction
+# is not academic: a payout in UNKNOWN means the rail never answered, so the
+# transfer may well have happened. Counting it as unpaid and issuing a fresh
+# obligation is how a vendor gets paid twice. DISPATCH_PENDING and
+# CANCEL_REQUESTED are the same argument -- the amount is already known and
+# the money is already in motion.
+#
+# DRAFT_STATES are excluded because nothing has been sent, and
+# NEVER_PAID_STATES because the rail told us the money did not move. Together
+# with those two, this covers every state a payout can hold.
+COMMITTED_STATES = PENDING_STATES + COMPLETED_STATES
+
 
 def classify_payout(state: str | None) -> tuple[str, str]:
     """Returns (state_group, treatment) using lane B's draft vocabulary
