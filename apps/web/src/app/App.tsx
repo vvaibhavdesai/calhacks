@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { RouterProvider, createBrowserRouter, createMemoryRouter, type RouteObject } from 'react-router-dom';
 import { isLive } from '../api/operations';
+import { ApprovalDetail, ApprovalsList } from '../screens/Approvals';
 import { CaseDetail, CasesList } from '../screens/Cases';
 import { CashScreen } from '../screens/Cash';
 import { JournalDetail, JournalList } from '../screens/Journal';
@@ -16,6 +17,7 @@ import { ReportDetail, ReportsList } from '../screens/Reports';
 import { TaxDetail, TaxList } from '../screens/Tax';
 import { Overview } from '../screens/Overview';
 import { PoliciesList, PolicyDetail } from '../screens/Policies';
+import { ReadinessDetail, ReadinessList } from '../screens/Readiness';
 import { MatchGroupDetail, ReconciliationList } from '../screens/Reconciliation';
 import { RunDetail, RunsList } from '../screens/Runs';
 import { SettlementDetail, SettlementsList } from '../screens/Settlements';
@@ -54,6 +56,11 @@ export const routes: RouteObject[] = [
       { path: 'cases/:caseId', element: <CaseDetail /> },
       { path: 'policies', element: <PoliciesList /> },
       { path: 'policies/:policyVersionId', element: <PolicyDetail /> },
+      // R1 readiness and X0.1 approvals (prevention extension)
+      { path: 'readiness', element: <ReadinessList /> },
+      { path: 'readiness/:readinessCheckId', element: <ReadinessDetail /> },
+      { path: 'approvals', element: <ApprovalsList /> },
+      { path: 'approvals/:approvalId', element: <ApprovalDetail /> },
       // B05 finance screens
       { path: 'payouts', element: <PayoutsList /> },
       { path: 'payouts/:payoutId', element: <PayoutDetail /> },

@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Link, NavLink, useParams } from 'react-router-dom';
 import { useApp } from '../app/AppContext';
 import type { InvoicePayability, PurchaseOrder, SourceRef, Supplier, SupplierInvoice, SupplierPayment } from '../api/types';
@@ -19,6 +19,7 @@ import { useApiQuery, type QueryResult } from '../hooks/useApiQuery';
 import { useAsOf } from '../hooks/useAsOf';
 import { useListParams } from '../hooks/useListParams';
 import { useLookups } from '../hooks/useLookups';
+import { useSupplierNames } from '../hooks/useSupplierNames';
 import { invoiceIdFromCaseEvidence } from '../lib/caseEvidence';
 import { compareCents } from '../lib/money';
 
@@ -33,25 +34,6 @@ const TABS = [
 type TabSlug = (typeof TABS)[number]['slug'];
 
 type Evidence = { title: string; refs: SourceRef[] } | null;
-
-function useSupplierNames() {
-  const { client } = useApp();
-  const { lookups } = useLookups();
-  const festivalId = lookups.festivalId;
-  const q = useApiQuery(
-    `lookup:suppliers:${festivalId ?? ''}`,
-    (signal) => client.list('listSuppliers', { signal, query: { limit: 200, festival_id: festivalId } }),
-    { enabled: Boolean(festivalId) },
-  );
-  return useMemo(() => {
-    const items: Supplier[] = q.data?.items ?? [];
-    const byId = new Map(items.map((s) => [s.id, s.name]));
-    return {
-      name: (id: string): ReactNode => byId.get(id) ?? <Code>{id}</Code>,
-      options: items.map((s) => ({ value: s.id, label: s.name })),
-    };
-  }, [q.data]);
-}
 
 function invoiceLink(id: string) {
   return (
