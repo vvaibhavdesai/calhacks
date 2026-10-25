@@ -40,7 +40,567 @@ from app.models_ledger import JournalEntry, Supplier, SupplierInvoice, Vendor
 from app.models_reconciliation import BankEntry
 from app.models_settlement import Settlement
 
+# Reused rather than redeclared: the cash position embeds the cash-office
+# summary and its suspense rows, and the festival report embeds cash-office
+# cases and chargeback fees. Those shapes are already modelled where they
+# are produced, and a second copy here would mangle the generated client.
+from app.routers.cash_office import (
+    CashCaseOut,
+    ChargebackFeeStatusOut,
+    SlipSummaryOut,
+    SuspenseItemOut,
+)
+
 router = APIRouter(prefix="/api/v1", tags=["finance"])
+
+
+# Instants and dates are `str`: the handlers emit `.isoformat()`, and a
+# `datetime` field would make pydantic rewrite the `+00:00` offset as `Z`.
+
+
+# -- Suppliers / POs / invoices ---------------------------------------------
+
+
+class CreateSupplierOut(BaseModel):
+    id: str
+    name: str
+    festival_id: str
+    # False when the supplier already existed under this name.
+    created: bool
+
+
+class SupplierOut(BaseModel):
+    id: str
+    name: str
+    category: str | None
+
+
+class SupplierListOut(BaseModel):
+    items: list[SupplierOut]
+    # Always null throughout this router: one festival's finance records are
+    # a page, not a stream.
+    next_cursor: str | None
+
+
+class CreatePurchaseOrderOut(BaseModel):
+    id: str
+    po_number: str
+    amount_cents: int
+    created: bool
+
+
+class PurchaseOrderOut(BaseModel):
+    id: str
+    supplier_id: str
+    po_number: str
+    po_date: str
+    amount_cents: int
+    # Computed live from the invoices citing this PO, not stored.
+    invoiced_cents: int
+    receipt_evidence_refs: list
+    source_refs: list
+
+
+class PurchaseOrderListOut(BaseModel):
+    items: list[PurchaseOrderOut]
+    next_cursor: str | None
+
+
+class InvoiceOut(BaseModel):
+    """One supplier invoice or credit note (`_invoice_out`)."""
+
+    id: str
+    festival_id: str
+    supplier_id: str
+    kind: str  # INVOICE | CREDIT_NOTE
+    po_refs: list
+    invoice_number: str
+    invoice_date: str
+    due_date: str | None
+    net_cents: int
+    tax_cents: int
+    gross_cents: int
+    credited_cents: int
+    paid_cents: int
+    outstanding_cents: int
+    po_excess_cents: int
+    # Null until a finance lead approves the PO variance.
+    variance_approved_by: str | None
+    # Derived as of the request date (so it can read OVERDUE), not stored.
+    status: str
+    applies_to_invoice_id: str | None
+    journal_entry_id: str | None
+    source_refs: list
+    version: int
+
+
+class RecordInvoiceOut(BaseModel):
+    invoice: InvoiceOut
+    created: bool
+    # Cases the recording opened (a suspected duplicate, a PO excess).
+    case_ids: list[str]
+
+
+class RecordCreditNoteOut(BaseModel):
+    credit_note: InvoiceOut
+    # The invoice the note was applied to, re-read after the application.
+    invoice: InvoiceOut
+    created: bool
+
+
+class PaymentSimulationOut(BaseModel):
+    id: str
+    amount_cents: int
+    state: str
+    payment_reference: str
+    journal_entry_id: str | None
+    # Constant: no real money moves in this system.
+    label: str
+
+
+class PayInvoiceOut(BaseModel):
+    payment: PaymentSimulationOut
+    created: bool
+    invoice: InvoiceOut
+
+
+class PayableInvoiceOut(BaseModel):
+    """An invoice as the payables summary lists it. Note this is NOT
+    `InvoiceOut`: the summary keys the id as `invoice_id`, adds the supplier
+    name and the cases blocking payment, and reports `variance_approved` as
+    a boolean instead of naming the approver."""
+
+    invoice_id: str
+    supplier_id: str
+    supplier_name: str | None
+    kind: str
+    invoice_number: str
+    invoice_date: str
+    due_date: str | None
+    gross_cents: int
+    credited_cents: int
+    paid_cents: int
+    outstanding_cents: int
+    po_excess_cents: int
+    variance_approved: bool
+    status: str
+    applies_to_invoice_id: str | None
+    journal_entry_id: str | None
+    blocking_case_ids: list[str]
+
+
+class PayablesSummaryOut(BaseModel):
+    """The payables summary as `payables.payables_summary` builds it.
+
+    This is the shape the FESTIVAL REPORT embeds. It has no `items` /
+    `next_cursor`: those are added by GET /invoices below, not by the
+    summary, so the two are deliberately different models. Declaring one
+    model for both made the festival report fail response validation --
+    which is how this difference was found.
+    """
+
+    as_of: str
+    invoices: list[PayableInvoiceOut]
+    total_outstanding_cents: int
+
+
+class PayablesOut(PayablesSummaryOut):
+    """GET /invoices: the summary, plus the collection envelope. `items` is
+    the same list as `invoices`, under the name every other collection uses;
+    `invoices` stays where the summary's existing callers look for it."""
+
+    items: list[PayableInvoiceOut]
+    next_cursor: str | None
+
+
+# -- Other organizer records + config ---------------------------------------
+
+
+class RecordCreatedOut(BaseModel):
+    """The common reply for the one-shot organizer records (`_record`)."""
+
+    id: str
+    created: bool
+
+
+class RecognizeTicketsOut(BaseModel):
+    # Null when there was nothing deferred left to recognise.
+    entry_key: str | None
+    created: bool
+
+
+class FinanceConfigOut(BaseModel):
+    id: str
+    festival_id: str
+    version: int
+    status: str
+    timezone: str
+    statement_local_time: str
+    payout_local_time: str
+    forecast_horizon_days: int
+    # The stored tax configuration: rates by category (as decimal STRINGS),
+    # exempt categories and who owns the liability per custody. Left open
+    # because it is operator-supplied configuration, not a fixed schema.
+    tax: dict
+    # Constant: this is demo configuration, not an approved tax fact.
+    label: str
+
+
+class DefaultTermsOut(BaseModel):
+    """What a vendor falls back to when its own terms leave a field null.
+    Read from the domain constants the engines apply, not restated here."""
+
+    commission_bps: int
+    festival_minimum_cents: int
+    basis: str
+
+
+class PayoutControlsOut(BaseModel):
+    auto_limit_cents_per_vendor_day: int
+    # Constant SIMULATED: no real rail is reachable from this system.
+    payment_mode: str
+    statement_local_time: str | None
+    payout_local_time: str | None
+
+
+class BusinessConfigOut(FinanceConfigOut):
+    # C01's fixed USD for v1.
+    currency: str
+    # The config's own label, repeated so nobody reads these as approved facts.
+    draft_notice: str | None
+    default_terms: DefaultTermsOut
+    payout_controls: PayoutControlsOut
+
+
+# -- Journal ----------------------------------------------------------------
+
+
+class PostDayOut(BaseModel):
+    # Entry keys this run created, and the ones it found already posted.
+    posted: list[str]
+    unchanged: list[str]
+
+
+class JournalLineOut(BaseModel):
+    account_code: str
+    account_role: str
+    debit_cents: int
+    credit_cents: int
+
+
+class JournalEntryOut(BaseModel):
+    """A journal entry. `sources` and `corrections` are added only by the
+    drill-down (GET /journal/{id}), so they are defaulted and that route
+    serialises with `response_model_exclude_unset`."""
+
+    id: str
+    entry_key: str
+    festival_id: str
+    business_date: str | None
+    kind: str
+    posting_rule_version: str | None
+    # The entry this one corrects, when it is a correction.
+    correction_of: str | None
+    note: str | None
+    posted_at: str | None
+    posted_by: str | None
+    source_refs: list
+    source_record_ids: list[str]
+    lines: list[JournalLineOut]
+    # Drill-down only: the records behind `source_record_ids`, resolved.
+    sources: list[dict] = []
+    # Drill-down only: entry keys of entries that correct THIS one.
+    corrections: list[str] = []
+
+
+class JournalListOut(BaseModel):
+    items: list[JournalEntryOut]
+    # This is the one paged collection here, so it can be non-null.
+    next_cursor: str | None
+
+
+class TrialBalanceRowOut(BaseModel):
+    account_code: str
+    name: str
+    category: str
+    account_role: str
+    debit_cents: int
+    credit_cents: int
+
+
+class TrialBalanceOut(BaseModel):
+    rows: list[TrialBalanceRowOut]
+    total_debit_cents: int
+    total_credit_cents: int
+    balanced: bool
+    # Null when the balance runs through every posted date.
+    through: str | None
+
+
+# -- Reports ----------------------------------------------------------------
+
+
+class TaxTotalsOut(BaseModel):
+    central_supplied_tax_cents: int
+    central_recalculated_tax_cents: int
+    # A memo only: the vendor owns this liability, not the organizer.
+    vendor_retained_supplied_tax_memo_cents: int
+
+
+class TaxReportOut(BaseModel):
+    """Draft sales tax. `by_business_date` and `mismatch_lines` stay open
+    objects: a per-date row only carries the columns that apply to it (a
+    night with no vendor-retained sales has no vendor-retained keys at all),
+    so a model would either invent them as null or drop them."""
+
+    status: str
+    config_label: str | None
+    finance_config_id: str
+    finance_config_version: int
+    totals: TaxTotalsOut
+    by_business_date: list[dict]
+    # Order lines where the supplied tax disagrees with the recalculation.
+    mismatch_lines: list[dict]
+    journal_sales_tax_liability_cents: int
+    source_totals_match_journal: bool
+
+
+class ProtectedCashOut(BaseModel):
+    """Cash that is in the bank but is not the organizer's to spend."""
+
+    sales_tax_cents: int
+    tips_cents: int
+    customer_refunds_cents: int
+
+
+class ReleaseCashPoolOut(BaseModel):
+    available_cents: int
+    reserved_cents: int
+    # True is a warning: the pool claims more than bank minus liabilities.
+    exceeds_book_spendable: bool
+    note: str
+
+
+class CashOfficeBlockOut(BaseModel):
+    cash_office_cents: int
+    deposit_slips: list[SlipSummaryOut]
+    deposited_cents: int
+    awaiting_bank_credit_cents: int
+    open_cases: list[CashCaseOut]
+    note: str
+
+
+class SuspenseBlockOut(BaseModel):
+    suspense_cents: int
+    items: list[SuspenseItemOut]
+    note: str
+
+
+class UpcomingObligationOut(BaseModel):
+    kind: str
+    ref_id: str
+    due_date: str | None
+    amount_cents: int
+    within_horizon: bool
+
+
+class UpcomingPayoutOut(BaseModel):
+    payout_id: str
+    vendor_id: str
+    business_date: str
+    state: str
+    amount_cents: int
+    included_in_vendor_funds_payable: bool
+
+
+class CashReportOut(BaseModel):
+    as_of: str
+    bank_cents: int
+    pending_cents: int
+    protected: ProtectedCashOut
+    protected_cents: int
+    reserved_payouts_cents: int
+    vendor_funds_payable_cents: int
+    freely_available_cents: int
+    obligations_due_within_horizon_cents: int
+    obligations_after_horizon_cents: int
+    horizon_end: str
+    forecast_horizon_days: int
+    upcoming_obligations: list[UpcomingObligationOut]
+    upcoming_vendor_payouts: list[UpcomingPayoutOut]
+    # Null when this festival has no release cash pool at all.
+    release_cash_pool: ReleaseCashPoolOut | None
+    cash_office: CashOfficeBlockOut
+    suspense: SuspenseBlockOut
+    finance_config_version: int
+
+
+class CashOut(CashReportOut):
+    """A cash position is a single as-of snapshot, served ALSO as a one-entry
+    collection so a reader of a list gets the shape it expects. `items[0]`
+    is this same object; the flat keys stay for the callers that read them."""
+
+    items: list[CashReportOut]
+    next_cursor: str | None
+
+
+class PnlLineOut(BaseModel):
+    account_code: str
+    name: str
+    account_role: str
+    amount_cents: int
+
+
+class PnlReportOut(BaseModel):
+    revenue: list[PnlLineOut]
+    expenses: list[PnlLineOut]
+    total_revenue_cents: int
+    total_expenses_cents: int
+    net_income_cents: int
+    note: str
+    through: str | None
+
+
+class SponsorshipMemoOut(BaseModel):
+    sponsor_invoice_id: str
+    sponsor_name: str
+    invoice_number: str
+    amount_cents: int
+    received_cents: int
+    # A memo: sponsorship receivables are not booked as an asset.
+    outstanding_memo_cents: int
+    status: str
+
+
+class FestivalReportOut(BaseModel):
+    """Everything the organizer's one-page view needs, composed from the
+    reports above rather than recomputed."""
+
+    festival_id: str
+    as_of: str
+    cash: CashReportOut
+    tax: TaxReportOut
+    profit_and_loss: PnlReportOut
+    payables: PayablesSummaryOut
+    # Entries per kind, keyed by whichever kinds were posted, so an open map.
+    journal_entry_counts_by_kind: dict[str, int]
+    closed_business_dates: list[str]
+    cash_office_and_bank_cases: list[CashCaseOut]
+    chargeback_fees: list[ChargebackFeeStatusOut]
+    sponsorship_receivables_memo: list[SponsorshipMemoOut]
+    # The DRAFT/not-filed notices that apply to the figures above.
+    labels: list[str]
+
+
+# -- Vendor statements ------------------------------------------------------
+
+
+class StatementOut(BaseModel):
+    id: str
+    vendor_id: str
+    business_date: str
+    statement_version: int
+    status: str
+    settlement_id: str | None
+    payout_id: str | None
+    payout_state: str | None
+    finance_config_id: str | None
+    due_by: str
+    issued_on_time: bool
+    issued_at: str | None
+    # Set when this statement replaces an earlier version.
+    supersedes_statement_id: str | None
+    # The rendered statement body (its `_digest` is stripped). Its sections
+    # are the statement's own content, so it stays an open object.
+    content: dict
+
+
+class StatementListOut(BaseModel):
+    items: list[StatementOut]
+    next_cursor: str | None
+
+
+class IssueStatementOut(BaseModel):
+    statement: StatementOut
+    # False when an identical statement was already issued.
+    created: bool
+
+
+class IssueDayStatementOut(BaseModel):
+    vendor_id: str
+    statement_id: str
+    status: str
+    statement_version: int
+    created: bool
+    issued_on_time: bool
+
+
+class IssueDayOut(BaseModel):
+    statements: list[IssueDayStatementOut]
+
+
+# -- Daily close ------------------------------------------------------------
+
+
+class CloseHardChecksOut(BaseModel):
+    """Checks that MUST pass before the day can close."""
+
+    trial_balance_balanced: bool
+    every_entry_balanced: bool
+    supplier_ap_matches_open_invoices: bool
+    tax_source_totals_match_journal: bool
+    all_settlements_posted: bool
+    bank_entries_accounted_for: bool
+    cash_deposits_posted: bool
+
+
+class CloseWarningsOut(BaseModel):
+    """Checks that are reported but do not block the close."""
+
+    statements_issued_for_all_settled_vendors: bool
+    cash_office_and_bank_cases_resolved: bool
+    suspense_zero: bool
+    processor_clearing_zero: bool
+
+
+class CloseChecksOut(BaseModel):
+    hard: CloseHardChecksOut
+    warnings: CloseWarningsOut
+    trial_balance: TrialBalanceOut
+    # The ids behind the failing checks, so a human can go and look.
+    unposted_settlement_ids: list[str]
+    unaccounted_bank_entry_ids: list[str]
+    unposted_cash_deposit_slip_ids: list[str]
+    vendors_without_statement: list[str]
+    open_cash_and_bank_case_ids: list[str]
+    open_case_count: int
+    suspense_cents: int
+    cash_office_cents: int
+    processor_clearing_cents: int
+
+
+class CloseDayOut(BaseModel):
+    id: str
+    business_date: str
+    created: bool
+    # The stored check results, as `close_checks` produced them at the time.
+    checks: dict
+    journal_entry_count: int
+    trial_balance_balanced: bool
+
+
+class DailyCloseOut(BaseModel):
+    id: str
+    business_date: str
+    closed_by: str | None
+    checks: dict
+    journal_entry_count: int
+    closed_at: str | None
+
+
+class DailyCloseListOut(BaseModel):
+    items: list[DailyCloseOut]
+    next_cursor: str | None
 
 
 def _err(exc: Exception) -> HTTPException:
@@ -121,7 +681,7 @@ class SupplierIn(BaseModel):
     category: str | None = None
 
 
-@router.post("/suppliers", status_code=201)
+@router.post("/suppliers", status_code=201, response_model=CreateSupplierOut)
 def create_supplier(
     body: SupplierIn,
     db: Session = Depends(get_db),
@@ -134,7 +694,7 @@ def create_supplier(
     return {"id": sup.id, "name": sup.name, "festival_id": sup.festival_id, "created": created}
 
 
-@router.get("/suppliers")
+@router.get("/suppliers", response_model=SupplierListOut)
 def list_suppliers(
     festival_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ) -> dict:
@@ -167,7 +727,7 @@ class PurchaseOrderIn(BaseModel):
     partial_payment_allowed: bool = True
 
 
-@router.post("/purchase-orders", status_code=201)
+@router.post("/purchase-orders", status_code=201, response_model=CreatePurchaseOrderOut)
 def create_purchase_order(
     body: PurchaseOrderIn,
     db: Session = Depends(get_db),
@@ -206,7 +766,7 @@ def create_purchase_order(
     }
 
 
-@router.get("/purchase-orders")
+@router.get("/purchase-orders", response_model=PurchaseOrderListOut)
 def list_purchase_orders(
     festival_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ) -> dict:
@@ -245,7 +805,7 @@ class InvoiceIn(BaseModel):
     source_refs: list = Field(default_factory=list)
 
 
-@router.post("/invoices", status_code=201)
+@router.post("/invoices", status_code=201, response_model=RecordInvoiceOut)
 def record_invoice(
     body: InvoiceIn,
     db: Session = Depends(get_db),
@@ -272,7 +832,9 @@ class CreditNoteIn(BaseModel):
     resolves_case_id: str | None = None
 
 
-@router.post("/invoices/{invoice_id}/credit-notes", status_code=201)
+@router.post(
+    "/invoices/{invoice_id}/credit-notes", status_code=201, response_model=RecordCreditNoteOut
+)
 def record_credit_note(
     invoice_id: str,
     body: CreditNoteIn,
@@ -298,7 +860,7 @@ class VarianceIn(BaseModel):
     note: str | None = None
 
 
-@router.post("/invoices/{invoice_id}/approve-variance")
+@router.post("/invoices/{invoice_id}/approve-variance", response_model=InvoiceOut)
 def approve_variance(
     invoice_id: str,
     body: VarianceIn,
@@ -321,7 +883,7 @@ class PayIn(BaseModel):
     bank_entry_id: str | None = None
 
 
-@router.post("/invoices/{invoice_id}/pay")
+@router.post("/invoices/{invoice_id}/pay", response_model=PayInvoiceOut)
 def pay_invoice(
     invoice_id: str,
     body: PayIn,
@@ -797,7 +1359,7 @@ def supplier_comparison(
     }
 
 
-@router.get("/invoices")
+@router.get("/invoices", response_model=PayablesOut)
 def list_invoices(
     festival_id: str,
     as_of: date | None = None,
@@ -812,7 +1374,7 @@ def list_invoices(
     return {**out, "items": out.get("invoices") or [], "next_cursor": None}
 
 
-@router.get("/invoices/{invoice_id}")
+@router.get("/invoices/{invoice_id}", response_model=InvoiceOut)
 def get_invoice(
     invoice_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ) -> dict:
@@ -896,7 +1458,7 @@ def _record(db, user, fn, body: BaseModel, **extra) -> dict:
     return {"id": row.id, "created": created}
 
 
-@router.post("/finance/opening-balances", status_code=201)
+@router.post("/finance/opening-balances", status_code=201, response_model=RecordCreatedOut)
 def opening_balance(
     body: OpeningIn,
     db: Session = Depends(get_db),
@@ -905,7 +1467,7 @@ def opening_balance(
     return _record(db, user, records.record_opening_balance, body)
 
 
-@router.post("/finance/ticket-settlements", status_code=201)
+@router.post("/finance/ticket-settlements", status_code=201, response_model=RecordCreatedOut)
 def ticket_settlement(
     body: TicketIn,
     db: Session = Depends(get_db),
@@ -914,7 +1476,7 @@ def ticket_settlement(
     return _record(db, user, records.record_ticket_settlement, body)
 
 
-@router.post("/finance/tickets/recognize")
+@router.post("/finance/tickets/recognize", response_model=RecognizeTicketsOut)
 def recognize_tickets(
     body: RecognizeIn,
     db: Session = Depends(get_db),
@@ -933,7 +1495,7 @@ def recognize_tickets(
     }
 
 
-@router.post("/finance/sponsor-invoices", status_code=201)
+@router.post("/finance/sponsor-invoices", status_code=201, response_model=RecordCreatedOut)
 def sponsor_invoice(
     body: SponsorInvoiceIn,
     db: Session = Depends(get_db),
@@ -947,7 +1509,7 @@ def sponsor_invoice(
     return {"id": si.id, "created": created}
 
 
-@router.post("/finance/sponsorship-receipts", status_code=201)
+@router.post("/finance/sponsorship-receipts", status_code=201, response_model=RecordCreatedOut)
 def sponsorship_receipt(
     body: SponsorReceiptIn,
     db: Session = Depends(get_db),
@@ -956,7 +1518,7 @@ def sponsorship_receipt(
     return _record(db, user, records.record_sponsorship_receipt, body)
 
 
-@router.post("/finance/expenses", status_code=201)
+@router.post("/finance/expenses", status_code=201, response_model=RecordCreatedOut)
 def expense(
     body: ExpenseIn,
     db: Session = Depends(get_db),
@@ -980,7 +1542,7 @@ def _config_out(cfg) -> dict:
     }
 
 
-@router.get("/business-config")
+@router.get("/business-config", response_model=BusinessConfigOut)
 def get_business_config(
     festival_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ) -> dict:
@@ -1024,7 +1586,7 @@ def get_business_config(
     }
 
 
-@router.get("/finance/config")
+@router.get("/finance/config", response_model=FinanceConfigOut)
 def get_config(
     festival_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ) -> dict:
@@ -1042,7 +1604,7 @@ class ConfigIn(BaseModel):
     forecast_horizon_days: int = 14
 
 
-@router.put("/finance/config")
+@router.put("/finance/config", response_model=FinanceConfigOut)
 def put_config(
     body: ConfigIn,
     db: Session = Depends(get_db),
@@ -1068,7 +1630,7 @@ class PostDayIn(BaseModel):
     business_date: date
 
 
-@router.post("/journal/post-day")
+@router.post("/journal/post-day", response_model=PostDayOut)
 def post_day(
     body: PostDayIn,
     db: Session = Depends(get_db),
@@ -1102,7 +1664,7 @@ def post_day(
     }
 
 
-@router.get("/journal")
+@router.get("/journal", response_model=JournalListOut, response_model_exclude_unset=True)
 def list_journal(
     festival_id: str,
     business_date: date | None = None,
@@ -1134,7 +1696,7 @@ def list_journal(
     }
 
 
-@router.get("/journal/trial-balance")
+@router.get("/journal/trial-balance", response_model=TrialBalanceOut)
 def get_trial_balance(
     festival_id: str,
     through: date | None = None,
@@ -1144,7 +1706,9 @@ def get_trial_balance(
     return reports.trial_balance(db, festival_id=festival_id, through=through)
 
 
-@router.get("/journal/{entry_id}")
+@router.get(
+    "/journal/{entry_id}", response_model=JournalEntryOut, response_model_exclude_unset=True
+)
 def get_journal_entry(
     entry_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ) -> dict:
@@ -1368,7 +1932,7 @@ def get_report(
     return out
 
 
-@router.get("/reports/tax")
+@router.get("/reports/tax", response_model=TaxReportOut)
 def get_tax(
     festival_id: str,
     through: date | None = None,
@@ -1380,7 +1944,7 @@ def get_tax(
     return out
 
 
-@router.get("/cash")
+@router.get("/cash", response_model=CashOut)
 def get_cash(
     festival_id: str,
     as_of: date | None = None,
@@ -1396,7 +1960,7 @@ def get_cash(
     return {**out, "items": [out], "next_cursor": None}
 
 
-@router.get("/reports/pnl")
+@router.get("/reports/pnl", response_model=PnlReportOut)
 def get_pnl(
     festival_id: str,
     through: date | None = None,
@@ -1406,7 +1970,7 @@ def get_pnl(
     return reports.profit_and_loss(db, festival_id=festival_id, through=through)
 
 
-@router.get("/reports/festival")
+@router.get("/reports/festival", response_model=FestivalReportOut)
 def get_festival_report(
     festival_id: str,
     as_of: date | None = None,
@@ -1429,7 +1993,7 @@ class StatementIn(BaseModel):
     demo_effective_at: datetime | None = None
 
 
-@router.post("/statements")
+@router.post("/statements", response_model=IssueStatementOut)
 def issue_statement(
     body: StatementIn,
     db: Session = Depends(get_db),
@@ -1451,7 +2015,7 @@ class IssueDayIn(BaseModel):
     demo_effective_at: datetime | None = None
 
 
-@router.post("/statements/issue-day")
+@router.post("/statements/issue-day", response_model=IssueDayOut)
 def issue_day(
     body: IssueDayIn,
     db: Session = Depends(get_db),
@@ -1496,7 +2060,7 @@ def issue_day(
     return {"statements": out}
 
 
-@router.get("/statements")
+@router.get("/statements", response_model=StatementListOut)
 def list_statements(
     vendor_id: str,
     business_date: date | None = None,
@@ -1523,7 +2087,7 @@ class CloseIn(BaseModel):
     note: str | None = None
 
 
-@router.get("/close/checks")
+@router.get("/close/checks", response_model=CloseChecksOut)
 def get_close_checks(
     festival_id: str,
     business_date: date,
@@ -1535,7 +2099,7 @@ def get_close_checks(
     return out
 
 
-@router.post("/close")
+@router.post("/close", response_model=CloseDayOut)
 def close_day(
     body: CloseIn,
     db: Session = Depends(get_db),
@@ -1559,7 +2123,7 @@ def close_day(
     }
 
 
-@router.get("/close")
+@router.get("/close", response_model=DailyCloseListOut)
 def list_closes(
     festival_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ) -> dict:
