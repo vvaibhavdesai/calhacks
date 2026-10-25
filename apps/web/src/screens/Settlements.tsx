@@ -47,6 +47,23 @@ export function SettlementsList() {
     cursor: params.cursor ?? undefined,
   };
   const result = useApiQuery(`settlements:${JSON.stringify(query)}`, (signal) => client.list('listSettlements', { signal, query }));
+  const rows = result.status === 'success' ? result.data.items : [];
+  /**
+   * A column every row leaves empty is noise on a table that is already wide
+   * enough to scroll: `Statement` is `—` on all 640 rows of the demo festival
+   * because the list response carries no `statement_status` at all and no
+   * statement has been issued, and `Rules applied` is `None` on all of them
+   * because no settlement here was policy-driven.
+   *
+   * Decided from the page actually loaded rather than hard-coded, so a column
+   * returns by itself as soon as one row has something to put in it -- the
+   * same rule Overview's close-run panel follows. Only applied once rows are
+   * in hand: a loading or failed page hides nothing.
+   */
+  const hasAny = (has: (s: Settlement) => boolean) => rows.length > 0 && rows.some(has);
+  const showStatement = hasAny((s) => Boolean(s.statement_status));
+  const showRules = hasAny((s) => Boolean(s.applied_policies?.length || s.policy_refs?.length));
+
   const columns: Column<Settlement>[] = [
     {
       id: 'vendor',
@@ -55,22 +72,36 @@ export function SettlementsList() {
       render: (s) => <Link to={`/settlements/${encodeURIComponent(s.id)}`}>{lookups.vendorName(s.vendor_id)}</Link>,
     },
     { id: 'date', header: 'Business date', render: (s) => <BusinessDate value={s.business_date} /> },
-    { id: 'statement', header: 'Statement', render: (s) => (s.statement_status ? <StatusBadge status={s.statement_status} /> : '—') },
+    ...(showStatement
+      ? [
+          {
+            id: 'statement',
+            header: 'Statement',
+            render: (s: Settlement) => (s.statement_status ? <StatusBadge status={s.statement_status} /> : '—'),
+          } as Column<Settlement>,
+        ]
+      : []),
     { id: 'assessed', header: 'Fee assessed', numeric: true, render: (s) => <Money cents={s.assessed_fee_cents} /> },
     { id: 'collected', header: 'Fee collected', numeric: true, render: (s) => <Money cents={s.collected_fee_cents} /> },
     { id: 'payout', header: 'Payout', numeric: true, render: (s) => <Money cents={s.payout_cents} /> },
     { id: 'unpaid', header: 'Unpaid balance', numeric: true, render: (s) => <Money cents={s.unpaid_balance_cents} /> },
     { id: 'holds', header: 'Holds', render: (s) => <HoldList holds={s.holds} compact /> },
-    {
-      id: 'rules',
-      header: 'Rules applied',
-      render: (s) =>
-        s.applied_policies && s.applied_policies.length ? (
-          <span>{s.applied_policies.length} rule{s.applied_policies.length === 1 ? '' : 's'}</span>
-        ) : (
-          <span className="muted">None</span>
-        ),
-    },
+    ...(showRules
+      ? [
+          {
+            id: 'rules',
+            header: 'Rules applied',
+            render: (s: Settlement) =>
+              s.applied_policies && s.applied_policies.length ? (
+                <span>
+                  {s.applied_policies.length} rule{s.applied_policies.length === 1 ? '' : 's'}
+                </span>
+              ) : (
+                <span className="muted">None</span>
+              ),
+          } as Column<Settlement>,
+        ]
+      : []),
   ];
   return (
     <>
@@ -96,7 +127,7 @@ export function SettlementsList() {
         ) : null}
         {result.status === 'success' && result.data.items.length > 0 ? (
           <>
-            <DataTable caption={`Settlements, page ${params.page}`} columns={columns} rows={result.data.items} rowKey={(s) => s.id} busy={result.refetching} />
+            <DataTable caption={`Settlements, page ${params.page}`} columns={columns} rows={rows} rowKey={(s) => s.id} busy={result.refetching} />
             <Pagination
               page={params.page}
               nextCursor={result.data.next_cursor}

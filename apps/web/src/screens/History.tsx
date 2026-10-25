@@ -45,17 +45,26 @@ export function HistoryScreen() {
     setDraftVendor(vendorId ?? '');
   }, [validCutoff, businessDate, vendorId]);
 
-  const query = validCutoff
-    ? {
-        knowledge_cutoff: validCutoff,
-        business_date: businessDate && isBusinessDate(businessDate) ? businessDate : undefined,
-        vendor_id: vendorId || undefined,
-      }
-    : null;
-  const result = useApiQuery(`history:${JSON.stringify(query)}`, (signal) =>
-    query ? client.get('getHistoricalProjection', { signal, query }) : Promise.resolve(null),
-  );
   const festival = useApiQuery('history:festival', (signal) => client.get('getFestival', { signal }));
+  // The server scopes a reconstruction by festival or by a known vendor and
+  // answers "festival_id (or a known vendor_id) is required" without either.
+  // The festival arrives from its own request, so the projection waits for it
+  // rather than asking for a reconstruction of nothing.
+  const festivalId = festival.status === 'success' ? festival.data.id : undefined;
+  const query =
+    validCutoff && (festivalId || vendorId)
+      ? {
+          knowledge_cutoff: validCutoff,
+          festival_id: vendorId ? undefined : festivalId,
+          business_date: businessDate && isBusinessDate(businessDate) ? businessDate : undefined,
+          vendor_id: vendorId || undefined,
+        }
+      : null;
+  const result = useApiQuery(
+    `history:${JSON.stringify(query)}`,
+    (signal) => (query ? client.get('getHistoricalProjection', { signal, query }) : Promise.resolve(null)),
+    { enabled: Boolean(query) },
+  );
 
   const apply = (e: FormEvent) => {
     e.preventDefault();

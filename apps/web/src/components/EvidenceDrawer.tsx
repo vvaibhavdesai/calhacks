@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import type { SourceRef } from '../api/types';
+import { RecordRefList, isSourceRef } from './EvidenceRefs';
 
 export const EXCERPT_PREVIEW_CHARS = 600;
 export const REFS_PAGE_SIZE = 25;
@@ -64,7 +65,17 @@ export function EvidenceDrawer({ open, title, refs, onClose, describeSource }: E
     }
   };
 
-  const shown = refs.slice(0, visible);
+  /**
+   * "Evidence" arrives as two different things and only one of them is a
+   * document. A settlement line cites the payments behind it as RECORD refs
+   * ({ref_id, ref_kind, role}) -- 1,200 of them across one settlement's
+   * twelve lines -- and rendering those through the document template gave a
+   * drawer of identical "Source document metadata not loaded" blocks.
+   * See components/EvidenceRefs.tsx.
+   */
+  const documentRefs = refs.filter(isSourceRef);
+  const recordRefs = refs.filter((r) => !isSourceRef(r));
+  const shown = documentRefs.slice(0, visible);
 
   return (
     <div className="drawer-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
@@ -83,7 +94,8 @@ export function EvidenceDrawer({ open, title, refs, onClose, describeSource }: E
               {title}
             </h2>
             <p className="drawer-sub">
-              {refs.length} source {refs.length === 1 ? 'reference' : 'references'}
+              {documentRefs.length} source {documentRefs.length === 1 ? 'reference' : 'references'}
+              {recordRefs.length ? `, ${recordRefs.length} record ${recordRefs.length === 1 ? 'reference' : 'references'}` : ''}
             </p>
           </div>
           <button type="button" className="button button-quiet" onClick={onClose} data-autofocus>
@@ -91,9 +103,15 @@ export function EvidenceDrawer({ open, title, refs, onClose, describeSource }: E
           </button>
         </header>
         <div className="drawer-body">
+          {recordRefs.length ? (
+            <section aria-label="Records referenced">
+              <h3 className="panel-subtitle">Records referenced</h3>
+              <RecordRefList refs={recordRefs} />
+            </section>
+          ) : null}
           {refs.length === 0 ? (
             <p className="muted">No source references were provided for this record.</p>
-          ) : (
+          ) : documentRefs.length ? (
             <ol className="evidence-list">
               {shown.map((ref, i) => (
                 <li key={`${ref.source_id}:${ref.source_version}:${ref.locator}:${i}`} className="evidence-item">
@@ -101,10 +119,10 @@ export function EvidenceDrawer({ open, title, refs, onClose, describeSource }: E
                 </li>
               ))}
             </ol>
-          )}
-          {visible < refs.length ? (
+          ) : null}
+          {visible < documentRefs.length ? (
             <button type="button" className="button button-quiet" onClick={() => setVisible((v) => v + REFS_PAGE_SIZE)}>
-              Show {Math.min(REFS_PAGE_SIZE, refs.length - visible)} more of {refs.length - visible} remaining
+              Show {Math.min(REFS_PAGE_SIZE, documentRefs.length - visible)} more of {documentRefs.length - visible} remaining
             </button>
           ) : null}
         </div>
@@ -121,7 +139,10 @@ function EvidenceRef({
   describeSource?: (sourceId: string) => ReactNode;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const excerpt = sourceRef.quoted_excerpt;
+  // Null, not undefined: the live backend sends `"quoted_excerpt": null` when
+  // it has no excerpt, and `!== undefined` let that through to `.length`.
+  // Same for the locator fields below, which are null on the same payload.
+  const excerpt = sourceRef.quoted_excerpt ?? undefined;
   const long = excerpt !== undefined && excerpt.length > EXCERPT_PREVIEW_CHARS;
   const excerptId = useId();
   return (
@@ -136,7 +157,15 @@ function EvidenceRef({
         <dd>{sourceRef.source_version}</dd>
         <dt>Locator</dt>
         <dd>
-          {sourceRef.locator_kind}: <code className="code">{sourceRef.locator}</code>
+          {sourceRef.locator ? (
+            <>
+              {sourceRef.locator_kind ? `${sourceRef.locator_kind}: ` : null}
+              <code className="code">{sourceRef.locator}</code>
+            </>
+          ) : (
+            // Was a bare ":" when the server stated neither.
+            <span className="muted">Whole document — no locator stated</span>
+          )}
         </dd>
         <dt>Content hash</dt>
         <dd>

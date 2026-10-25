@@ -18,7 +18,9 @@ import { formatBasisPoints } from '../lib/money';
 import { pacificLocalToUtc } from '../lib/time';
 
 /** Capability name proposed in Q55; the server still enforces it. */
-export const BRANCH_CAPABILITY = 'branch.create';
+// app/models.py CAPABILITY_WHAT_IF. Was 'branch.create', which the server
+// never grants.
+export const BRANCH_CAPABILITY = 'run_what_if';
 
 type ComparisonRow = Schemas['BranchComparisonRow'];
 

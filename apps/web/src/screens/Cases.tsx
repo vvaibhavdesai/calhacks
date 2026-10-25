@@ -8,6 +8,7 @@ import { CommandStatus } from '../components/CommandStatus';
 import { DataTable, type Column } from '../components/DataTable';
 import { caseImpactCents } from '../lib/money';
 import { EvidenceButton } from '../components/EvidenceButton';
+import { RecordRefList, isSourceRef } from '../components/EvidenceRefs';
 import { EvidenceDrawer } from '../components/EvidenceDrawer';
 import { FilterBar } from '../components/FilterBar';
 import { BusinessDate, Code, Instant, Money } from '../components/Formatted';
@@ -227,19 +228,32 @@ export function CaseDetail() {
               Evidence
             </h2>
             {c.evidence_refs.length ? (
-              <ul className="evidence-summary">
-                {c.evidence_refs.map((r, i) => (
-                  <li key={`${r.source_id}:${r.locator}:${i}`}>
-                    {describeSource(r.source_id)} <span className="muted">· {r.locator_kind} {r.locator}</span>
-                    {r.quoted_excerpt ? <blockquote className="excerpt-inline">{r.quoted_excerpt}</blockquote> : null}
-                  </li>
-                ))}
-              </ul>
+              <>
+                {/* Records the case cites, grouped: see components/EvidenceRefs.tsx. */}
+                <RecordRefList refs={c.evidence_refs} />
+                {c.evidence_refs.some(isSourceRef) ? (
+                  <ul className="evidence-summary">
+                    {c.evidence_refs.filter(isSourceRef).map((r, i) => (
+                      <li key={`${r.source_id}:${r.locator}:${i}`}>
+                        {describeSource(r.source_id)} <span className="muted">· {r.locator_kind} {r.locator}</span>
+                        {r.quoted_excerpt ? <blockquote className="excerpt-inline">{r.quoted_excerpt}</blockquote> : null}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </>
             ) : (
               <p className="muted">No evidence references were provided.</p>
             )}
             <p>
-              <EvidenceButton title={c.title ?? `Case ${c.id}`} refs={c.evidence_refs} onOpen={open} label="Open evidence" />{' '}
+              {c.evidence_refs.some(isSourceRef) ? (
+                <EvidenceButton
+                  title={c.title ?? `Case ${c.id}`}
+                  refs={c.evidence_refs.filter(isSourceRef)}
+                  onOpen={open}
+                  label="Open evidence"
+                />
+              ) : null}{' '}
               {c.evidence_hash ? (
                 <span className="muted">
                   evidence hash <code className="code code-wrap">{c.evidence_hash}</code>

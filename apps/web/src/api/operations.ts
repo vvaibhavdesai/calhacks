@@ -194,6 +194,7 @@ export const OPERATIONS = {
   },
   createImport: { method: 'POST', path: '/imports', backend: 'live' },
   createChallenge: { method: 'POST', path: '/challenges', backend: 'live' },
+  withdrawChallenge: { method: 'POST', path: '/challenges/{challenge_id}/withdraw', backend: 'live' },
   previewCorrection: { method: 'POST', path: '/corrections/preview', backend: 'live' },
   approveCorrection: { method: 'POST', path: '/corrections/{correction_id}/approve', backend: 'live' },
   createBranch: { method: 'POST', path: '/branches', backend: 'live' },

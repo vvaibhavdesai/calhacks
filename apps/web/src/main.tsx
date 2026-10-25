@@ -28,7 +28,7 @@ async function bootstrap() {
       story: import.meta.env.VITE_ENCORE_FIXTURE_STORY === 'night1' ? 'night1' : 'night3',
       capabilities: [
         'fixture.read', 'case.resolve', 'policy.approve', 'payout.approve_above_limit',
-        'challenge.create', 'correction.approve', 'branch.create', 'replay.start',
+        'challenge_result', 'correction.approve', 'run_what_if', 'run_replay',
       ],
     });
     fixtureId = fixtures.FIXTURE_ID;

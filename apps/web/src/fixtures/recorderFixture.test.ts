@@ -119,7 +119,7 @@ describe('recorder stand-in: challenge, preview, approval', () => {
   });
 
   it('approval binds version, preview hash, evidence hash and the exact items; 202 job; same key replays', async () => {
-    const { client } = make(['fixture.read', 'challenge.create']);
+    const { client } = make(['fixture.read', 'challenge_result']);
     const chId = await challengeTacoPolicy(client);
     const cId = await previewFor(client, chId);
     const c = await client.get('getCorrection', { path: { correction_id: cId } });

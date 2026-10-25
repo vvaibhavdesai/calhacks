@@ -28,7 +28,11 @@ import { useCommand } from '../hooks/useCommand';
 import { useLookups } from '../hooks/useLookups';
 
 /** Capability names proposed in Q55; correction approval reads Correction.required_capability. */
-export const CHALLENGE_CAPABILITY = 'challenge.create';
+// The capability the SERVER grants and checks (app/models.py
+// CAPABILITY_CHALLENGE). The UI asked for 'challenge.create', which no
+// session has ever held, so the challenge form told every operator -- including
+// an admin holding every capability -- that they were not permitted.
+export const CHALLENGE_CAPABILITY = 'challenge_result';
 const POLL_MS = 1000;
 
 type TargetKind = 'POLICY_VERSION' | 'SETTLEMENT' | 'PAYOUT';
@@ -50,12 +54,23 @@ function useTarget(kind: TargetKind | null, id: string) {
     if (!kind || !id) return null;
     if (kind === 'POLICY_VERSION') {
       const p = await client.get('getPolicyVersion', { signal, path: { policy_version_id: id } });
+      // Which number binds a policy challenge differs by contract, and both
+      // are real. The draft gives a policy row a `record_version` (its
+      // revision) separate from `version` (which policy version it is), and
+      // binds to the former. The live backend has only `version` and binds to
+      // that (app/corrections.py `resolve_target`). Reading `record_version`
+      // alone refused every challenge against the live API for want of a
+      // version the server had sent all along; reading `version` alone would
+      // break the draft/fixture path instead.
+      const bindingVersion = p.record_version ?? p.version ?? null;
       return {
-        kind, id, version: p.record_version ?? null, link: `/policies/${encodeURIComponent(id)}`,
+        kind, id, version: bindingVersion, link: `/policies/${encodeURIComponent(id)}`,
         title: `${p.title ?? p.policy_id} · v${p.version}`,
         detail: (
           <>
-            Status <StatusBadge status={p.status} /> · revision {p.record_version ?? 'not stated'} · applied {p.application_count ?? '—'} times
+            Status <StatusBadge status={p.status} /> · version {p.version}
+            {p.record_version ? <> · revision {p.record_version}</> : null} · applied{' '}
+            {p.application_count ?? '—'} times
           </>
         ),
       };
@@ -100,10 +115,12 @@ export function ChallengeNew() {
   const [docId, setDocId] = useState('');
   const [locator, setLocator] = useState('');
   const [reason, setReason] = useState('');
+  /** Corrected commission rate, as a percentage typed by the reviewer. */
+  const [ratePct, setRatePct] = useState('');
   const [ack, setAck] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [staleAt, setStaleAt] = useState<number | null>(null);
-  const ids = { doc: useId(), loc: useId(), reason: useId(), ack: useId() };
+  const ids = { doc: useId(), loc: useId(), reason: useId(), ack: useId(), rate: useId() };
   const cmd = useCommand('createChallenge', {}, { onServerChange: target.refetch });
   const { state, prepared, discard } = cmd;
   const t = target.data;
@@ -156,6 +173,26 @@ export function ChallengeNew() {
                 setFormError('Choose the superseding source, explain the reason and confirm the statement.');
                 return;
               }
+              // A correction plan is built from the corrected RATE
+              // (app/corrections.py `build_plan` refuses without
+              // proposed_effect.commission_bps), and this form never asked
+              // for one -- so every challenge raised here could be recorded
+              // and then never previewed. Optional on purpose: a challenge
+              // with no proposed rate still pauses the rule, which is a
+              // legitimate thing to want, and the hint below says so.
+              let proposedEffect: { commission_bps: number } | undefined;
+              if (ratePct.trim()) {
+                const pct = Number(ratePct);
+                // Basis points, not money: 12.5% -> 1250. The money guard
+                // does not apply (nothing here is *_cents), and the server
+                // re-validates the range.
+                const bps = Math.round(pct * 100);
+                if (!Number.isFinite(pct) || bps < 0 || bps > 10000) {
+                  setFormError('Enter the corrected commission rate as a percentage between 0 and 100.');
+                  return;
+                }
+                proposedEffect = { commission_bps: bps };
+              }
               setFormError(null);
               setStaleAt(null);
               const p: CreateChallengePayload = {
@@ -163,6 +200,7 @@ export function ChallengeNew() {
                 target: { kind: t.kind, id: t.id, version: t.version as number },
                 superseding_evidence: [{ source_id: doc.id, source_version: doc.version, content_hash: doc.content_hash, ...(locator.trim() ? { locator: locator.trim() } : {}) }],
                 reason: reason.trim(),
+                ...(proposedEffect ? { proposed_effect: proposedEffect } : {}),
               };
               cmd.prepare({ expectedVersion: t.version, payload: p as unknown as Record<string, unknown> });
             }}
@@ -184,6 +222,23 @@ export function ChallengeNew() {
               <input id={ids.loc} type="text" value={locator} onChange={(e) => setLocator(e.target.value)} aria-describedby={`${ids.loc}-hint`} />
               <span id={`${ids.loc}-hint`} className="field-hint">
                 e.g. page=2 or chars=301-512
+              </span>
+            </div>
+            <div className="field">
+              <label htmlFor={ids.rate}>Corrected commission rate (%)</label>
+              <input
+                id={ids.rate}
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                value={ratePct}
+                onChange={(e) => setRatePct(e.target.value)}
+                aria-describedby={`${ids.rate}-hint`}
+              />
+              <span id={`${ids.rate}-hint`} className="field-hint">
+                What the rate should have been. Needed to preview a correction and approve one; leave it
+                empty to pause the rule with the challenge alone.
               </span>
             </div>
             <div className="field">
@@ -232,6 +287,14 @@ export function ChallengeNew() {
               <div>
                 <dt>Reason</dt>
                 <dd>{payload?.reason}</dd>
+              </div>
+              <div>
+                <dt>Corrected rate</dt>
+                <dd>
+                  {payload?.proposed_effect
+                    ? `${(payload.proposed_effect.commission_bps / 100).toFixed(2)}%`
+                    : 'none proposed — this pauses the rule but cannot be previewed or corrected'}
+                </dd>
               </div>
             </dl>
             <div className="review-actions">
@@ -294,6 +357,15 @@ export function ChallengeDetail() {
   const result = useApiQuery(`challenge:${challengeId}`, (signal) => client.get('getChallenge', { signal, path: { challenge_id: challengeId } }));
   const c = result.data;
   const cmd = useCommand('previewCorrection', {}, { onServerChange: result.refetch });
+  const withdrawCmd = useCommand('withdrawChallenge', { challenge_id: challengeId }, { onServerChange: result.refetch });
+  /**
+   * A correction plan is built from the corrected RATE: app/corrections.py
+   * `build_plan` refuses with PROPOSED_EFFECT_REQUIRED when the challenge
+   * carries no `proposed_effect.commission_bps`. Challenges raised before the
+   * form asked for one can never be previewed, so offering the button would
+   * only produce the same rejection every time it is pressed.
+   */
+  const correctable = Boolean((c?.proposed_effect as { commission_bps?: number } | undefined)?.commission_bps);
   const { state } = cmd;
   useEffect(() => {
     if (state.phase === 'confirmed') navigate(`/recorder/corrections/${encodeURIComponent(state.result.aggregate_id)}`);
@@ -360,6 +432,40 @@ export function ChallengeDetail() {
             ) : (
               <p className="muted">No approved policy is involved; nothing was paused.</p>
             )}
+            {/* The acknowledgement this challenge was raised under says the
+                pause lasts "until a correction is approved or the challenge is
+                withdrawn" -- but no control ever offered the second half, so a
+                policy could be suspended with no way back. The server has had
+                the route all along (POST /challenges/{id}/withdraw); it
+                reactivates the policy version it suspended. */}
+            {(c.status === 'OPEN' || c.status === 'PREVIEWED') &&
+            capabilities.status === 'ready' &&
+            hasCapability(capabilities, CHALLENGE_CAPABILITY) ? (
+              <div className="decision">
+                {withdrawCmd.state.phase !== 'idle' ? (
+                  <CommandStatus state={withdrawCmd.state} onRetry={() => void withdrawCmd.submit()} subject="challenge" />
+                ) : null}
+                <button
+                  type="button"
+                  className="button button-quiet"
+                  disabled={withdrawCmd.state.phase === 'pending'}
+                  aria-busy={withdrawCmd.state.phase === 'pending' || undefined}
+                  onClick={() => {
+                    withdrawCmd.prepare({
+                      expectedVersion: c.version,
+                      payload: { action: 'WITHDRAW_CHALLENGE' } as unknown as Record<string, unknown>,
+                    });
+                    void withdrawCmd.submit();
+                  }}
+                >
+                  {withdrawCmd.state.phase === 'pending' ? 'Withdrawing…' : 'Withdraw this challenge'}
+                </button>
+                <p className="field-hint">
+                  Releases the pause and reactivates the policy version. The challenge stays on the record as
+                  withdrawn; nothing is deleted.
+                </p>
+              </div>
+            ) : null}
           </section>
           <section className="panel decision" aria-labelledby="preview-heading">
             <h2 id="preview-heading" className="panel-title">
@@ -369,6 +475,17 @@ export function ChallengeDetail() {
               <p>
                 <Link to={`/recorder/corrections/${encodeURIComponent(c.correction_id)}`}>View the impact preview and correction</Link>
               </p>
+            ) : !correctable ? (
+              <>
+                <p className="capability-note">
+                  This challenge proposes no corrected rate, so there is nothing for the server to build a
+                  correction plan from. It still pauses the rule — that part is in force.
+                </p>
+                <p className="decision-explainer">
+                  To correct the figures, withdraw this challenge and raise a new one stating what the rate
+                  should have been. Withdrawing reactivates the paused policy version.
+                </p>
+              </>
             ) : capabilities.status === 'ready' && hasCapability(capabilities, CHALLENGE_CAPABILITY) ? (
               <>
                 <p className="decision-explainer">

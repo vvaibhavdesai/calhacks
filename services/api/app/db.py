@@ -22,7 +22,27 @@ class Base(DeclarativeBase):
 
 def make_engine(database_url: str | None = None):
     url = database_url or get_settings().database_url
-    return create_engine(url, pool_pre_ping=True, future=True)
+    # Every connection speaks UTC, whatever the server's own timezone is.
+    #
+    # CONTRACTS.md C01: an instant on the wire is UTC. This database runs in
+    # America/Los_Angeles, so `timestamptz` columns came back Pacific-aware
+    # and serialised as "...-07:00" -- which the web client rejects as
+    # "Invalid time" by design (apps/web/src/lib/time.ts: "a non-zero offset
+    # is not: an instant on the wire is UTC"). /events agreed with the
+    # contract because it builds its timestamps in Python; /cases and
+    # /journal did not, because theirs come straight from the ORM.
+    #
+    # Safe to set globally: nothing in this codebase derives a calendar date
+    # from a timestamp in SQL (no `::date`, `date_trunc` or `CURRENT_DATE`
+    # anywhere), so no business date can shift. Business dates are `date`
+    # columns, and the festival-local reasoning that produces them lives in
+    # Python with explicit zones (app/demo_clock.py, app/terms_resolution.py).
+    return create_engine(
+        url,
+        pool_pre_ping=True,
+        future=True,
+        connect_args={"options": "-c timezone=utc"},
+    )
 
 
 _engine = None

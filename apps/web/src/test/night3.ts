@@ -6,7 +6,7 @@
 import type { ApiClient } from '../api/client';
 import { prepareCommand } from '../api/commands';
 
-export const RECORDER_CAPS = ['fixture.read', 'challenge.create', 'correction.approve', 'branch.create', 'replay.start', 'case.resolve', 'policy.approve', 'payout.approve_above_limit'];
+export const RECORDER_CAPS = ['fixture.read', 'challenge_result', 'correction.approve', 'run_what_if', 'run_replay', 'case.resolve', 'policy.approve', 'payout.approve_above_limit'];
 export const TACO_POLICY = 'illus_pv_taco_rate_v1';
 export const FOLLOWUP = { source_id: 'illus_src_taco_followup', source_version: 1, content_hash: `sha256:${'c4'.repeat(32)}` };
 

@@ -847,6 +847,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/challenges/{challenge_id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Withdraw an open challenge. The server reactivates a policy version it suspended (app/corrections.py withdraw_challenge) and releases the holds the challenge placed. Without this the UI could raise a challenge and never undo it: a policy stayed SUSPENDED with no control to restore it. */
+        post: operations["withdrawChallenge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/challenges": {
         parameters: {
             query?: never;
@@ -2001,6 +2018,9 @@ export interface components {
             superseding_evidence: components["schemas"]["SourceRef"][];
             evidence_hash: string;
             policy_effect?: components["schemas"]["ChallengePolicyEffect"] | null;
+            proposed_effect?: {
+                commission_bps: number;
+            } | null;
             correction_id?: string | null;
             created_by?: string | null;
             capability?: string | null;
@@ -2025,6 +2045,14 @@ export interface components {
             };
             superseding_evidence: components["schemas"]["EvidenceCitation"][];
             reason: string;
+            /** @description What the rate should have been. Optional at creation -- a challenge without it still pauses the rule -- but a correction PLAN cannot be built without it (app/corrections.py build_plan raises PROPOSED_EFFECT_REQUIRED), so the impact preview and any approval need it. */
+            proposed_effect?: {
+                commission_bps: number;
+            };
+        };
+        WithdrawChallengePayload: {
+            /** @constant */
+            action: "WITHDRAW_CHALLENGE";
         };
         PreviewCorrectionPayload: {
             /** @constant */
@@ -2381,6 +2409,8 @@ export interface components {
         };
     };
     parameters: {
+        /** @description Which festival to read. The live backend REQUIRES it on these routes and answers 422 "Field required" without it; it is declared optional here only so a client may omit it while the id is still being fetched. */
+        FestivalId: string;
         /** @description Opaque cursor from a previous next_cursor. Never parsed by clients. */
         Cursor: string;
         Limit: number;
@@ -3329,6 +3359,8 @@ export interface operations {
     listSuppliers: {
         parameters: {
             query?: {
+                /** @description Which festival to read. The live backend REQUIRES it on these routes and answers 422 "Field required" without it; it is declared optional here only so a client may omit it while the id is still being fetched. */
+                festival_id?: components["parameters"]["FestivalId"];
                 /** @description Opaque cursor from a previous next_cursor. Never parsed by clients. */
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];
@@ -3355,6 +3387,8 @@ export interface operations {
     listPurchaseOrders: {
         parameters: {
             query?: {
+                /** @description Which festival to read. The live backend REQUIRES it on these routes and answers 422 "Field required" without it; it is declared optional here only so a client may omit it while the id is still being fetched. */
+                festival_id?: components["parameters"]["FestivalId"];
                 /** @description Opaque cursor from a previous next_cursor. Never parsed by clients. */
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];
@@ -3382,6 +3416,8 @@ export interface operations {
     listSupplierInvoices: {
         parameters: {
             query?: {
+                /** @description Which festival to read. The live backend REQUIRES it on these routes and answers 422 "Field required" without it; it is declared optional here only so a client may omit it while the id is still being fetched. */
+                festival_id?: components["parameters"]["FestivalId"];
                 /** @description Opaque cursor from a previous next_cursor. Never parsed by clients. */
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];
@@ -3492,6 +3528,8 @@ export interface operations {
     listJournalEntries: {
         parameters: {
             query?: {
+                /** @description Which festival to read. The live backend REQUIRES it on these routes and answers 422 "Field required" without it; it is declared optional here only so a client may omit it while the id is still being fetched. */
+                festival_id?: components["parameters"]["FestivalId"];
                 /** @description Opaque cursor from a previous next_cursor. Never parsed by clients. */
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];
@@ -3650,6 +3688,8 @@ export interface operations {
     listCashPositions: {
         parameters: {
             query?: {
+                /** @description Which festival to read. The live backend REQUIRES it on these routes and answers 422 "Field required" without it; it is declared optional here only so a client may omit it while the id is still being fetched. */
+                festival_id?: components["parameters"]["FestivalId"];
                 /** @description Opaque cursor from a previous next_cursor. Never parsed by clients. */
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];
@@ -3746,6 +3786,8 @@ export interface operations {
     getHistoricalProjection: {
         parameters: {
             query: {
+                /** @description Which festival to read. The live backend REQUIRES it on these routes and answers 422 "Field required" without it; it is declared optional here only so a client may omit it while the id is still being fetched. */
+                festival_id?: components["parameters"]["FestivalId"];
                 knowledge_cutoff: components["schemas"]["Instant"];
                 business_date?: components["parameters"]["BusinessDate"];
                 vendor_id?: components["parameters"]["VendorId"];
@@ -3917,6 +3959,46 @@ export interface operations {
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
             };
             path?: never;
+            cookie?: never;
+        };
+        requestBody: components["requestBodies"]["Command"];
+        responses: {
+            /** @description Short accepted command; authoritative state/version. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommandResult"];
+                };
+            };
+            /** @description Long job accepted. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobAccepted"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Invalid"];
+            429: components["responses"]["RateLimited"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    withdrawChallenge: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required for effectful commands; scoped by workspace/action. Same key + same canonical payload returns the original result; same key + different payload returns 409. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                challenge_id: string;
+            };
             cookie?: never;
         };
         requestBody: components["requestBodies"]["Command"];

@@ -237,7 +237,7 @@ describe('replays and branches are labelled and cannot touch production', () => 
   it('read-only sessions get no start control', async () => {
     const { transport } = night3({ capabilities: ['fixture.read'] });
     renderApp('/recorder/replays', transport);
-    expect(await screen.findByText(/does not include the/)).toHaveTextContent('replay.start');
+    expect(await screen.findByText(/does not include the/)).toHaveTextContent('run_replay');
     expect(screen.queryByRole('button', { name: 'Review replay' })).not.toBeInTheDocument();
   });
 
@@ -287,6 +287,11 @@ describe('Night 3: challenge, impact preview, explicit approval, progress and or
     await user.click(await screen.findByRole('link', { name: 'Challenge this policy version' }));
     await screen.findByRole('heading', { name: /Challenged policy version/ });
     await user.selectOptions(await screen.findByLabelText('Superseding evidence (source document)'), 'illus_src_taco_followup');
+    // The story is "Taco at 15%": stating the corrected rate is what lets the
+    // server build a correction plan at all (app/corrections.py build_plan
+    // refuses without proposed_effect.commission_bps), so the walk-through
+    // states it, as a reviewer would.
+    await user.type(screen.getByLabelText(/Corrected commission rate/), '15');
     await user.type(screen.getByLabelText(/Why this policy version is wrong/), 'Producer confirmed 15% for festival nights.');
     await user.click(screen.getByLabelText(/I understand recording this challenge pauses use/));
     await user.click(screen.getByRole('button', { name: 'Review challenge' }));
@@ -408,7 +413,7 @@ describe('Night 3: challenge, impact preview, explicit approval, progress and or
     expect(alert).toHaveTextContent('payload.preview_hash');
     a.unmount();
 
-    const ro = makeServer({ story: 'night3', capabilities: ['fixture.read', 'challenge.create'] });
+    const ro = makeServer({ story: 'night3', capabilities: ['fixture.read', 'challenge_result'] });
     const roClient = new ApiClient({ transport: ro.inner });
     const id2 = await previewFor(roClient, await challengeTacoPolicy(roClient));
     renderApp(`/recorder/corrections/${id2}`, ro.transport);
@@ -419,7 +424,7 @@ describe('Night 3: challenge, impact preview, explicit approval, progress and or
   it('a read-only session cannot record a challenge', async () => {
     const { transport } = night3({ capabilities: ['fixture.read'] });
     renderApp('/recorder/challenges/new?kind=POLICY_VERSION&id=illus_pv_taco_rate_v1', transport);
-    expect(await screen.findByText(/needed to record a challenge/)).toHaveTextContent('challenge.create');
+    expect(await screen.findByText(/needed to record a challenge/)).toHaveTextContent('challenge_result');
     expect(screen.queryByRole('button', { name: 'Review challenge' })).not.toBeInTheDocument();
   });
 });

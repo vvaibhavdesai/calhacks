@@ -19,8 +19,8 @@ import hashlib
 import json
 from datetime import date, datetime
 
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, Body, Depends, HTTPException, status
+from pydantic import BaseModel, ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -396,13 +396,37 @@ class ResolveCaseRequest(BaseModel):
     expected_version: int | None = None
 
 
+def _unwrap_envelope(body: dict) -> dict:
+    """Flatten a C03 command envelope onto the top level.
+
+    Same helper as app/routers/imports.py, for the same reason: the UI's
+    command client sends every effectful call as
+    {command_id, expected_version, payload: {...}} (C03), while the verify
+    scripts post the fields directly. Validating the envelope itself against
+    the request model answered "decision: Field required" to a reviewer who
+    had chosen a decision -- the field was simply one level down.
+    """
+    payload = body.get("payload")
+    if isinstance(payload, dict):
+        merged = {k: v for k, v in body.items() if k != "payload"}
+        merged.update(payload)
+        return merged
+    return body
+
+
 @router.post("/{case_id}/resolve", response_model=CaseOut, status_code=200)
 def resolve_case_endpoint(
     case_id: str,
-    body: ResolveCaseRequest,
+    raw: dict = Body(...),
     db: Session = Depends(get_db),
     user: User = Depends(require_capability(CAPABILITY_RESOLVE_CASE)),
 ) -> CaseOut:
+    try:
+        body = ResolveCaseRequest(**_unwrap_envelope(raw))
+    except ValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=exc.errors()
+        ) from exc
     case = db.get(Case, case_id)
     if case is None:
         raise HTTPException(status_code=404, detail="case not found")
