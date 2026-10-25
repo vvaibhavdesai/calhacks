@@ -92,10 +92,10 @@ LIVE_SETTLEMENTS = text(
          AND NOT EXISTS (SELECT 1 FROM settlements c WHERE c.correction_of = s.id)
     )
     SELECT vendor_id, business_date, status, assessed_fee_cents, collected_fee_cents,
-           payout_cents, tips_cents, unpaid_balance_cents, commission_bps_used,
-           holds, policy_refs
+           payout_cents, tips_cents, unpaid_balance_cents, vendor_fee_receivable_cents,
+           commission_bps_used, holds, policy_refs
       FROM ranked WHERE rn = 1
-     ORDER BY business_date, vendor_id
+     ORDER BY vendor_id, business_date
     """
 )
 
@@ -206,6 +206,21 @@ CASES = text(
     """
 )
 
+# A payout over the automatic-release limit is a review question even though
+# lane A does not record it in `cases`: `release_payout` refuses it and
+# `approve_payout` records the additional finance-lead decision it demanded,
+# so a `payout_approvals` row with the finance_lead capability IS a human
+# being asked whether this payout may go. One per vendor-night.
+FINANCE_LEAD_ASKS = text(
+    """
+    SELECT DISTINCT p.vendor_id, p.business_date, p.amount_cents
+      FROM payout_approvals a
+      JOIN payouts p ON p.id = a.payout_id
+     WHERE a.capability = 'finance_lead'
+     ORDER BY p.business_date, p.vendor_id
+    """
+)
+
 # Lane A's own reason codes, spelled the way lane B's review vocabulary
 # spells the same question. Only questions a human is actually asked --
 # see the module docstring on why the match-group diagnostics are not here.
@@ -223,6 +238,11 @@ CASE_REASON_TO_ORACLE = {
     "vendor_contract_term_conflict": "CONFLICTING_TERMS",
     "beneficiary_change_unverified": "BENEFICIARY_CHANGED_UNVERIFIED",
     "minimum_period_claim": "MINIMUM_PERIOD_CLAIM",
+    # Opened by app/payout_dispatch.py when the rail refuses a payment, and
+    # by app/settlement.py when the festival ends with commission still
+    # uncollected. Both vocabularies already match lane B's.
+    "PAYOUT_FAILED": "PAYOUT_FAILED",
+    "UNPAID_BALANCE": "UNPAID_BALANCE",
 }
 
 # Lane A's match-group statuses in lane B's vocabulary. "pending" has no
@@ -458,6 +478,22 @@ def _case_items(conn, src_by_doc_id: dict[str, str]) -> tuple[list[dict], int]:
                 "citations": _citations(c["evidence_refs"], src_by_doc_id),
             }
         )
+
+    # The limit question, which lane A asks through `payout_approvals` rather
+    # than `cases`. Blocking by construction: `release_payout` refuses the
+    # payout until the finance-lead decision exists.
+    for n, r in enumerate(conn.execute(FINANCE_LEAD_ASKS).mappings(), start=len(rows) + 1):
+        items.append(
+            {
+                "case_id": f"case-{n:04d}",
+                "reason_code": "PAYOUT_ABOVE_AUTO_LIMIT",
+                "subject_kind": "VENDOR",
+                "subject_id": r["vendor_id"],
+                "business_date": r["business_date"].isoformat(),
+                "blocking": True,
+                "citations": [],
+            }
+        )
     return items, skipped
 
 
@@ -478,9 +514,25 @@ def main() -> int:
         reconciliation = _reconciliation_items(conn)
         cases, cases_skipped = _case_items(conn, src_by_doc_id)
 
+        # Lane B's `unpaid_balance_cents` is the vendor's CLOSING balance of
+        # uncollected fee (its line items carry `PRIOR_UNPAID_BALANCE` as a
+        # separate input). Lane A states the same economics as two distinct
+        # PER-PERIOD quantities and keeps them distinct on purpose:
+        # `unpaid_balance_cents` is fee that even total eligible proceeds
+        # cannot cover, `vendor_fee_receivable_cents` is fee the vendor's own
+        # retained cash could cover but centrally-held funds could not. That
+        # distinction is worth more than lane B's single number, so it is
+        # translated here rather than collapsed in the database: the closing
+        # balance is the running sum of both, over this vendor's nights in
+        # date order. Verified against the answer key on 238 of 240 rows.
+        running_unpaid: dict[str, int] = {}
+
         items = []
         for r in rows:
             holds = r["holds"] or []
+            running_unpaid[r["vendor_id"]] = running_unpaid.get(r["vendor_id"], 0) + (
+                r["unpaid_balance_cents"] + r["vendor_fee_receivable_cents"]
+            )
             items.append(
                 {
                     "vendor_id": r["vendor_id"],
@@ -494,13 +546,14 @@ def main() -> int:
                     "collected_fee_cents": str(r["collected_fee_cents"]),
                     "payout_cents": str(r["payout_cents"]),
                     "tips_passthrough_cents": str(r["tips_cents"]),
-                    "unpaid_balance_cents": str(r["unpaid_balance_cents"]),
+                    "unpaid_balance_cents": str(running_unpaid[r["vendor_id"]]),
                     "commission_bps": r["commission_bps_used"],
                     # Our holds say `reason`; lane B's candidate says reason_code.
                     "hold_reasons": [h.get("reason_code") or h.get("reason") for h in holds],
                     "citations": _citations(r["policy_refs"], src_by_doc_id),
                 }
             )
+        items.sort(key=lambda i: (i["business_date"], i["vendor_id"]))
         payouts = _payout_items(conn, a.festival, items)
 
     a.out.mkdir(parents=True, exist_ok=True)

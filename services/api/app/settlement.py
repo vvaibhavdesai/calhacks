@@ -58,7 +58,8 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.holds import active_vendor_hold
-from app.models_ledger import Order, Payment, Payout, Vendor, VendorContractTerm
+from app.models import CAPABILITY_RESOLVE_CASE
+from app.models_ledger import Case, Order, Payment, Payout, Vendor, VendorContractTerm
 from app.models_reconciliation import BankEntry, MatchGroup, MatchGroupMember
 from app.models_settlement import Settlement, SettlementLineItem
 from app.uow import UnitOfWork
@@ -679,6 +680,120 @@ class SettlementCalculationOutcome:
     adjustment: object | None = None  # domain.settlement.SettlementAdjustmentResult | None
 
 
+def closing_uncollected_fee_cents(
+    db: Session, vendor_id: str, festival_id: str, through_business_date: date
+) -> int:
+    """What this vendor still owes in commission at the end of
+    `through_business_date`: the running sum of `unpaid_balance_cents` and
+    `vendor_fee_receivable_cents` over the LIVE version of each of its
+    settlement chains up to and including that date.
+
+    Both are per-period amounts and are kept distinct on purpose (see
+    domain.settlement: one is fee no proceeds can cover, the other is fee
+    the vendor's own retained cash could cover but centrally-held funds
+    could not). Neither row ever states the running position, so this is
+    where it is computed. Live version only, same rule as
+    `gather_cumulative_history`: once a correction supersedes a night, the
+    original's figures are no longer what the vendor owes for it."""
+    rows = db.execute(
+        select(
+            Settlement.id,
+            Settlement.correction_of,
+            Settlement.unpaid_balance_cents,
+            Settlement.vendor_fee_receivable_cents,
+        ).where(
+            Settlement.vendor_id == vendor_id,
+            Settlement.festival_id == festival_id,
+            Settlement.business_date <= through_business_date,
+            Settlement.status.in_(("FINAL", "CORRECTION")),
+        )
+    ).all()
+    superseded = {r[1] for r in rows if r[1]}
+    return sum(r[2] + r[3] for r in rows if r[0] not in superseded)
+
+
+def _raise_unpaid_balance_review(
+    db: Session,
+    settlement: Settlement,
+    *,
+    festival_id: str,
+    actor_id: str,
+    actor_capability: str,
+) -> Case | None:
+    """A vendor that reaches the end of the festival still owing commission
+    is somebody's follow-up, so say so once, on the final period.
+
+    Nothing used to. The figures were on the settlement rows and correct,
+    but no row states the running position and nothing told a human that
+    the festival had ended with money still to collect from this vendor --
+    it would have been found, if at all, by someone summing a chain by
+    hand.
+
+    NON-blocking, deliberately: the organizer owes this vendor nothing (its
+    payout is already zero or already paid), so there is no money to
+    withhold and nothing to stop. It is a collection task, not a gate --
+    the same reasoning that makes `minimum_period_claim` non-blocking."""
+    if not settlement.is_final_period:
+        return None
+    owed = closing_uncollected_fee_cents(
+        db, settlement.vendor_id, festival_id, settlement.business_date
+    )
+    if owed <= 0:
+        return None
+    existing = db.execute(
+        select(Case).where(
+            Case.vendor_id == settlement.vendor_id,
+            Case.reason_code == "UNPAID_BALANCE",
+            Case.business_date == settlement.business_date,
+            Case.status == "OPEN",
+        )
+    ).scalar_one_or_none()
+    if existing is not None:
+        existing.financial_impact_cents = owed
+        return existing
+    case = Case(
+        vendor_id=settlement.vendor_id,
+        reason_code="UNPAID_BALANCE",
+        business_date=settlement.business_date,
+        evidence_refs=[
+            {"ref_kind": "settlement", "ref_id": settlement.id, "role": "subject"},
+            {"ref_kind": "festival", "ref_id": festival_id, "role": "scope"},
+        ],
+        financial_impact_cents=owed,
+        proposed_resolution=(
+            "The festival ended with commission still uncollected from this vendor. "
+            "Collect it or waive it; the settlement rows carry the split between fee "
+            "no proceeds could cover and fee held as vendor-retained cash."
+        ),
+        required_capability=CAPABILITY_RESOLVE_CASE,
+        blocking=False,
+        status="OPEN",
+    )
+    db.add(case)
+    db.flush()
+    UnitOfWork(db).append_event(
+        stream_id=f"case:{case.id}",
+        event_type="case.opened",
+        aggregate_id=case.id,
+        aggregate_version=case.version,
+        actor_id=actor_id,
+        actor_type="system",
+        actor_capability=actor_capability,
+        occurred_at=datetime.now(UTC),
+        vendor_id=settlement.vendor_id,
+        payload={
+            "reason_code": case.reason_code,
+            "financial_impact_cents": owed,
+            "evidence_refs": case.evidence_refs,
+        },
+        lineage_refs=[
+            {"ref_kind": "case", "ref_id": case.id},
+            {"ref_kind": "settlement", "ref_id": settlement.id},
+        ],
+    )
+    return case
+
+
 def calculate_and_record_settlement(
     db: Session,
     *,
@@ -895,6 +1010,14 @@ def calculate_and_record_settlement(
             )
         )
     db.flush()
+
+    _raise_unpaid_balance_review(
+        db,
+        settlement,
+        festival_id=festival_id,
+        actor_id=actor_id,
+        actor_capability=actor_capability,
+    )
 
     uow = UnitOfWork(db)
     uow.append_event(
