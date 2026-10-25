@@ -66,6 +66,23 @@ class PayoutVersionConflictError(ValueError):
         self.current = current
 
 
+class PayoutConsentMismatchError(ValueError):
+    """The approver stated a figure that is not the payout's own.
+
+    The approval screen makes a person affirm an exact amount and an exact
+    beneficiary version. Echoing those back lets the server refuse an approval
+    taken against a view that has since moved, instead of trusting that the
+    row version alone covered it. `field` names what disagreed so the client
+    can say which one.
+    """
+
+    def __init__(self, field: str, stated: int, current: int) -> None:
+        super().__init__(f"approved {field}={stated} does not match current {field}={current}")
+        self.field = field
+        self.stated = stated
+        self.current = current
+
+
 class PayoutCapabilityError(PermissionError):
     def __init__(self, required_capability: str) -> None:
         super().__init__(f"missing required capability: {required_capability}")
@@ -368,6 +385,8 @@ def approve_payout(
     user_capability_codes: set[str],
     expected_version: int | None,
     note: str | None = None,
+    approved_amount_cents: int | None = None,
+    approved_beneficiary_version: int | None = None,
 ) -> Payout:
     """DRAFT -> APPROVED. Requires CAPABILITY_APPROVE_PAYOUT always (the
     router's `require_capability` dependency already guarantees this --
@@ -389,6 +408,20 @@ def approve_payout(
         raise PayoutNotFoundError(f"payout {payout_id} not found")
     if expected_version is not None and payout.version != expected_version:
         raise PayoutVersionConflictError(expected_version, payout.version)
+
+    # What the approver actually consented to. Optional, so existing callers
+    # are unaffected; enforced whenever stated. `amount_cents` is immutable
+    # after creation and the beneficiary is re-checked at release, so this is
+    # the record of consent rather than the only thing standing in the way.
+    if approved_amount_cents is not None and approved_amount_cents != payout.amount_cents:
+        raise PayoutConsentMismatchError("amount_cents", approved_amount_cents, payout.amount_cents)
+    if (
+        approved_beneficiary_version is not None
+        and approved_beneficiary_version != payout.beneficiary_version
+    ):
+        raise PayoutConsentMismatchError(
+            "beneficiary_version", approved_beneficiary_version, payout.beneficiary_version
+        )
 
     if payout.state == "APPROVED" and CAPABILITY_FINANCE_LEAD in user_capability_codes:
         # Escalation: an ordinary approval that release later blocked with
@@ -428,6 +461,7 @@ def approve_payout(
             actor_capability=CAPABILITY_FINANCE_LEAD,
             payload={
                 "amount_cents": payout.amount_cents,
+                "beneficiary_version": payout.beneficiary_version,
                 "committed_prior_cents": check.committed_prior_cents,
                 "projected_total_cents": check.projected_total_cents,
             },
@@ -468,6 +502,10 @@ def approve_payout(
         actor_capability=required_capability,
         payload={
             "amount_cents": payout.amount_cents,
+            # The beneficiary this approval consented to. `release_payout`
+            # refuses to pay a different one; recording it here means the
+            # audit trail states what was approved, not only that it was.
+            "beneficiary_version": payout.beneficiary_version,
             "committed_prior_cents": check.committed_prior_cents,
             "required_capability": required_capability,
             "exceeded_automatic_limit": check.exceeds_limit,
