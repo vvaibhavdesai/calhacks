@@ -22,10 +22,12 @@ worker, not in the API:
       complete flight recorder.
   S2  Worker crash mid-node: worker 1 dies (os._exit, no cleanup) right
       after Alpha's release committed and before the checkpoint; worker 2
-      dies right after Beta's rail submission was accepted and before the
-      checkpoint; worker 3 picks the run up after the lease expires ->
-      completed with exactly one payout / rail record / outbox intent /
-      payout journal / settlement / commission journal per vendor.
+      dies right after Beta's pay node committed; worker 3 picks the run up
+      after the lease expires. Then an OUTBOX DISPATCHER dies right after
+      the rail accepted Beta's payment -- the close itself never contacts
+      the rail -- and a second dispatcher converges -> exactly one payout /
+      rail record / outbox intent / payout journal / settlement /
+      commission journal per vendor.
   S3  External SIGKILL: the worker hangs right after Alpha's commission
       posting committed; the script `kill -9`s it; a new worker resumes ->
       no duplicate journal entries.
@@ -182,7 +184,9 @@ def wait_run(api: Api, run_id: str, statuses: set[str], timeout: float = 90) -> 
 
 
 class Worker:
-    def __init__(self, name: str, extra_env: dict | None = None) -> None:
+    def __init__(
+        self, name: str, extra_env: dict | None = None, *, module: str = "worker.orchestration"
+    ) -> None:
         os.makedirs(LOG_DIR, exist_ok=True)
         env = dict(os.environ)
         # The key reaches a worker only when a scenario passes it explicitly.
@@ -208,8 +212,9 @@ class Worker:
         self.name = name
         self.log_path = os.path.join(LOG_DIR, f"worker-{RUN}-{name}.log")
         self.log = open(self.log_path, "w")
+        self.module = module
         self.proc = subprocess.Popen(
-            [sys.executable, "-m", "worker.orchestration"],
+            [sys.executable, "-m", module],
             cwd=ROOT,
             env=env,
             stdout=self.log,
@@ -283,6 +288,39 @@ def start_stub() -> str:
 # ---------------------------------------------------------------------------
 # Shared assertions
 # ---------------------------------------------------------------------------
+
+
+def pending_handled_intents() -> int:
+    """PENDING intents of the types the dispatcher handles: what is left to
+    deliver. `payout.confirm` is one of them now (app/outbox_dispatch.py)."""
+    with db() as s:
+        return s.execute(
+            select(func.count())
+            .select_from(OutboxIntent)
+            .where(
+                OutboxIntent.status == "PENDING",
+                OutboxIntent.intent_type.in_(("payout.dispatch", "payout.confirm")),
+            )
+        ).scalar_one()
+
+
+def drain_outbox(tag: str, *, passes: int = 8) -> None:
+    """The nightly close releases; only the dispatcher pays. A real
+    `python -m worker.outbox --once` process per pass, on the restricted
+    encore_app role, because that is what pays in production -- pass one
+    submits to the rail, pass two delivers the confirmation it queued.
+    """
+    for _ in range(passes):
+        if pending_handled_intents() == 0:
+            break
+        w = Worker(f"{tag}-outbox", module="worker.outbox")
+        code = w.wait_exit(120)
+        w.stop()
+        if code not in (0, None):
+            check(f"{tag}: outbox dispatcher pass exited cleanly", False, code)
+            return
+    left = pending_handled_intents()
+    check(f"{tag}: outbox drained (nothing left to deliver)", left == 0, left)
 
 
 def assert_no_duplicates(tag: str, fest: str, ids: dict) -> None:
@@ -390,12 +428,37 @@ def s1_happy_path_and_holds(admin: Api, nobody: Api) -> None:
         for n in ("Alpha", "Beta"):
             v = admin.vendor(run_id, ids[n])
             p = admin.get(f"/api/v1/payouts/{v['payout_id']}").json()
+            stm = admin.get("/api/v1/statements", vendor_id=ids[n]).json()["items"]
             check(
-                f"S1: {n} REPORTED and its simulated payout CONFIRMED for the right amount",
+                f"S1: {n} REPORTED with its payout released (DISPATCH_PENDING), "
+                "nothing sent to the rail by the close itself",
                 v["milestone"] == "REPORTED"
-                and p["state"] == "CONFIRMED"
-                and p["amount_cents"] == fx.EXPECTED[n]["payout"],
+                and p["state"] == "DISPATCH_PENDING"
+                and p["amount_cents"] == fx.EXPECTED[n]["payout"]
+                and count(RailSimulatorRecord, RailSimulatorRecord.vendor_id == ids[n]) == 0,
                 (v["milestone"], p.get("state"), p.get("amount_cents")),
+            )
+            check(
+                f"S1: {n}'s 9 AM statement is PROVISIONAL while the payment is in flight",
+                bool(stm) and stm[-1]["status"] == "PROVISIONAL",
+                [x["status"] for x in stm],
+            )
+        drain_outbox("S1")
+        for n in ("Alpha", "Beta"):
+            v = admin.vendor(run_id, ids[n])
+            p = admin.get(f"/api/v1/payouts/{v['payout_id']}").json()
+            stm = admin.get("/api/v1/statements", vendor_id=ids[n]).json()["items"]
+            check(
+                f"S1: {n}'s simulated payout CONFIRMED by the dispatcher for the right amount",
+                p["state"] == "CONFIRMED"
+                and p["amount_cents"] == fx.EXPECTED[n]["payout"]
+                and count(RailSimulatorRecord, RailSimulatorRecord.vendor_id == ids[n]) == 1,
+                (p.get("state"), p.get("amount_cents")),
+            )
+            check(
+                f"S1: the confirmation re-issued {n}'s statement as FINAL",
+                bool(stm) and stm[-1]["status"] == "FINAL",
+                [x["status"] for x in stm],
             )
         d = admin.vendor(run_id, ids["Delta"])
         check(
@@ -487,6 +550,7 @@ def s1_happy_path_and_holds(admin: Api, nobody: Api) -> None:
             (gs.commission_bps_used, gs.assessed_fee_cents, gs.payout_cents) == (1000, 800, 7200),
             (gs.commission_bps_used, gs.assessed_fee_cents, gs.payout_cents),
         )
+        drain_outbox("S1-after-resume")
         for n in ("Gamma", "Epsilon"):
             v = admin.vendor(run_id, ids[n])
             p = admin.get(f"/api/v1/payouts/{v['payout_id']}").json()
@@ -579,19 +643,21 @@ def s2_crash_mid_node(admin: Api) -> None:
         state1,
     )
     w2 = Worker(
-        "s2-dies-after-dispatch",
-        {"ORCHESTRATION_CRASH_POINTS": f"pay:after_dispatch@{ids['Beta']}"},
+        "s2-dies-after-pay",
+        {"ORCHESTRATION_CRASH_POINTS": f"after:pay@{ids['Beta']}"},
     )
     code = w2.wait_exit(60)
     w2.stop()
     check(
-        "S2: worker 2 reclaimed after lease expiry and died at Beta pay:after_dispatch",
+        "S2: worker 2 reclaimed after lease expiry and died at Beta after:pay",
         code == 137,
         code,
     )
     check(
-        "S2: Beta accepted by the rail once before the crash",
-        count(RailSimulatorRecord, RailSimulatorRecord.vendor_id == ids["Beta"]) == 1,
+        "S2: Beta's release committed with nothing sent to the rail "
+        "(the close does not pay -- the dispatcher does)",
+        count(RailSimulatorRecord, RailSimulatorRecord.vendor_id == ids["Beta"]) == 0,
+        count(RailSimulatorRecord, RailSimulatorRecord.vendor_id == ids["Beta"]),
     )
     with db() as s:
         claims = s.get(OrchestrationRun, run_id).claim_count
@@ -611,6 +677,38 @@ def s2_crash_mid_node(admin: Api) -> None:
         for n in ("Alpha", "Beta", "Delta"):
             v = admin.vendor(run_id, ids[n])
             check(f"S2: {n} COMPLETED after recovery", v["status"] == "COMPLETED", v["status"])
+
+        # The payment crash now belongs to the dispatcher: kill one right
+        # after the rail accepted Beta's payment and before it recorded the
+        # delivery. The next dispatcher must converge on the outcome the
+        # rail already decided -- one record, one journal entry, no resend.
+        with db() as s:
+            beta_payout = s.execute(
+                select(Payout).where(Payout.vendor_id == ids["Beta"])
+            ).scalar_one()
+            beta_payout_id = beta_payout.id
+        wd = Worker(
+            "s2-dispatcher-dies",
+            {"ORCHESTRATION_CRASH_POINTS": f"outbox:after_dispatch@{beta_payout_id}"},
+            module="worker.outbox",
+        )
+        code = wd.wait_exit(60)
+        wd.stop()
+        check("S2: the dispatcher died at outbox:after_dispatch (exit 137)", code == 137, code)
+        check(
+            "S2: Beta accepted by the rail exactly once before that crash",
+            count(RailSimulatorRecord, RailSimulatorRecord.vendor_id == ids["Beta"]) == 1,
+            count(RailSimulatorRecord, RailSimulatorRecord.vendor_id == ids["Beta"]),
+        )
+        drain_outbox("S2")
+        with db() as s:
+            beta_state = s.get(Payout, beta_payout_id).state
+        check(
+            "S2: a second dispatcher converged Beta to CONFIRMED without resubmitting",
+            beta_state == "CONFIRMED"
+            and count(RailSimulatorRecord, RailSimulatorRecord.vendor_id == ids["Beta"]) == 1,
+            beta_state,
+        )
         assert_no_duplicates("S2", fest, {n: ids[n] for n in ("Alpha", "Beta", "Delta")})
         with db() as s:
             recovered = s.execute(
@@ -681,6 +779,7 @@ def s3_external_sigkill(admin: Api) -> None:
         run = wait_run(admin, run_id, {"WAITING_REVIEW", "COMPLETED"})
         check("S3: new worker resumed the run", run["status"] == "WAITING_REVIEW", run["status"])
         check("S3: Alpha COMPLETED", admin.vendor(run_id, ids["Alpha"])["status"] == "COMPLETED")
+        drain_outbox("S3")
         assert_no_duplicates("S3", fest, {n: ids[n] for n in ("Alpha", "Beta", "Delta")})
     finally:
         w2.stop()

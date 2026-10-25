@@ -61,9 +61,9 @@ export function DashboardStats({ data }: { data: Dashboard }) {
         }
       />
       <Stat
-        label="Vendor payouts"
+        label="Vendor payouts owed"
         value={formatUsd(t.payout_cents)}
-        sub="simulated rail - no real transfer"
+        sub="owed on settlements - not a record of transfers"
       />
       <Stat
         label="Resolved without a human"
