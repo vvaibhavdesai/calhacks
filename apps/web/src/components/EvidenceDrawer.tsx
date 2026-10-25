@@ -139,7 +139,10 @@ function EvidenceRef({
   describeSource?: (sourceId: string) => ReactNode;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const excerpt = sourceRef.quoted_excerpt;
+  // Null, not undefined: the live backend sends `"quoted_excerpt": null` when
+  // it has no excerpt, and `!== undefined` let that through to `.length`.
+  // Same for the locator fields below, which are null on the same payload.
+  const excerpt = sourceRef.quoted_excerpt ?? undefined;
   const long = excerpt !== undefined && excerpt.length > EXCERPT_PREVIEW_CHARS;
   const excerptId = useId();
   return (
@@ -154,7 +157,15 @@ function EvidenceRef({
         <dd>{sourceRef.source_version}</dd>
         <dt>Locator</dt>
         <dd>
-          {sourceRef.locator_kind}: <code className="code">{sourceRef.locator}</code>
+          {sourceRef.locator ? (
+            <>
+              {sourceRef.locator_kind ? `${sourceRef.locator_kind}: ` : null}
+              <code className="code">{sourceRef.locator}</code>
+            </>
+          ) : (
+            // Was a bare ":" when the server stated neither.
+            <span className="muted">Whole document — no locator stated</span>
+          )}
         </dd>
         <dt>Content hash</dt>
         <dd>
