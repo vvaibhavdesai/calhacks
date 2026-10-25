@@ -441,7 +441,7 @@ export function createRecorder(fixture: RecorderFixture, ctx: RecorderContext) {
   }
 
   function createChallenge(envelope: Row, p: Row, now: string): Response {
-    if (!has('challenge.create')) return forbidden('challenge.create');
+    if (!has('challenge_result')) return forbidden('challenge_result');
     if (p.action !== 'CHALLENGE') return invalid('INVALID_ACTION', 'Expected action CHALLENGE.', 'payload.action');
     const t = (p.target ?? {}) as Row;
     const kindKey: Record<string, string> = { POLICY_VERSION: 'policies', SETTLEMENT: 'settlements', PAYOUT: 'payouts' };
@@ -493,15 +493,23 @@ export function createRecorder(fixture: RecorderFixture, ctx: RecorderContext) {
         paused_work: policy.id === PLAN_POLICY ? clone(f.correction_plan.paused_work) : [],
       };
     }
+    // Echoed back like the backend does: a challenge carries the corrected
+    // rate the challenger proposed, and the UI needs it to know whether a
+    // correction plan can be built at all.
+    const proposedEffect =
+      p.proposed_effect && typeof (p.proposed_effect as { commission_bps?: unknown }).commission_bps === 'number'
+        ? { commission_bps: (p.proposed_effect as { commission_bps: number }).commission_bps }
+        : null;
     const challenge: Row = {
       id, version: 1, status: 'OPEN', target: { kind: t.kind, id: t.id, version: current, label: String(record.title ?? record.id) },
       reason, superseding_evidence: refs, evidence_hash: pseudoHash(canonical(refs)), policy_effect: effect, correction_id: null,
-      created_by: ctx.actorId, capability: 'challenge.create', created_at: now, correlation_id: correlation,
+      proposed_effect: proposedEffect,
+      created_by: ctx.actorId, capability: 'challenge_result', created_at: now, correlation_id: correlation,
     };
     challenges.push(challenge);
     const created = appendEvent('production', {
       type: 'challenge.created', category: 'FACT', summary: `Challenge recorded with superseding evidence: ${reason}`,
-      actor_type: 'HUMAN', actor_id: ctx.actorId, capability: 'challenge.create', command_id: envelope.command_id,
+      actor_type: 'HUMAN', actor_id: ctx.actorId, capability: 'challenge_result', command_id: envelope.command_id,
       aggregate_type: 'CHALLENGE', aggregate_id: id, aggregate_version: 1, vendor_id: record.vendor_id ?? null, correlation_id: correlation,
       input_refs: refs, links: [{ kind: 'CHALLENGE', id, version: 1, label: 'Challenge' }, { kind: t.kind, id: t.id, version: current, label: null }],
     }, now);
@@ -524,7 +532,7 @@ export function createRecorder(fixture: RecorderFixture, ctx: RecorderContext) {
   }
 
   function previewCorrection(envelope: Row, p: Row, now: string): Response {
-    if (!has('challenge.create')) return forbidden('challenge.create');
+    if (!has('challenge_result')) return forbidden('challenge_result');
     if (p.action !== 'PREVIEW_CORRECTION') return invalid('INVALID_ACTION', 'Expected action PREVIEW_CORRECTION.', 'payload.action');
     const ch = challenges.find((c) => c.id === p.challenge_id);
     if (!ch) return invalid('CHALLENGE_NOT_FOUND', 'Unknown challenge.', 'payload.challenge_id');
@@ -590,7 +598,7 @@ export function createRecorder(fixture: RecorderFixture, ctx: RecorderContext) {
   }
 
   function createBranch(envelope: Row, p: Row, now: string): Response {
-    if (!has('branch.create')) return forbidden('branch.create');
+    if (!has('run_what_if')) return forbidden('run_what_if');
     if (p.action !== 'CREATE_WHAT_IF_BRANCH') return invalid('INVALID_ACTION', 'Expected action CREATE_WHAT_IF_BRANCH.', 'payload.action');
     if (envelope.expected_version !== null) return invalid('INVALID_ENVELOPE', 'expected_version must be null when creating a branch.', 'expected_version');
     if (typeof p.label !== 'string' || !p.label.trim()) return invalid('LABEL_REQUIRED', 'Name the branch.', 'payload.label');
@@ -611,7 +619,7 @@ export function createRecorder(fixture: RecorderFixture, ctx: RecorderContext) {
     });
     appendEvent('production', {
       type: 'branch.created', category: 'FACT', summary: `What-if branch created (isolated, external effects disabled): ${p.label.trim()}`,
-      actor_type: 'HUMAN', actor_id: ctx.actorId, capability: 'branch.create', command_id: envelope.command_id, aggregate_type: 'BRANCH', aggregate_id: id, aggregate_version: 1,
+      actor_type: 'HUMAN', actor_id: ctx.actorId, capability: 'run_what_if', command_id: envelope.command_id, aggregate_type: 'BRANCH', aggregate_id: id, aggregate_version: 1,
       links: [{ kind: 'BRANCH', id, version: 1, label: 'Branch' }],
     }, now);
     appendEvent(id, {
@@ -623,7 +631,7 @@ export function createRecorder(fixture: RecorderFixture, ctx: RecorderContext) {
   }
 
   function createReplay(envelope: Row, p: Row, now: string): Response {
-    if (!has('replay.start')) return forbidden('replay.start');
+    if (!has('run_replay')) return forbidden('run_replay');
     if (p.action !== 'START_REPLAY') return invalid('INVALID_ACTION', 'Expected action START_REPLAY.', 'payload.action');
     if (p.mode !== 'RECORDED_RESULTS_ONLY') return invalid('INVALID_MODE', 'Replays only consume recorded results.', 'payload.mode');
     if (envelope.expected_version !== null) return invalid('INVALID_ENVELOPE', 'expected_version must be null when starting a replay.', 'expected_version');
@@ -638,7 +646,7 @@ export function createRecorder(fixture: RecorderFixture, ctx: RecorderContext) {
     });
     appendEvent('production', {
       type: 'replay.started', category: 'FACT', summary: 'Replay started (recorded results only, effects disabled).',
-      actor_type: 'HUMAN', actor_id: ctx.actorId, capability: 'replay.start', command_id: envelope.command_id, aggregate_type: 'REPLAY', aggregate_id: id, aggregate_version: 1,
+      actor_type: 'HUMAN', actor_id: ctx.actorId, capability: 'run_replay', command_id: envelope.command_id, aggregate_type: 'REPLAY', aggregate_id: id, aggregate_version: 1,
       run_id: run.id, links: [{ kind: 'REPLAY', id, version: 1, label: 'Replay' }, { kind: 'RUN', id: run.id, version: null, label: null }],
     }, now);
     return ok({ command_id: envelope.command_id, aggregate_id: id, version: 1, status: 'QUEUED' });

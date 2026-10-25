@@ -873,6 +873,7 @@ paths:
         Read-only reconstruction of what was KNOWN at a knowledge-time cutoff (recorded_at <= cutoff),
         separately filtered by business date (C06). Never mutates anything.
       parameters:
+        - $ref: '#/components/parameters/FestivalId'
         - { name: knowledge_cutoff, in: query, required: true, schema: { $ref: '#/components/schemas/Instant' } }
         - $ref: '#/components/parameters/BusinessDate'
         - $ref: '#/components/parameters/VendorId'
@@ -986,6 +987,24 @@ paths:
       tags: [commands]
       operationId: createImport
       parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { $ref: '#/components/requestBodies/Command' }
+      responses: *commandResponses
+  /challenges/{challenge_id}/withdraw:
+    post:
+      tags: [proposals]
+      operationId: withdrawChallenge
+      description: >-
+        Withdraw an open challenge. The server reactivates a policy version it
+        suspended (app/corrections.py withdraw_challenge) and releases the
+        holds the challenge placed. Without this the UI could raise a challenge
+        and never undo it: a policy stayed SUSPENDED with no control to restore
+        it.
+      parameters:
+        - name: challenge_id
+          in: path
+          required: true
+          schema: { type: string }
+        - { $ref: '#/components/parameters/IdempotencyKey' }
       requestBody: { $ref: '#/components/requestBodies/Command' }
       responses: *commandResponses
   /challenges:
@@ -2540,6 +2559,17 @@ components:
         superseding_evidence: { type: array, items: { $ref: '#/components/schemas/SourceRef' } }
         evidence_hash: { type: string }
         policy_effect: { anyOf: [{ $ref: '#/components/schemas/ChallengePolicyEffect' }, { type: 'null' }] }
+        # What the challenger says the rate should have been. Null when the
+        # challenge only pauses the rule; a correction plan cannot be built
+        # without it (app/corrections.py build_plan).
+        proposed_effect:
+          anyOf:
+            - type: object
+              additionalProperties: false
+              required: [commission_bps]
+              properties:
+                commission_bps: { type: integer, minimum: 0, maximum: 10000 }
+            - type: 'null'
         correction_id: { type: [string, 'null'] }
         created_by: { type: [string, 'null'] }
         capability: { type: [string, 'null'] }
@@ -2572,6 +2602,24 @@ components:
             version: { $ref: '#/components/schemas/Version' }
         superseding_evidence: { type: array, minItems: 1, items: { $ref: '#/components/schemas/EvidenceCitation' } }
         reason: { type: string, minLength: 1, maxLength: 2000 }
+        proposed_effect:
+          type: object
+          additionalProperties: false
+          description: >-
+            What the rate should have been. Optional at creation -- a challenge
+            without it still pauses the rule -- but a correction PLAN cannot be
+            built without it (app/corrections.py build_plan raises
+            PROPOSED_EFFECT_REQUIRED), so the impact preview and any approval
+            need it.
+          required: [commission_bps]
+          properties:
+            commission_bps: { type: integer, minimum: 0, maximum: 10000 }
+    WithdrawChallengePayload:
+      type: object
+      additionalProperties: false
+      required: [action]
+      properties:
+        action: { const: WITHDRAW_CHALLENGE }
     PreviewCorrectionPayload:
       type: object
       x-encore-proposal: Q50

@@ -16,7 +16,9 @@ import { useApiQuery } from '../hooks/useApiQuery';
 import { useCommand } from '../hooks/useCommand';
 
 /** Capability name proposed in Q55; the server still enforces it. */
-export const REPLAY_CAPABILITY = 'replay.start';
+// app/models.py CAPABILITY_REPLAY. Was 'replay.start', which the server never
+// grants.
+export const REPLAY_CAPABILITY = 'run_replay';
 const POLL_MS = 1000;
 
 function effectsTotal(r: Replay): boolean {

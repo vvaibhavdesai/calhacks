@@ -99,18 +99,62 @@ export function ReconciliationList() {
 interface MemberRow {
   ref: string;
   kind: string | null;
+  role: string | null;
   amount: Cents | null;
 }
 
+/** A member as the live backend states it, whole rather than in parallel arrays. */
+interface LiveMember {
+  member_id?: string;
+  member_kind?: string | null;
+  role?: string | null;
+  amount_cents?: Cents | null;
+}
+
 /** DA39: matched_amounts[i] belongs to member_refs[i]; if the server's arrays differ in length they are shown unpaired. */
+/**
+ * The two shapes a match group's members arrive in.
+ *
+ * The draft contract spreads them across parallel arrays -- `member_refs`,
+ * `member_kinds`, `matched_amounts` -- paired by index (DA39). The live
+ * backend sends each member whole instead, as `members` (and the same
+ * objects again under `member_refs`), and uses `matched_amounts` for
+ * something else entirely: a map of kind to total,
+ * {"order.expected": 2289, "payment.capture": 2289}.
+ *
+ * So `g.matched_amounts.length` was undefined and `g.matched_amounts.map`
+ * was not a function: the detail screen threw on every group. The whole
+ * objects are preferred when present -- they carry the member's role, which
+ * the parallel arrays cannot express -- and the index-paired form is kept
+ * for the draft/fixture shape.
+ */
 function memberRows(g: MatchGroup): { rows: MemberRow[]; paired: boolean } {
-  const paired = g.matched_amounts.length === g.member_refs.length;
+  const whole = ((g as { members?: unknown }).members ?? g.member_refs) as unknown;
+  const asObjects: LiveMember[] | null =
+    Array.isArray(whole) && whole.length > 0 && typeof whole[0] === 'object' && whole[0] !== null
+      ? (whole as LiveMember[])
+      : null;
+  if (asObjects) {
+    return {
+      paired: true,
+      rows: asObjects.map((m, i) => ({
+        ref: m.member_id ?? String(i),
+        kind: m.member_kind ?? null,
+        role: m.role ?? null,
+        amount: m.amount_cents ?? null,
+      })),
+    };
+  }
+  const refs = (g.member_refs ?? []) as string[];
+  const amounts = Array.isArray(g.matched_amounts) ? (g.matched_amounts as Cents[]) : [];
+  const paired = amounts.length === refs.length;
   return {
     paired,
-    rows: g.member_refs.map((ref, i) => ({
+    rows: refs.map((ref, i) => ({
       ref,
-      kind: g.member_kinds && g.member_kinds.length === g.member_refs.length ? g.member_kinds[i] ?? null : null,
-      amount: paired ? g.matched_amounts[i] ?? null : null,
+      kind: g.member_kinds && g.member_kinds.length === refs.length ? g.member_kinds[i] ?? null : null,
+      role: null,
+      amount: paired ? amounts[i] ?? null : null,
     })),
   };
 }
@@ -200,6 +244,9 @@ function MembersTable({ g }: { g: MatchGroup }) {
   const columns: Column<MemberRow>[] = [
     { id: 'ref', header: 'Record', rowHeader: true, render: (r) => <Code>{r.ref}</Code> },
     { id: 'kind', header: 'Record type', render: (r) => r.kind ?? '—' },
+    ...(rows.some((r) => r.role)
+      ? [{ id: 'role', header: 'Role', render: (r: MemberRow) => r.role ?? '—' } as Column<MemberRow>]
+      : []),
     { id: 'amount', header: 'Matched amount', numeric: true, render: (r) => <Money cents={r.amount} /> },
   ];
   return (
@@ -209,10 +256,11 @@ function MembersTable({ g }: { g: MatchGroup }) {
         <div className="state state-error" role="note">
           <p className="state-title">Amounts not paired with members</p>
           <p className="state-body">
-            The server sent {g.member_refs.length} members and {g.matched_amounts.length} amounts. They are listed as sent:
+            The server sent {g.member_refs?.length ?? 0} members and{' '}
+            {Array.isArray(g.matched_amounts) ? g.matched_amounts.length : 0} amounts. They are listed as sent:
           </p>
           <ul>
-            {g.matched_amounts.map((a, i) => (
+            {(Array.isArray(g.matched_amounts) ? (g.matched_amounts as Cents[]) : []).map((a, i) => (
               <li key={`${a}:${i}`}>
                 <Money cents={a} />
               </li>

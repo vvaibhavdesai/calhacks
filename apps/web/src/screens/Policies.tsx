@@ -106,7 +106,26 @@ export function PolicyRuleView({ p }: { p: PolicyVersion }) {
       </p>
       <h3 className="panel-subtitle">Validity</h3>
       <p>
-        From <Instant value={p.valid_from} /> to {p.valid_to ? <Instant value={p.valid_to} /> : 'no end date'}
+        {/* A policy's window is a range of festival DATES (`valid_from`/
+            `valid_to` are date columns), not instants. Rendering them with
+            Instant printed "Invalid time", because a bare date is not an
+            instant and lib/time.ts refuses to guess a time of day for it.
+            Laid out as labelled facts like every other record on this page,
+            rather than a sentence: a reader scans for the dates. */}
+        <dl className="facts" aria-label="Validity window">
+          <dt>From</dt>
+          <dd>
+            <BusinessDate value={p.valid_from} />
+          </dd>
+          <dt>To</dt>
+          <dd>
+            {p.valid_to ? (
+              <BusinessDate value={p.valid_to} />
+            ) : (
+              <span className="muted">Open-ended — applies until superseded or revoked</span>
+            )}
+          </dd>
+        </dl>
       </p>
     </>
   );
@@ -178,8 +197,12 @@ export function PoliciesList() {
     { id: 'version', header: 'Version', numeric: true, render: (p) => `v${p.version}` },
     { id: 'status', header: 'Status', render: (p) => <StatusBadge status={p.status} /> },
     { id: 'scope', header: 'Scope', render: (p) => p.scope.description },
-    { id: 'from', header: 'Valid from', render: (p) => <Instant value={p.valid_from} /> },
-    { id: 'to', header: 'Valid to', render: (p) => (p.valid_to ? <Instant value={p.valid_to} /> : <span className="muted">No end</span>) },
+    { id: 'from', header: 'Valid from', render: (p) => <BusinessDate value={p.valid_from} /> },
+    {
+      id: 'to',
+      header: 'Valid to',
+      render: (p) => (p.valid_to ? <BusinessDate value={p.valid_to} /> : <span className="muted">No end</span>),
+    },
     {
       id: 'case',
       header: 'Origin case',
@@ -242,7 +265,7 @@ export function PolicyDetail() {
     },
     { id: 'status', header: 'Status', render: (v) => <StatusBadge status={v.status} /> },
     { id: 'supersedes', header: 'Supersedes', render: (v) => (v.supersedes_version ? `v${v.supersedes_version}` : '—') },
-    { id: 'from', header: 'Valid from', render: (v) => <Instant value={v.valid_from} /> },
+    { id: 'from', header: 'Valid from', render: (v) => <BusinessDate value={v.valid_from} /> },
     { id: 'reason', header: 'Status reason', render: (v) => v.status_reason ?? '—' },
   ];
 

@@ -1,0 +1,120 @@
+{
+ "id": "097bd9f573874af7ba27fc856d73a075",
+ "version": 1,
+ "source_manifest_hash": null,
+ "festival_id": "fest_bf25e974c723d827",
+ "vendor_id": "ven_e495b32cf2e2a390",
+ "business_date": "2026-10-16",
+ "calculation_version": "a04-settlement-v1",
+ "vendor_contract_term_id": null,
+ "vendor_contract_term_version": null,
+ "commission_bps_used": 1500,
+ "minimum_fee_cents_used": 50000,
+ "processor_fee_deductible_used": false,
+ "is_final_period": false,
+ "eligible_sales_cents": 89100,
+ "centrally_held_cents": 89100,
+ "vendor_retained_cash_cents": 0,
+ "tax_cents": 7266,
+ "tips_cents": 4250,
+ "cumulative_eligible_sales_cents": 89100,
+ "cumulative_commission_assessed_prior_cents": 0,
+ "assessed_fee_cents": 13365,
+ "collected_fee_cents": 13365,
+ "vendor_fee_receivable_cents": 0,
+ "unpaid_balance_cents": 0,
+ "processor_fee_assessed_cents": 0,
+ "processor_fee_collected_cents": 0,
+ "payout_cents": 75735,
+ "minimum_applied": false,
+ "holds": [],
+ "correction_of": null,
+ "correction_reason": null,
+ "status": "FINAL",
+ "policy_refs": [],
+ "applied_policies": [],
+ "line_items": [
+  {
+   "id": "8212b42fe5b2496e809f70d8daed8fda",
+   "line_type": "centrally_held",
+   "amount_cents": 89100,
+   "source_refs": [
+    {
+     "role": "centrally_collected",
+     "ref_id": "pay_59c9b0fb70983ff0",
+     "ref_kind": "payment"
+    },
+    {
+     "role": "order_capture",
+     "ref_id": "751700bfe7884e929813351ceb9fa092",
+     "ref_kind": "match_group"
+    },
+    {
+     "role": "processor_fee_source",
+     "ref_id": "bank_eda31709b5bab40e",
+     "ref_kind": "bank_entry"
+    },
+    {
+     "role": "centrally_collected",
+     "ref_id": "pay_ec18d0cae212975d",
+     "ref_kind": "payment"
+    }
+   ],
+   "line_id": "8212b42fe5b2496e809f70d8daed8fda",
+   "kind": "centrally_held",
+   "label": "Centrally held",
+   "treatment": "MEMO"
+  },
+  {
+   "id": "69363e781e13491184377ff4f3c6410f",
+   "line_type": "eligible_sales",
+   "amount_cents": 89100,
+   "source_refs": [
+    {
+     "role": "centrally_collected",
+     "ref_id": "pay_59c9b0fb70983ff0",
+     "ref_kind": "payment"
+    },
+    {
+     "role": "order_capture",
+     "ref_id": "751700bfe7884e929813351ceb9fa092",
+     "ref_kind": "match_group"
+    },
+    {
+     "role": "processor_fee_source",
+     "ref_id": "bank_eda31709b5bab40e",
+     "ref_kind": "bank_entry"
+    },
+    {
+     "role": "centrally_collected",
+     "ref_id": "pay_ec18d0cae212975d",
+     "ref_kind": "payment"
+    }
+   ],
+   "line_id": "69363e781e13491184377ff4f3c6410f",
+   "kind": "eligible_sales",
+   "label": "Eligible sales",
+   "treatment": "FEE_BASIS"
+  },
+  {
+   "id": "b7ba72e792ad42b692383993d5f9692c",
+   "line_type": "fee_assessed",
+   "amount_cents": 13365,
+   "source_refs": [],
+   "line_id": "b7ba72e792ad42b692383993d5f9692c",
+   "kind": "fee_assessed",
+   "label": "Fee assessed",
+   "treatment": "FEE"
+  },
+  {
+   "id": "a470caf1573d41129214e7c523c90a1c",
+   "line_type": "fee_collected_from_central",
+   "amount_cents": 13365,
+   "source_refs": [],
+   "line_id": "a470caf1573d41129214e7c523c90a1c",
+   "kind": "fee_collected_from_central",
+   "label": "Fee collected from centrally-held funds",
+   "treatment": "DEDUCTION"
+  }
+ ]
+}
