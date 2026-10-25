@@ -787,6 +787,12 @@ a {
 .hold-text {
   flex-basis: 100%;
 }
+/* The "x87" on a grouped hold badge: present but quieter than the reason,
+   since the reason is what a reader scans for. */
+.hold-count {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
+}
 .rule-badge {
   display: inline-block;
   padding: 4px 10px;

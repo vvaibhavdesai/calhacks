@@ -93,6 +93,29 @@ describe('Settlements against captured live responses', () => {
     expect(screen.queryByText(String(first.assessed_fee_cents))).toBeNull();
   });
 
+  it('repeats a hold reason once with a count, not once per held item', async () => {
+    // A hold is recorded per order/payment, so the same reason repeats dozens
+    // of times on one vendor-night. The captured page has a row with 89 holds,
+    // 87 of them identical; it must render 2 badges, not 89.
+    const rows = settlements as { holds?: { reason?: string }[] }[];
+    const worst = rows.reduce((a, b) => ((b.holds?.length ?? 0) > (a.holds?.length ?? 0) ? b : a), rows[0]!);
+    const holds = worst.holds ?? [];
+    const distinct = new Set(holds.map((h) => h.reason));
+    expect(holds.length).toBeGreaterThan(distinct.size); // the capture still has duplicates
+
+    renderLive('/settlements');
+    const table = await screen.findByRole('table');
+    await waitFor(() => expect(table.querySelectorAll('tbody tr').length).toBeGreaterThan(0));
+
+    const badges = table.querySelectorAll('.hold-list .badge-warn');
+    expect(badges.length).toBeLessThanOrEqual(
+      rows.reduce((n, r) => n + new Set((r.holds ?? []).map((h) => h.reason)).size, 0),
+    );
+    // The commonest reason appears once per row that has it, carrying a count.
+    const counted = [...badges].filter((b) => /×\d+/.test(b.textContent ?? ''));
+    expect(counted.length).toBeGreaterThan(0);
+  });
+
   it('every call the screen makes is one the captured set answers', async () => {
     const seen = renderLive('/settlements');
     const table = await screen.findByRole('table');
