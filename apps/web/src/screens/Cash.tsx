@@ -137,7 +137,7 @@ export function CashScreen() {
     <>
       <PageHeader
         title="Cash"
-        qualifier="Available, pending and reserved cash, obligations and forecast, as calculated by the server. Payments are SIMULATED."
+        qualifier="Available, pending and reserved cash, obligations and forecast, as calculated by the server. Payments are simulated."
       />
       <IllustrativeNote />
       <BackendGapNote ops={['listCashPositions']} />

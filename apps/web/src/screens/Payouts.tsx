@@ -21,7 +21,7 @@ import { useCommand } from '../hooks/useCommand';
 import { useListParams } from '../hooks/useListParams';
 import { useLookups } from '../hooks/useLookups';
 
-const QUALIFIER = `${SIMULATED_TEXT}. Server-calculated amounts and gate results; the UI never computes them.`;
+const QUALIFIER = `Server-calculated amounts and gate results, which the UI never computes. ${SIMULATED_TEXT}`;
 
 const STATE_OPTIONS = (Object.keys(PAYOUT_STATE_INFO) as PayoutState[]).map((s) => ({ value: s, label: PAYOUT_STATE_INFO[s].label }));
 

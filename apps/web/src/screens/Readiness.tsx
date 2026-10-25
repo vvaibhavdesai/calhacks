@@ -15,11 +15,11 @@ import { useLookups } from '../hooks/useLookups';
 import { usePlainCommand } from '../hooks/usePlainCommand';
 
 const QUALIFIER =
-  'Whether each counterparty is ready to transact: eight deterministic checks over its contract terms, evidence and payout details. Computed by the server, never by an agent.';
+  'Eight deterministic checks decide whether a counterparty is ready to transact. They read its contract terms, its evidence and its payout details. The server computes them, never an agent.';
 
 /** `exposure_cents`/`decision_deadline` are R2's to fill; R1 always sends null. */
 const R2_NOTE =
-  'Exposure and decision deadline are shown for every counterparty but are always empty today: both belong to the case R2 opens for a failing counterparty, and R2 is not built. The column stays so the shape does not change when it is.';
+  'Exposure and decision deadline stay empty for now. Both belong to the case R2 opens for a failing counterparty, and R2 is not built yet. The columns stay so that nothing moves when it arrives.';
 
 function counterpartyName(
   r: Pick<ReadinessCheck, 'counterparty_type' | 'counterparty_id'>,
@@ -135,9 +135,9 @@ function RecomputePanel({ onServerChange }: { onServerChange: () => void }) {
   if (!hasCapability(capabilities, 'run_readiness')) {
     return wrap(
       <p className="capability-note">
-        Your session does not include the <Code>run_readiness</Code> capability required to recompute readiness. The
-        checks below are whatever the server last computed. The server decides who can act
-        {fixtureId ? '' : '; ask a finance lead'}.
+        Your session does not include the <Code>run_readiness</Code> capability needed to recompute readiness. The checks
+        below are whatever the server last computed. The server decides who can act
+        {fixtureId ? '.' : '. Ask a finance lead.'}
       </p>,
     );
   }
@@ -146,7 +146,7 @@ function RecomputePanel({ onServerChange }: { onServerChange: () => void }) {
       <p className="capability-note">
         Recompute needs the festival window, and the festival record does not carry
         {!festivalStart && !festivalEnd ? ' a start or end date' : !festivalStart ? ' a start date' : ' an end date'}.
-        The checks are evaluated over that window, so it cannot be guessed here.
+        The checks run over that window, so nothing here can guess it.
       </p>,
     );
   }
@@ -156,11 +156,11 @@ function RecomputePanel({ onServerChange }: { onServerChange: () => void }) {
   return wrap(
     <>
       <p>
-        Recomputes every vendor in the festival over{' '}
+        This recomputes every vendor in the festival across{' '}
         <strong>
           <BusinessDate value={festivalStart} /> to <BusinessDate value={festivalEnd} />
         </strong>
-        . A counterparty whose inputs have not changed keeps its current version.
+        . A counterparty whose inputs have not changed keeps the version it already has.
       </p>
       <button
         type="button"

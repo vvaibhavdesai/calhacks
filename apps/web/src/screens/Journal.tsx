@@ -17,7 +17,7 @@ import { useApiQuery } from '../hooks/useApiQuery';
 import { useListParams } from '../hooks/useListParams';
 import { useLookups } from '../hooks/useLookups';
 
-const QUALIFIER = 'Posted entries are never edited: corrections are linked reversing/correcting entries. Totals are the server’s; the UI does not add lines.';
+const QUALIFIER = 'Posted entries are never edited. A correction is a linked reversing or correcting entry. Every total comes from the server, and the UI adds no lines.';
 
 /** `label` lets the list show the server's readable `entry_key` while the
  *  link still addresses the entry by the id the detail route expects. */

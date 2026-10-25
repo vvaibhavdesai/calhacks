@@ -11,7 +11,7 @@ import { useAsOf } from '../hooks/useAsOf';
 import { compareCents, maxAbsCents } from '../lib/money';
 
 const QUALIFIER =
-  'Supplier quote comparison for a projected requirement: completeness, cash impact and history, read-only. A human picks, this screen never does.';
+  'Supplier quotes for a projected requirement, compared on completeness, cash impact and past performance. A human picks. This screen never does.';
 
 // Only one requirement exists in this demo pack. A later requirement would
 // add a real picker here; until then a fixed value is honest, not a
@@ -19,8 +19,8 @@ const QUALIFIER =
 const REQUEST_KEY = 'req_gen_2026';
 
 const AS_OF_PRESETS = [
-  { label: 'Oct 2, before B revises', value: '2026-10-02T09:00:00-07:00' },
-  { label: 'Oct 6, B v2 supersedes v1', value: '2026-10-06T09:00:00-07:00' },
+  { label: 'Oct 2, before ClearPeak revises', value: '2026-10-02T09:00:00-07:00' },
+  { label: 'Oct 6, after ClearPeak revises', value: '2026-10-06T09:00:00-07:00' },
   { label: 'Now', value: null },
 ] as const;
 
@@ -89,7 +89,7 @@ export function AnalystAssistant() {
           <span className="badge badge-ok">Complete</span>
         ) : (
           <span className="badge badge-bad" title={q.missing_requirements.join(', ')}>
-            Incomplete: {q.missing_requirements.join(', ')}
+            Missing {q.missing_requirements.join(' and ')}
           </span>
         ),
     },
@@ -155,7 +155,7 @@ export function AnalystAssistant() {
               <Money cents={q.history_approved_scope_changes_cents} /> approved ·{' '}
               <Money cents={q.history_variance_vs_revised_budget_cents} signDisplay="always" /> vs revised budget
             </div>
-            <div className="muted">on time in full: {q.history_otif}</div>
+            <div className="muted">delivered on time and in full {q.history_otif}</div>
             {q.history_caveat ? <div className="muted">{q.history_caveat}</div> : null}
           </>
         );
@@ -203,15 +203,14 @@ export function AnalystAssistant() {
               {completeCount} of {quotes.length} quotes complete.{' '}
               {worstBufferGap !== null && compareCents(worstBufferGap, 0) > 0 ? (
                 <>
-                  Worst cash buffer gap across visible quotes: <Money cents={worstBufferGap} />.
+                  The worst cash buffer gap across these quotes is <Money cents={worstBufferGap} />.
                 </>
               ) : (
                 'No visible quote breaches the cash buffer.'
               )}
             </p>
             <p className="muted">
-              Selection stays undecided here — no winner is ever picked by this screen. A human selects, outside this
-              view.
+              Selection stays undecided here. This screen never picks a winner, and a human chooses outside this view.
             </p>
           </section>
 

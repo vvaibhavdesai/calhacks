@@ -9,8 +9,8 @@ export function IllustrativeNote() {
   if (!fixtureId) return null;
   return (
     <p className="illustrative-note" role="note">
-      <strong>ILLUSTRATIVE sample output.</strong> Hand-authored for UI development (dev/test only); not calculated by a
-      backend and not an expected answer.
+      <strong>Illustrative sample output.</strong> Hand-authored for development only. These figures are not calculated by a
+      backend and are not an expected answer.
     </p>
   );
 }

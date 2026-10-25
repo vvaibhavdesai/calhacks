@@ -1379,8 +1379,8 @@ def supplier_comparison(
         "request_key": request_key,
         "as_of": as_of.isoformat(),
         "cash_baseline_note": (
-            "Synthetic demo baseline (fixture cash_inputs.json): proposed, not approved "
-            "business policy. Not the real books."
+            "Synthetic demo baseline, taken from the fixture's own cash inputs. It is "
+            "proposed business policy rather than approved policy, and it is not the real books."
         ),
         "selection": "undecided",
         "no_automatic_winner": True,

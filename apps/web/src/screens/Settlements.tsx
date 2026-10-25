@@ -19,7 +19,7 @@ import { useApiQuery } from '../hooks/useApiQuery';
 import { useListParams } from '../hooks/useListParams';
 import { useLookups } from '../hooks/useLookups';
 
-const MONEY_QUALIFIER = 'Server-calculated. Payouts are SIMULATED money movement; tax is a DEMO assumption, not a filing.';
+const MONEY_QUALIFIER = 'Server-calculated figures. Payouts are simulated money movement, and tax is a demo assumption rather than a filing.';
 
 function statementLabel(s: Settlement): string {
   switch (s.statement_status) {

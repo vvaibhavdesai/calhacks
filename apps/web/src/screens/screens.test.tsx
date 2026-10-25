@@ -43,7 +43,7 @@ describe('overview and close-run pipeline', () => {
     const decisions = screen.getByRole('heading', { name: 'Waiting for a human decision' }).closest('section')!;
     expect(await within(decisions).findByRole('link', { name: /Commission rate conflict/ })).toBeInTheDocument();
     expect(within(decisions).getByRole('link', { name: /cash count below POS/ })).toBeInTheDocument();
-    expect(screen.getAllByText(/ILLUSTRATIVE sample output/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Illustrative sample output/).length).toBeGreaterThan(0);
     expect(await axeViolations(container)).toEqual([]);
   });
 
@@ -141,7 +141,7 @@ describe('settlements and statements', () => {
     expect(screen.getByText('PAYOUT ABOVE AUTO LIMIT')).toBeInTheDocument();
     expect(screen.getByText(/a finance lead must approve the simulated release/)).toBeInTheDocument();
     expect(screen.getByText('illus-calc-0.1')).toBeInTheDocument();
-    expect(screen.getByText(/SIMULATED money movement/)).toBeInTheDocument();
+    expect(screen.getByText(/simulated money movement/i)).toBeInTheDocument();
     expect(await axeViolations(container)).toEqual([]);
   });
 

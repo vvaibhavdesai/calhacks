@@ -71,7 +71,7 @@ describe('app shell', () => {
     expect(screen.getAllByRole('note').some((n) => n.textContent?.includes('DRAFT, NOT FILED'))).toBe(true);
     tax.unmount();
     renderFixtureApp('/payouts');
-    expect(screen.getAllByRole('note').some((n) => n.textContent?.includes('SIMULATED — no real money moves'))).toBe(true);
+    expect(screen.getAllByRole('note').some((n) => n.textContent?.includes('Simulated payments'))).toBe(true);
   });
 
   it('has no axe violations on the overview and a data table page', async () => {

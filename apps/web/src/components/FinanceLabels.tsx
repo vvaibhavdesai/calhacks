@@ -3,13 +3,13 @@
  * SIMULATED, tax output is DRAFT, NOT FILED. Text carries the meaning; these
  * render in live mode too, not only with fixtures.
  */
-export const SIMULATED_TEXT = 'SIMULATED — no real money moves';
+export const SIMULATED_TEXT = 'Payments here are simulated and nothing reaches a bank.';
 export const DRAFT_TAX_TEXT = 'DRAFT, NOT FILED';
 
 export function SimulatedBanner({ what = 'Payments on this screen' }: { what?: string }) {
   return (
     <p className="label-banner label-simulated" role="note">
-      <strong>{SIMULATED_TEXT}.</strong> {what}: sent only to a simulated rail. Nothing is sent to a bank, card network or
+      <strong>Simulated payments.</strong> {what} go only to a simulated rail. Nothing reaches a bank, a card network, or a
       real vendor or supplier account.
     </p>
   );
@@ -18,8 +18,8 @@ export function SimulatedBanner({ what = 'Payments on this screen' }: { what?: s
 export function DraftTaxBanner() {
   return (
     <p className="label-banner label-draft" role="note">
-      <strong>{DRAFT_TAX_TEXT}.</strong> A draft computed with configurable DEMO assumptions for a fictional festival. It is
-      not a tax return, has not been filed and is not a claim of legal compliance.
+      <strong>{DRAFT_TAX_TEXT}.</strong> A draft computed with configurable demo assumptions for a fictional festival. It is
+      not a tax return, it has not been filed, and it claims no legal compliance.
     </p>
   );
 }

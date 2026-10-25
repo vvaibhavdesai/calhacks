@@ -17,7 +17,7 @@ import { usePlainCommand } from '../hooks/usePlainCommand';
 import { useSupplierNames } from '../hooks/useSupplierNames';
 
 const QUALIFIER =
-  'Every decision recorded through X0.1’s generic approval mechanism, append-only. An approval records that someone with the required capability decided something; it is not itself the effect.';
+  'Every decision recorded through the generic approval mechanism, append only. An approval records that someone with the required capability decided something. It is not the effect itself.';
 
 const SUBJECT_TYPES: ApprovalSubjectType[] = [
   'vendor_run',
@@ -113,9 +113,8 @@ export function ApprovalsList() {
           Approval log
         </h2>
         <p className="muted">
-          Oldest first, as recorded. An approval is never edited or withdrawn: a different decision is a new record.
-          {' '}
-          <Code>required_capability</Code> is what the server derived from the action itself, not what the actor
+          Oldest first, as recorded. An approval is never edited or withdrawn, so a different decision becomes a new
+          record. <Code>required_capability</Code> is what the server derived from the action itself, not what the actor
           happened to hold.
         </p>
         <FilterBar
@@ -290,8 +289,8 @@ function RecordInvoiceDecision({ onServerChange }: { onServerChange: () => void 
   if (!hasCapability(capabilities, INVOICE_CAPABILITY)) {
     return wrap(
       <p className="capability-note">
-        Your session does not include the <Code>{INVOICE_CAPABILITY}</Code> capability required to record any of these
-        three decisions. The server decides who can act{fixtureId ? '' : '; ask a finance lead'}.
+        Your session does not include the <Code>{INVOICE_CAPABILITY}</Code> capability needed to record any of these three
+        decisions. The server decides who can act{fixtureId ? '.' : '. Ask a finance lead.'}
       </p>,
     );
   }
@@ -392,7 +391,7 @@ function RecordInvoiceDecision({ onServerChange }: { onServerChange: () => void 
     >
       <p className="decision-explainer">
         Records <strong>that a decision was taken</strong> about one supplier invoice. It does not change the invoice,
-        notify anyone or move money — the effect, if any, is a separate action on the invoice itself.
+        notify anyone or move money. Any effect that follows is a separate action on the invoice itself.
       </p>
       {invoices.status === 'error' ? <ErrorState error={invoices.error} onRetry={invoices.refetch} /> : null}
       <div className="field">
@@ -447,7 +446,7 @@ function RecordInvoiceDecision({ onServerChange }: { onServerChange: () => void 
             ? 'Choose an invoice first.'
             : matchingCases.length === 0
               ? 'No open or closed case names this invoice as its subject, so none can be cited.'
-              : 'Only cases whose own subject is this invoice can be cited; the server rejects any other.'}
+              : 'Only a case whose own subject is this invoice can be cited. The server rejects any other.'}
         </span>
       </div>
       <div className="field">

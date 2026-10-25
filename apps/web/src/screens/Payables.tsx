@@ -23,7 +23,7 @@ import { useSupplierNames } from '../hooks/useSupplierNames';
 import { invoiceIdFromCaseEvidence } from '../lib/caseEvidence';
 import { compareCents } from '../lib/money';
 
-const QUALIFIER = `Suppliers, purchase orders, invoices and credit notes, and supplier payments. Server figures; supplier payments are ${SIMULATED_TEXT}.`;
+const QUALIFIER = `Suppliers, purchase orders, invoices and credit notes, and supplier payments. Every figure comes from the server. ${SIMULATED_TEXT}`;
 
 const TABS = [
   { slug: '', label: 'Suppliers' },
@@ -533,7 +533,7 @@ function DeliveryDepositPanel({
       >
         <div className="field">
           <label htmlFor="inv-as-of">
-            As of (timezone-aware instant, e.g. 2026-10-15T12:30:00-07:00; blank = now)
+            As of a timezone-aware instant such as 2026-10-15T12:30:00-07:00. Leave it blank to read as of now.
           </label>
           <input id="inv-as-of" type="text" value={draftAsOf} placeholder="now" onChange={(e) => setDraftAsOf(e.target.value)} />
         </div>

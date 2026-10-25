@@ -18,7 +18,7 @@ import { useListParams } from '../hooks/useListParams';
 import { useLookups } from '../hooks/useLookups';
 import { TAX_REPORT_CSV_HEADER, taxReportCsvRows } from '../lib/reportExports';
 
-const QUALIFIER = `${DRAFT_TAX_TEXT}. Configurable DEMO assumptions; not a filing and not a compliance claim.`;
+const QUALIFIER = `${DRAFT_TAX_TEXT}. Built on configurable demo assumptions. It is not a filing and not a compliance claim.`;
 
 function DraftBadge() {
   return <span className="badge badge-warn">{DRAFT_TAX_TEXT}</span>;

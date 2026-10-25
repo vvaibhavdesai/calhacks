@@ -459,7 +459,7 @@ export function PoliciesList() {
   ];
   return (
     <>
-      <PageHeader title="Policies" qualifier="Versioned, human-approved rules. A prior case is not a rule; only an ACTIVE version in scope is applied." />
+      <PageHeader title="Policies" qualifier="Versioned, human-approved rules. A prior case is not a rule, and only an active version in scope is ever applied." />
       <IllustrativeNote />
       <BackendGapNote ops={['listPolicies']} />
       <section className="panel" aria-labelledby="pol-heading">

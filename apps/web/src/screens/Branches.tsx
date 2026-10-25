@@ -210,7 +210,7 @@ export function BranchDetail() {
   ];
   return (
     <>
-      <PageHeader title="What-if branch" qualifier="BRANCH — not production">
+      <PageHeader title="What-if branch" qualifier="A branch, never production">
         <Link to="/recorder/branches" className="button button-quiet">
           All branches
         </Link>

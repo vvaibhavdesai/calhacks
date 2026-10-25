@@ -69,7 +69,7 @@ describe('payouts: list, batches and states', () => {
   it('shows server batch totals, every payout with its state and the SIMULATED label', async () => {
     const { transport } = makeServer();
     const { container } = renderApp('/payouts', transport);
-    expect(screen.getAllByRole('note').some((n) => /SIMULATED — no real money moves/.test(n.textContent ?? ''))).toBe(true);
+    expect(screen.getAllByRole('note').some((n) => /Simulated payments/.test(n.textContent ?? ''))).toBe(true);
     const batches = await screen.findByRole('table', { name: /Payout batches/ });
     expect(within(batches).getByText('$9,425.00')).toBeInTheDocument(); // server total, not summed by the UI
     const table = await screen.findByRole('table', { name: /Payouts, page 1/ });
@@ -78,7 +78,7 @@ describe('payouts: list, batches and states', () => {
     expect(within(table).getByText('Confirmed')).toBeInTheDocument();
     expect(within(table).getByText('Finance-lead approval needed')).toBeInTheDocument();
     expect(within(table).getByText('BENEFICIARY CHANGED')).toBeInTheDocument();
-    expect(screen.getAllByText(/ILLUSTRATIVE sample output/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Illustrative sample output/).length).toBeGreaterThan(0);
     expect(await axeViolations(container)).toEqual([]);
   });
 
@@ -378,7 +378,7 @@ describe('suppliers, POs, invoices and supplier payments', () => {
     const { transport } = makeServer();
     const { container } = renderApp('/payables/payments', transport);
     const table = await screen.findByRole('table', { name: /Supplier payments, page 1/ });
-    expect(screen.getAllByRole('note').some((n) => /SIMULATED — no real money moves/.test(n.textContent ?? ''))).toBe(true);
+    expect(screen.getAllByRole('note').some((n) => /Simulated payments/.test(n.textContent ?? ''))).toBe(true);
     expect(within(table).getByText('Submitted')).toBeInTheDocument();
     expect(within(table).getByText('Confirmed')).toBeInTheDocument();
     expect(within(table).getByText('illus_idem_spay_waste_0931')).toBeInTheDocument();

@@ -172,7 +172,7 @@ describe('one-time case resolution', () => {
     renderApp(`/cases/${CASE}`, transport);
     await chooseEmailRateAndReview(user);
     await user.click(screen.getByRole('button', { name: 'Confirm one-time resolution' }));
-    expect(await screen.findByText(/changed while you were reviewing it \(now version 5\)/)).toBeInTheDocument();
+    expect(await screen.findByText(/changed while you were reviewing it, and it is now version 5/)).toBeInTheDocument();
     expect(screen.queryByText(/Server confirmed/)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Confirm one-time resolution' })).not.toBeInTheDocument();
     expect(screen.getByText('version 5')).toBeInTheDocument();

@@ -314,7 +314,7 @@ export function ChallengeNew() {
 
   return (
     <>
-      <PageHeader title="Challenge" qualifier="Superseding evidence → impact preview → explicit correction approval" />
+      <PageHeader title="Challenge" qualifier="Superseding evidence, then an impact preview, then an explicit approval." />
       <RecorderTabs />
       <IllustrativeNote />
       <BackendGapNote ops={['listChallenges', 'listSourceDocuments', 'createChallenge']} />
@@ -729,7 +729,7 @@ export function CorrectionDetail() {
 
   return (
     <>
-      <PageHeader title="Correction" qualifier="Server-calculated impact; nothing changes until a human approves and the server confirms." />
+      <PageHeader title="Correction" qualifier="Server-calculated impact. Nothing changes until a human approves and the server confirms." />
       <RecorderTabs />
       <IllustrativeNote />
       <BackendGapNote ops={['getCorrection', 'approveCorrection']} />

@@ -298,7 +298,7 @@ export function CaseDetail() {
                 <span className="badge badge-info">Agent proposal, not an approval</span> {c.proposed_resolution}
               </p>
             ) : (
-              <p className="muted">No proposal: a human must choose.</p>
+              <p className="muted">No proposal. A human must choose.</p>
             )}
           </section>
 
@@ -613,8 +613,8 @@ function CaseDecision({ c, onServerChange }: { c: Case; onServerChange: () => vo
             on <BusinessDate value={c.business_date} />
           </>
         ) : null}
-        . It does <strong>not</strong> create or approve a reusable rule; a similar case later will ask again unless a policy
-        is approved separately.
+        . It does <strong>not</strong> create or approve a reusable rule. A similar case later will ask again unless a
+        policy is approved separately.
       </p>
       {body}
     </section>
@@ -634,13 +634,17 @@ function CaseDecision({ c, onServerChange }: { c: Case; onServerChange: () => vo
   if (!hasCapability(capabilities, c.required_capability)) {
     return wrap(
       <p className="capability-note">
-        Your session does not include the <Code>{c.required_capability}</Code> capability required to resolve this case.
-        The server decides who can act{fixtureId ? '' : '; ask a finance lead'}.
+        Your session does not include the <Code>{c.required_capability}</Code> capability needed to resolve this case. The
+        server decides who can act{fixtureId ? '.' : '. Ask a finance lead.'}
       </p>,
     );
   }
   if (!c.evidence_hash) {
-    return wrap(<p className="capability-note">Decision unavailable: the server did not provide an evidence hash to bind the decision to.</p>);
+    return wrap(
+      <p className="capability-note">
+        Decision unavailable. The server did not provide an evidence hash to bind the decision to.
+      </p>,
+    );
   }
 
   const options = c.resolution_options ?? [];
@@ -652,8 +656,8 @@ function CaseDecision({ c, onServerChange }: { c: Case; onServerChange: () => vo
     <>
       {staleAt !== null ? (
         <p className="command-status is-error" role="alert">
-          This case changed while you were reviewing it (now version {staleAt}). The latest version is shown above; review it
-          and decide again.
+          This case changed while you were reviewing it, and it is now version {staleAt}. The latest version is shown
+          above. Review it and decide again.
         </p>
       ) : null}
       {!prepared ? (

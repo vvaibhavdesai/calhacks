@@ -48,7 +48,7 @@ export const NAV: NavGroup[] = [
         path: '/readiness',
         label: 'Readiness',
         task: 'R1',
-        summary: 'Whether each counterparty is ready to transact: eight deterministic checks, with a recompute.',
+        summary: 'Eight deterministic checks on whether each counterparty is ready to transact.',
         implemented: true,
       },
       { path: '/reconciliation', label: 'Reconciliation', task: 'B04', summary: 'Match groups, variances and reason codes, with evidence.', implemented: true },
@@ -65,7 +65,7 @@ export const NAV: NavGroup[] = [
         label: 'Payouts',
         task: 'B05',
         summary: 'Payout batches, states, gate checks, finance-lead approvals and confirmations.',
-        qualifier: 'SIMULATED money movement',
+        qualifier: 'Simulated money movement',
         implemented: true,
         // No payout has been issued here: a payout exists only once a close
         // releases one, and this festival's settlements were calculated
@@ -75,7 +75,7 @@ export const NAV: NavGroup[] = [
       },
       { path: '/cash', label: 'Cash', task: 'B05', summary: 'Available, pending and reserved cash, obligations, shortfalls and forecast.', implemented: true },
       { path: '/payables', label: 'Suppliers & invoices', task: 'B05', summary: 'Suppliers, purchase orders, invoices and supplier payments.', implemented: true },
-      { path: '/analyst-assistant', label: 'Analyst Assistant', task: 'B05', summary: 'Supplier quote comparison: completeness, cash impact and history, read-only.', implemented: true },
+      { path: '/analyst-assistant', label: 'Analyst Assistant', task: 'B05', summary: 'Supplier quotes compared on completeness, cash impact and history. Read only.', implemented: true },
       { path: '/journal', label: 'Journal', task: 'B05', summary: 'Journal entries, posting rule versions and corrections.', implemented: true },
       {
         path: '/tax',

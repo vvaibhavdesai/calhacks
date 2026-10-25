@@ -59,7 +59,7 @@ export function ReconciliationList() {
   ];
   return (
     <>
-      <PageHeader title="Reconciliation" qualifier="Server match groups. Unexplained variances stay open as cases; nothing is written off here." />
+      <PageHeader title="Reconciliation" qualifier="Server match groups. An unexplained variance stays open as a case, and nothing is written off here." />
       <IllustrativeNote />
       <BackendGapNote ops={['listMatchGroups']} />
       <section className="panel" aria-labelledby="mg-heading">
