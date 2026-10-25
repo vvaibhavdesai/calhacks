@@ -554,6 +554,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/deliveries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record Delivery */
+        post: operations["record_delivery_api_v1_deliveries_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events": {
         parameters: {
             query?: never;
@@ -1069,6 +1086,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/invoices/{invoice_id}/apply-deposit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apply Deposit */
+        post: operations["apply_deposit_api_v1_invoices__invoice_id__apply_deposit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/invoices/{invoice_id}/approve-variance": {
         parameters: {
             query?: never;
@@ -1114,6 +1148,47 @@ export interface paths {
         put?: never;
         /** Pay Invoice */
         post: operations["pay_invoice_api_v1_invoices__invoice_id__pay_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{invoice_id}/payability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Invoice Payability
+         * @description As-of view (TICKET section 5): the agreed/invoiced/deposit/accepted-
+         *     units/max-payable/pending picture for one invoice. `as_of` filters
+         *     which delivery receipts count -- defaults to now if omitted, but a
+         *     caller building a reproducible demo screen should always pass it
+         *     explicitly.
+         */
+        get: operations["invoice_payability_api_v1_invoices__invoice_id__payability_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{invoice_id}/sla-potential-credit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Sla Potential Credit */
+        post: operations["post_sla_potential_credit_api_v1_invoices__invoice_id__sla_potential_credit_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2244,6 +2319,35 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/supplier-comparison": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Supplier Comparison
+         * @description TICKET section 7. Quote amounts come from the imported `supplier_quotes`
+         *     rows (demo-clock-gated by `available_at <= as_of`); the cash-impact
+         *     baseline and supplier history are read directly from the fixture's
+         *     cash_inputs.json/historical_contracts.json -- a labelled synthetic
+         *     comparison, never written to cash_pools/opening_balances/the journal.
+         *     Selection stays undecided here: no winner field, no aggregate score.
+         *
+         *     `as_of` is a full timezone-aware instant (not a bare date): a quote
+         *     available at 09:00 on its release day must not leak into a comparison
+         *     made at, say, 08:00 that same day.
+         */
+        get: operations["supplier_comparison_api_v1_supplier_comparison_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/supplier-payments": {
         parameters: {
             query?: never;
@@ -2253,6 +2357,23 @@ export interface paths {
         };
         /** List Supplier Payments */
         get: operations["list_supplier_payments_api_v1_supplier_payments_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/supplier-quotes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Supplier Quotes */
+        get: operations["list_supplier_quotes_api_v1_supplier_quotes_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2273,6 +2394,40 @@ export interface paths {
         put?: never;
         /** Create Supplier */
         post: operations["create_supplier_api_v1_suppliers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/suppliers/{supplier_id}/deposits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pay Supplier Deposit */
+        post: operations["pay_supplier_deposit_api_v1_suppliers__supplier_id__deposits_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/suppliers/{supplier_id}/quotes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Supplier Quote */
+        post: operations["post_supplier_quote_api_v1_suppliers__supplier_id__quotes_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2456,6 +2611,13 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** ApplyDepositIn */
+        ApplyDepositIn: {
+            /** Amount Cents */
+            amount_cents: number;
+            /** Deposit Id */
+            deposit_id: string;
+        };
         /**
          * ApprovePolicyRequest
          * @description Approve REUSE of the decision this case already made.
@@ -2794,6 +2956,8 @@ export interface components {
             net_cents: number;
             /** Received At */
             received_at?: string | null;
+            /** Resolves Case Id */
+            resolves_case_id?: string | null;
             /** Source Refs */
             source_refs?: unknown[];
             /**
@@ -2842,6 +3006,29 @@ export interface components {
             decision: string;
             /** Note */
             note?: string | null;
+        };
+        /** DeliveryReceiptIn */
+        DeliveryReceiptIn: {
+            /**
+             * Accepted At
+             * Format: date-time
+             */
+            accepted_at: string;
+            /**
+             * Available At
+             * Format: date-time
+             */
+            available_at: string;
+            /** Line No */
+            line_no: number;
+            /** Po Id */
+            po_id: string;
+            /** Quantity */
+            quantity: number;
+            /** Receipt Key */
+            receipt_key: string;
+            /** Source Refs */
+            source_refs?: unknown[];
         };
         /** DetectConflictsRequest */
         DetectConflictsRequest: {
@@ -3400,6 +3587,8 @@ export interface components {
             amount_cents: number;
             /** Description */
             description?: string | null;
+            /** Lines */
+            lines?: components["schemas"]["PurchaseOrderLineIn"][] | null;
             /**
              * Po Date
              * Format: date
@@ -3413,6 +3602,17 @@ export interface components {
             source_refs?: unknown[];
             /** Supplier Id */
             supplier_id: string;
+        };
+        /** PurchaseOrderLineIn */
+        PurchaseOrderLineIn: {
+            /** Item Code */
+            item_code: string;
+            /** Line No */
+            line_no: number;
+            /** Quantity */
+            quantity: number;
+            /** Unit Price Cents */
+            unit_price_cents: number;
         };
         /** ReasonOut */
         ReasonOut: {
@@ -3729,6 +3929,17 @@ export interface components {
             /** Version */
             version: number;
         };
+        /** SlaPotentialCreditIn */
+        SlaPotentialCreditIn: {
+            /** Clause */
+            clause: string;
+            /** Evidence Refs */
+            evidence_refs?: unknown[];
+            /** Note */
+            note: string;
+            /** Potential Credit Cents */
+            potential_credit_cents: number;
+        };
         /** SlipIn */
         SlipIn: {
             /** Bags */
@@ -3875,6 +4086,27 @@ export interface components {
             /** Vendor Id */
             vendor_id: string;
         };
+        /** SupplierDepositIn */
+        SupplierDepositIn: {
+            /** Amount Cents */
+            amount_cents: number;
+            /** Idempotency Key */
+            idempotency_key: string;
+            /**
+             * Paid At
+             * Format: date-time
+             */
+            paid_at: string;
+            /**
+             * Paid Business Date
+             * Format: date
+             */
+            paid_business_date: string;
+            /** Po Id */
+            po_id?: string | null;
+            /** Source Refs */
+            source_refs?: unknown[];
+        };
         /** SupplierIn */
         SupplierIn: {
             /** Category */
@@ -3923,6 +4155,38 @@ export interface components {
             state: string;
             /** Supplier Id */
             supplier_id: string;
+        };
+        /** SupplierQuoteIn */
+        SupplierQuoteIn: {
+            /**
+             * Available At
+             * Format: date-time
+             */
+            available_at: string;
+            /** Balance Due */
+            balance_due?: string | null;
+            /** Base Cents */
+            base_cents?: number | null;
+            /** Citations */
+            citations?: Record<string, never>;
+            /** Delivery Cents */
+            delivery_cents?: number | null;
+            /** Deposit Cents */
+            deposit_cents?: number | null;
+            /** Deposit Due */
+            deposit_due?: string | null;
+            /** Insurance Evidence */
+            insurance_evidence?: boolean | null;
+            /** Request Key */
+            request_key: string;
+            /** Source Refs */
+            source_refs?: unknown[];
+            /** Supersedes Id */
+            supersedes_id?: string | null;
+            /** Tax Cents */
+            tax_cents?: number | null;
+            /** Version */
+            version: number;
         };
         /** SuspendPolicyRequest */
         SuspendPolicyRequest: {
@@ -5347,6 +5611,39 @@ export interface operations {
             };
         };
     };
+    record_delivery_api_v1_deliveries_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeliveryReceiptIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_events_api_v1_events_get: {
         parameters: {
             query?: {
@@ -6408,6 +6705,41 @@ export interface operations {
             };
         };
     };
+    apply_deposit_api_v1_invoices__invoice_id__apply_deposit_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invoice_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplyDepositIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     approve_variance_api_v1_invoices__invoice_id__approve_variance_post: {
         parameters: {
             query?: never;
@@ -6497,6 +6829,74 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    invoice_payability_api_v1_invoices__invoice_id__payability_get: {
+        parameters: {
+            query?: {
+                as_of?: string | null;
+            };
+            header?: never;
+            path: {
+                invoice_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_sla_potential_credit_api_v1_invoices__invoice_id__sla_potential_credit_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invoice_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SlaPotentialCreditIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8673,6 +9073,38 @@ export interface operations {
             };
         };
     };
+    supplier_comparison_api_v1_supplier_comparison_get: {
+        parameters: {
+            query: {
+                request_key: string;
+                as_of: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_supplier_payments_api_v1_supplier_payments_get: {
         parameters: {
             query?: {
@@ -8695,6 +9127,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SupplierPaymentListOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_supplier_quotes_api_v1_supplier_quotes_get: {
+        parameters: {
+            query?: {
+                supplier_id?: string | null;
+                as_of?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
                 };
             };
             /** @description Validation Error */
@@ -8749,6 +9213,76 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["SupplierIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pay_supplier_deposit_api_v1_suppliers__supplier_id__deposits_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                supplier_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupplierDepositIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_supplier_quote_api_v1_suppliers__supplier_id__quotes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                supplier_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupplierQuoteIn"];
             };
         };
         responses: {
