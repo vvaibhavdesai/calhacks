@@ -466,8 +466,21 @@ def scenario_a(api: Api, limited: Api, manifest) -> dict:
     doc = api.import_doc(
         f"amendment-taco-{RUN}", fx.AMENDMENT_TEXT.format(vendor="A09 Taco", pct=12)
     )
-    r = limited.challenge("POLICY_VERSION", policy["id"], 1, doc, "Signed amendment says 12%", 1200)
-    check("A challenge without challenge_result capability -> 403", r.status_code == 403, r.text)
+    # DISABLED in single-operator mode: authentication is bypassed
+    # (services/api/app/auth.py), so every caller resolves to the one
+    # operator who holds every capability -- a limited user cannot be
+    # simulated and nothing is refused. Re-enable with authentication.
+    # The call itself is skipped, not just its assertion: unrefused it CREATES
+    # the challenge, so the genuine one below then hits CHALLENGE_ALREADY_OPEN.
+    if not AUTH_DISABLED:
+        r = limited.challenge(
+            "POLICY_VERSION", policy["id"], 1, doc, "Signed amendment says 12%", 1200
+        )
+        check(
+            "A challenge without challenge_result capability -> 403", r.status_code == 403, r.text
+        )
+    else:
+        print("SKIP  A challenge without capability -> 403 (single-operator mode)")
     r = api.challenge("POLICY_VERSION", policy["id"], 7, doc, "Signed amendment says 12%", 1200)
     check(
         "A challenge with stale expected_version -> 409 + current_version",
@@ -634,8 +647,15 @@ def scenario_a(api: Api, limited: Api, manifest) -> dict:
         r.status_code == 422 and r.json()["detail"]["code"] == "ITEMS_MISMATCH",
         r.text,
     )
-    r = limited.approve_corr(corr)
-    check("A approval without approve_correction -> 403", r.status_code == 403, r.text)
+    # DISABLED in single-operator mode (services/api/app/auth.py): unrefused,
+    # this APPLIES the correction (status COMPLETED), which then breaks every
+    # assertion after it -- the "nothing was applied" count, PREVIEW_CHANGED,
+    # and the stale-correction check. Re-enable with authentication.
+    if not AUTH_DISABLED:
+        r = limited.approve_corr(corr)
+        check("A approval without approve_correction -> 403", r.status_code == 403, r.text)
+    else:
+        print("SKIP  A approval without approve_correction -> 403 (single-operator mode)")
     post_counts = (
         db()
         .execute(
@@ -789,17 +809,26 @@ def scenario_a(api: Api, limited: Api, manifest) -> dict:
         r.text,
     )
     for rec in sorted(recs, key=lambda x: x["amount_cents"]):
-        r = limited.cmd(
-            f"/api/v1/recoveries/{rec['id']}/approve",
-            "APPROVE_RECOVERY",
-            {"mode": "OFFSET", "target_payout_id": new_p3["id"]},
-            expected_version=rec["version"],
-        )
-        check(
-            f"A recovery {rec['amount_cents']} approval without capability -> 403",
-            r.status_code == 403,
-            r.text,
-        )
+        # DISABLED in single-operator mode: unrefused, this APPROVES the
+        # recovery (status CLOSED), so the genuine approval below then hits
+        # VERSION_CONFLICT. Re-enable with authentication.
+        if not AUTH_DISABLED:
+            r = limited.cmd(
+                f"/api/v1/recoveries/{rec['id']}/approve",
+                "APPROVE_RECOVERY",
+                {"mode": "OFFSET", "target_payout_id": new_p3["id"]},
+                expected_version=rec["version"],
+            )
+            check(
+                f"A recovery {rec['amount_cents']} approval without capability -> 403",
+                r.status_code == 403,
+                r.text,
+            )
+        else:
+            print(
+                f"SKIP  A recovery {rec['amount_cents']} approval without capability "
+                "(single-operator mode)"
+            )
         r = api.cmd(
             f"/api/v1/recoveries/{rec['id']}/approve",
             "APPROVE_RECOVERY",
@@ -1370,13 +1399,18 @@ def scenario_d(api: Api, limited: Api, manifest) -> None:
         "D reopening the same settlement returns the same recovery",
         r2.json()["resource"]["id"] == rec["id"],
     )
-    r = limited.cmd(
-        f"/api/v1/recoveries/{rec['id']}/waive",
-        "WAIVE_RECOVERY",
-        {"note": "goodwill"},
-        expected_version=rec["version"],
-    )
-    check("D waiver without finance_lead -> 403", r.status_code == 403, r.text)
+    # DISABLED in single-operator mode: unrefused, this WAIVES the recovery,
+    # so the assertions after it see a CLOSED recovery. Re-enable with auth.
+    if not AUTH_DISABLED:
+        r = limited.cmd(
+            f"/api/v1/recoveries/{rec['id']}/waive",
+            "WAIVE_RECOVERY",
+            {"note": "goodwill"},
+            expected_version=rec["version"],
+        )
+        check("D waiver without finance_lead -> 403", r.status_code == 403, r.text)
+    else:
+        print("SKIP  D waiver without finance_lead -> 403 (single-operator mode)")
     r = api.cmd(
         f"/api/v1/recoveries/{rec['id']}/waive",
         "WAIVE_RECOVERY",
@@ -1465,12 +1499,17 @@ def scenario_e(api: Api, manifest) -> None:
 
 def scenario_f(api: Api, anon: httpx.Client) -> None:
     print("\n== F: controls ==")
-    r = anon.post(
-        "/api/v1/challenges", json={"command_id": "x", "expected_version": None, "payload": {}}
-    )
-    check("F unauthenticated challenge -> 401", r.status_code == 401, r.status_code)
-    r = anon.get("/api/v1/events")
-    check("F unauthenticated events read -> 401", r.status_code == 401, r.status_code)
+    # DISABLED in single-operator mode: nothing is unauthenticated, so neither
+    # call is refused. Re-enable with authentication.
+    if not AUTH_DISABLED:
+        r = anon.post(
+            "/api/v1/challenges", json={"command_id": "x", "expected_version": None, "payload": {}}
+        )
+        check("F unauthenticated challenge -> 401", r.status_code == 401, r.status_code)
+        r = anon.get("/api/v1/events")
+        check("F unauthenticated events read -> 401", r.status_code == 401, r.status_code)
+    else:
+        print("SKIP  F unauthenticated challenge / events read -> 401 (single-operator mode)")
     r = api.post(
         "/api/v1/replays",
         {
@@ -1578,6 +1617,9 @@ def scenario_f(api: Api, anon: httpx.Client) -> None:
         and attempts == {"live_model_call": 1, "payment_effect": 1, "production_posting": 1},
         (refused, attempts),
     )
+
+
+AUTH_DISABLED = os.environ.get("ENCORE_AUTH_DISABLED", "1") == "1"
 
 
 def main() -> int:

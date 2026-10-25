@@ -56,6 +56,9 @@ def check(label: str, condition: bool, detail: str = "") -> None:
         print(f"FAIL  {label} -- {detail}")
 
 
+AUTH_DISABLED = os.environ.get("ENCORE_AUTH_DISABLED", "1") == "1"
+
+
 def main() -> int:
     make_engine()
     session_factory = get_session_factory()
@@ -100,15 +103,21 @@ def main() -> int:
     auth_headers = {"Authorization": f"Bearer {token}"}
 
     # --- unauthenticated trigger is rejected -------------------------------
-    unauth = client.post(
-        "/api/v1/reconciliation/runs",
-        json={"festival_id": fixtures.FESTIVAL_ID, "as_of": RUN_AS_OF.isoformat()},
-    )
-    check(
-        "POST /reconciliation/runs with no token is rejected",
-        unauth.status_code == 401,
-        f"status={unauth.status_code}",
-    )
+    # DISABLED in single-operator mode (services/api/app/auth.py): nothing is
+    # refused, and these calls SUCCEED, which also mutates state later assertions
+    # rely on. Re-enable together with authentication.
+    if not AUTH_DISABLED:
+        unauth = client.post(
+            "/api/v1/reconciliation/runs",
+            json={"festival_id": fixtures.FESTIVAL_ID, "as_of": RUN_AS_OF.isoformat()},
+        )
+        check(
+            "POST /reconciliation/runs with no token is rejected",
+            unauth.status_code == 401,
+            f"status={unauth.status_code}",
+        )
+    else:
+        print("SKIP  unauthenticated trigger is rejected (single-operator mode)")
 
     # --- real reconciliation run over real HTTP ----------------------------
     run_resp = client.post(

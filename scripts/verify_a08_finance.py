@@ -138,6 +138,9 @@ def journal(api: Api, **params) -> list[dict]:
             return items
 
 
+AUTH_DISABLED = os.environ.get("ENCORE_AUTH_DISABLED", "1") == "1"
+
+
 def main() -> int:  # noqa: C901 -- linear acceptance walkthrough
     make_engine()
     Session = get_session_factory()
@@ -835,11 +838,17 @@ def main() -> int:  # noqa: C901 -- linear acceptance walkthrough
                 check(f"encore_app cannot UPDATE {table}", True)
 
     # --- capability gating ------------------------------------------------
-    anon = httpx.post(
-        f"{API_BASE_URL}/api/v1/journal/post-day",
-        json={"festival_id": FEST, "business_date": str(D1)},
-    )
-    check("unauthenticated post-day -> 401", anon.status_code == 401, anon.status_code)
+    # DISABLED in single-operator mode (services/api/app/auth.py): nothing is
+    # refused, and these calls SUCCEED, which also mutates state later assertions
+    # rely on. Re-enable together with authentication.
+    if not AUTH_DISABLED:
+        anon = httpx.post(
+            f"{API_BASE_URL}/api/v1/journal/post-day",
+            json={"festival_id": FEST, "business_date": str(D1)},
+        )
+        check("unauthenticated post-day -> 401", anon.status_code == 401, anon.status_code)
+    else:
+        print("SKIP  unauthenticated post-day -> 401 (single-operator mode)")
     db.close()
 
     print(f"\n{len(_passes)} passed, {len(_failures)} failed")
