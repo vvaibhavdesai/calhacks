@@ -714,6 +714,33 @@ paths:
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+  /supplier-comparison:
+    get:
+      tags: [proposals]
+      summary: >-
+        Quote amounts from the imported supplier_quotes rows (demo-clock
+        gated by available_at), a synthetic cash-impact baseline and
+        supplier history read from the fixture pack. No winner field, no
+        aggregate score -- selection stays undecided.
+      operationId: getSupplierComparison
+      parameters:
+        - name: request_key
+          in: query
+          required: true
+          schema: { type: string }
+        - name: as_of
+          in: query
+          required: true
+          description: Timezone-aware instant, not a bare date.
+          schema: { type: string, format: date-time }
+      responses:
+        '200':
+          description: Supplier comparison as of the given instant.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SupplierComparison' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
   /supplier-payments:
     get:
       tags: [proposals]
@@ -2430,6 +2457,67 @@ components:
         pending_evidence_cents: { $ref: '#/components/schemas/MoneyCents' }
         outstanding_cents: { $ref: '#/components/schemas/MoneyCents' }
         has_delivery_limit: { type: boolean }
+    SupplierComparisonQuote:
+      type: object
+      required:
+        - supplier_id
+        - quote_id
+        - version
+        - supersedes_id
+        - complete
+        - missing_requirements
+        - complete_quote_cents
+        - deposit_cents
+        - deposit_due
+        - balance_due
+        - cash_impact_synthetic
+        - history_label
+        - history_variance_bps
+        - history_approved_scope_changes_cents
+        - history_variance_vs_revised_budget_cents
+        - history_otif
+        - history_caveat
+      properties:
+        supplier_id: { type: string }
+        quote_id: { type: string }
+        version: { type: integer, minimum: 1 }
+        supersedes_id: { type: [string, 'null'] }
+        complete: { type: boolean }
+        missing_requirements: { type: array, items: { type: string } }
+        complete_quote_cents: { anyOf: [{ $ref: '#/components/schemas/MoneyCents' }, { type: 'null' }] }
+        deposit_cents: { anyOf: [{ $ref: '#/components/schemas/MoneyCents' }, { type: 'null' }] }
+        deposit_due: { type: [string, 'null'] }
+        balance_due: { type: [string, 'null'] }
+        cash_impact_synthetic:
+          anyOf:
+            - type: object
+              required: [minimum_closing_cents, first_breach_date, buffer_gap_cents]
+              properties:
+                minimum_closing_cents: { $ref: '#/components/schemas/MoneyCents' }
+                first_breach_date: { type: [string, 'null'] }
+                buffer_gap_cents: { $ref: '#/components/schemas/MoneyCents' }
+            - type: 'null'
+        history_label: { type: string, enum: [has_history, no_history] }
+        history_variance_bps: { type: [integer, 'null'] }
+        history_approved_scope_changes_cents: { anyOf: [{ $ref: '#/components/schemas/MoneyCents' }, { type: 'null' }] }
+        history_variance_vs_revised_budget_cents: { anyOf: [{ $ref: '#/components/schemas/MoneyCents' }, { type: 'null' }] }
+        history_otif: { type: [string, 'null'] }
+        history_caveat: { type: [string, 'null'] }
+    SupplierComparison:
+      type: object
+      description: >-
+        TICKET section 7. A labelled synthetic comparison: cash_baseline_note
+        is the backend's own disclaimer, not optional framing, and
+        selection/no_automatic_winner are always undecided/true here --
+        this endpoint never picks a supplier.
+      required: [request_key, as_of, cash_baseline_note, selection, no_automatic_winner, quotes]
+      properties:
+        request_key: { type: string }
+        as_of: { type: string, format: date-time }
+        cash_baseline_note: { type: string }
+        selection: { type: string, enum: [undecided] }
+        no_automatic_winner: { type: boolean }
+        quotes: { type: array, items: { $ref: '#/components/schemas/SupplierComparisonQuote' } }
     SupplierPayment:
       type: object
       x-encore-proposal: Q41

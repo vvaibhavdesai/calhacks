@@ -6,6 +6,7 @@ import { CaseDetail, CasesList } from '../screens/Cases';
 import { CashScreen } from '../screens/Cash';
 import { JournalDetail, JournalList } from '../screens/Journal';
 import { InvoiceDetail, PayablesScreen } from '../screens/Payables';
+import { AnalystAssistant } from '../screens/AnalystAssistant';
 import { PayoutDetail, PayoutsList } from '../screens/Payouts';
 import { PayoutTrace } from '../screens/PayoutTrace';
 import { BranchDetail, BranchesScreen } from '../screens/Branches';
@@ -71,6 +72,7 @@ export const routes: RouteObject[] = [
       { path: 'payables/invoices', element: <PayablesScreen key="inv" tab="invoices" /> },
       { path: 'payables/payments', element: <PayablesScreen key="pay" tab="payments" /> },
       { path: 'payables/invoices/:invoiceId', element: <InvoiceDetail /> },
+      { path: 'analyst-assistant', element: <AnalystAssistant /> },
       { path: 'journal', element: <JournalList /> },
       { path: 'journal/:entryId', element: <JournalDetail /> },
       { path: 'tax', element: <TaxList /> },

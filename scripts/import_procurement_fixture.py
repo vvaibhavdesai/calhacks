@@ -142,6 +142,7 @@ def main() -> int:
 
     # Quotes (gated individually by each quote's own available_at).
     quotes = _load("quotes")
+    quotes_by_fixture_id: dict[str, str] = {}
     for q in quotes:
         avail = _ts(source_index[q["id"]]["available_at"])
         if avail > through:
@@ -149,7 +150,7 @@ def main() -> int:
         sup_id = suppliers_by_fixture_id.get(q["supplier_id"])
         if sup_id is None:
             continue
-        imp.call(
+        result = imp.call(
             "POST",
             f"/suppliers/{sup_id}/quotes",
             {
@@ -165,8 +166,17 @@ def main() -> int:
                 "insurance_evidence": q["insurance_evidence"],
                 "citations": q.get("citations", {}),
                 "source_refs": [],
+                # Fixture dict has e.g. "supersedes": "q_b_v1" -- a fixture
+                # native id, not a real row id, so it only resolves once
+                # that earlier quote has itself already been imported in
+                # this same loop (quotes.json's own order, and the
+                # available_at gate above, both already guarantee that).
+                "supersedes_id": quotes_by_fixture_id.get(q["supersedes"])
+                if q.get("supersedes")
+                else None,
             },
         )
+        quotes_by_fixture_id[q["id"]] = result["id"]
     print("quotes imported")
 
     contract_avail = _ts(source_index["contract_b_demo"]["available_at"])
