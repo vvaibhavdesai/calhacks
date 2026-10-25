@@ -29,7 +29,7 @@ Duplicate detection:
 
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 
 from domain import accounting as acct
 from domain import payables as rules
@@ -59,7 +59,13 @@ from app.uow import UnitOfWork
 # never stop payment of the delivery-supported/undisputed amount -- only
 # the existing duplicate/PO-variance reasons do that.
 BLOCKING_CASE_REASONS = ("POSSIBLE_DUPLICATE_SUPPLIER_INVOICE", "INVOICE_EXCEEDS_PO")
-NON_BLOCKING_INVOICE_CASE_REASONS = ("DELIVERY_SHORTFALL", "SLA_POTENTIAL_CREDIT")
+NON_BLOCKING_INVOICE_CASE_REASONS = ("DELIVERY_SHORTFALL", "SLA_POTENTIAL_CREDIT", "DUPLICATE_SUSPECTED")
+# S6: same supplier + same total within this many days (either direction),
+# on a DIFFERENT invoice_date than any exact match (same-date is already
+# POSSIBLE_DUPLICATE_SUPPLIER_INVOICE, above, and blocking) -- a softer,
+# non-blocking suspicion that a human must look at but that never itself
+# stops payment, and is never auto-rejected by any code path.
+DUPLICATE_SUSPECTED_WINDOW_DAYS = 7
 
 
 class PayablesNotFoundError(LookupError):
@@ -221,13 +227,18 @@ def create_purchase_order(
     actor_id: str,
     actor_capability: str,
     lines: list[dict] | None = None,
+    partial_payment_allowed: bool = True,
 ) -> tuple[PurchaseOrder, bool]:
     """`lines` is optional: a PO created without it (every PO before this
     feature) behaves exactly as before -- no delivery-supported payment
     limit applies to its invoices (domain.payables.check_payment's
     `delivery_supported_cents` stays None). Each line dict:
     {"line_no", "item_code", "quantity", "unit_price_cents"}; their
-    `quantity * unit_price_cents` must sum to `amount_cents`."""
+    `quantity * unit_price_cents` must sum to `amount_cents`.
+
+    `partial_payment_allowed` (S3) defaults True, matching every PO before
+    this feature: a disputed/undelivered remainder holds only that
+    portion. False holds the whole invoice until fully delivered."""
     supplier = db.get(Supplier, supplier_id)
     if supplier is None:
         raise PayablesNotFoundError(f"supplier {supplier_id} not found")
@@ -261,6 +272,7 @@ def create_purchase_order(
         description=description,
         receipt_evidence_refs=receipt_evidence_refs,
         source_refs=source_refs,
+        partial_payment_allowed=partial_payment_allowed,
     )
     db.add(po)
     db.flush()
@@ -457,12 +469,18 @@ def record_delivery_receipt(
     source_refs: list,
     actor_id: str,
     actor_capability: str,
+    accepted_by: str | None = None,
 ) -> tuple[DeliveryReceipt, bool]:
     """Idempotent on `receipt_key` (unique). Refuses (`over_receipt`) if
     recording this receipt would make the line's total received exceed its
     ordered quantity. Locks the PO row (via its line's `po_id`) for the
     duration of the over-receipt check and the shortfall recompute that
-    follows -- not held by `pay_invoice`, which never locks the PO."""
+    follows -- not held by `pay_invoice`, which never locks the PO.
+
+    `accepted_by` (S1) is the user who accepted the delivery, when known;
+    defaults to None (unset), never guessed -- it is separate from
+    `actor_id`/`actor_capability` above, which record who called this API
+    (often an importer or agent), not who physically accepted the goods."""
     existing = db.execute(
         select(DeliveryReceipt).where(DeliveryReceipt.receipt_key == receipt_key)
     ).scalar_one_or_none()
@@ -497,6 +515,7 @@ def record_delivery_receipt(
         available_at=available_at,
         receipt_key=receipt_key,
         source_refs=source_refs,
+        accepted_by=accepted_by,
     )
     db.add(receipt)
     db.flush()
@@ -871,6 +890,43 @@ def record_invoice(
                 cap=CAPABILITY_RESOLVE_CASE,
             )
         )
+    else:
+        # S6 DUPLICATE_SUSPECTED: same supplier + same total within
+        # DUPLICATE_SUSPECTED_WINDOW_DAYS, on a DIFFERENT date (the
+        # same-date case above already caught it as the stronger,
+        # blocking POSSIBLE_DUPLICATE_SUPPLIER_INVOICE -- this is only
+        # reached when that one did NOT fire). Non-blocking: visible to a
+        # human, never itself stops payment, never auto-rejected.
+        window_start = invoice_date - timedelta(days=DUPLICATE_SUSPECTED_WINDOW_DAYS)
+        window_end = invoice_date + timedelta(days=DUPLICATE_SUSPECTED_WINDOW_DAYS)
+        suspected = db.execute(
+            select(SupplierInvoice.id).where(
+                SupplierInvoice.supplier_id == supplier_id,
+                SupplierInvoice.kind == "INVOICE",
+                SupplierInvoice.id != inv.id,
+                SupplierInvoice.gross_cents == gross_cents,
+                SupplierInvoice.invoice_date != invoice_date,
+                SupplierInvoice.invoice_date >= window_start,
+                SupplierInvoice.invoice_date <= window_end,
+            )
+        ).first()
+        if suspected is not None:
+            cases.append(
+                _open_case(
+                    db,
+                    reason_code="DUPLICATE_SUSPECTED",
+                    invoice=inv,
+                    evidence=[_invoice_ref(suspected[0])],
+                    impact=gross_cents,
+                    proposed=(
+                        "Same supplier and total as another invoice within "
+                        f"{DUPLICATE_SUSPECTED_WINDOW_DAYS} days, different invoice date: "
+                        "not blocked, a human confirms whether this is a genuine duplicate."
+                    ),
+                    cap=CAPABILITY_RESOLVE_CASE,
+                    blocking=False,
+                )
+            )
 
     if po is not None:
         _recompute_po(db, po, actor_id=actor_id)
@@ -1120,8 +1176,16 @@ def pay_invoice(
     # not also take the PO lock or the two could deadlock against each
     # other under concurrency.
     delivery_supported = None
+    partial_payment_allowed = True
     if inv.po_refs:
         delivery_supported = delivery_supported_cents_for_po(db, inv.po_refs[0])
+        # Unlocked read, same rationale as delivery_supported_cents_for_po
+        # above: pay_invoice never takes the PO lock (see lock-order note
+        # above), and this flag is set once at PO creation, not something
+        # that races meaningfully under concurrent payment attempts.
+        po = db.get(PurchaseOrder, inv.po_refs[0])
+        if po is not None:
+            partial_payment_allowed = po.partial_payment_allowed
     try:
         rules.check_payment(
             _balance(inv),
@@ -1130,6 +1194,7 @@ def pay_invoice(
             variance_approved=inv.variance_approved_at is not None,
             is_credit_note=inv.kind == "CREDIT_NOTE",
             delivery_supported_cents=delivery_supported,
+            partial_payment_allowed=partial_payment_allowed,
         )
     except rules.PaymentRefused as exc:
         details = dict(exc.details)

@@ -20,14 +20,27 @@ from __future__ import annotations
 # action -> required capability code. Keep in sync with
 # app.models.ALL_CAPABILITY_CODES by hand (this package stays DB/FastAPI-
 # free; see domain.case_routing's docstring for why it can't just import
-# app.models). Each of these five is a literal capability named in
-# TICKET_SPEC.md's X0.1 section.
+# app.models). The first five are literal capabilities named in
+# TICKET_SPEC.md's X0.1 section; the last two (S4 gap closure, added
+# consolidating analyst-assistant with prevention-extension) reuse
+# approve_invoice_exception's capability rather than inventing new ones --
+# see the comment on them below for why.
 ACTION_CAPABILITY: dict[str, str] = {
     "approve_interpretation": "approve_interpretation",
     "record_amendment": "record_amendment",
     "approve_invoice_exception": "approve_invoice_exception",
     "release_supplier_payment": "release_supplier_payment",
     "acknowledge_forecast": "acknowledge_forecast",
+    # S4's other two named decisions on a supplier_invoice exception case
+    # (the spec's third, "accept variance", is approve_invoice_exception
+    # above). Same capability as that one -- all three are the SAME kind
+    # of act (deciding what to do about an exception case), not three
+    # different privilege levels; same precedent as A05's resolve_case
+    # covering approve/edit/reject with one capability. Deliberately NOT
+    # record_amendment/acknowledge_forecast's capabilities, which gate
+    # unrelated subject types.
+    "dispute_invoice_exception": "approve_invoice_exception",
+    "request_invoice_credit": "approve_invoice_exception",
 }
 
 # action -> the subject_type(s) it is legal to record it against. A
@@ -41,6 +54,8 @@ ACTION_SUBJECT_TYPES: dict[str, tuple[str, ...]] = {
     "approve_invoice_exception": ("supplier_invoice",),
     "release_supplier_payment": ("supplier_invoice",),
     "acknowledge_forecast": ("forecast_snapshot",),
+    "dispute_invoice_exception": ("supplier_invoice",),
+    "request_invoice_credit": ("supplier_invoice",),
 }
 
 KNOWN_ACTIONS: tuple[str, ...] = tuple(ACTION_CAPABILITY)

@@ -161,6 +161,10 @@ class PurchaseOrderIn(BaseModel):
     receipt_evidence_refs: list = Field(default_factory=list)
     source_refs: list = Field(default_factory=list)
     lines: list[PurchaseOrderLineIn] | None = None
+    # S3: True (default, every PO before this) holds only a disputed
+    # remainder's payment; False holds the whole invoice until fully
+    # delivered.
+    partial_payment_allowed: bool = True
 
 
 @router.post("/purchase-orders", status_code=201)
@@ -188,6 +192,7 @@ def create_purchase_order(
         "po_number": po.po_number,
         "amount_cents": po.amount_cents,
         "created": created,
+        "partial_payment_allowed": po.partial_payment_allowed,
         "lines": [
             {
                 "id": line_.id,
@@ -219,6 +224,7 @@ def list_purchase_orders(
                 "invoiced_cents": payables._po_invoiced_cents(db, p.id),
                 "receipt_evidence_refs": p.receipt_evidence_refs,
                 "source_refs": p.source_refs,
+                "partial_payment_allowed": p.partial_payment_allowed,
             }
             for p in rows
         ],
@@ -498,6 +504,10 @@ class DeliveryReceiptIn(BaseModel):
     available_at: datetime
     receipt_key: str
     source_refs: list = Field(default_factory=list)
+    # S1: who physically accepted the delivery, when known/distinct from
+    # the authenticated API caller (`user.id` below). None (unset) if not
+    # given -- never guessed.
+    accepted_by: str | None = None
 
 
 @router.post("/deliveries", status_code=201)
@@ -525,6 +535,7 @@ def record_delivery(
             source_refs=body.source_refs,
             actor_id=user.id,
             actor_capability=CAPABILITY_MANAGE_PAYABLES,
+            accepted_by=body.accepted_by,
         )
     except _DOMAIN_ERRORS as exc:
         raise _err(exc) from exc
@@ -534,6 +545,7 @@ def record_delivery(
         "po_line_id": receipt.po_line_id,
         "quantity": receipt.quantity,
         "receipt_key": receipt.receipt_key,
+        "accepted_by": receipt.accepted_by,
         "created": created,
     }
 

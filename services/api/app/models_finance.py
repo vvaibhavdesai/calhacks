@@ -135,6 +135,12 @@ class PurchaseOrder(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+    # --- S3 additive column (migration 0018) --- True (default, every PO
+    # before this) holds only the disputed portion of an invoice against
+    # this PO -- today's verified delivery-supported-payment-limit
+    # behavior. False holds the WHOLE invoice until fully delivered; see
+    # domain.payables.check_payment's partial_payment_allowed guard.
+    partial_payment_allowed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
 
 class SupplierPayment(Base):
@@ -539,6 +545,13 @@ class DeliveryReceipt(Base):
     source_refs: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
     recorded_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    # --- S1 additive column (migration 0018): who accepted this delivery,
+    # when known. Nullable: every receipt recorded before this column
+    # existed, and any receipt imported from a source with no named
+    # acceptor, leaves it unset rather than guessing. ---
+    accepted_by: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
 
 

@@ -89,6 +89,7 @@ def check_payment(
     variance_approved: bool,
     is_credit_note: bool,
     delivery_supported_cents: int | None = None,
+    partial_payment_allowed: bool = True,
 ) -> None:
     """Raises PaymentRefused unless paying `amount_cents` now is allowed.
     The caller must hold the invoice row lock, so `balance` is current and
@@ -97,6 +98,14 @@ def check_payment(
 
     `delivery_supported_cents` is None when the invoice's PO has no lines
     (every PO before this feature) -- no delivery-based limit applies.
+
+    `partial_payment_allowed` (S3's contract flag, default True -- every
+    PO before this feature behaves exactly as before): when False and
+    there is any undelivered/disputed amount at all, the WHOLE invoice is
+    held, not just the disputed portion -- even an amount that would
+    otherwise be within `delivery_supported_cents` is refused. Checked
+    before the delivery-supported cap below, since it is a stricter,
+    all-or-nothing version of the same rule.
     When it IS given, this is the LAST check, after everything else
     passes: paid + deposit_applied + amount may not exceed it."""
     if is_credit_note:
@@ -116,6 +125,18 @@ def check_payment(
             "amount_exceeds_outstanding",
             {"amount_cents": amount_cents, "outstanding_cents": balance.outstanding_cents},
         )
+    if delivery_supported_cents is not None and not partial_payment_allowed:
+        disputed_remaining = max(
+            balance.gross_cents - balance.credited_cents - delivery_supported_cents, 0
+        )
+        if disputed_remaining > 0:
+            raise PaymentRefused(
+                "invoice_fully_held_partial_payment_not_allowed",
+                {
+                    "delivery_supported_cents": delivery_supported_cents,
+                    "disputed_remaining_cents": disputed_remaining,
+                },
+            )
     if delivery_supported_cents is not None:
         settled = balance.paid_cents + balance.deposit_applied_cents
         if settled + amount_cents > delivery_supported_cents:
