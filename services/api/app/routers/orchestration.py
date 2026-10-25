@@ -95,6 +95,178 @@ class ResumeIn(BaseModel):
     command_id: str | None = Field(None, max_length=64)
 
 
+# Instants below are `str` because the handlers emit `.isoformat()`; a
+# `datetime` field would make pydantic rewrite the `+00:00` offset as `Z`.
+
+
+class RunRecordOut(BaseModel):
+    """One orchestration run, as `_run_out` builds it."""
+
+    # `run_id` is the name A06's callers and status URLs use; `id` is the name
+    # every other record in the API exposes. Both are sent.
+    id: str
+    run_id: str
+    festival_id: str
+    business_date: str
+    is_final_period: bool
+    status: str
+    graph_version: str
+    max_concurrency: int
+    explain_cases: bool
+    budget_usd: float
+    spent_usd: float
+    reserved_usd: float
+    needs_work: bool
+    # Both null while no worker holds the run.
+    lease_owner: str | None
+    lease_expires_at: str | None
+    claim_count: int
+    last_error: str | None
+    requested_by: str | None
+    version: int
+    created_at: str | None
+    started_at: str | None
+    completed_at: str | None
+    status_url: str
+
+
+class RunOut(RunRecordOut):
+    # Added by the reads, which count the run's vendors; `_run_out` leaves it
+    # out when no summary was computed (the start-run reply).
+    vendor_summary: RunVendorSummaryOut
+
+
+class RunListOut(BaseModel):
+    items: list[RunOut]
+    # Always null: a festival's runs are a page, not a stream.
+    next_cursor: str | None
+
+
+class VendorGraphStateOut(BaseModel):
+    """A vendor's raw graph row, as `_vendor_out` builds it."""
+
+    vendor_id: str
+    thread_id: str
+    milestone: str | None
+    status: str
+    # NOT an instant, despite the name: the MILESTONE the vendor was held at
+    # (a String(30) column). Null when the vendor is not held.
+    held_at: str | None
+    # Raw node output -- one entry per reason, with keys that differ by
+    # reason (`required_capability` and `amount_cents` for an approval hold,
+    # `case_id` for a case hold). GET /runs/{id}/vendors renders these as
+    # Hold records instead; this is the unrendered form.
+    hold_reasons: list[dict]
+    settlement_id: str | None
+    payout_id: str | None
+    statement_id: str | None
+    last_error: str | None
+    retryable: bool
+    version: int
+    updated_at: str | None
+
+
+class RunDetailOut(RunOut):
+    # The raw graph status tally this endpoint has always returned, keyed by
+    # whatever statuses occurred -- so an open map, unlike `vendor_summary`.
+    vendor_counts: dict[str, int]
+    vendors: list[VendorGraphStateOut]
+    vendor_runs: list[VendorRunOut]
+
+
+class CaseExplanationOut(BaseModel):
+    """An AI-proposed explanation of why a case is open. Never a decision."""
+
+    id: str
+    attempt: int
+    status: str
+    retryable: bool
+    error: str | None
+    model_requested: str
+    model_served: str | None
+    prompt_version: str
+    # Withheld unless the attempt SUCCEEDED, so a failed run cannot show a
+    # partial explanation as if it were the answer.
+    explanation: str | None
+    citations: list | None
+    label: str
+
+
+class VendorCaseOut(BaseModel):
+    case_id: str
+    status: str
+    reason_code: str
+    financial_impact_cents: int
+    explanations: list[CaseExplanationOut]
+
+
+class VendorCommandOut(BaseModel):
+    command_id: str
+    kind: str
+    status: str
+    actor_id: str | None
+
+
+class VendorDetailOut(VendorGraphStateOut):
+    run_id: str
+    # Workflow position from the LangGraph checkpoint. Null when the
+    # checkpointer is unreachable, `{"started": false}` before the graph has
+    # run, and the full position after -- three different shapes, so it stays
+    # an open object.
+    checkpoint: dict | None
+    cases: list[VendorCaseOut]
+    commands: list[VendorCommandOut]
+
+
+class RunEventOut(BaseModel):
+    event_id: str
+    stream_id: str
+    sequence: int
+    event_type: str
+    vendor_id: str | None
+    actor_id: str | None
+    actor_type: str
+    actor_capability: str | None
+    command_id: str | None
+    recorded_at: str | None
+    # Null for an event recorded before version stamping.
+    versions: dict | None
+    # Event-type specific; modelling its keys would drop the ones a model
+    # did not anticipate.
+    payload: dict
+    hash: str
+
+
+class RunEventListOut(BaseModel):
+    items: list[RunEventOut]
+    next_cursor: str | None
+
+
+class StartRunOut(RunRecordOut):
+    """The start-run reply: the C03 long-job envelope plus the run itself.
+
+    The job IS the run here -- there is no separate job record -- so the
+    run's id and status URL are repeated under the names a command client
+    follows. Sent 202 when the run was created and 200 on an idempotent
+    replay, and the handler returns a JSONResponse, so nothing below is
+    filtered: this model documents the body rather than shaping it."""
+
+    command_id: str
+    created: bool
+    job_id: str
+
+
+class ResumeOut(BaseModel):
+    """The resume reply (202 created, 200 on idempotent replay). Also a
+    JSONResponse, so this documents rather than shapes the body."""
+
+    command_id: str
+    kind: str
+    status: str
+    created: bool
+    status_url: str
+
+
 def _command_id(body_id: str | None, header_id: str | None) -> str:
     """The command's identity, from the body or the Idempotency-Key header.
 
@@ -251,7 +423,7 @@ def _vendor_out(v: OrchestrationVendorRun) -> dict:
     }
 
 
-@router.post("/runs", status_code=202)
+@router.post("/runs", status_code=202, response_model=StartRunOut)
 def start_run(
     raw: dict = Body(...),
     idempotency_key: str | None = Header(None, alias="Idempotency-Key"),
@@ -313,7 +485,7 @@ def start_run(
     )
 
 
-@router.get("/runs")
+@router.get("/runs", response_model=RunListOut)
 def list_runs(
     festival_id: str | None = None,
     db: Session = Depends(get_db),
@@ -344,7 +516,7 @@ def list_runs(
     }
 
 
-@router.get("/runs/{run_id}")
+@router.get("/runs/{run_id}", response_model=RunDetailOut)
 def get_run(
     run_id: str,
     db: Session = Depends(get_db),
@@ -429,7 +601,7 @@ def _checkpoint_view(thread_id: str) -> dict | None:
     }
 
 
-@router.get("/runs/{run_id}/vendors/{vendor_id}")
+@router.get("/runs/{run_id}/vendors/{vendor_id}", response_model=VendorDetailOut)
 def get_vendor(
     run_id: str,
     vendor_id: str,
@@ -505,7 +677,7 @@ def get_vendor(
     }
 
 
-@router.post("/runs/{run_id}/vendors/{vendor_id}/resume", status_code=202)
+@router.post("/runs/{run_id}/vendors/{vendor_id}/resume", status_code=202, response_model=ResumeOut)
 def resume_vendor(
     run_id: str,
     vendor_id: str,
@@ -549,7 +721,7 @@ def resume_vendor(
     )
 
 
-@router.get("/runs/{run_id}/events")
+@router.get("/runs/{run_id}/events", response_model=RunEventListOut)
 def run_events(
     run_id: str,
     vendor_id: str | None = None,
