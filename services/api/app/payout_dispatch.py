@@ -75,9 +75,13 @@ class PayoutConsentMismatchError(ValueError):
     taken against a view that has since moved, instead of trusting that the
     row version alone covered it. `field` names what disagreed so the client
     can say which one.
+
+    `stated`/`current` are whatever that field holds -- an amount or version
+    (int), or an identifier or business date (str). Every one of them is
+    something a person read off a screen before consenting.
     """
 
-    def __init__(self, field: str, stated: int, current: int) -> None:
+    def __init__(self, field: str, stated: object, current: object) -> None:
         super().__init__(f"approved {field}={stated} does not match current {field}={current}")
         self.field = field
         self.stated = stated
@@ -539,6 +543,9 @@ def approve_payout(
     note: str | None = None,
     approved_amount_cents: int | None = None,
     approved_beneficiary_version: int | None = None,
+    approved_logical_obligation_id: str | None = None,
+    approved_vendor_id: str | None = None,
+    approved_business_date: date | None = None,
     actor_type: str | None = None,
 ) -> Payout:
     """DRAFT -> APPROVED. Requires CAPABILITY_APPROVE_PAYOUT always (the
@@ -575,6 +582,22 @@ def approve_payout(
         raise PayoutConsentMismatchError(
             "beneficiary_version", approved_beneficiary_version, payout.beneficiary_version
         )
+    # The rest of what the approval screen names on the page it asks a person
+    # to affirm (lane B's ApprovePayoutPayload): which obligation, whose
+    # money, which night. Checked for the same reason as the amount -- an
+    # echo the server accepts and does not compare is worse than one it never
+    # asked for, because the screen claims it was bound.
+    for field, stated, current in (
+        ("logical_obligation_id", approved_logical_obligation_id, payout.logical_obligation_id),
+        ("vendor_id", approved_vendor_id, payout.vendor_id),
+        ("business_date", approved_business_date, payout.business_date),
+    ):
+        if stated is not None and stated != current:
+            raise PayoutConsentMismatchError(
+                field,
+                stated.isoformat() if isinstance(stated, date) else stated,
+                current.isoformat() if isinstance(current, date) else current,
+            )
 
     if payout.state == "APPROVED" and CAPABILITY_FINANCE_LEAD in user_capability_codes:
         # Escalation: an ordinary approval that release later blocked with
