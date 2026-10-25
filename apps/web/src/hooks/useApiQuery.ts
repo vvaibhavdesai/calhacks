@@ -11,7 +11,25 @@ export type QueryResult<T> =
  * invalidates projections (SSE gap/resync or an event). Keeps previous data
  * visible while refetching. Never substitutes fixture data on failure.
  */
-export function useApiQuery<T>(key: string, fetcher: (signal: AbortSignal) => Promise<T>): QueryResult<T> {
+export interface QueryOptions {
+  /**
+   * False holds the query at `loading` without calling the fetcher.
+   *
+   * For a request that cannot be made yet because a required parameter is
+   * still being fetched -- every Money screen needs the festival id, which
+   * arrives from GET /festival. Firing anyway sent `festival_id=undefined`
+   * and the server answered 422 "Field required", which the screen then
+   * showed as a hard error on a page that was merely not ready.
+   */
+  enabled?: boolean;
+}
+
+export function useApiQuery<T>(
+  key: string,
+  fetcher: (signal: AbortSignal) => Promise<T>,
+  options: QueryOptions = {},
+): QueryResult<T> {
+  const enabled = options.enabled ?? true;
   const { invalidation } = useApp();
   const [nonce, setNonce] = useState(0);
   const [state, setState] = useState<{ status: 'loading' | 'success' | 'error'; data?: T; error?: unknown; key: string }>(
@@ -22,6 +40,11 @@ export function useApiQuery<T>(key: string, fetcher: (signal: AbortSignal) => Pr
   fetcherRef.current = fetcher;
 
   useEffect(() => {
+    if (!enabled) {
+      setState((s) => (s.key === key && s.status !== 'loading' ? s : { status: 'loading', key }));
+      setRefetching(false);
+      return;
+    }
     const ac = new AbortController();
     setState((s) => (s.key === key ? s : { status: 'loading', key }));
     setRefetching(true);
@@ -37,7 +60,7 @@ export function useApiQuery<T>(key: string, fetcher: (signal: AbortSignal) => Pr
         if (!ac.signal.aborted) setRefetching(false);
       });
     return () => ac.abort();
-  }, [key, invalidation, nonce]);
+  }, [key, invalidation, nonce, enabled]);
 
   const refetch = useCallback(() => setNonce((n) => n + 1), []);
   const current = state.key === key ? state : { status: 'loading' as const, key };

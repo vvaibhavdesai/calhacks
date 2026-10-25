@@ -8,6 +8,12 @@ export interface Lookups {
   vendorName: (id: string | null | undefined) => ReactNode;
   vendorOptions: { value: string; label: string }[];
   businessDates: { value: string; label: string }[];
+  /**
+   * The current festival, once GET /festival has answered. Undefined until
+   * then -- a caller that needs it must wait rather than send `undefined`,
+   * because most money reads require it and answer 422 without it.
+   */
+  festivalId: string | undefined;
 }
 
 /**
@@ -30,6 +36,7 @@ export function useLookups(): { lookups: Lookups; describeSource: (id: string) =
         vendorName: (id) => (id ? byId.get(id) ?? <Code>{id}</Code> : '—'),
         vendorOptions: vendorList.map((v) => ({ value: v.id, label: v.name })),
         businessDates: dates.map((d) => ({ value: d, label: d })),
+        festivalId: festival.data?.id,
       },
       describeSource: (id) => {
         const d = docById.get(id);

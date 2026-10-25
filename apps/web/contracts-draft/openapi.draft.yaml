@@ -614,6 +614,7 @@ paths:
       tags: [reads]
       operationId: listSuppliers
       parameters:
+        - $ref: '#/components/parameters/FestivalId'
         - $ref: '#/components/parameters/Cursor'
         - $ref: '#/components/parameters/Limit'
       responses:
@@ -629,6 +630,7 @@ paths:
       tags: [reads]
       operationId: listPurchaseOrders
       parameters:
+        - $ref: '#/components/parameters/FestivalId'
         - $ref: '#/components/parameters/Cursor'
         - $ref: '#/components/parameters/Limit'
         - $ref: '#/components/parameters/SupplierId'
@@ -645,6 +647,7 @@ paths:
       tags: [reads]
       operationId: listSupplierInvoices
       parameters:
+        - $ref: '#/components/parameters/FestivalId'
         - $ref: '#/components/parameters/Cursor'
         - $ref: '#/components/parameters/Limit'
         - $ref: '#/components/parameters/SupplierId'
@@ -700,6 +703,7 @@ paths:
       tags: [reads]
       operationId: listJournalEntries
       parameters:
+        - $ref: '#/components/parameters/FestivalId'
         - $ref: '#/components/parameters/Cursor'
         - $ref: '#/components/parameters/Limit'
         - $ref: '#/components/parameters/BusinessDate'
@@ -799,6 +803,7 @@ paths:
       tags: [reads]
       operationId: listCashPositions
       parameters:
+        - $ref: '#/components/parameters/FestivalId'
         - $ref: '#/components/parameters/Cursor'
         - $ref: '#/components/parameters/Limit'
       responses:
@@ -1091,6 +1096,15 @@ paths:
 
 components:
   parameters:
+    FestivalId:
+      name: festival_id
+      in: query
+      required: false
+      description: >-
+        Which festival to read. The live backend REQUIRES it on these routes and
+        answers 422 "Field required" without it; it is declared optional here
+        only so a client may omit it while the id is still being fetched.
+      schema: { type: string }
     Cursor:
       name: cursor
       in: query

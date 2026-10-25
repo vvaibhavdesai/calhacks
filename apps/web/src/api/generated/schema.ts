@@ -2346,6 +2346,8 @@ export interface components {
         };
     };
     parameters: {
+        /** @description Which festival to read. The live backend REQUIRES it on these routes and answers 422 "Field required" without it; it is declared optional here only so a client may omit it while the id is still being fetched. */
+        FestivalId: string;
         /** @description Opaque cursor from a previous next_cursor. Never parsed by clients. */
         Cursor: string;
         Limit: number;
@@ -3292,6 +3294,8 @@ export interface operations {
     listSuppliers: {
         parameters: {
             query?: {
+                /** @description Which festival to read. The live backend REQUIRES it on these routes and answers 422 "Field required" without it; it is declared optional here only so a client may omit it while the id is still being fetched. */
+                festival_id?: components["parameters"]["FestivalId"];
                 /** @description Opaque cursor from a previous next_cursor. Never parsed by clients. */
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];
@@ -3318,6 +3322,8 @@ export interface operations {
     listPurchaseOrders: {
         parameters: {
             query?: {
+                /** @description Which festival to read. The live backend REQUIRES it on these routes and answers 422 "Field required" without it; it is declared optional here only so a client may omit it while the id is still being fetched. */
+                festival_id?: components["parameters"]["FestivalId"];
                 /** @description Opaque cursor from a previous next_cursor. Never parsed by clients. */
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];
@@ -3345,6 +3351,8 @@ export interface operations {
     listSupplierInvoices: {
         parameters: {
             query?: {
+                /** @description Which festival to read. The live backend REQUIRES it on these routes and answers 422 "Field required" without it; it is declared optional here only so a client may omit it while the id is still being fetched. */
+                festival_id?: components["parameters"]["FestivalId"];
                 /** @description Opaque cursor from a previous next_cursor. Never parsed by clients. */
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];
@@ -3427,6 +3435,8 @@ export interface operations {
     listJournalEntries: {
         parameters: {
             query?: {
+                /** @description Which festival to read. The live backend REQUIRES it on these routes and answers 422 "Field required" without it; it is declared optional here only so a client may omit it while the id is still being fetched. */
+                festival_id?: components["parameters"]["FestivalId"];
                 /** @description Opaque cursor from a previous next_cursor. Never parsed by clients. */
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];
@@ -3585,6 +3595,8 @@ export interface operations {
     listCashPositions: {
         parameters: {
             query?: {
+                /** @description Which festival to read. The live backend REQUIRES it on these routes and answers 422 "Field required" without it; it is declared optional here only so a client may omit it while the id is still being fetched. */
+                festival_id?: components["parameters"]["FestivalId"];
                 /** @description Opaque cursor from a previous next_cursor. Never parsed by clients. */
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];

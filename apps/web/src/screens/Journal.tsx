@@ -59,8 +59,18 @@ export function JournalList() {
   const { client } = useApp();
   const { lookups } = useLookups();
   const { params, setFilters, goToCursor, canGoBack, back } = useListParams(['business_date']);
-  const query = { limit: 25, business_date: params.filters.business_date, cursor: params.cursor ?? undefined };
-  const result = useApiQuery(`journal:${JSON.stringify(query)}`, (signal) => client.list('listJournalEntries', { signal, query }));
+  // Every money read below is festival-scoped and answers 422 without it.
+  const query = {
+    limit: 25,
+    festival_id: lookups.festivalId,
+    business_date: params.filters.business_date,
+    cursor: params.cursor ?? undefined,
+  };
+  const result = useApiQuery(
+    `journal:${JSON.stringify(query)}`,
+    (signal) => client.list('listJournalEntries', { signal, query }),
+    { enabled: Boolean(query.festival_id) },
+  );
   const columns: Column<JournalEntry>[] = [
     { id: 'id', header: 'Entry', rowHeader: true, render: (e) => entryLink(e.entry_id) },
     { id: 'date', header: 'Business date', render: (e) => <BusinessDate value={e.business_date ?? null} /> },

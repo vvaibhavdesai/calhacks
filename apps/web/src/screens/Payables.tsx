@@ -33,7 +33,13 @@ type Evidence = { title: string; refs: SourceRef[] } | null;
 
 function useSupplierNames() {
   const { client } = useApp();
-  const q = useApiQuery('lookup:suppliers', (signal) => client.list('listSuppliers', { signal, query: { limit: 200 } }));
+  const { lookups } = useLookups();
+  const festivalId = lookups.festivalId;
+  const q = useApiQuery(
+    `lookup:suppliers:${festivalId ?? ''}`,
+    (signal) => client.list('listSuppliers', { signal, query: { limit: 200, festival_id: festivalId } }),
+    { enabled: Boolean(festivalId) },
+  );
   return useMemo(() => {
     const items: Supplier[] = q.data?.items ?? [];
     const byId = new Map(items.map((s) => [s.id, s.name]));
@@ -133,8 +139,13 @@ function ListPanel<T>({
 function SuppliersTab({ onEvidence }: { onEvidence: (t: string, r: SourceRef[]) => void }) {
   const { client } = useApp();
   const { params } = useListParams([]);
-  const query = { limit: 25, cursor: params.cursor ?? undefined };
-  const result = useApiQuery(`suppliers:${JSON.stringify(query)}`, (signal) => client.list('listSuppliers', { signal, query }));
+  const { lookups } = useLookups();
+  const query = { limit: 25, festival_id: lookups.festivalId, cursor: params.cursor ?? undefined };
+  const result = useApiQuery(
+    `suppliers:${JSON.stringify(query)}`,
+    (signal) => client.list('listSuppliers', { signal, query }),
+    { enabled: Boolean(query.festival_id) },
+  );
   const columns: Column<Supplier>[] = [
     {
       id: 'name',
@@ -155,8 +166,18 @@ function PurchaseOrdersTab({ onEvidence }: { onEvidence: (t: string, r: SourceRe
   const { client } = useApp();
   const suppliers = useSupplierNames();
   const { params, setFilters } = useListParams(['supplier_id']);
-  const query = { limit: 25, supplier_id: params.filters.supplier_id, cursor: params.cursor ?? undefined };
-  const result = useApiQuery(`pos:${JSON.stringify(query)}`, (signal) => client.list('listPurchaseOrders', { signal, query }));
+  const { lookups } = useLookups();
+  const query = {
+    limit: 25,
+    festival_id: lookups.festivalId,
+    supplier_id: params.filters.supplier_id,
+    cursor: params.cursor ?? undefined,
+  };
+  const result = useApiQuery(
+    `pos:${JSON.stringify(query)}`,
+    (signal) => client.list('listPurchaseOrders', { signal, query }),
+    { enabled: Boolean(query.festival_id) },
+  );
   const columns: Column<PurchaseOrder>[] = [
     { id: 'num', header: 'PO', rowHeader: true, render: (p) => p.po_number ?? <Code>{p.id}</Code> },
     { id: 'sup', header: 'Supplier', render: (p) => suppliers.name(p.supplier_id) },
@@ -197,14 +218,20 @@ function InvoiceFlags({ i }: { i: SupplierInvoice }) {
 function InvoicesTab({ onEvidence }: { onEvidence: (t: string, r: SourceRef[]) => void }) {
   const { client } = useApp();
   const suppliers = useSupplierNames();
+  const { lookups } = useLookups();
   const { params, setFilters } = useListParams(['supplier_id', 'kind']);
   const query = {
     limit: 25,
+    festival_id: lookups.festivalId,
     supplier_id: params.filters.supplier_id,
     kind: params.filters.kind as SupplierInvoice['kind'],
     cursor: params.cursor ?? undefined,
   };
-  const result = useApiQuery(`invoices:${JSON.stringify(query)}`, (signal) => client.list('listSupplierInvoices', { signal, query }));
+  const result = useApiQuery(
+    `invoices:${JSON.stringify(query)}`,
+    (signal) => client.list('listSupplierInvoices', { signal, query }),
+    { enabled: Boolean(query.festival_id) },
+  );
   const columns: Column<SupplierInvoice>[] = [
     {
       id: 'num',
@@ -255,18 +282,78 @@ function PaymentsTab() {
   const { client } = useApp();
   const suppliers = useSupplierNames();
   const { params, setFilters } = useListParams(['supplier_id']);
-  const query = { limit: 25, supplier_id: params.filters.supplier_id, cursor: params.cursor ?? undefined };
-  const result = useApiQuery(`supplier-payments:${JSON.stringify(query)}`, (signal) => client.list('listSupplierPayments', { signal, query }));
+  const { lookups } = useLookups();
+  const query = {
+    limit: 25,
+    festival_id: lookups.festivalId,
+    supplier_id: params.filters.supplier_id,
+    cursor: params.cursor ?? undefined,
+  };
+  const result = useApiQuery(
+    `supplier-payments:${JSON.stringify(query)}`,
+    (signal) => client.list('listSupplierPayments', { signal, query }),
+    { enabled: Boolean(query.festival_id) },
+  );
+  const rows = result.status === 'success' ? result.data.items : [];
+  /**
+   * The draft contract gives a supplier payment `invoice_ids`, `scheduled_
+   * date`, `idempotency_key`, `provider_reference`, `outcome_detail` and
+   * `payment_mode`. The live backend sends `invoice_id` (singular),
+   * `business_date`, `payment_reference`, `approved_by`, `journal_entry_id`.
+   *
+   * `p.invoice_ids.map(...)` therefore threw on every row -- the whole screen
+   * replaced by an error boundary. Each accessor below tolerates either
+   * contract, and a column no row can fill is dropped rather than printing a
+   * dash down the page (same rule as the settlements table).
+   */
+  const invoiceIdsOf = (p: SupplierPayment): string[] => {
+    const many = (p as { invoice_ids?: string[] }).invoice_ids;
+    if (Array.isArray(many)) return many;
+    const one = (p as { invoice_id?: string | null }).invoice_id;
+    return one ? [one] : [];
+  };
+  const dateOf = (p: SupplierPayment) =>
+    p.scheduled_date ?? (p as { business_date?: string | null }).business_date ?? null;
+  const refOf = (p: SupplierPayment) =>
+    p.provider_reference ?? (p as { payment_reference?: string | null }).payment_reference ?? null;
+  const hasAny = (has: (p: SupplierPayment) => boolean) => rows.length > 0 && rows.some(has);
+
   const columns: Column<SupplierPayment>[] = [
     { id: 'sup', header: 'Supplier', rowHeader: true, render: (p) => suppliers.name(p.supplier_id) },
-    { id: 'inv', header: 'Invoices', render: (p) => joinNodes(p.invoice_ids.map(invoiceLink)) },
+    { id: 'inv', header: 'Invoices', render: (p) => joinNodes(invoiceIdsOf(p).map(invoiceLink)) },
     { id: 'amount', header: 'Amount', numeric: true, render: (p) => <Money cents={p.amount_cents} /> },
     { id: 'state', header: 'Simulated status', render: (p) => <PayoutStateBadge state={p.state} /> },
-    { id: 'date', header: 'Scheduled', render: (p) => <BusinessDate value={p.scheduled_date ?? null} /> },
-    { id: 'key', header: 'Idempotency key', render: (p) => <code className="code code-wrap">{p.idempotency_key}</code> },
-    { id: 'ref', header: 'Provider reference', render: (p) => (p.provider_reference ? <Code>{p.provider_reference}</Code> : <span className="muted">—</span>) },
-    { id: 'detail', header: 'Outcome', render: (p) => p.outcome_detail ?? '—' },
-    { id: 'mode', header: 'Mode', render: (p) => <span className="badge badge-info">{p.payment_mode}</span> },
+    { id: 'date', header: 'Date', render: (p) => <BusinessDate value={dateOf(p)} /> },
+    ...(hasAny((p) => Boolean(refOf(p)))
+      ? [
+          {
+            id: 'ref',
+            header: 'Reference',
+            render: (p: SupplierPayment) => (refOf(p) ? <Code>{refOf(p) as string}</Code> : <span className="muted">—</span>),
+          } as Column<SupplierPayment>,
+        ]
+      : []),
+    ...(hasAny((p) => Boolean(p.idempotency_key))
+      ? [
+          {
+            id: 'key',
+            header: 'Idempotency key',
+            render: (p: SupplierPayment) => <code className="code code-wrap">{p.idempotency_key}</code>,
+          } as Column<SupplierPayment>,
+        ]
+      : []),
+    ...(hasAny((p) => Boolean(p.outcome_detail))
+      ? [{ id: 'detail', header: 'Outcome', render: (p: SupplierPayment) => p.outcome_detail ?? '—' } as Column<SupplierPayment>]
+      : []),
+    ...(hasAny((p) => Boolean(p.payment_mode))
+      ? [
+          {
+            id: 'mode',
+            header: 'Mode',
+            render: (p: SupplierPayment) => <span className="badge badge-info">{p.payment_mode}</span>,
+          } as Column<SupplierPayment>,
+        ]
+      : []),
   ];
   return (
     <ListPanel
