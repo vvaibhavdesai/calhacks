@@ -24,6 +24,7 @@ from datetime import date, datetime
 
 from sqlalchemy import (
     BigInteger,
+    Boolean,
     Date,
     DateTime,
     ForeignKey,
@@ -334,3 +335,140 @@ class DailyClose(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+
+
+# ---------------------------------------------------------------------------
+# PO lines, delivery receipts, supplier deposits, supplier quotes (migration
+# 0017). No parallel schema: these extend the existing purchase_orders/
+# supplier_invoices tables, not a second contract/obligation concept.
+# ---------------------------------------------------------------------------
+
+
+class PurchaseOrderLine(Base):
+    """A PO's line items. Optional: a PO created with no `lines` argument
+    (every PO before this) has none, and `create_purchase_order`/
+    `record_invoice` behave exactly as before for it -- the delivery-
+    supported payment limit in app/payables.py only applies when a PO
+    actually has lines."""
+
+    __tablename__ = "purchase_order_lines"
+    __table_args__ = (UniqueConstraint("po_id", "line_no", name="uq_po_line_no"),)
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_new_id)
+    po_id: Mapped[str] = mapped_column(
+        String(32), ForeignKey("purchase_orders.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    line_no: Mapped[int] = mapped_column(Integer, nullable=False)
+    item_code: Mapped[str] = mapped_column(String(100), nullable=False)
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False)
+    unit_price_cents: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    line_cents: Mapped[int] = mapped_column(BigInteger, nullable=False)
+
+
+class DeliveryReceipt(Base):
+    """One accepted-delivery fact against a PO line. Append-only (REVOKE
+    UPDATE/DELETE, migration 0017): a mistaken receipt is never edited,
+    only superseded by a new fact elsewhere. `receipt_key` is the fixture's
+    stable id (e.g. "late_supplier_r1"), unique, so re-importing the same
+    receipt is a no-op, not a duplicate row."""
+
+    __tablename__ = "delivery_receipts"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_new_id)
+    po_line_id: Mapped[str] = mapped_column(
+        String(32),
+        ForeignKey("purchase_order_lines.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False)
+    accepted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    available_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    receipt_key: Mapped[str] = mapped_column(String(128), nullable=False, unique=True)
+    source_refs: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    recorded_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class SupplierDeposit(Base):
+    """A paid simulated deposit, drawn from the cash pool exactly once
+    (`idempotency_key` unique). Append-only."""
+
+    __tablename__ = "supplier_deposits"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_new_id)
+    festival_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    supplier_id: Mapped[str] = mapped_column(
+        String(32), ForeignKey("suppliers.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
+    po_id: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("purchase_orders.id", ondelete="RESTRICT"), nullable=True
+    )
+    amount_cents: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    paid_business_date: Mapped[date] = mapped_column(Date, nullable=False)
+    paid_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    idempotency_key: Mapped[str] = mapped_column(String(128), nullable=False, unique=True)
+    source_refs: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    journal_entry_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+
+
+class SupplierDepositApplication(Base):
+    """One (partial) application of a deposit against an invoice. Append-
+    only; UNIQUE(deposit_id, invoice_id) so applying the same deposit to
+    the same invoice twice is a no-op at the database level, not just by
+    convention."""
+
+    __tablename__ = "supplier_deposit_applications"
+    __table_args__ = (UniqueConstraint("deposit_id", "invoice_id", name="uq_deposit_application"),)
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_new_id)
+    deposit_id: Mapped[str] = mapped_column(
+        String(32),
+        ForeignKey("supplier_deposits.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
+    invoice_id: Mapped[str] = mapped_column(
+        String(32),
+        ForeignKey("supplier_invoices.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
+    amount_cents: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    journal_entry_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class SupplierQuote(Base):
+    """A versioned competing-supplier quote. An unknown price/term stays
+    NULL -- never 0 (TICKET: "An unknown price stays NULL; it is never
+    0"). Append-only: a revision is a new row with `supersedes_id` set,
+    never an edit of the old version."""
+
+    __tablename__ = "supplier_quotes"
+    __table_args__ = (
+        UniqueConstraint("supplier_id", "request_key", "version", name="uq_supplier_quote_version"),
+    )
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_new_id)
+    supplier_id: Mapped[str] = mapped_column(
+        String(32), ForeignKey("suppliers.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
+    request_key: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    version: Mapped[int] = mapped_column(Integer, nullable=False)
+    supersedes_id: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("supplier_quotes.id", ondelete="SET NULL"), nullable=True
+    )
+    available_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    base_cents: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    delivery_cents: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    tax_cents: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    deposit_cents: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    deposit_due: Mapped[date | None] = mapped_column(Date, nullable=True)
+    balance_due: Mapped[date | None] = mapped_column(Date, nullable=True)
+    insurance_evidence: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    citations: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    source_refs: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)

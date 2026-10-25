@@ -670,6 +670,13 @@ class SupplierInvoice(Base):
     journal_entry_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
 
+    # --- migration 0017 additive column ---
+    # Part of `outstanding_cents` already satisfied by an applied supplier
+    # deposit (domain.payables.InvoiceBalance.deposit_applied_cents).
+    # Defaults to 0 for every existing row -- unaffected unless a deposit is
+    # actually applied via app/payables.py's `apply_deposit`.
+    deposit_applied_cents: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+
 
 # ---------------------------------------------------------------------------
 # 7. Journals (balanced, immutable once posted)
