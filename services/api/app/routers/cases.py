@@ -17,14 +17,24 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 
-from fastapi import APIRouter, Body, Depends, HTTPException, status
-from pydantic import BaseModel, ValidationError
+from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.auth import require_capability
+from app.commands import (
+    CommandEnvelope,
+    error,
+    remember,
+    replayed,
+    request_hash,
+    require_key,
+)
 from app.db import get_db
 from app.models import (
     CAPABILITY_APPROVE_POLICY,
@@ -249,10 +259,19 @@ class PolicyOut(BaseModel):
     supersedes_version: int | None
     source_case_id: str | None
     # Same value under the name the reader's contract uses: the case whose
-    # human decision this rule was approved from. It is the rule's provenance,
-    # and the only place reuse can be approved, since a policy does not exist
-    # before approval.
+    # human decision this rule was approved from. It is the rule's provenance.
     origin_case_id: str | None
+    # Digest of this version's `evidence_refs`, by the same function the case
+    # payload uses. An approval on the policy resource echoes it back, so the
+    # server can refuse an approval made against evidence that has since
+    # changed. None when the version cites no evidence -- and then the
+    # approval is refused for want of something to bind to, rather than
+    # binding to the hash of an empty list.
+    evidence_hash: str | None
+    # The capability the server itself checks on this version's commands
+    # (suspend/revise/approve). Served so a screen hides a control the
+    # session cannot use, instead of guessing the name.
+    required_capability: str
 
 
 def _to_policy_out(p: PolicyVersion) -> PolicyOut:
@@ -271,6 +290,8 @@ def _to_policy_out(p: PolicyVersion) -> PolicyOut:
         supersedes_version=p.supersedes_version,
         origin_case_id=p.source_case_id,
         source_case_id=p.source_case_id,
+        evidence_hash=_evidence_hash(p.evidence_refs),
+        required_capability=CAPABILITY_APPROVE_POLICY,
     )
 
 
@@ -361,7 +382,57 @@ def get_case(
 # ---------------------------------------------------------------------------
 
 
-class ResolveCaseRequest(BaseModel):
+def _unwrap_envelope(body: dict) -> dict:
+    """Flatten a C03 command envelope onto the top level.
+
+    The UI's command client sends every effectful call as
+    {command_id, expected_version, payload: {...}} (C03), while the verify
+    scripts post the fields directly. Validating the envelope itself against
+    a flat request model answered "decision: Field required" to a reviewer who
+    had chosen a decision -- the field was simply one level down.
+
+    The envelope's own top-level fields are kept; `payload`'s contents win on a
+    key collision, since that is where the UI puts its intent.
+
+    A copy of this also lives in app/routers/imports.py, and a shared
+    `unwrap_envelope` is being added to app/commands.py (the module that
+    defines the envelope) by the agent that hit the same mismatch on
+    /payouts/{id}/approve. It is not in this branch yet; when it lands, both
+    copies collapse onto it -- one import each, no behaviour change.
+    """
+    payload = body.get("payload")
+    if isinstance(payload, dict):
+        merged = {k: v for k, v in body.items() if k != "payload"}
+        merged.update(payload)
+        return merged
+    return body
+
+
+class EnvelopeTolerantRequest(BaseModel):
+    """Base for the request models on the commands the UI issues here.
+
+    Flattening happens BEFORE validation, so ONE typed model accepts both the
+    envelope and the flat body -- and the endpoint keeps a named request
+    schema in the OpenAPI document, which `raw: dict = Body(...)` plus a
+    hand-rolled ValidationError does not: it erases the schema, leaving the
+    generated TypeScript client unable to type the one command every demo
+    click goes through.
+
+    Unknown fields are REFUSED rather than ignored, so a consent echo this
+    server does not understand is a loud 422 instead of a 200 that bound
+    nothing. Same base as `EnvelopeTolerantRequest` in app/routers/payouts.py;
+    both should sit on app/commands.py's shared helper once it lands.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _flatten_command_envelope(cls, data: object) -> object:
+        return _unwrap_envelope(data) if isinstance(data, dict) else data
+
+
+class ResolveCaseRequest(EnvelopeTolerantRequest):
     """Two accepted shapes for one command.
 
     The original shape states the rate directly: `decision` of
@@ -388,39 +459,18 @@ class ResolveCaseRequest(BaseModel):
     # original shape keeps working, enforced whenever present.
     evidence_hash: str | None = None
     expected_version: int | None = None
-
-
-def _unwrap_envelope(body: dict) -> dict:
-    """Flatten a C03 command envelope onto the top level.
-
-    Same helper as app/routers/imports.py, for the same reason: the UI's
-    command client sends every effectful call as
-    {command_id, expected_version, payload: {...}} (C03), while the verify
-    scripts post the fields directly. Validating the envelope itself against
-    the request model answered "decision: Field required" to a reviewer who
-    had chosen a decision -- the field was simply one level down.
-    """
-    payload = body.get("payload")
-    if isinstance(payload, dict):
-        merged = {k: v for k, v in body.items() if k != "payload"}
-        merged.update(payload)
-        return merged
-    return body
+    # The envelope's own id. Nothing here reads it (this endpoint has no
+    # Idempotency-Key ledger); declared so it survives `extra="forbid"`.
+    command_id: str | None = None
 
 
 @router.post("/{case_id}/resolve", response_model=CaseOut, status_code=200)
 def resolve_case_endpoint(
     case_id: str,
-    raw: dict = Body(...),
+    body: ResolveCaseRequest,
     db: Session = Depends(get_db),
     user: User = Depends(require_capability(CAPABILITY_RESOLVE_CASE)),
 ) -> CaseOut:
-    try:
-        body = ResolveCaseRequest(**_unwrap_envelope(raw))
-    except ValidationError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=exc.errors()
-        ) from exc
     case = db.get(Case, case_id)
     if case is None:
         raise HTTPException(status_code=404, detail="case not found")
@@ -507,12 +557,19 @@ def resolve_case_endpoint(
     return _to_case_out(case)
 
 
-class ApprovePolicyRequest(BaseModel):
+class ApprovePolicyRequest(EnvelopeTolerantRequest):
     """Approve REUSE of the decision this case already made.
 
     Separate from resolving the case, deliberately: a one-time resolution is
     never auto-promoted into a reusable rule. The scope is the case's own
     vendor and effect; only the validity window is chosen here.
+
+    Both shapes the real callers send: the verify suites post
+    {valid_from, valid_to} directly, and the case screen posts the same
+    fields inside the C03 envelope's `payload` (see
+    `EnvelopeTolerantRequest`). Before the flattening, the envelope form was
+    answered "valid_from: Field required" to a reviewer who had chosen a
+    window, so the control on the case screen could not be used at all.
     """
 
     valid_from: date
@@ -523,6 +580,7 @@ class ApprovePolicyRequest(BaseModel):
     note: str | None = None
     expected_version: int | None = None
     evidence_hash: str | None = None
+    command_id: str | None = None
 
 
 @router.post("/{case_id}/approve-policy", response_model=PolicyOut, status_code=201)
@@ -738,3 +796,287 @@ def revise_policy_endpoint(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     db.commit()
     return _to_policy_out(new_p)
+
+
+# ---------------------------------------------------------------------------
+# Command: approve ONE exact policy version, addressed by the policy itself
+# ---------------------------------------------------------------------------
+#
+# Why this exists next to POST /cases/{case_id}/approve-policy, which already
+# approves reuse:
+#
+#   * `approve-policy` is addressed by the CASE. It is how a rule is born: a
+#     human resolved that case, and a second, separate decision makes the
+#     resolution reusable, creating an ACTIVE PolicyVersion row. A reader
+#     looking at a policy has no case id in hand for a rule that already
+#     exists, and nothing on the policy resource could be acted on at all.
+#   * A PolicyVersion row can nonetheless sit waiting for a human: `status`
+#     defaults to "DRAFT" (app/models_ledger.py), `approved_at` is documented
+#     as NULL while DRAFT, and domain.policy.policy_applies refuses to apply
+#     any version that is not ACTIVE. So a DRAFT version is inert, is never
+#     applied to anyone's money, and had no command anywhere in the API that
+#     could approve it. This endpoint is that command.
+#
+# It is NOT a second way to create a rule, and it never changes what the rule
+# says: the scope, predicates, effect, evidence and validity window are the
+# DRAFT row's own, written when the draft was proposed. The approval decides
+# one thing -- that this exact version may now be applied -- and binds that
+# decision to what the approver had on screen.
+#
+# What a stale approval looks like here, and why each one is refused:
+#   expected_version / policy_version  the version row that was reviewed
+#   policy_id                          the logical rule it belongs to
+#   evidence_hash                      the evidence it was justified by
+#   scope                              who and what it may be applied to
+#   source_case_id (when stated)       the case whose decision it reuses
+#   status == DRAFT                    nobody else approved, suspended or
+#                                      superseded it in the meantime
+# A PolicyVersion row is immutable apart from `status` (supersession writes a
+# NEW row -- app/policy.py revise_policy), so those checks together bind every
+# word of the rule the approver read. Mismatch is refused and nothing is
+# written: section 6's "approvals bind exact data/action versions; stale
+# approvals fail safely".
+
+POLICY_APPROVAL_ACTION = "APPROVE_REUSABLE_POLICY"
+POLICY_APPROVAL_COMMAND = "policy.approve"
+
+
+class ApprovePolicyVersionPayload(BaseModel):
+    """The C03 payload: what the approver echoes back about what they saw.
+
+    Everything here is a binding, not an instruction. The server compares each
+    field with the stored row and refuses on any difference -- it never takes
+    a rule's content from the request, so a client cannot widen a scope, move
+    a window or restate a rate by approving it.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    action: str
+    policy_id: str
+    policy_version: int
+    evidence_hash: str
+    scope: dict
+    source_case_id: str | None = None
+    note: str | None = Field(default=None, max_length=2000)
+
+
+class ApprovePolicyVersionResult(BaseModel):
+    """C03 command result: the authoritative state, plus the whole record."""
+
+    command_id: str
+    aggregate_id: str
+    version: int
+    status: str
+    resource: PolicyOut
+
+
+def _canonical(value: object) -> str:
+    """Canonical JSON (sorted keys, no incidental whitespace).
+
+    Used to compare an echoed scope with the stored one, so key order or a
+    JSON round trip is never mistaken for a different scope.
+    """
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), default=str)
+
+
+@policies_router.post(
+    "/{policy_version_id}/approve",
+    response_model=ApprovePolicyVersionResult,
+    status_code=200,
+)
+def approve_policy_version_endpoint(
+    policy_version_id: str,
+    env: CommandEnvelope,
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+    db: Session = Depends(get_db),
+    user: User = Depends(require_capability(CAPABILITY_APPROVE_POLICY)),
+):
+    """Approve this exact DRAFT policy version so it may be applied.
+
+    Capability `approve_policy`, the C03 envelope and an `Idempotency-Key`
+    (app/commands.py): the same key with the same request replays the original
+    response and approves nothing twice; the same key with a different request
+    is 409 IDEMPOTENCY_KEY_REUSED.
+    """
+    key = require_key(idempotency_key)
+    policy = db.get(PolicyVersion, policy_version_id)
+    if policy is None:
+        raise HTTPException(status_code=404, detail="policy version not found")
+
+    rh = request_hash(env, policy_version_id=policy_version_id)
+    prior = replayed(db, user_id=user.id, action=POLICY_APPROVAL_COMMAND, key=key, req_hash=rh)
+    if prior is not None:
+        return prior
+
+    try:
+        payload = ApprovePolicyVersionPayload(**env.payload)
+    except ValidationError as exc:
+        raise error(
+            422,
+            "INVALID_PAYLOAD",
+            "payload must be an ApprovePolicyPayload",
+            field_errors=[
+                {"field": "payload." + ".".join(str(p) for p in e["loc"]), "message": e["msg"]}
+                for e in exc.errors()
+            ],
+        ) from exc
+    if payload.action != POLICY_APPROVAL_ACTION:
+        raise error(
+            422,
+            "INVALID_ACTION",
+            f"payload.action must be {POLICY_APPROVAL_ACTION}",
+            field_errors=[
+                {"field": "payload.action", "message": f"expected {POLICY_APPROVAL_ACTION}"}
+            ],
+        )
+
+    # The version binding comes first and is mandatory: an approval that names
+    # no version is not bound to anything.
+    if env.expected_version is None:
+        raise error(
+            422,
+            "EXPECTED_VERSION_REQUIRED",
+            "expected_version is required: an approval binds the version it was made against",
+            field_errors=[{"field": "expected_version", "message": "required"}],
+        )
+    if env.expected_version != policy.version:
+        raise error(
+            409,
+            "VERSION_CONFLICT",
+            "this policy version changed since it was read",
+            current_version=policy.version,
+        )
+    if payload.policy_id != policy.policy_id or payload.policy_version != policy.version:
+        raise error(
+            422,
+            "TARGET_MISMATCH",
+            "the approval names a different policy version",
+            field_errors=[
+                {"field": "payload.policy_version", "message": "does not match the target"}
+            ],
+        )
+    if payload.source_case_id is not None and payload.source_case_id != policy.source_case_id:
+        raise error(
+            422,
+            "TARGET_MISMATCH",
+            "the approval names a different originating case",
+            field_errors=[
+                {"field": "payload.source_case_id", "message": "does not match the target"}
+            ],
+        )
+
+    current_evidence_hash = _evidence_hash(policy.evidence_refs)
+    if current_evidence_hash is None:
+        raise error(
+            422,
+            "NO_EVIDENCE",
+            "this policy version cites no evidence; there is nothing to bind an approval to",
+        )
+    if payload.evidence_hash != current_evidence_hash:
+        raise error(
+            422,
+            "EVIDENCE_CHANGED",
+            "the evidence this approval was bound to is no longer current",
+            field_errors=[
+                {
+                    "field": "payload.evidence_hash",
+                    "message": "does not match the current evidence",
+                }
+            ],
+            current_evidence_hash=current_evidence_hash,
+        )
+    if _canonical(payload.scope) != _canonical(policy.scope):
+        raise error(
+            422,
+            "SCOPE_MISMATCH",
+            "the approved scope differs from this policy version's scope",
+            field_errors=[
+                {"field": "payload.scope", "message": "does not match the current scope"}
+            ],
+            current_scope=policy.scope,
+        )
+
+    # The one transition this command makes. Anything else -- already ACTIVE,
+    # SUSPENDED by an open challenge, SUPERSEDED by a later version -- is
+    # refused rather than quietly re-approved: reactivating a challenged rule
+    # is the correction flow's decision (app/corrections.py), not an approval's.
+    if policy.status != "DRAFT":
+        raise error(
+            422,
+            "INVALID_TRANSITION",
+            f"a {policy.status} policy version cannot be approved",
+            policy_status=policy.status,
+        )
+
+    now = datetime.now(UTC)
+    lineage: list[dict] = [{"ref_kind": "policy_version", "ref_id": policy.id}]
+    if policy.source_case_id:
+        lineage.append({"ref_kind": "case", "ref_id": policy.source_case_id})
+    policy.status = "ACTIVE"
+    policy.approver_ref = user.id
+    policy.approved_at = now
+    db.add(policy)
+    db.flush()
+
+    uow = UnitOfWork(db)
+    # Same stream, event type and lineage as the approval that creates a rule
+    # from a case (app/policy.py approve_case_policy), so the audit trail does
+    # not record two different kinds of "this rule was approved".
+    uow.append_event(
+        stream_id=f"policy:{policy.policy_id}",
+        event_type="policy.approved",
+        aggregate_id=policy.id,
+        aggregate_version=policy.version,
+        actor_id=user.id,
+        actor_type="human",
+        actor_capability=CAPABILITY_APPROVE_POLICY,
+        occurred_at=now,
+        vendor_id=(policy.scope or {}).get("vendor_id"),
+        command_id=env.command_id,
+        payload={
+            "policy_id": policy.policy_id,
+            "version": policy.version,
+            "scope": policy.scope,
+            "predicates": policy.predicates,
+            "effect": policy.effect,
+            "valid_from": policy.valid_from.isoformat() if policy.valid_from else None,
+            "valid_to": policy.valid_to.isoformat() if policy.valid_to else None,
+            "source_case_id": policy.source_case_id,
+            "approved_from": "policy_version",
+            "evidence_hash": current_evidence_hash,
+            "note": payload.note,
+        },
+        lineage_refs=lineage,
+    )
+
+    body = {
+        "command_id": env.command_id,
+        "aggregate_id": policy.id,
+        "version": policy.version,
+        "status": policy.status,
+        "resource": _to_policy_out(policy).model_dump(mode="json"),
+    }
+    remember(
+        db,
+        user_id=user.id,
+        action=POLICY_APPROVAL_COMMAND,
+        key=key,
+        req_hash=rh,
+        status_code=200,
+        response=body,
+    )
+    # Exactly one commit point (C06): the activated row, its audit event and
+    # the command record land together, or none of them do.
+    try:
+        db.commit()
+    except IntegrityError:
+        # Two sends of the same key raced past the replay check above: the
+        # loser rolls back (approving nothing) and answers with the winner's
+        # recorded response, exactly as a sequential replay would.
+        db.rollback()
+        prior = replayed(db, user_id=user.id, action=POLICY_APPROVAL_COMMAND, key=key, req_hash=rh)
+        if prior is not None:
+            return prior
+        raise
+    return JSONResponse(status_code=200, content=body)

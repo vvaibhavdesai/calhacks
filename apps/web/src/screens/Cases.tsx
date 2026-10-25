@@ -22,7 +22,7 @@ import { useApiQuery } from '../hooks/useApiQuery';
 import { useCommand } from '../hooks/useCommand';
 import { useListParams } from '../hooks/useListParams';
 import { useLookups } from '../hooks/useLookups';
-import { PolicyRuleView } from './Policies';
+import { PolicyApprovalPanel, PolicyRuleView } from './Policies';
 
 const STATUS_OPTIONS: { value: CaseStatus; label: string }[] = (['OPEN', 'IN_REVIEW', 'RESOLVED', 'REJECTED'] as const).map((v) => ({
   value: v,
@@ -30,6 +30,19 @@ const STATUS_OPTIONS: { value: CaseStatus; label: string }[] = (['OPEN', 'IN_REV
 }));
 
 const REJECT = '__reject__';
+
+/**
+ * The capability that lets someone approve a reusable rule.
+ *
+ * `approve_policy` is the name the SERVER grants and checks (app/models.py
+ * CAPABILITY_APPROVE_POLICY, in the live session from GET /auth/me);
+ * `policy.approve` is the lane-B draft's name and is what the fixtures grant.
+ * Checking only the draft name hid this control from every live operator,
+ * including an admin holding every capability -- the same mistake the
+ * challenge form made with 'challenge.create'. The server enforces it either
+ * way; this only decides whether the control is offered.
+ */
+const POLICY_APPROVE_CAPABILITIES = ['approve_policy', 'policy.approve'];
 
 export function CasesList() {
   const { client } = useApp();
@@ -340,7 +353,7 @@ export function CaseDetail() {
  */
 function ApproveReuse({ c, onServerChange }: { c: Case; onServerChange: () => void }) {
   const { capabilities } = useApp();
-  const cmd = useCommand('approvePolicy', { case_id: c.id }, { onServerChange });
+  const cmd = useCommand('approveCasePolicy', { case_id: c.id }, { onServerChange });
   const { prepared, state, discard } = cmd;
   const [validFrom, setValidFrom] = useState(c.business_date ?? '');
   const [validTo, setValidTo] = useState('');
@@ -357,7 +370,7 @@ function ApproveReuse({ c, onServerChange }: { c: Case; onServerChange: () => vo
     c.status === 'RESOLVED' && (decision === 'approve' || decision === 'edit') && !autoResolved;
   if (!eligible) return null;
   if (appliedPolicy) return null;
-  if (!hasCapability(capabilities, 'policy.approve')) return null;
+  if (!POLICY_APPROVE_CAPABILITIES.some((cap) => hasCapability(capabilities, cap))) return null;
 
   const pending = state.phase === 'pending';
   return (
@@ -650,6 +663,12 @@ function CandidatePolicy({ id }: { id: string }) {
         </p>
         <PolicyRuleView p={p} />
       </section>
+      {/* The candidate is a real policy version row, so its own approval is
+          the command on the POLICY (see PolicyApprovalPanel): the case screen
+          shows it here because this is where a reader meets the candidate.
+          ApproveReuse above is the other decision -- the one that CREATES a
+          rule from this case, when no version exists yet. */}
+      <PolicyApprovalPanel p={p} onServerChange={policy.refetch} />
     </>
   );
 }
