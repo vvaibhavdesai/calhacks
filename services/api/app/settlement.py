@@ -44,6 +44,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from decimal import ROUND_HALF_UP, Decimal
 
+from domain.corrections import COMMITTED_STATES
 from domain.settlement import (
     CALCULATION_VERSION,
     DEFAULT_COMMISSION_BPS,
@@ -75,7 +76,31 @@ def resolve_vendor_terms(
     throughout). Per models_ledger.py's documented convention,
     `commission_bps`/`minimum_fee_cents` being NULL on an active term means
     "use the festival default" -- never zero -- so a null column and a
-    missing term row are handled identically here."""
+    missing term row are handled identically here.
+
+    Precedence, when several active terms cover `as_of`: a term written FOR
+    this night beats a standing rate that merely covers it, and only then
+    does the newer version win.
+
+    Two kinds of row compete here and they are not interchangeable. A06
+    writes the STANDING rate from the signed documents, open-ended, because
+    that is what a contract is. A05 writes a DECIDED night -- a human
+    resolving a conflict case, or a policy auto-resolving one -- bounded to
+    the nights actually decided, deliberately: see app/policy.py
+    `_activate_resolved_term` ("an open-ended term here would let every
+    remaining night of the festival bill at a rate no human decided for
+    it"). Ordering by version alone made whichever was written LAST win, so
+    a standing rate written after a decision -- a re-extraction reading the
+    contract slightly differently, a newly signed amendment -- silently
+    rebilled nights a human had already decided, at the rate the human
+    decided against, without reopening anything.
+
+    The window shape is the signal, not the provenance: it is the thing A05
+    controls on purpose, and it needs no guess about who wrote a row. A
+    narrower window is a more specific decision, so it is preferred;
+    between two windows of the same width (two decisions for one night, or
+    two standing rates) the newer version stands.
+    """
     term = db.execute(
         select(VendorContractTerm)
         .where(
@@ -86,7 +111,15 @@ def resolve_vendor_terms(
         .where(
             (VendorContractTerm.effective_to.is_(None)) | (VendorContractTerm.effective_to >= as_of)
         )
-        .order_by(VendorContractTerm.version.desc())
+        .order_by(
+            # Bounded (false) sorts before open-ended (true).
+            VendorContractTerm.effective_to.is_(None).asc(),
+            # Days covered; NULL for the open-ended rows, which the first
+            # key has already put last, so they tie here and fall through
+            # to the version.
+            (VendorContractTerm.effective_to - VendorContractTerm.effective_from).asc(),
+            VendorContractTerm.version.desc(),
+        )
         .limit(1)
     ).scalar_one_or_none()
 
@@ -484,16 +517,55 @@ def gather_cumulative_history(
     return cumulative_eligible, cumulative_assessed
 
 
-def find_confirmed_payout(db: Session, vendor_id: str, settlement_id: str) -> Payout | None:
-    """A04 does not implement A07's dispatch/confirmation machinery -- this
-    only checks whether a `Payout` row already exists in state "CONFIRMED"
-    linked to the given settlement, which is the precondition for routing a
-    recalculation through the correction path instead of a fresh
-    calculation. See docs/progress/A04-handoff.md for how this task's own
-    verification script stands in for A07 to exercise that path for real."""
-    return db.execute(
-        select(Payout).where(Payout.settlement_id == settlement_id, Payout.state == "CONFIRMED")
-    ).scalar_one_or_none()
+def settlement_chain_ids(db: Session, settlement: Settlement) -> list[str]:
+    """Every settlement id in this row's correction history, newest first.
+    The rows are successive records of the SAME vendor-night entitlement, so
+    a payout against any of them has already discharged part of it."""
+    ids = [settlement.id]
+    node = settlement
+    seen = {settlement.id}
+    while node.correction_of:
+        if node.correction_of in seen:  # defensive: a cycle must not hang a close
+            break
+        ids.append(node.correction_of)
+        seen.add(node.correction_of)
+        parent = db.get(Settlement, node.correction_of)
+        if parent is None:
+            break
+        node = parent
+    return ids
+
+
+def find_committed_payouts(db: Session, settlement_ids: list[str]) -> list[Payout]:
+    """Payouts against any of these settlements whose state means the money
+    moved, or may have moved and the rail has not told us otherwise.
+
+    This used to look for state == "CONFIRMED" alone, with
+    `scalar_one_or_none()`. Both were wrong. A payout sitting in
+    DISPATCH_PENDING, SUBMITTED, UNKNOWN or CANCEL_REQUESTED was read as "no
+    payout exists", so a recalculation took the fresh-calculation path
+    instead of the correction path and a second, full payout obligation could
+    be created for money that was already in flight -- UNKNOWN being the
+    worst case, since there the rail never answered at all. And two payouts
+    against one settlement (an A09 ":additional" beside the original) made
+    `scalar_one_or_none()` raise MultipleResultsFound rather than answer.
+
+    Callers sum these across the whole correction chain: what has been paid
+    is a property of the entitlement, not of any single row in its history.
+    The state set is domain.corrections.COMMITTED_STATES, shared with A09 so
+    there is one definition of "already paid" in the system."""
+    return list(
+        db.execute(
+            select(Payout)
+            .where(
+                Payout.settlement_id.in_(settlement_ids),
+                Payout.state.in_(COMMITTED_STATES),
+            )
+            .order_by(Payout.created_at, Payout.id)
+        )
+        .scalars()
+        .all()
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -661,17 +733,14 @@ def calculate_and_record_settlement(
     amount_already_paid_cents = 0
 
     if prior_settlement is not None:
-        confirmed_payout = None
-        chain_node = prior_settlement
-        while chain_node is not None and confirmed_payout is None:
-            confirmed_payout = find_confirmed_payout(db, vendor.id, chain_node.id)
-            chain_node = (
-                db.get(Settlement, chain_node.correction_of) if chain_node.correction_of else None
-            )
-        if confirmed_payout is not None:
+        # Everything already committed against this entitlement, across the
+        # whole correction history -- not the first payout that happens to be
+        # found, which under-counted whenever a chain carried more than one.
+        committed_payouts = find_committed_payouts(db, settlement_chain_ids(db, prior_settlement))
+        if committed_payouts:
             is_correction = True
             corrected_settlement_id = prior_settlement.id
-            amount_already_paid_cents = confirmed_payout.amount_cents
+            amount_already_paid_cents = sum(p.amount_cents for p in committed_payouts)
             previous_result = SettlementLineResult(
                 eligible_sales_cents=prior_settlement.eligible_sales_cents,
                 centrally_held_cents=prior_settlement.centrally_held_cents,

@@ -10,6 +10,13 @@ import { StatusBadge } from '../components/StatusBadge';
 import { caseImpactCents } from '../lib/money';
 import { useApiQuery } from '../hooks/useApiQuery';
 import { useLookups } from '../hooks/useLookups';
+import {
+  AutonomyByReason,
+  CustodySplit,
+  DashboardStats,
+  NightsChart,
+  TopVendors,
+} from '../components/DashboardPanels';
 import { RunSummary, VendorPipeline } from './Runs';
 
 export function Overview() {
@@ -19,6 +26,7 @@ export function Overview() {
   return (
     <>
       <PageHeader title="Overview" />
+      <FestivalDashboard festivalId={festival.status === 'success' ? festival.data.id : undefined} />
       <section className="panel" aria-labelledby="festival-heading">
         <h2 id="festival-heading" className="panel-title">
           Festival
@@ -79,6 +87,12 @@ function LatestRun() {
   const items = runs.status === 'success' ? runs.data.items : [];
   const wanted = search.get('run');
   const run = items.find((r) => r.id === wanted) ?? items.find((r) => r.status !== 'QUEUED') ?? items[0];
+  // No close run has ever been started for this festival: drop the panel
+  // rather than put an empty one on the landing screen. Deliberately narrow
+  // -- only when the server SUCCEEDED and returned nothing. Loading and
+  // error states still render, so a failing request is never hidden, and the
+  // panel comes back on its own as soon as a run exists.
+  if (runs.status === 'success' && items.length === 0) return null;
   return (
     <section className="panel" aria-labelledby="pipeline-heading">
       <h2 id="pipeline-heading" className="panel-title">
@@ -163,6 +177,76 @@ function NeedsDecision() {
         <p>
           <Link to="/cases?status=OPEN">More open exceptions</Link>
         </p>
+      ) : null}
+    </section>
+  );
+}
+
+/**
+ * Festival-level figures, first thing on the landing screen. Waits for the
+ * festival read because every figure here is scoped to a festival_id, and a
+ * dashboard that guessed one would be showing another festival's money.
+ */
+function FestivalDashboard({ festivalId }: { festivalId?: string }) {
+  const { config } = useApp();
+  // GET /dashboard is a live-backend route only: the dev/test fixture
+  // transport answers lane B's draft document, which has no such operation
+  // (it is not in OPERATIONS for the same reason -- see client.getDashboard).
+  // Asking for it in fixture mode would render a permanent error panel on the
+  // landing screen, so the panel is simply absent there.
+  if (config.dataMode !== 'live') return null;
+  // Split so the query is only ever mounted with a real festival_id: a hook
+  // cannot be called conditionally, and firing it with `undefined` would ask
+  // the backend for festival_id=undefined and get a 422 on first paint.
+  if (!festivalId) {
+    return (
+      <section className="panel" aria-labelledby="dashboard-heading">
+        <h2 id="dashboard-heading" className="panel-title">
+          Festival to date
+        </h2>
+        <Loading label="Loading festival figures" />
+      </section>
+    );
+  }
+  return <FestivalDashboardFor festivalId={festivalId} />;
+}
+
+function FestivalDashboardFor({ festivalId }: { festivalId: string }) {
+  const { client } = useApp();
+  const dash = useApiQuery(`dashboard:${festivalId}`, (signal) =>
+    client.getDashboard({ festivalId, top: 6, signal }),
+  );
+  return (
+    <section className="panel" aria-labelledby="dashboard-heading">
+      <h2 id="dashboard-heading" className="panel-title">
+        Festival to date
+      </h2>
+      {dash.status === 'loading' ? <Loading label="Loading festival figures" /> : null}
+      {dash.status === 'error' ? <ErrorState error={dash.error} onRetry={dash.refetch} /> : null}
+      {dash.status === 'success' ? (
+        <>
+          <DashboardStats data={dash.data} />
+          {dash.data.duplicate_rows_excluded > 0 ? (
+            <p className="muted">
+              {dash.data.duplicate_rows_excluded} duplicate settlement row
+              {dash.data.duplicate_rows_excluded === 1 ? '' : 's'} excluded: one settlement per vendor-night,
+              newest kept. The row is still in the ledger.
+            </p>
+          ) : null}
+          <h3 className="panel-subtitle">Eligible sales by night</h3>
+          <NightsChart data={dash.data} />
+          <h3 className="panel-subtitle">Largest vendors</h3>
+          <TopVendors data={dash.data} />
+          <h3 className="panel-subtitle">Where the cash sits</h3>
+          <CustodySplit data={dash.data} />
+          <h3 className="panel-subtitle">Exception load</h3>
+          <AutonomyByReason data={dash.data} />
+          <ul className="muted">
+            {dash.data.labels.map((l) => (
+              <li key={l}>{l}</li>
+            ))}
+          </ul>
+        </>
       ) : null}
     </section>
   );

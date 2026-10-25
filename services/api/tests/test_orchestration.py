@@ -10,14 +10,18 @@ any effect.
 
 from __future__ import annotations
 
+import ast
 import os
+import pathlib
 import sys
+import time
 import uuid
-from datetime import date
+from datetime import date, timedelta
 
 import anthropic
 import httpx
 import pytest
+from app import demo_clock, outbox_dispatch
 from app.auth import create_access_token
 from app.db import reset_engine_cache_for_tests
 from app.models import (
@@ -30,14 +34,15 @@ from app.models import (
     User,
     UserCapability,
 )
-from app.models_ledger import BusinessEvent, Case, JournalEntry, Payout
+from app.models_finance import VendorStatement
+from app.models_ledger import BusinessEvent, Case, JournalEntry, OutboxIntent, Payout
 from app.models_orchestration import (
     AgentCaseExplanation,
     OrchestrationRun,
     OrchestrationStep,
     OrchestrationVendorRun,
 )
-from app.models_payout_dispatch import RailSimulatorRecord
+from app.models_payout_dispatch import CashPool, RailSimulatorRecord
 from app.models_reconciliation import MatchGroup
 from app.models_settlement import Settlement
 from app.orchestration import coordinator, explain, recorder
@@ -46,7 +51,7 @@ from app.payout_dispatch import approve_payout
 from app.policy import resolve_case
 from app.uow import UnitOfWork
 from langgraph.checkpoint.postgres import PostgresSaver
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", "scripts"))
 import dev_fixtures_a06_orchestration as fx  # noqa: E402
@@ -121,6 +126,37 @@ def _settlement(db, vendor_id: str) -> Settlement:
     return db.execute(select(Settlement).where(Settlement.vendor_id == vendor_id)).scalar_one()
 
 
+def _drain_outbox(db, *, passes: int = 8) -> list[dict]:
+    """The nightly close releases; only the dispatcher pays. Tests that
+    want a confirmed payout have to run it, which is the point."""
+    stats = []
+    for _ in range(passes):
+        pass_stats = outbox_dispatch.dispatch_once("test-dispatcher")
+        stats.append(pass_stats.as_dict())
+        if pass_stats.claimed == 0:
+            break
+    db.expire_all()
+    return stats
+
+
+def _intent(db, payout: Payout, suffix: str = "") -> OutboxIntent:
+    return db.execute(
+        select(OutboxIntent).where(OutboxIntent.idempotency_key == payout.idempotency_key + suffix)
+    ).scalar_one()
+
+
+def _statement(db, vendor_id: str) -> VendorStatement:
+    return (
+        db.execute(
+            select(VendorStatement)
+            .where(VendorStatement.vendor_id == vendor_id, VendorStatement.business_date == D1)
+            .order_by(VendorStatement.statement_version.desc())
+        )
+        .scalars()
+        .first()
+    )
+
+
 def _resume(db, run_id, vendor_id, actor) -> None:
     coordinator.request_resume(
         db,
@@ -148,9 +184,26 @@ def test_nightly_close_isolates_holds_and_resumes(orch):
         s = _settlement(db, ids[name])
         assert s.assessed_fee_cents == fx.EXPECTED[name]["fee"]
         assert s.payout_cents == fx.EXPECTED[name]["payout"]
-    alpha_payout = db.execute(select(Payout).where(Payout.vendor_id == ids["Alpha"])).scalar_one()
-    assert alpha_payout.state == "CONFIRMED"
     assert _count(db, Payout, Payout.vendor_id == ids["Delta"]) == 0
+
+    # The close released Alpha's payout and stopped there: nothing has been
+    # sent to the rail, and the statement says so.
+    alpha_payout = db.execute(select(Payout).where(Payout.vendor_id == ids["Alpha"])).scalar_one()
+    assert alpha_payout.state == "DISPATCH_PENDING"
+    assert _count(db, RailSimulatorRecord, RailSimulatorRecord.vendor_id == ids["Alpha"]) == 0
+    assert _intent(db, alpha_payout).status == "PENDING"
+    assert _statement(db, ids["Alpha"]).status == "PROVISIONAL"
+
+    # Only the dispatcher pays. Pass one submits, pass two confirms.
+    _drain_outbox(db)
+    alpha_payout = db.get(Payout, alpha_payout.id)
+    assert alpha_payout.state == "CONFIRMED"
+    assert alpha_payout.bank_debit_confirmed_at is not None
+    assert _count(db, RailSimulatorRecord, RailSimulatorRecord.vendor_id == ids["Alpha"]) == 1
+    assert _intent(db, alpha_payout).status == "DISPATCHED"
+    assert _intent(db, alpha_payout, ":confirm").status == "DISPATCHED"
+    # "payout confirmation updates [the statement] afterward" (AGENT_HANDOFF).
+    assert _statement(db, ids["Alpha"]).status == "FINAL"
 
     gamma = _vendor(db, run_id, ids["Gamma"])
     assert (gamma.status, gamma.held_at) == ("HELD", "TERMS_RESOLVED")
@@ -220,6 +273,10 @@ def test_nightly_close_isolates_holds_and_resumes(orch):
     assert (g.commission_bps_used, g.assessed_fee_cents, g.payout_cents) == (1000, 800, 7200)
     for name in ("Gamma", "Epsilon"):
         p = db.execute(select(Payout).where(Payout.vendor_id == ids[name])).scalar_one()
+        assert p.state == "DISPATCH_PENDING" and p.amount_cents == fx.EXPECTED[name]["payout"]
+    _drain_outbox(db)
+    for name in ("Gamma", "Epsilon"):
+        p = db.execute(select(Payout).where(Payout.vendor_id == ids[name])).scalar_one()
         assert p.state == "CONFIRMED" and p.amount_cents == fx.EXPECTED[name]["payout"]
     events = {
         e
@@ -237,7 +294,7 @@ def test_nightly_close_isolates_holds_and_resumes(orch):
 
 
 @pytest.mark.parametrize(
-    "point", ["pay:after_release", "pay:after_dispatch", "after:calculate", "after:confirm"]
+    "point", ["pay:after_release", "after:calculate", "after:pay", "after:post"]
 )
 def test_crash_mid_node_never_repeats_effects(orch, monkeypatch, point):
     db = orch
@@ -263,6 +320,9 @@ def test_crash_mid_node_never_repeats_effects(orch, monkeypatch, point):
     db.expire_all()
     assert _vendor(db, run_id, target).status == "COMPLETED"
     payout = db.execute(select(Payout).where(Payout.vendor_id == target)).scalar_one()
+    assert payout.state == "DISPATCH_PENDING"
+    _drain_outbox(db)
+    payout = db.get(Payout, payout.id)
     assert payout.state == "CONFIRMED"
     assert _count(db, Settlement, Settlement.vendor_id == target) == 1
     assert _count(db, RailSimulatorRecord, RailSimulatorRecord.vendor_id == target) == 1
@@ -509,3 +569,158 @@ def test_run_agents_capability_allows_budgeted_start(orch, client):
         headers=_auth(user),
     )
     assert r.status_code == 202, r.text
+
+
+# ---------------------------------------------------------------------------
+# The outbox is the only path that pays
+#
+# `pay` used to call dispatch_payout(simulate_outcome="ACCEPTED") itself, so
+# a workflow payout skipped the 10 AM window and could only ever succeed.
+# These tests are about that boundary: the graph releases, the dispatcher
+# pays, and the outcomes the graph could not previously produce are real.
+# ---------------------------------------------------------------------------
+
+
+def test_the_graph_itself_never_contacts_the_rail():
+    """A structural guard, deliberately not a behavioural one: the point is
+    that no future edit re-adds a payment call to the workflow, and a test
+    of one night's happy path would not notice that.
+
+    Calls only -- the module's own docstring names `dispatch_payout` to say
+    why it is not there, and prose explaining a ban must not trip it."""
+    tree = ast.parse(
+        (
+            pathlib.Path(__file__).resolve().parents[1] / "app/orchestration/vendor_graph.py"
+        ).read_text()
+    )
+    banned = {"dispatch_payout", "confirm_bank_debit", "confirm_payout_rail"}
+    called = {
+        node.func.attr if isinstance(node.func, ast.Attribute) else getattr(node.func, "id", "")
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+    }
+    assert not (called & banned), f"vendor_graph must not call {sorted(called & banned)}"
+
+
+def test_release_window_defers_payment_until_it_opens(orch, monkeypatch):
+    db = orch
+    festival, ids, starter = _seed(db)
+    _start(db, festival, starter)
+    coordinator.work_once("w1")
+    payout = db.execute(select(Payout).where(Payout.vendor_id == ids["Alpha"])).scalar_one()
+
+    # D1's window opens the NEXT morning at 10:00 festival-local. An hour
+    # before it, the dispatcher defers without spending an attempt.
+    monkeypatch.setenv("OUTBOX_DEFER_RECHECK_SECONDS", "0")
+    demo_clock.freeze_at(db, demo_clock.local_time_to_utc(D1 + timedelta(days=1), 9, 0))
+    stats = outbox_dispatch.dispatch_once("w-early", lease_seconds=0.001).as_dict()
+    # Alpha's and Beta's payouts -- Delta's night owes nothing, so it has no
+    # payout to defer. The one resolved intent is A02's import notification.
+    assert (stats["deferred"], stats["resolved"]) == (2, 1)
+    db.expire_all()
+    assert db.get(Payout, payout.id).state == "DISPATCH_PENDING"
+    assert _count(db, RailSimulatorRecord) == 0
+    state = db.execute(
+        text(
+            "SELECT attempts, last_disposition, detail FROM outbox_dispatch_state WHERE intent_id"
+            " = (SELECT id FROM outbox_intents WHERE idempotency_key = :k)"
+        ),
+        {"k": payout.idempotency_key},
+    ).one()
+    assert (state[0], state[1]) == (0, "DEFER")
+    assert state[2]["reason"] == "payout_release_window_closed"
+
+    # Half an hour after it opens, the same intent pays.
+    demo_clock.freeze_at(db, demo_clock.local_time_to_utc(D1 + timedelta(days=1), 10, 30))
+    time.sleep(1.1)  # the DEFER asked to be re-checked in a second
+    _drain_outbox(db)
+    assert db.get(Payout, payout.id).state == "CONFIRMED"
+
+
+def test_failed_rail_outcome_is_reachable_and_releases_the_reservation(orch, monkeypatch):
+    db = orch
+    festival, ids, starter = _seed(db)
+    monkeypatch.setenv("OUTBOX_DEFAULT_SIMULATED_OUTCOME", "FAILED")
+    _start(db, festival, starter)
+    coordinator.work_once("w1")
+    payout = db.execute(select(Payout).where(Payout.vendor_id == ids["Alpha"])).scalar_one()
+    pool = db.execute(select(CashPool).where(CashPool.festival_id == festival)).scalar_one()
+    assert pool.reserved_cents >= payout.amount_cents  # released, awaiting the rail
+
+    _drain_outbox(db)
+    payout = db.get(Payout, payout.id)
+    assert payout.state == "FAILED"
+    assert payout.bank_debit_confirmed_at is None and payout.payout_confirmed_at is None
+    # No confirmation was queued for a payment that did not happen.
+    assert (
+        _count(
+            db,
+            OutboxIntent,
+            OutboxIntent.idempotency_key == payout.idempotency_key + ":confirm",
+        )
+        == 0
+    )
+    assert _count(db, JournalEntry, JournalEntry.entry_key.like(f"PAYOUT:{payout.id}%")) == 0
+    db.expire_all()
+    pool = db.execute(select(CashPool).where(CashPool.festival_id == festival)).scalar_one()
+    # A FAILED rail outcome releases the reservation (unlike UNKNOWN). The
+    # env var failed every payout this run released, so nothing is left held.
+    assert pool.reserved_cents == 0
+    assert _statement(db, ids["Alpha"]).status == "PROVISIONAL"
+
+
+def test_unknown_rail_outcome_keeps_the_cash_reserved_and_is_never_confirmed(orch, monkeypatch):
+    db = orch
+    festival, ids, starter = _seed(db)
+    monkeypatch.setenv("OUTBOX_DEFAULT_SIMULATED_OUTCOME", "UNKNOWN")
+    _start(db, festival, starter)
+    coordinator.work_once("w1")
+    payout = db.execute(select(Payout).where(Payout.vendor_id == ids["Alpha"])).scalar_one()
+    amount = payout.amount_cents
+
+    _drain_outbox(db)
+    payout = db.get(Payout, payout.id)
+    assert payout.state == "UNKNOWN"
+    # C06: the reservation stays held until an explicit reconciliation.
+    pool = db.execute(select(CashPool).where(CashPool.festival_id == festival)).scalar_one()
+    assert pool.reserved_cents >= amount
+    assert payout.payout_confirmed_at is None
+    assert (
+        _count(
+            db,
+            OutboxIntent,
+            OutboxIntent.idempotency_key == payout.idempotency_key + ":confirm",
+        )
+        == 0
+    )
+
+
+@pytest.mark.parametrize("point", ["outbox:after_dispatch", "outbox:after_bank_debit"])
+def test_dispatcher_crash_mid_payment_converges_without_paying_twice(orch, monkeypatch, point):
+    db = orch
+    festival, ids, starter = _seed(db)
+    _start(db, festival, starter)
+    coordinator.work_once("w1")
+    payout = db.execute(select(Payout).where(Payout.vendor_id == ids["Alpha"])).scalar_one()
+    real = recorder.crash_point
+    fired = []
+
+    def crash(name, key=None):
+        if name == point and key == payout.id and not fired:
+            fired.append(name)
+            raise SimulatedCrash(name)
+        return real(name, key)
+
+    monkeypatch.setattr("app.outbox_dispatch.crash_point", crash)
+    with pytest.raises(SimulatedCrash):
+        for _ in range(4):
+            outbox_dispatch.dispatch_once("dies", lease_seconds=0.001)
+    assert fired == [point]
+
+    monkeypatch.setattr("app.outbox_dispatch.crash_point", real)
+    _drain_outbox(db)
+    payout = db.get(Payout, payout.id)
+    assert payout.state == "CONFIRMED"
+    assert _count(db, RailSimulatorRecord, RailSimulatorRecord.vendor_id == ids["Alpha"]) == 1
+    assert _count(db, JournalEntry, JournalEntry.entry_key.like(f"PAYOUT:{payout.id}%")) == 1
+    assert _statement(db, ids["Alpha"]).status == "FINAL"

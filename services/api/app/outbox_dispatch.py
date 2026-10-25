@@ -1,6 +1,13 @@
 """The outbox dispatcher: the process that actually delivers the intents
 `UnitOfWork.enqueue_outbox` commits next to the domain change.
 
+It is the ONLY process that contacts the payment rail. The nightly close
+(app/orchestration/vendor_graph.py `pay`) releases a payout and stops; this
+module submits it inside the 10 AM window, and the `payout.confirm` intent
+it queues behind an accepted submission is what later confirms the payment
+and re-issues the vendor statement as FINAL. A workflow payout therefore
+reaches FAILED or UNKNOWN exactly as a hand-released one does.
+
 Until this module existed every outbox intent stayed PENDING until a human
 made an HTTP call, which is why a development database could sit on 541
 undelivered intents (525 `payout.dispatch`, 16 `source.imported.notify`).
@@ -25,6 +32,10 @@ calls"):
   * `dispatch_payout` is also a no-op for a payout that is no longer
     DISPATCH_PENDING/UNKNOWN, so a redelivery after the domain update
     committed writes nothing at all -- not even a duplicate audit event.
+  * `payout.confirm` -> `handle_payout_confirm`, the rail reporting back on
+    a submission it accepted. Both A07 confirmations are no-ops once their
+    timestamp is set (not even a duplicate audit event), and the statement
+    it re-issues is idempotent by content digest.
   * `source.imported.notify` is an internal notification with no external
     effect; delivering it twice is only a repeated log line, and the
     intent's own status stops that.
@@ -62,6 +73,8 @@ from typing import Any
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+import app.accounting as accounting
+import app.finance_reports as finance_reports
 import app.rail_simulator as rail_simulator
 from app import demo_clock, payout_dispatch
 from app.models_ledger import OutboxIntent, Payout
@@ -71,6 +84,11 @@ from app.uow import UnitOfWork
 logger = logging.getLogger("outbox.dispatch")
 
 DISPATCHER_CAPABILITY = "outbox_dispatcher"
+# The rail confirming its own submission is not an actor with authority; it
+# is the simulated counterparty reporting back. A07's confirmations take the
+# capability, never a user id.
+SIMULATED_RAIL = "simulated_rail"
+CONFIRM_INTENT_TYPE = "payout.confirm"
 
 DEFAULT_MAX_ATTEMPTS = 5
 DEFAULT_BACKOFF_SECONDS = 15.0
@@ -209,6 +227,13 @@ def handle_payout_dispatch(db: Session, intent: OutboxIntent) -> Delivery:
         actor_capability=DISPATCHER_CAPABILITY,
         simulate_outcome=requested,
     )
+    # Same transaction as the domain update the rail's answer caused, for
+    # the same reason release_payout enqueues this intent's own predecessor
+    # that way: a submission whose confirmation intent did not commit with
+    # it would be a payment nothing is waiting on.
+    confirm_intent_id = None
+    if outcome.payout.state == "SUBMITTED":
+        confirm_intent_id = _enqueue_confirmation(db, outcome.payout)
     db.commit()
 
     # The rail committed on its own before the domain update above (see
@@ -222,6 +247,7 @@ def handle_payout_dispatch(db: Session, intent: OutboxIntent) -> Delivery:
         "payout_state": outcome.payout.state,
         "newly_submitted": outcome.newly_submitted,
         "changed": outcome.changed,
+        "confirmation_intent_id": confirm_intent_id,
     }
     if outcome.outcome is None:
         # Not dispatchable: already SUBMITTED/CONFIRMED, CANCELLED or never
@@ -237,6 +263,132 @@ def handle_payout_dispatch(db: Session, intent: OutboxIntent) -> Delivery:
     # UNKNOWN deliberately keeps the cash reserved (C06) and is resolved by
     # payout_dispatch.reconcile_unknown_payout, never by redelivering.
     return Delivery(RESOLVED, detail)
+
+
+def _enqueue_confirmation(db: Session, payout: Payout) -> str:
+    """The rail's callback, in a simulator that has no callbacks. Keyed off
+    the payout's own stable idempotency key, so a redelivered dispatch can
+    never queue a second confirmation."""
+    intent = UnitOfWork(db).enqueue_outbox(
+        idempotency_key=f"{payout.idempotency_key}:confirm",
+        intent_type=CONFIRM_INTENT_TYPE,
+        target="rail_simulator",
+        payload={
+            "payout_id": payout.id,
+            "vendor_id": payout.vendor_id,
+            "business_date": payout.business_date.isoformat(),
+        },
+        event_id=None,
+    )
+    return intent.id
+
+
+def handle_payout_confirm(db: Session, intent: OutboxIntent) -> Delivery:
+    """Bank debit, then the payout itself (C06 tracks them as separate
+    events), then the statement that can now say FINAL.
+
+    Harmless to deliver repeatedly: both confirmations are no-ops once
+    their timestamp is set, and `issue_vendor_statement` is idempotent by
+    content digest, so a second delivery issues no new version.
+
+    This is also where a payment that did NOT arrive stops: FAILED,
+    CANCELLED and UNKNOWN are not confirmable, now or later, and UNKNOWN
+    resolves only through `reconcile_unknown_payout` (C06 -- never through
+    a confirmation side door).
+    """
+    payout_id = (intent.payload or {}).get("payout_id")
+    if not payout_id:
+        return Delivery(DEAD_LETTER, {"reason": "payload has no payout_id"})
+    payout = db.get(Payout, payout_id)
+    if payout is None:
+        return Delivery(DEAD_LETTER, {"reason": "payout no longer exists", "payout_id": payout_id})
+    if payout.state not in ("SUBMITTED", "CONFIRMED"):
+        return Delivery(
+            RESOLVED,
+            {
+                "payout_id": payout_id,
+                "reason": "payout_not_confirmable",
+                "payout_state": payout.state,
+            },
+        )
+
+    vendor_id, business_date = payout.vendor_id, payout.business_date
+    try:
+        _payout, debit_newly = payout_dispatch.confirm_bank_debit(
+            db, payout_id=payout_id, actor_id=None, actor_capability=SIMULATED_RAIL
+        )
+        db.commit()
+        crash_point("outbox:after_bank_debit", payout_id)
+        payout, rail_newly = payout_dispatch.confirm_payout_rail(
+            db, payout_id=payout_id, actor_id=None, actor_capability=SIMULATED_RAIL
+        )
+        db.commit()
+    except payout_dispatch.PayoutBlockedError as exc:
+        # Lost a race with a cancellation or a reconciliation between the
+        # state check above and the lock.
+        db.rollback()
+        return Delivery(
+            RESOLVED,
+            {"payout_id": payout_id, "reason": exc.reason_code, "details": exc.details},
+        )
+    except accounting.BusinessDateClosedError:
+        # The books closed on a night whose payment was still in flight.
+        # Retrying cannot reopen them; a human has to (and the intent stays
+        # PENDING, so A10 keeps pointing at it).
+        db.rollback()
+        return Delivery(
+            DEAD_LETTER,
+            {
+                "payout_id": payout_id,
+                "reason": "business_date_closed_before_confirmation",
+                "business_date": business_date.isoformat(),
+            },
+        )
+    final_state = payout.state
+    crash_point("outbox:after_payout_confirmed", payout_id)
+
+    # "Statement can be provisional/held; payout confirmation updates it
+    # afterward" (AGENT_HANDOFF). The close issued a PROVISIONAL statement
+    # without waiting for the money; this is the part that makes it FINAL.
+    statement_id = statement_status = None
+    if final_state == "CONFIRMED":
+        stmt, _new = finance_reports.issue_vendor_statement(
+            db,
+            vendor_id=vendor_id,
+            business_date=business_date,
+            demo_effective_at=None,
+            actor_id=None,
+            actor_capability="close_books",
+        )
+        db.commit()
+        statement_id, statement_status = stmt.id, stmt.status
+
+    # "Log intent before external effects and confirmed outcome after"
+    # (AGENT_HANDOFF): this intent, and the dispatch intent it followed,
+    # now both carry the outcome the rail reported.
+    now = datetime.now(UTC)
+    intent.status = "DISPATCHED"
+    intent.dispatched_at = intent.dispatched_at or now
+    intent.confirmed_at = now
+    db.execute(
+        text(
+            "UPDATE outbox_intents SET confirmed_at = :now"
+            " WHERE idempotency_key = :key AND confirmed_at IS NULL"
+        ),
+        {"now": now, "key": (intent.idempotency_key or "").removesuffix(":confirm")},
+    )
+    db.commit()
+    return Delivery(
+        RESOLVED,
+        {
+            "payout_id": payout_id,
+            "payout_state": final_state,
+            "bank_debit_newly_confirmed": debit_newly,
+            "payout_newly_confirmed": rail_newly,
+            "statement_id": statement_id,
+            "statement_status": statement_status,
+        },
+    )
 
 
 def handle_source_imported_notify(db: Session, intent: OutboxIntent) -> Delivery:
@@ -264,6 +416,7 @@ def handle_source_imported_notify(db: Session, intent: OutboxIntent) -> Delivery
 
 HANDLERS: dict[str, Handler] = {
     "payout.dispatch": handle_payout_dispatch,
+    CONFIRM_INTENT_TYPE: handle_payout_confirm,
     "source.imported.notify": handle_source_imported_notify,
 }
 
@@ -588,8 +741,15 @@ def dispatch_once(
     intent gets its own session and its own commit, so a failure or a crash
     affects one intent, never the batch."""
     worker = worker or worker_id()
-    lease = lease_seconds or _float_env("OUTBOX_LEASE_SECONDS", DEFAULT_LEASE_SECONDS)
-    limit = batch or _int_env("OUTBOX_BATCH", DEFAULT_BATCH)
+    # `is None`, not `or`: a caller that asks for a zero-length lease (a test
+    # that wants its own claim to be immediately re-claimable) must not
+    # silently get the 60-second default back.
+    lease = (
+        _float_env("OUTBOX_LEASE_SECONDS", DEFAULT_LEASE_SECONDS)
+        if lease_seconds is None
+        else lease_seconds
+    )
+    limit = _int_env("OUTBOX_BATCH", DEFAULT_BATCH) if batch is None else batch
     stats = DispatchStats()
 
     with session() as db:

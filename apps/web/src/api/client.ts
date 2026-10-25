@@ -5,6 +5,7 @@ import type { PreparedCommand } from './commands';
 import type {
   CommandOperationId,
   CommandResult,
+  Dashboard,
   JobAccepted,
   ListOperationId,
   OkBody,
@@ -157,6 +158,48 @@ export class ApiClient {
     }
     if (body === UNPARSABLE) throw malformedError(res.status, 'response body is not JSON');
     return { status: res.status, headers: res.headers, body };
+  }
+
+  /**
+   * GET /dashboard, the landing screen's festival-level aggregate.
+   *
+   * Not an entry in OPERATIONS, deliberately: that map is keyed by the
+   * operation ids of lane B's DRAFT document, and this route exists only in
+   * lane A's real backend, so there is no draft operation id to key it by and
+   * no OkBody<K> to infer. It is still generated, not hand-declared -- the
+   * return type comes from ./generated/backend.ts via the Dashboard alias --
+   * and it goes through the same transport, prefix, auth headers and error
+   * mapping as every other read. When the draft document is replaced by lane
+   * A's own OpenAPI (see api/types.ts), this collapses into a normal
+   * OPERATIONS entry and this method goes away.
+   */
+  async getDashboard(
+    opts: { festivalId: string; top?: number; asOf?: string; signal?: AbortSignal },
+  ): Promise<Dashboard> {
+    const q = new URLSearchParams({ festival_id: opts.festivalId });
+    if (opts.top !== undefined) q.set('top', String(opts.top));
+    if (opts.asOf !== undefined) q.set('as_of', opts.asOf);
+    let res: Response;
+    try {
+      res = await this.transport(`${this.origin}${API_PREFIX}/dashboard?${q.toString()}`, {
+        method: 'GET',
+        headers: { Accept: 'application/json', ...this.authHeaders() },
+        credentials: this.credentials,
+        signal: opts.signal,
+      });
+    } catch (cause) {
+      throw networkError(cause);
+    }
+    const body = await readJson(res);
+    if (!res.ok) {
+      const err = errorFromResponse(res.status, res.headers, body === UNPARSABLE ? undefined : body);
+      if (err.kind === 'unauthenticated') this.onUnauthenticated?.(err);
+      throw err;
+    }
+    if (body === UNPARSABLE || body === null || typeof body !== 'object') {
+      throw malformedError(res.status, 'expected a JSON object');
+    }
+    return body as Dashboard;
   }
 
   /** GET an operation and return its 200 JSON body (typed from the contract). */

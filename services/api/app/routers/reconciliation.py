@@ -11,9 +11,9 @@ from __future__ import annotations
 
 from datetime import date
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import select, tuple_
 from sqlalchemy.orm import Session
 
 from app.auth import require_capability
@@ -165,16 +165,61 @@ def _explanation(reason_code: str) -> str:
     return stated or reason_code.replace("_", " ").capitalize() + "."
 
 
+# The status values this service actually writes (app/reconciliation.py) are
+# "matched", "case" and "pending". Lane B's DRAFT document proposed a louder
+# vocabulary ("MATCHED", "CASE_REQUIRED", "TIMING_PENDING", ...) and the web
+# client is generated from that draft, so it filters with those spellings.
+# Both are accepted here and mapped onto what is stored. This is the cheap
+# half of a real divergence: the filter silently matched nothing before, which
+# looked like "no exceptions exist" rather than "that filter does not work".
+# Which spelling becomes canonical is a C03 contract decision, not this
+# router's to make.
+_GROUP_STATUSES = {
+    "matched": "matched",
+    "MATCHED": "matched",
+    "case": "case",
+    "CASE_REQUIRED": "case",
+    "pending": "pending",
+    "TIMING_PENDING": "pending",
+}
+
+
 @router.get("/groups", response_model=list[MatchGroupOut])
 def list_match_groups(
     festival_id: str | None = None,
     vendor_id: str | None = None,
     run_id: str | None = None,
     match_type: str | None = None,
+    business_date: date | None = None,
+    status: str | None = None,
     status_: str | None = None,
+    limit: int = Query(50, ge=1, le=500),
+    cursor: str | None = None,
     db: Session = Depends(get_db),
     user: User = Depends(require_capability(CAPABILITY_RUN_RECONCILIATION)),
 ) -> list[MatchGroupOut]:
+    """Match groups, oldest first, one page at a time.
+
+    This route previously took no `limit` and returned every matching row,
+    each one costing its own members query. On the real festival that is
+    201,035 groups: ~220 MB of JSON and ~32 seconds, which reads as a screen
+    stuck on "loading" rather than as a slow response. A reconciliation
+    database only grows, so an unbounded list here can never be safe.
+
+    Paging is keyset, not OFFSET: `cursor` is the id of the last group on the
+    previous page and the scan resumes after that row's (created_at, id). An
+    OFFSET page would re-scan everything before it and would also skip or
+    repeat rows when a new run inserts groups mid-read, which is exactly what
+    happens here while a close is running.
+
+    `status` accepts either spelling (see _GROUP_STATUSES) and refuses an
+    unknown one rather than returning an unfiltered page, and
+    `business_date` is honoured -- the screen sent both already.
+
+    The response stays a bare array, as it was, so existing callers are
+    unaffected; the client treats a bare array as one unpaged page. The next
+    page is requested with `cursor=<id of the last item>`.
+    """
     query = select(MatchGroup)
     if festival_id is not None:
         query = query.where(MatchGroup.festival_id == festival_id)
@@ -184,10 +229,50 @@ def list_match_groups(
         query = query.where(MatchGroup.run_id == run_id)
     if match_type is not None:
         query = query.where(MatchGroup.match_type == match_type)
-    if status_ is not None:
-        query = query.where(MatchGroup.status == status_)
-    groups = db.execute(query.order_by(MatchGroup.created_at.asc())).scalars().all()
-    return [_to_group_out(db, g) for g in groups]
+    wanted_status = status if status is not None else status_
+    if wanted_status is not None:
+        stored = _GROUP_STATUSES.get(wanted_status)
+        if stored is None:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "status_unknown",
+                    "details": {"status": wanted_status, "accepted": sorted(_GROUP_STATUSES)},
+                },
+            )
+        query = query.where(MatchGroup.status == stored)
+    if business_date is not None:
+        query = query.where(MatchGroup.business_date == business_date)
+    if cursor is not None:
+        after = db.get(MatchGroup, cursor)
+        if after is None:
+            raise HTTPException(
+                status_code=422,
+                detail={"code": "cursor_unknown", "details": {"cursor": cursor}},
+            )
+        query = query.where(
+            tuple_(MatchGroup.created_at, MatchGroup.id) > (after.created_at, after.id)
+        )
+    groups = (
+        db.execute(query.order_by(MatchGroup.created_at.asc(), MatchGroup.id.asc()).limit(limit))
+        .scalars()
+        .all()
+    )
+    # One members query for the whole page, not one per group: the per-group
+    # version issued 201,035 extra round trips on the real festival.
+    members_by_group: dict[str, list[MatchGroupMember]] = {g.id: [] for g in groups}
+    if groups:
+        for m in (
+            db.execute(
+                select(MatchGroupMember).where(
+                    MatchGroupMember.match_group_id.in_(list(members_by_group))
+                )
+            )
+            .scalars()
+            .all()
+        ):
+            members_by_group[m.match_group_id].append(m)
+    return [_group_out(g, members_by_group[g.id]) for g in groups]
 
 
 @router.get("/groups/{group_id}", response_model=MatchGroupOut)
@@ -203,11 +288,18 @@ def get_match_group(
 
 
 def _to_group_out(db: Session, group: MatchGroup) -> MatchGroupOut:
+    """One group, fetching its own members. Used by the single-group read."""
     members = (
         db.execute(select(MatchGroupMember).where(MatchGroupMember.match_group_id == group.id))
         .scalars()
         .all()
     )
+    return _group_out(group, list(members))
+
+
+def _group_out(group: MatchGroup, members: list[MatchGroupMember]) -> MatchGroupOut:
+    """Serialise a group whose members the caller already has, so a page of
+    groups costs one members query instead of one per group."""
     member_out = [
         MatchGroupMemberOut(
             member_kind=m.member_kind,

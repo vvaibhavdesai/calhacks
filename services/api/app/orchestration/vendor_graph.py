@@ -1,8 +1,13 @@
 """Per-vendor nightly close workflow (LangGraph StateGraph, C04 milestones).
 
     ingest -> reconcile -> resolve_terms -> calculate -> check_controls
-           -> approve -> pay -> confirm -> post -> report -> END
+           -> approve -> pay -> post -> report -> END
     (payout of 0: check_controls -> post)
+
+`pay` releases; it does not pay. The simulated rail is contacted only by
+the outbox dispatcher, inside the 10 AM release window, and the payout's
+confirmation arrives after this graph is done -- which is why the chain
+ends at REPORTED with the payout in flight and the statement PROVISIONAL.
 
 Any milestone may route to `hold` (vendor HELD, reasons recorded, a HELD/
 PROVISIONAL statement issued so the 9 AM statement never waits on a
@@ -21,11 +26,14 @@ Who decides what:
     the $5,000/day limit or without that capability, the vendor holds for a
     human approval via POST /payouts/{id}/approve;
   - release: A07's release_payout, which re-checks every hard blocker;
+  - payment: the outbox dispatcher alone (app/outbox_dispatch.py), which
+    also delivers the rail's confirmation and re-issues the statement it
+    makes FINAL;
   - Claude: may only write an explanation row.
 
 Resume safety: see recorder.run_once (effect + step row in one
-transaction) and the A07/A08 idempotency keys used by `pay`/`confirm`/
-`post`/`report`. Checkpoints use durability="sync".
+transaction) and the A07/A08 idempotency keys used by `pay`/`post`/
+`report`. Checkpoints use durability="sync".
 """
 
 from __future__ import annotations
@@ -53,7 +61,6 @@ from app.orchestration.terms import resolve_terms
 from app.settlement import calculate_and_record_settlement, gather_reconciled_day_facts
 
 ACTOR_CAPABILITY = CAPABILITY_RUN_RECONCILIATION
-SIMULATED_RAIL = "simulated_rail"
 
 
 class VendorState(TypedDict, total=False):
@@ -319,8 +326,17 @@ def approve(state: VendorState) -> dict:
                     payout_id=payout_id,
                     actor_id=state["actor_id"],
                     user_capability_codes=codes,
-                    expected_version=None,
+                    # The version this node just read, inside this same
+                    # session: anything that changed the payout between that
+                    # read and the lock taken by approve_payout (a human
+                    # cancelling, a correction superseding it) makes this an
+                    # explicit conflict instead of an approval of a row the
+                    # graph never saw.
+                    expected_version=payout.version,
                     note=f"automatic gate, nightly close run {state['run_id']}",
+                    # The authority is the starting operator's; the decision
+                    # is the machine's. The event records both.
+                    actor_type="system",
                 )
                 db.commit()
             except payouts.PayoutCapabilityError as exc:
@@ -336,20 +352,65 @@ def approve(state: VendorState) -> dict:
                         }
                     ],
                 ) | {"payout_id": payout_id}
+            except payouts.PayoutVersionConflictError as exc:
+                return _hold(
+                    "CONTROLS_CHECKED",
+                    "approve",
+                    [
+                        {
+                            "code": "payout_changed_before_approval",
+                            "payout_id": payout_id,
+                            "expected_version": exc.expected,
+                            "current_version": exc.current,
+                        }
+                    ],
+                ) | {"payout_id": payout_id}
     return {"milestone": "APPROVED", "route": "pay", "payout_id": payout_id}
+
+
+# A payout state this node must not walk past: the money did not move, or
+# nobody knows whether it did. UNKNOWN keeps the cash reserved and resolves
+# only through reconcile_unknown_payout (C06), never by paying again.
+_UNPAID_AFTER_RELEASE = ("FAILED", "CANCELLED", "CANCEL_REQUESTED", "UNKNOWN")
 
 
 @node("pay")
 def pay(state: VendorState) -> dict:
+    """Records the release and stops. The rail is contacted by ONE process,
+    the outbox dispatcher (app/outbox_dispatch.py), reading the intent
+    `release_payout` commits in the same transaction as the reservation.
+
+    This node used to call `dispatch_payout(simulate_outcome="ACCEPTED")`
+    itself, right after releasing. That bypassed the 10 AM release window
+    and made FAILED/UNKNOWN/DELAYED unreachable for every workflow payout:
+    the only outcome a nightly close could produce was the one it asked
+    for. Releasing and leaving the delivery to the dispatcher is what makes
+    the window, the bounded retry and the unhappy outcomes real here.
+
+    The close deliberately does not wait for the money to land. C04: "APPROVED
+    leads to release/posting/reporting tasks; statement generation can
+    precede payment confirmation. Do not enforce the diagram as a single
+    linear chain that delays 9 AM statements until after 10 AM payment."
+    So the statement `report` issues is PROVISIONAL with respect to payment,
+    and the confirmation delivery re-issues it as FINAL afterwards.
+    """
     payout_id = state["payout_id"]
     with session() as db:
+        payout = db.get(Payout, payout_id)
+        if payout is None:
+            return _hold("APPROVED", "pay", [{"code": "payout_missing", "payout_id": payout_id}])
+        expected_version = payout.version
+    with session() as db:
         try:
-            payouts.release_payout(
+            outcome = payouts.release_payout(
                 db,
                 payout_id=payout_id,
                 actor_id=state["actor_id"],
                 actor_capability=CAPABILITY_APPROVE_PAYOUT,
-                expected_version=None,
+                # As in `approve`: the version this graph last saw. A resume
+                # re-reads it, so an already-released payout still matches.
+                expected_version=expected_version,
+                actor_type="system",
             )
             db.commit()
         except payouts.PayoutBlockedError as exc:
@@ -359,47 +420,31 @@ def pay(state: VendorState) -> dict:
                 "pay",
                 [{"code": exc.reason_code, "payout_id": payout_id, **exc.details}],
             )
-    crash_point("pay:after_release", state["vendor_id"])
-    with session() as db:
-        outcome = payouts.dispatch_payout(
-            db,
-            payout_id=payout_id,
-            actor_id=state["actor_id"],
-            actor_capability=CAPABILITY_APPROVE_PAYOUT,
-            simulate_outcome="ACCEPTED",
-        )
-        db.commit()
+        except payouts.PayoutVersionConflictError as exc:
+            return _hold(
+                "APPROVED",
+                "pay",
+                [
+                    {
+                        "code": "payout_changed_before_release",
+                        "payout_id": payout_id,
+                        "expected_version": exc.expected,
+                        "current_version": exc.current,
+                    }
+                ],
+            )
         state_now = outcome.payout.state
-    crash_point("pay:after_dispatch", state["vendor_id"])
-    if state_now in ("SUBMITTED", "CONFIRMED"):
-        return {"milestone": "PAYING", "route": "confirm"}
-    return _hold(
-        "PAYING",
-        "pay",
-        [{"code": f"payout_{state_now.lower()}", "payout_id": payout_id, "state": state_now}],
-    )
-
-
-@node("confirm")
-def confirm(state: VendorState) -> dict:
-    """Simulated rail confirmations (PAYMENT_MODE=simulated): both are
-    A07's idempotent confirmations; the payout journal is posted by A07
-    exactly once, at confirmation."""
-    payout_id = state["payout_id"]
-    with session() as db:
-        payouts.confirm_bank_debit(
-            db, payout_id=payout_id, actor_id=None, actor_capability=SIMULATED_RAIL
+    crash_point("pay:after_release", state["vendor_id"])
+    if state_now in _UNPAID_AFTER_RELEASE:
+        # Reachable on a resume: a dispatch that already happened reported
+        # FAILED or UNKNOWN, or a human cancelled. Neither is paid, and
+        # neither is this node's to retry.
+        return _hold(
+            "PAYING",
+            "pay",
+            [{"code": f"payout_{state_now.lower()}", "payout_id": payout_id, "state": state_now}],
         )
-        db.commit()
-    with session() as db:
-        payout, _new = payouts.confirm_payout_rail(
-            db, payout_id=payout_id, actor_id=None, actor_capability=SIMULATED_RAIL
-        )
-        db.commit()
-        final = payout.state
-    if final != "CONFIRMED":
-        return _hold("PAYING", "confirm", [{"code": "payout_not_confirmed", "state": final}])
-    return {"milestone": "CONFIRMED", "route": "post"}
+    return {"milestone": "PAYING", "route": "post"}
 
 
 @node("post")
@@ -558,7 +603,6 @@ NODES = {
     "check_controls": check_controls,
     "approve": approve,
     "pay": pay,
-    "confirm": confirm,
     "post": post,
     "report": report,
     "hold": hold,

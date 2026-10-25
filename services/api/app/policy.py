@@ -29,6 +29,7 @@ rather than festival-calendar-derived.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import UTC, date, datetime
 
 from domain.policy import CaseFacts, PolicyCandidate, policy_applies
@@ -130,6 +131,69 @@ def find_active_matching_policy(db: Session, facts: CaseFacts) -> PolicyVersion 
         if applies:
             return p
     return None
+
+
+# ---------------------------------------------------------------------------
+# Policy effects that are a RULING rather than a rate
+#
+# The original effect vocabulary was a rate: {"commission_bps": 1000} , which
+# `_cover_night_from_policy` turns into real term coverage. Some exceptions
+# are not asking "what rate?" but "do we process this, or does a human look
+# every time?" -- and the two answers must be told apart from "nobody has
+# ruled yet", which is what an ABSENT policy means. A standing instruction to
+# always escalate is itself a decision somebody made, and the next human
+# needs to see that it was made.
+#
+#   {"action": "escalate"}  a human decides EVERY occurrence. The case stays
+#                           OPEN (so it keeps withholding money if it is a
+#                           blocking kind) and records which policy requires
+#                           the human: status OPEN + applied_policy_version_id
+#                           set + auto_resolved False means exactly that.
+#   {"action": "accept"}    the state the system already holds stands. The
+#                           case auto-resolves and NO money changes -- there
+#                           is no rate in this effect and nothing writes a
+#                           term. A caller must only offer this where
+#                           accepting is genuinely a no-op on the money.
+# ---------------------------------------------------------------------------
+
+ACTION_ESCALATE = "escalate"
+ACTION_ACCEPT = "accept"
+RULING_ACTIONS = (ACTION_ESCALATE, ACTION_ACCEPT)
+
+
+@dataclass(frozen=True)
+class PolicyRuling:
+    """What the policy loop decided for one case. `action` is None when no
+    ACTIVE policy matched -- the default, which is "a human decides"."""
+
+    action: str | None
+    policy: PolicyVersion | None
+    reason: str
+
+    @property
+    def auto_resolves(self) -> bool:
+        return self.action == ACTION_ACCEPT
+
+
+def ruling_for(db: Session, facts: CaseFacts) -> PolicyRuling:
+    """The standing ruling for these facts, if a human has made one.
+
+    Never invents a default: no matching ACTIVE policy means `action=None`
+    and the caller escalates, which is the whole point -- money moves on an
+    explicit human ruling, not on silence.
+    """
+    policy = find_active_matching_policy(db, facts)
+    if policy is None:
+        return PolicyRuling(None, None, "no_policy_on_file")
+    effect = policy.effect if isinstance(policy.effect, dict) else {}
+    action = effect.get("action")
+    if action not in RULING_ACTIONS:
+        # A rate policy (or anything else) matched a case kind that expects
+        # a ruling. Not applied, and not silently treated as permission.
+        return PolicyRuling(None, policy, f"policy_effect_is_not_a_ruling:{action!r}")
+    if action == ACTION_ESCALATE:
+        return PolicyRuling(ACTION_ESCALATE, policy, "policy_requires_human")
+    return PolicyRuling(ACTION_ACCEPT, policy, "policy_accepts")
 
 
 def _compute_conflict_financial_impact_cents(
@@ -556,11 +620,12 @@ def _activate_resolved_term(
 
     `effective_from == effective_to == case.business_date`. An open-ended
     term here would let every remaining night of the festival bill at a
-    rate no human decided for it and no policy covers -- silently, because
-    A04's `resolve_vendor_terms` just takes the highest-version active
-    term covering the night. Each later night earns its own single-day
-    term the same way: its own case, resolved by a human or auto-resolved
-    against an ACTIVE policy."""
+    rate no human decided for it and no policy covers -- silently, and now
+    in preference to the contract's own standing rate, since A04's
+    `resolve_vendor_terms` prefers the narrowest active term covering a
+    night precisely because a bounded one was decided for it. Each later
+    night earns its own single-day term the same way: its own case,
+    resolved by a human or auto-resolved against an ACTIVE policy."""
     term = VendorContractTerm(
         vendor_id=case.vendor_id,
         version=_next_term_version(db, case.vendor_id),
@@ -717,7 +782,17 @@ def approve_case_policy(
         raise ValueError(f"case {case.id} has no recorded resolution_effect to make reusable")
 
     vendor = db.get(Vendor, case.vendor_id)
-    scope = {"vendor_id": case.vendor_id, "festival_id": vendor.festival_id if vendor else None}
+    # `reason_code` is pinned so a ruling made about one kind of exception
+    # cannot auto-resolve a different kind for the same vendor. Scope keys a
+    # policy does not set are unconstrained (domain.policy.policy_applies),
+    # and with more than one policy-driven case kind the predicates alone are
+    # too thin to be relied on. Policies approved before this was added keep
+    # their stored scope, as every PolicyVersion row is immutable.
+    scope = {
+        "vendor_id": case.vendor_id,
+        "festival_id": vendor.festival_id if vendor else None,
+        "reason_code": case.reason_code,
+    }
     new_policy_id = _new_id()
     policy = PolicyVersion(
         policy_id=new_policy_id,

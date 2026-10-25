@@ -38,6 +38,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 
+from domain.corrections import COMMITTED_STATES, DRAFT_STATES
 from domain.payout_dispatch import AUTOMATIC_RELEASE_LIMIT_CENTS, check_cumulative_limit
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -174,7 +175,14 @@ def _append_payout_event(
     actor_id: str | None,
     actor_capability: str | None,
     payload: dict,
+    actor_type: str | None = None,
 ) -> None:
+    """`actor_type` is stated explicitly by callers that act automatically
+    on a person's standing authority: the nightly workflow approves and
+    releases under the starting operator's `approve_payout` capability, so
+    the event must name that actor_id AND say a machine did it. Left
+    unstated it falls back to "a named actor is a human", which is right
+    for every request that arrives through the API."""
     uow = UnitOfWork(db)
     uow.append_event(
         stream_id=f"{STREAM_PREFIX}:{payout.id}",
@@ -182,7 +190,7 @@ def _append_payout_event(
         aggregate_id=payout.id,
         aggregate_version=payout.version,
         actor_id=actor_id,
-        actor_type="human" if actor_id else "system",
+        actor_type=actor_type or ("human" if actor_id else "system"),
         actor_capability=actor_capability,
         occurred_at=datetime.now(UTC),
         vendor_id=payout.vendor_id,
@@ -213,6 +221,7 @@ def _block(
     details: dict,
     actor_id: str | None,
     actor_capability: str | None,
+    actor_type: str | None = None,
 ) -> None:
     """Logs the blocked attempt as a real audit event (C06: 'attempted
     effects ... outcomes' are part of the flight recorder, not only
@@ -225,6 +234,7 @@ def _block(
         event_type="payout.release_blocked",
         actor_id=actor_id,
         actor_capability=actor_capability,
+        actor_type=actor_type,
         payload={"reason_code": reason_code, **details},
     )
     db.commit()
@@ -308,6 +318,89 @@ def update_vendor_beneficiary(
 # ---------------------------------------------------------------------------
 
 
+def settlement_chain_ids(db: Session, settlement: Settlement) -> list[str]:
+    """Every settlement id in this row's correction history, newest first.
+
+    A correction settlement carries `correction_of`, pointing at the row it
+    replaces, so walking that link back collects the whole entitlement: the
+    rows are different records of the SAME money owed for one vendor-night,
+    not separate debts. Any payout against any of them has therefore already
+    discharged part of this entitlement.
+    """
+    ids = [settlement.id]
+    node = settlement
+    seen = {settlement.id}
+    while node.correction_of:
+        if node.correction_of in seen:  # defensive: a cycle must not hang a close
+            break
+        ids.append(node.correction_of)
+        seen.add(node.correction_of)
+        parent = db.get(Settlement, node.correction_of)
+        if parent is None:
+            break
+        node = parent
+    return ids
+
+
+def entitlement_settlement_ids(db: Session, settlement: Settlement) -> list[str]:
+    """Every settlement id that records the SAME money owed: this row's
+    correction history, plus any other settlement for the same vendor and
+    business date.
+
+    The correction chain alone is not enough. Two settlements can describe one
+    vendor-night without either being marked `correction_of` the other -- the
+    real festival has exactly that, from a night calculated twice (vendor
+    ven_5aa2250fb593d2e8 on 2026-10-17, two identical FINAL rows). Those sit in
+    different chains, so a chain-scoped check would hand out a full obligation
+    against each and pay the vendor twice for one night.
+
+    A04 settles per vendor-day and its figures are cumulative, so the
+    vendor-day is the entitlement. 239 of the 240 live settlements on the real
+    festival have exactly one row per vendor-night; the exception is the
+    defect above.
+
+    The conservative direction matters: widening the scope can only reduce
+    what a new obligation covers, or refuse it. If a legitimate multi-period
+    day ever does produce two live settlements with different amounts for one
+    vendor-night, this refuses the second rather than paying it, and
+    `nothing_further_owed` names the settlement that already holds the money
+    so a human can see why. Refusing is recoverable; paying twice is not.
+    """
+    ids = dict.fromkeys(settlement_chain_ids(db, settlement))
+    for (other_id,) in db.execute(
+        select(Settlement.id).where(
+            Settlement.vendor_id == settlement.vendor_id,
+            Settlement.business_date == settlement.business_date,
+        )
+    ).all():
+        ids.setdefault(other_id)
+    return list(ids)
+
+
+def committed_cents_for_entitlement(
+    db: Session, settlement: Settlement
+) -> tuple[int, list[Payout]]:
+    """(cents already committed, the payouts that committed them) across the
+    whole entitlement -- see entitlement_settlement_ids.
+
+    "Committed" is domain.corrections.COMMITTED_STATES -- money that moved, or
+    that may have moved and the rail has not told us otherwise. Drafts and
+    states the rail reported as never-paid are excluded.
+    """
+    chain = entitlement_settlement_ids(db, settlement)
+    payouts = (
+        db.execute(
+            select(Payout)
+            .where(Payout.settlement_id.in_(chain))
+            .order_by(Payout.created_at, Payout.id)
+        )
+        .scalars()
+        .all()
+    )
+    committed = [p for p in payouts if p.state in COMMITTED_STATES]
+    return sum(p.amount_cents for p in committed), committed
+
+
 def create_payout_obligation(
     db: Session, *, settlement_id: str, actor_id: str, actor_capability: str
 ) -> tuple[Payout, bool]:
@@ -343,13 +436,70 @@ def create_payout_obligation(
     if vendor is None:
         raise PayoutNotFoundError(f"vendor {settlement.vendor_id} not found")
 
+    # An obligation covers what is STILL OWED, never the settlement's full
+    # payout figure. A vendor-night's entitlement can already be partly
+    # discharged: by a payout against an earlier settlement in this
+    # correction chain, or by an A09 ":additional" payout against this very
+    # row. Issuing the full figure again is how a vendor is paid twice, and
+    # the callers cannot be relied on to work it out -- POST /payouts, the
+    # nightly graph and A09's replacement path all call this function.
+    # An obligation that exists but has not been sent yet still covers this
+    # money. A09 creates a ":additional" payout against this same settlement
+    # for the difference after a correction; it sits in DRAFT until a finance
+    # lead approves it, so it is not "committed" money -- but issuing a
+    # second obligation beside it would mean two drafts for one difference,
+    # and approving both pays it twice. Scoped to the whole entitlement, so a
+    # night calculated twice cannot carry one outstanding draft per copy.
+    entitlement_ids = entitlement_settlement_ids(db, settlement)
+    # An obligation against a settlement a correction has SUPERSEDED is a
+    # dead row, not outstanding money: `release_payout` refuses it with
+    # settlement_superseded_by_correction and always will. Counting it
+    # deadlocked the correction path -- the correction could never get an
+    # obligation of its own while its superseded original still carried an
+    # unreleased one (scripts/verify_a07_payouts.py scenario M).
+    superseded_ids = {
+        r[0]
+        for r in db.execute(
+            select(Settlement.correction_of).where(Settlement.correction_of.in_(entitlement_ids))
+        ).all()
+    }
+    outstanding = [
+        p
+        for p in db.execute(select(Payout).where(Payout.settlement_id.in_(entitlement_ids)))
+        .scalars()
+        .all()
+        if p.state in DRAFT_STATES and p.settlement_id not in superseded_ids
+    ]
+    if outstanding:
+        raise PayoutBlockedError(
+            "obligation_already_outstanding",
+            {
+                "settlement_id": settlement.id,
+                "payout_ids": [p.id for p in outstanding],
+                "states": [p.state for p in outstanding],
+            },
+        )
+
+    committed, committed_payouts = committed_cents_for_entitlement(db, settlement)
+    owed = settlement.payout_cents - committed
+    if owed <= 0:
+        raise PayoutBlockedError(
+            "nothing_further_owed",
+            {
+                "settlement_id": settlement.id,
+                "settlement_payout_cents": settlement.payout_cents,
+                "already_committed_cents": committed,
+                "committed_payout_ids": [p.id for p in committed_payouts],
+            },
+        )
+
     payout = Payout(
         logical_obligation_id=idempotency_key,
         idempotency_key=idempotency_key,
         vendor_id=settlement.vendor_id,
         business_date=settlement.business_date,
         beneficiary_version=vendor.version,
-        amount_cents=settlement.payout_cents,
+        amount_cents=owed,
         state="DRAFT",
         settlement_id=settlement.id,
     )
@@ -366,6 +516,8 @@ def create_payout_obligation(
             "vendor_id": settlement.vendor_id,
             "business_date": settlement.business_date.isoformat(),
             "amount_cents": payout.amount_cents,
+            "settlement_payout_cents": settlement.payout_cents,
+            "already_committed_cents": committed,
             "beneficiary_version": payout.beneficiary_version,
         },
     )
@@ -387,6 +539,7 @@ def approve_payout(
     note: str | None = None,
     approved_amount_cents: int | None = None,
     approved_beneficiary_version: int | None = None,
+    actor_type: str | None = None,
 ) -> Payout:
     """DRAFT -> APPROVED. Requires CAPABILITY_APPROVE_PAYOUT always (the
     router's `require_capability` dependency already guarantees this --
@@ -459,6 +612,7 @@ def approve_payout(
             event_type="payout.finance_lead_escalation_approved",
             actor_id=actor_id,
             actor_capability=CAPABILITY_FINANCE_LEAD,
+            actor_type=actor_type,
             payload={
                 "amount_cents": payout.amount_cents,
                 "beneficiary_version": payout.beneficiary_version,
@@ -500,6 +654,7 @@ def approve_payout(
         event_type="payout.approved",
         actor_id=actor_id,
         actor_capability=required_capability,
+        actor_type=actor_type,
         payload={
             "amount_cents": payout.amount_cents,
             # The beneficiary this approval consented to. `release_payout`
@@ -526,6 +681,7 @@ def release_payout(
     actor_id: str,
     actor_capability: str,
     expected_version: int | None,
+    actor_type: str | None = None,
 ) -> ReleaseOutcome:
     """APPROVED -> DISPATCH_PENDING, with an outbox intent enqueued for
     `dispatch_payout` to process.
@@ -577,6 +733,7 @@ def release_payout(
             details={"current_state": payout.state},
             actor_id=actor_id,
             actor_capability=actor_capability,
+            actor_type=actor_type,
         )
 
     # 3. Unresolved holds: an OPEN case on this vendor is a hard blocker,
@@ -600,6 +757,7 @@ def release_payout(
             details={"case_id": open_case[0]},
             actor_id=actor_id,
             actor_capability=actor_capability,
+            actor_type=actor_type,
         )
 
     # 3b. A09 work holds: an open challenge of the rule/result this vendor's
@@ -620,6 +778,7 @@ def release_payout(
             },
             actor_id=actor_id,
             actor_capability=actor_capability,
+            actor_type=actor_type,
         )
 
     # 4. Beneficiary/vendor-terms version unchanged since approval.
@@ -635,6 +794,7 @@ def release_payout(
             },
             actor_id=actor_id,
             actor_capability=actor_capability,
+            actor_type=actor_type,
         )
 
     # 5. The settlement this pays must not be superseded by a later
@@ -651,6 +811,7 @@ def release_payout(
                 details={"correction_settlement_id": superseding[0]},
                 actor_id=actor_id,
                 actor_capability=actor_capability,
+                actor_type=actor_type,
             )
 
     # 6. Atomic cumulative $5,000/day check, under the vendor/day
@@ -678,6 +839,7 @@ def release_payout(
                 },
                 actor_id=actor_id,
                 actor_capability=actor_capability,
+                actor_type=actor_type,
             )
 
     # 7. Available cash, reserved atomically under the cash pool's row lock.
@@ -693,6 +855,7 @@ def release_payout(
             },
             actor_id=actor_id,
             actor_capability=actor_capability,
+            actor_type=actor_type,
         )
 
     # All checks passed -- mutate, atomically, in this one transaction.
@@ -714,7 +877,7 @@ def release_payout(
         aggregate_id=payout.id,
         aggregate_version=payout.version,
         actor_id=actor_id,
-        actor_type="human",
+        actor_type=actor_type or "human",
         actor_capability=actor_capability,
         occurred_at=datetime.now(UTC),
         vendor_id=payout.vendor_id,

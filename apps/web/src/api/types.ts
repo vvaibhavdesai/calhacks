@@ -5,6 +5,7 @@
  * replaced by lane A's packages/contracts OpenAPI).
  */
 import type { components, operations, paths } from './generated/schema';
+import type { paths as backendPaths } from './generated/backend';
 
 export type { components, operations, paths };
 export type Schemas = components['schemas'];
@@ -26,6 +27,16 @@ export type ProcessorBatch = Schemas['ProcessorBatch'];
 export type CashCount = Schemas['CashCount'];
 export type SourceDocument = Schemas['SourceDocument'];
 export type Festival = Schemas['Festival'];
+
+/**
+ * The landing dashboard's aggregate. Unlike every alias above it comes from
+ * ./generated/backend.ts, because this endpoint exists only in lane A's real
+ * backend and was never part of lane B's draft document -- so there is no
+ * Schemas[...] entry to alias, and hand-declaring the shape here is exactly
+ * what the header forbids. Generated either way.
+ */
+export type Dashboard =
+  backendPaths['/api/v1/dashboard']['get']['responses']['200']['content']['application/json'];
 
 // Outputs (C03 records + lane-B proposals Q30-Q36).
 export type Run = Schemas['Run'];

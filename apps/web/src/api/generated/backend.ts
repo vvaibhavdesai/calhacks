@@ -537,6 +537,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Dashboard */
+        get: operations["get_dashboard_api_v1_dashboard_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events": {
         parameters: {
             query?: never;
@@ -1724,7 +1741,30 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Match Groups */
+        /**
+         * List Match Groups
+         * @description Match groups, oldest first, one page at a time.
+         *
+         *     This route previously took no `limit` and returned every matching row,
+         *     each one costing its own members query. On the real festival that is
+         *     201,035 groups: ~220 MB of JSON and ~32 seconds, which reads as a screen
+         *     stuck on "loading" rather than as a slow response. A reconciliation
+         *     database only grows, so an unbounded list here can never be safe.
+         *
+         *     Paging is keyset, not OFFSET: `cursor` is the id of the last group on the
+         *     previous page and the scan resumes after that row's (created_at, id). An
+         *     OFFSET page would re-scan everything before it and would also skip or
+         *     repeat rows when a new run inserts groups mid-read, which is exactly what
+         *     happens here while a close is running.
+         *
+         *     `status` accepts either spelling (see _GROUP_STATUSES) and refuses an
+         *     unknown one rather than returning an unfiltered page, and
+         *     `business_date` is honoured -- the screen sent both already.
+         *
+         *     The response stays a bare array, as it was, so existing callers are
+         *     unaffected; the client treats a bare array as one unpaged page. The next
+         *     page is requested with `cursor=<id of the last item>`.
+         */
         get: operations["list_match_groups_api_v1_reconciliation_groups_get"];
         put?: never;
         post?: never;
@@ -1991,7 +2031,22 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Settlements */
+        /**
+         * List Settlements
+         * @description Settlements, oldest first, one page at a time, without line items.
+         *
+         *     This took no `limit` and returned every matching row with its line items
+         *     embedded: 640 rows and 129 MB of JSON on the real festival, because each
+         *     row's line items carry a source_ref per contributing payment and match
+         *     group. The size, not the query, was what made the screen slow.
+         *
+         *     Paging is keyset rather than OFFSET, for the same reason as the match-group
+         *     list: a close run inserting settlements mid-read must not make a page skip
+         *     or repeat rows. `cursor` is the id of the last row on the previous page.
+         *
+         *     `status` is accepted alongside the original `status_` so the name the
+         *     client sends actually binds.
+         */
         get: operations["list_settlements_api_v1_settlements_get"];
         put?: never;
         post?: never;
@@ -2437,6 +2492,21 @@ export interface components {
             /** Note */
             note?: string | null;
         };
+        /** AutonomyOut */
+        AutonomyOut: {
+            /** Auto Resolved */
+            auto_resolved: number;
+            /** Autonomy Rate Bps */
+            autonomy_rate_bps: number | null;
+            /** By Reason */
+            by_reason: components["schemas"]["ReasonOut"][];
+            /** Human Resolved */
+            human_resolved: number;
+            /** Open Cases */
+            open_cases: number;
+            /** Total Cases */
+            total_cases: number;
+        };
         /** BagIn */
         BagIn: {
             /** Amount Cents */
@@ -2731,6 +2801,28 @@ export interface components {
              * @default 0
              */
             tax_cents: number;
+        };
+        /** DashboardOut */
+        DashboardOut: {
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            autonomy: components["schemas"]["AutonomyOut"];
+            /** Custody */
+            custody: Record<string, never>;
+            /** Duplicate Rows Excluded */
+            duplicate_rows_excluded: number;
+            /** Festival Id */
+            festival_id: string;
+            /** Labels */
+            labels: string[];
+            /** Nights */
+            nights: components["schemas"]["NightOut"][];
+            /** Top Vendors */
+            top_vendors: components["schemas"]["TopVendorOut"][];
+            totals: components["schemas"]["TotalsOut"];
         };
         /** DayIn */
         DayIn: {
@@ -3072,6 +3164,22 @@ export interface components {
             /** Id */
             id: string;
         };
+        /** NightOut */
+        NightOut: {
+            /**
+             * Business Date
+             * Format: date
+             */
+            business_date: string;
+            /** Commission Cents */
+            commission_cents: number;
+            /** Eligible Sales Cents */
+            eligible_sales_cents: number;
+            /** Payout Cents */
+            payout_cents: number;
+            /** Vendors */
+            vendors: number;
+        };
         /** OpeningIn */
         OpeningIn: {
             /** Amount Cents */
@@ -3305,6 +3413,17 @@ export interface components {
             source_refs?: unknown[];
             /** Supplier Id */
             supplier_id: string;
+        };
+        /** ReasonOut */
+        ReasonOut: {
+            /** Auto Resolved */
+            auto_resolved: number;
+            /** Human Resolved */
+            human_resolved: number;
+            /** Open Cases */
+            open_cases: number;
+            /** Reason Code */
+            reason_code: string;
         };
         /** RecognizeIn */
         RecognizeIn: {
@@ -3833,6 +3952,38 @@ export interface components {
             settlement_reference: string;
             /** Source Refs */
             source_refs?: unknown[];
+        };
+        /** TopVendorOut */
+        TopVendorOut: {
+            /** Commission Cents */
+            commission_cents: number;
+            /** Effective Rate Bps */
+            effective_rate_bps: number | null;
+            /** Eligible Sales Cents */
+            eligible_sales_cents: number;
+            /** Name */
+            name: string | null;
+            /** Nights */
+            nights: number;
+            /** Payout Cents */
+            payout_cents: number;
+            /** Vendor Id */
+            vendor_id: string;
+        };
+        /** TotalsOut */
+        TotalsOut: {
+            /** Commission Cents */
+            commission_cents: number;
+            /** Effective Rate Bps */
+            effective_rate_bps: number | null;
+            /** Eligible Sales Cents */
+            eligible_sales_cents: number;
+            /** Payout Cents */
+            payout_cents: number;
+            /** Settlements */
+            settlements: number;
+            /** Vendors */
+            vendors: number;
         };
         /** UpdateBeneficiaryRequest */
         UpdateBeneficiaryRequest: {
@@ -5150,6 +5301,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_dashboard_api_v1_dashboard_get: {
+        parameters: {
+            query: {
+                festival_id: string;
+                as_of?: string | null;
+                top?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardOut"];
                 };
             };
             /** @description Validation Error */
@@ -7547,7 +7731,11 @@ export interface operations {
                 vendor_id?: string | null;
                 run_id?: string | null;
                 match_type?: string | null;
+                business_date?: string | null;
+                status?: string | null;
                 status_?: string | null;
+                limit?: number;
+                cursor?: string | null;
             };
             header?: never;
             path?: never;
@@ -8100,7 +8288,10 @@ export interface operations {
                 festival_id?: string | null;
                 vendor_id?: string | null;
                 business_date?: string | null;
+                status?: string | null;
                 status_?: string | null;
+                limit?: number;
+                cursor?: string | null;
             };
             header?: never;
             path?: never;

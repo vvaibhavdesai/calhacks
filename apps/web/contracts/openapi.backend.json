@@ -122,6 +122,54 @@
         "title": "ApproveRequest",
         "type": "object"
       },
+      "AutonomyOut": {
+        "properties": {
+          "auto_resolved": {
+            "title": "Auto Resolved",
+            "type": "integer"
+          },
+          "autonomy_rate_bps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Autonomy Rate Bps"
+          },
+          "by_reason": {
+            "items": {
+              "$ref": "#/components/schemas/ReasonOut"
+            },
+            "title": "By Reason",
+            "type": "array"
+          },
+          "human_resolved": {
+            "title": "Human Resolved",
+            "type": "integer"
+          },
+          "open_cases": {
+            "title": "Open Cases",
+            "type": "integer"
+          },
+          "total_cases": {
+            "title": "Total Cases",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total_cases",
+          "open_cases",
+          "auto_resolved",
+          "human_resolved",
+          "autonomy_rate_bps",
+          "by_reason"
+        ],
+        "title": "AutonomyOut",
+        "type": "object"
+      },
       "BagIn": {
         "properties": {
           "amount_cents": {
@@ -930,6 +978,67 @@
           "gross_cents"
         ],
         "title": "CreditNoteIn",
+        "type": "object"
+      },
+      "DashboardOut": {
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "autonomy": {
+            "$ref": "#/components/schemas/AutonomyOut"
+          },
+          "custody": {
+            "title": "Custody",
+            "type": "object"
+          },
+          "duplicate_rows_excluded": {
+            "title": "Duplicate Rows Excluded",
+            "type": "integer"
+          },
+          "festival_id": {
+            "title": "Festival Id",
+            "type": "string"
+          },
+          "labels": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Labels",
+            "type": "array"
+          },
+          "nights": {
+            "items": {
+              "$ref": "#/components/schemas/NightOut"
+            },
+            "title": "Nights",
+            "type": "array"
+          },
+          "top_vendors": {
+            "items": {
+              "$ref": "#/components/schemas/TopVendorOut"
+            },
+            "title": "Top Vendors",
+            "type": "array"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/TotalsOut"
+          }
+        },
+        "required": [
+          "festival_id",
+          "as_of",
+          "totals",
+          "nights",
+          "top_vendors",
+          "autonomy",
+          "custody",
+          "duplicate_rows_excluded",
+          "labels"
+        ],
+        "title": "DashboardOut",
         "type": "object"
       },
       "DayIn": {
@@ -1906,6 +2015,40 @@
         "title": "MeResponse",
         "type": "object"
       },
+      "NightOut": {
+        "properties": {
+          "business_date": {
+            "format": "date",
+            "title": "Business Date",
+            "type": "string"
+          },
+          "commission_cents": {
+            "title": "Commission Cents",
+            "type": "integer"
+          },
+          "eligible_sales_cents": {
+            "title": "Eligible Sales Cents",
+            "type": "integer"
+          },
+          "payout_cents": {
+            "title": "Payout Cents",
+            "type": "integer"
+          },
+          "vendors": {
+            "title": "Vendors",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "business_date",
+          "vendors",
+          "eligible_sales_cents",
+          "commission_cents",
+          "payout_cents"
+        ],
+        "title": "NightOut",
+        "type": "object"
+      },
       "OpeningIn": {
         "properties": {
           "amount_cents": {
@@ -2608,6 +2751,34 @@
           "amount_cents"
         ],
         "title": "PurchaseOrderIn",
+        "type": "object"
+      },
+      "ReasonOut": {
+        "properties": {
+          "auto_resolved": {
+            "title": "Auto Resolved",
+            "type": "integer"
+          },
+          "human_resolved": {
+            "title": "Human Resolved",
+            "type": "integer"
+          },
+          "open_cases": {
+            "title": "Open Cases",
+            "type": "integer"
+          },
+          "reason_code": {
+            "title": "Reason Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason_code",
+          "open_cases",
+          "auto_resolved",
+          "human_resolved"
+        ],
+        "title": "ReasonOut",
         "type": "object"
       },
       "RecognizeIn": {
@@ -4181,6 +4352,108 @@
           "business_date"
         ],
         "title": "TicketIn",
+        "type": "object"
+      },
+      "TopVendorOut": {
+        "properties": {
+          "commission_cents": {
+            "title": "Commission Cents",
+            "type": "integer"
+          },
+          "effective_rate_bps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective Rate Bps"
+          },
+          "eligible_sales_cents": {
+            "title": "Eligible Sales Cents",
+            "type": "integer"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "nights": {
+            "title": "Nights",
+            "type": "integer"
+          },
+          "payout_cents": {
+            "title": "Payout Cents",
+            "type": "integer"
+          },
+          "vendor_id": {
+            "title": "Vendor Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "vendor_id",
+          "name",
+          "nights",
+          "eligible_sales_cents",
+          "commission_cents",
+          "payout_cents",
+          "effective_rate_bps"
+        ],
+        "title": "TopVendorOut",
+        "type": "object"
+      },
+      "TotalsOut": {
+        "properties": {
+          "commission_cents": {
+            "title": "Commission Cents",
+            "type": "integer"
+          },
+          "effective_rate_bps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective Rate Bps"
+          },
+          "eligible_sales_cents": {
+            "title": "Eligible Sales Cents",
+            "type": "integer"
+          },
+          "payout_cents": {
+            "title": "Payout Cents",
+            "type": "integer"
+          },
+          "settlements": {
+            "title": "Settlements",
+            "type": "integer"
+          },
+          "vendors": {
+            "title": "Vendors",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "settlements",
+          "vendors",
+          "eligible_sales_cents",
+          "commission_cents",
+          "payout_cents",
+          "effective_rate_bps"
+        ],
+        "title": "TotalsOut",
         "type": "object"
       },
       "UpdateBeneficiaryRequest": {
@@ -7046,6 +7319,82 @@
         "summary": "Resolve Contingent",
         "tags": [
           "corrections"
+        ]
+      }
+    },
+    "/api/v1/dashboard": {
+      "get": {
+        "operationId": "get_dashboard_api_v1_dashboard_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "festival_id",
+            "required": true,
+            "schema": {
+              "title": "Festival Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "as_of",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "As Of"
+            }
+          },
+          {
+            "in": "query",
+            "name": "top",
+            "required": false,
+            "schema": {
+              "default": 8,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Top",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get Dashboard",
+        "tags": [
+          "dashboard"
         ]
       }
     },
@@ -11446,6 +11795,7 @@
     },
     "/api/v1/reconciliation/groups": {
       "get": {
+        "description": "Match groups, oldest first, one page at a time.\n\nThis route previously took no `limit` and returned every matching row,\neach one costing its own members query. On the real festival that is\n201,035 groups: ~220 MB of JSON and ~32 seconds, which reads as a screen\nstuck on \"loading\" rather than as a slow response. A reconciliation\ndatabase only grows, so an unbounded list here can never be safe.\n\nPaging is keyset, not OFFSET: `cursor` is the id of the last group on the\nprevious page and the scan resumes after that row's (created_at, id). An\nOFFSET page would re-scan everything before it and would also skip or\nrepeat rows when a new run inserts groups mid-read, which is exactly what\nhappens here while a close is running.\n\n`status` accepts either spelling (see _GROUP_STATUSES) and refuses an\nunknown one rather than returning an unfiltered page, and\n`business_date` is honoured -- the screen sent both already.\n\nThe response stays a bare array, as it was, so existing callers are\nunaffected; the client treats a bare array as one unpaged page. The next\npage is requested with `cursor=<id of the last item>`.",
         "operationId": "list_match_groups_api_v1_reconciliation_groups_get",
         "parameters": [
           {
@@ -11514,6 +11864,39 @@
           },
           {
             "in": "query",
+            "name": "business_date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Business Date"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
             "name": "status_",
             "required": false,
             "schema": {
@@ -11526,6 +11909,34 @@
                 }
               ],
               "title": "Status "
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
             }
           }
         ],
@@ -12512,6 +12923,7 @@
     },
     "/api/v1/settlements": {
       "get": {
+        "description": "Settlements, oldest first, one page at a time, without line items.\n\nThis took no `limit` and returned every matching row with its line items\nembedded: 640 rows and 129 MB of JSON on the real festival, because each\nrow's line items carry a source_ref per contributing payment and match\ngroup. The size, not the query, was what made the screen slow.\n\nPaging is keyset rather than OFFSET, for the same reason as the match-group\nlist: a close run inserting settlements mid-read must not make a page skip\nor repeat rows. `cursor` is the id of the last row on the previous page.\n\n`status` is accepted alongside the original `status_` so the name the\nclient sends actually binds.",
         "operationId": "list_settlements_api_v1_settlements_get",
         "parameters": [
           {
@@ -12565,6 +12977,22 @@
           },
           {
             "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
             "name": "status_",
             "required": false,
             "schema": {
@@ -12577,6 +13005,34 @@
                 }
               ],
               "title": "Status "
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
             }
           }
         ],

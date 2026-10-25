@@ -6,7 +6,7 @@ import { createFixtureTransport } from '@encore/fixture-data';
 import { ApiClient, type Transport } from '../api/client';
 import type { AppConfig } from '../config/env';
 import { App } from './App';
-import { PLACEHOLDERS } from './navigation';
+import { HIDDEN_NAV, PLACEHOLDERS } from './navigation';
 
 const fixtureConfig: AppConfig = { dataMode: 'fixture', apiOrigin: '', authLoginUrl: null };
 const liveConfig: AppConfig = { dataMode: 'live', apiOrigin: '', authLoginUrl: 'https://auth.example/login' };
@@ -27,11 +27,33 @@ describe('app shell', () => {
     renderFixtureApp('/');
     expect(screen.getByRole('note', { name: /fixture data notice/i })).toHaveTextContent('FIXTURE DATA');
     const nav = screen.getByRole('navigation', { name: 'Primary' });
-    for (const label of ['Overview', 'Close runs', 'Reconciliation', 'Settlements', 'Exceptions', 'Policies', 'Payouts', 'Cash', 'Suppliers & invoices', 'Journal', 'Tax (draft)', 'Reports', 'Flight recorder']) {
+    for (const label of ['Overview', 'Reconciliation', 'Settlements', 'Exceptions', 'Policies', 'Cash', 'Suppliers & invoices', 'Journal', 'Flight recorder']) {
       expect(within(nav).getByRole('link', { name: label })).toBeInTheDocument();
     }
     expect(await screen.findByText('Golden Coast Music Festival')).toBeInTheDocument();
     expect(within(nav).getByRole('link', { name: 'Overview' })).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('a destination with nothing to put on it is not offered in the sidebar', () => {
+    // Hiding is not deleting: see HIDDEN_NAV's `hiddenReason`. Each of these
+    // still has a route, a screen and its own tests, and anything that links
+    // to it still works -- it is simply not advertised as somewhere to go.
+    renderFixtureApp('/');
+    const nav = screen.getByRole('navigation', { name: 'Primary' });
+    expect(HIDDEN_NAV.length).toBeGreaterThan(0);
+    for (const item of HIDDEN_NAV) {
+      expect(within(nav).queryByRole('link', { name: item.label })).toBeNull();
+      expect(item.hiddenReason).toBeTruthy();
+    }
+  });
+
+  it('a hidden destination is still reachable by URL', () => {
+    for (const item of HIDDEN_NAV) {
+      const { unmount } = renderFixtureApp(item.path);
+      // The screen renders rather than falling through to the 404 route.
+      expect(screen.queryByRole('heading', { level: 1, name: /not found/i })).toBeNull();
+      unmount();
+    }
   });
 
   it('placeholders are honest and show no figures', () => {
