@@ -29,6 +29,28 @@
       },
       "ApproveRequest": {
         "properties": {
+          "amount_cents": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount Cents"
+          },
+          "beneficiary_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Beneficiary Version"
+          },
           "expected_version": {
             "anyOf": [
               {
@@ -2538,6 +2560,18 @@
             "title": "Id",
             "type": "string"
           },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "line_id": {
+            "title": "Line Id",
+            "type": "string"
+          },
           "line_type": {
             "title": "Line Type",
             "type": "string"
@@ -2546,19 +2580,34 @@
             "items": {},
             "title": "Source Refs",
             "type": "array"
+          },
+          "treatment": {
+            "title": "Treatment",
+            "type": "string"
           }
         },
         "required": [
           "id",
           "line_type",
           "amount_cents",
-          "source_refs"
+          "source_refs",
+          "line_id",
+          "kind",
+          "label",
+          "treatment"
         ],
         "title": "SettlementLineItemOut",
         "type": "object"
       },
       "SettlementOut": {
         "properties": {
+          "applied_policies": {
+            "items": {
+              "type": "object"
+            },
+            "title": "Applied Policies",
+            "type": "array"
+          },
           "assessed_fee_cents": {
             "title": "Assessed Fee Cents",
             "type": "integer"
@@ -2635,6 +2684,13 @@
             "title": "Is Final Period",
             "type": "boolean"
           },
+          "line_items": {
+            "items": {
+              "$ref": "#/components/schemas/SettlementLineItemOut"
+            },
+            "title": "Line Items",
+            "type": "array"
+          },
           "minimum_applied": {
             "title": "Minimum Applied",
             "type": "boolean"
@@ -2647,6 +2703,13 @@
             "title": "Payout Cents",
             "type": "integer"
           },
+          "policy_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Policy Refs",
+            "type": "array"
+          },
           "processor_fee_assessed_cents": {
             "title": "Processor Fee Assessed Cents",
             "type": "integer"
@@ -2658,6 +2721,17 @@
           "processor_fee_deductible_used": {
             "title": "Processor Fee Deductible Used",
             "type": "boolean"
+          },
+          "source_manifest_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Manifest Hash"
           },
           "status": {
             "title": "Status",
@@ -2708,10 +2782,16 @@
           "vendor_retained_cash_cents": {
             "title": "Vendor Retained Cash Cents",
             "type": "integer"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
           }
         },
         "required": [
           "id",
+          "version",
+          "source_manifest_hash",
           "festival_id",
           "vendor_id",
           "business_date",
@@ -2740,7 +2820,10 @@
           "holds",
           "correction_of",
           "correction_reason",
-          "status"
+          "status",
+          "policy_refs",
+          "applied_policies",
+          "line_items"
         ],
         "title": "SettlementOut",
         "type": "object"

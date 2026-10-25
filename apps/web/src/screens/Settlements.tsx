@@ -130,7 +130,7 @@ export function SettlementDetail() {
   const { client } = useApp();
   const { lookups, describeSource } = useLookups();
   const [evidence, setEvidence] = useState<{ title: string; refs: SourceRef[] } | null>(null);
-  const result = useApiQuery(`settlement:${settlementId}`, (signal) => client.get('getSettlement', { signal, path: { id: settlementId } }));
+  const result = useApiQuery(`settlement:${settlementId}`, (signal) => client.get('getSettlement', { signal, path: { settlement_id: settlementId } }));
   const s = result.data;
   const open = (title: string, refs: SourceRef[]) => setEvidence({ title, refs });
 

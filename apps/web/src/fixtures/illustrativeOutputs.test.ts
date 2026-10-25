@@ -145,7 +145,7 @@ describe('fixture transport with illustrative outputs', () => {
     expect((await client.list('listRunVendors', { path: { run_id: 'illus_run_n1' }, query: { state: 'HELD' } })).items).toHaveLength(3);
     expect((await client.list('listCases', { query: { status: 'OPEN' } })).items.map((c) => c.id)).toEqual(['illus_case_taco_rate']);
     expect((await client.get('getPolicyVersion', { path: { policy_version_id: 'illus_pv_kettle_bag_v2' } })).status).toBe('ACTIVE');
-    await expect(client.get('getSettlement', { path: { id: 'nope' } })).rejects.toMatchObject({ kind: 'not_found' });
+    await expect(client.get('getSettlement', { path: { settlement_id: 'nope' } })).rejects.toMatchObject({ kind: 'not_found' });
     await expect(client.list('listEvents')).rejects.toMatchObject({ status: 501 }); // B06 outputs are not faked
   });
 

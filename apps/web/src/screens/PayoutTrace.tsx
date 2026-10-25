@@ -51,10 +51,10 @@ export function PayoutTrace() {
     let pinned = false;
     let currentVersion: number | null = null;
     if (payout.settlement_id) {
-      const current = await client.get('getSettlement', { signal, path: { id: payout.settlement_id } });
+      const current = await client.get('getSettlement', { signal, path: { settlement_id: payout.settlement_id } });
       currentVersion = current.version;
       if (typeof payout.settlement_version === 'number' && payout.settlement_version !== current.version) {
-        settlement = await client.get('getSettlement', { signal, path: { id: payout.settlement_id }, query: { version: payout.settlement_version } });
+        settlement = await client.get('getSettlement', { signal, path: { settlement_id: payout.settlement_id }, query: { version: payout.settlement_version } });
         pinned = true;
       } else {
         settlement = current;

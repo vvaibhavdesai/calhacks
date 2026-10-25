@@ -162,20 +162,8 @@ export const OPERATIONS = {
   },
 
   // ------------------------------------------------------- settlements (C04)
-  listSettlements: {
-    method: 'GET',
-    path: '/settlements',
-    backend: 'shape',
-    route: '/settlements',
-    gap: 'GET /api/v1/settlements omits source_manifest_hash, policy_refs and line_items (line items are a separate route), which are exactly what the settlement screens explain the number with.',
-  },
-  getSettlement: {
-    method: 'GET',
-    path: '/settlements/{id}',
-    backend: 'shape',
-    route: '/settlements/{settlement_id}',
-    gap: 'Same as the list route; line items need GET /settlements/{settlement_id}/line-items folded in, and the version query parameter for historical reads is not accepted.',
-  },
+  listSettlements: { method: 'GET', path: '/settlements', backend: 'live', query: NO_PAGING },
+  getSettlement: { method: 'GET', path: '/settlements/{settlement_id}', backend: 'live' },
 
   // ------------------------------------------------------------- cases (C04)
   listCases: { method: 'GET', path: '/cases', backend: 'live', query: { ...NO_PAGING, status: 'status_' } },

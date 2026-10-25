@@ -156,8 +156,8 @@ describe('recorder stand-in: challenge, preview, approval', () => {
     expect(original.lines).toEqual(before.lines); // never edited
     expect(original.corrected_by).toEqual(['illus_je_n1_fee_taco_rev', 'illus_je_n1_fee_taco_corr']);
     expect((await client.get('getJournalEntry', { path: { id: 'illus_je_n1_fee_taco_rev' } })).kind).toBe('REVERSAL');
-    expect((await client.get('getSettlement', { path: { id: 'illus_set_n1_taco' } })).statement_status).toBe('ADJUSTED');
-    const old = await client.get('getSettlement', { path: { id: 'illus_set_n1_taco' }, query: { version: 2 } });
+    expect((await client.get('getSettlement', { path: { settlement_id: 'illus_set_n1_taco' } })).statement_status).toBe('ADJUSTED');
+    const old = await client.get('getSettlement', { path: { settlement_id: 'illus_set_n1_taco' }, query: { version: 2 } });
     expect(old.assessed_fee_cents).toBe('8000');
     expect(old.applied_policies?.[0]?.policy_version_id).toBe(TACO_POLICY);
     expect((await client.get('getPayout', { path: { payout_id: 'illus_payout_n2_taco' } })).state).toBe('CANCELLED');

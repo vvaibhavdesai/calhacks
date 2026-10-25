@@ -61,7 +61,7 @@ function useTarget(kind: TargetKind | null, id: string) {
       };
     }
     if (kind === 'SETTLEMENT') {
-      const s = await client.get('getSettlement', { signal, path: { id } });
+      const s = await client.get('getSettlement', { signal, path: { settlement_id: id } });
       return {
         kind, id, version: s.version, link: `/settlements/${encodeURIComponent(id)}`,
         title: <>Settlement {s.business_date} · {lookups.vendorName(s.vendor_id)}</>,

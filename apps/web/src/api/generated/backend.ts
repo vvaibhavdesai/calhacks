@@ -2228,6 +2228,10 @@ export interface components {
         };
         /** ApproveRequest */
         ApproveRequest: {
+            /** Amount Cents */
+            amount_cents?: number | null;
+            /** Beneficiary Version */
+            beneficiary_version?: number | null;
             /** Expected Version */
             expected_version?: number | null;
             /** Note */
@@ -3103,13 +3107,23 @@ export interface components {
             amount_cents: number;
             /** Id */
             id: string;
+            /** Kind */
+            kind: string;
+            /** Label */
+            label: string;
+            /** Line Id */
+            line_id: string;
             /** Line Type */
             line_type: string;
             /** Source Refs */
             source_refs: unknown[];
+            /** Treatment */
+            treatment: string;
         };
         /** SettlementOut */
         SettlementOut: {
+            /** Applied Policies */
+            applied_policies: Record<string, never>[];
             /** Assessed Fee Cents */
             assessed_fee_cents: number;
             /**
@@ -3143,18 +3157,24 @@ export interface components {
             id: string;
             /** Is Final Period */
             is_final_period: boolean;
+            /** Line Items */
+            line_items: components["schemas"]["SettlementLineItemOut"][];
             /** Minimum Applied */
             minimum_applied: boolean;
             /** Minimum Fee Cents Used */
             minimum_fee_cents_used: number;
             /** Payout Cents */
             payout_cents: number;
+            /** Policy Refs */
+            policy_refs: string[];
             /** Processor Fee Assessed Cents */
             processor_fee_assessed_cents: number;
             /** Processor Fee Collected Cents */
             processor_fee_collected_cents: number;
             /** Processor Fee Deductible Used */
             processor_fee_deductible_used: boolean;
+            /** Source Manifest Hash */
+            source_manifest_hash: string | null;
             /** Status */
             status: string;
             /** Tax Cents */
@@ -3173,6 +3193,8 @@ export interface components {
             vendor_id: string;
             /** Vendor Retained Cash Cents */
             vendor_retained_cash_cents: number;
+            /** Version */
+            version: number;
         };
         /** SlipIn */
         SlipIn: {

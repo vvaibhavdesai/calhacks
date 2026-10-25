@@ -281,7 +281,7 @@ describe('fixture transport responses conform', () => {
     expectValid('CaseList', await out.list('listCases'));
     expectValid('PolicyVersionList', await out.list('listPolicies'));
     expectValid('MatchGroupList', await out.list('listMatchGroups'));
-    for (const s of (await out.list('listSettlements')).items) expectValid('Settlement', await out.get('getSettlement', { path: { id: s.id } }));
+    for (const s of (await out.list('listSettlements')).items) expectValid('Settlement', await out.get('getSettlement', { path: { settlement_id: s.id } }));
     for (const c of (await out.list('listCases')).items) expectValid('Case', await out.get('getCase', { path: { case_id: c.id } }));
     for (const p of (await out.list('listPolicies')).items) expectValid('PolicyVersion', await out.get('getPolicyVersion', { path: { policy_version_id: p.id } }));
     for (const g of (await out.list('listMatchGroups')).items) expectValid('MatchGroup', await out.get('getMatchGroup', { path: { id: g.id } }));
@@ -335,7 +335,7 @@ describe('fixture transport responses conform', () => {
     expectValid('HistoricalProjection', await out.get('getHistoricalProjection', { query: { knowledge_cutoff: '2099-01-01T00:00:00Z' } }));
     for (const p of (await out.list('listPayouts', { query: { limit: 200 } })).items) expectValid('Payout', p);
     for (const e of (await out.list('listJournalEntries', { query: { limit: 200 } })).items) expectValid('JournalEntry', e);
-    expectValid('Settlement', await out.get('getSettlement', { path: { id: 'illus_set_n1_taco' }, query: { version: 2 } }));
+    expectValid('Settlement', await out.get('getSettlement', { path: { settlement_id: 'illus_set_n1_taco' }, query: { version: 2 } }));
   });
 
   it('B06 command payload schemas reject spoofed actors and promotion-like fields', () => {

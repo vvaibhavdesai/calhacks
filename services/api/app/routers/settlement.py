@@ -41,8 +41,51 @@ class CalculateRequest(BaseModel):
     run_id: str | None = None
 
 
+# How each line bears on the figure, for presentation only -- the money is
+# already decided by the time a line exists. FEE_BASIS is what a fee is
+# computed on, FEE is a charge, DEDUCTION is money taken from funds in hand,
+# PAYOUT is money owed out, PROTECTED is custody that is never a fee basis,
+# MEMO is informational. An unmapped line type is shown as MEMO rather than
+# guessed at.
+_LINE_PRESENTATION = {
+    "eligible_sales": ("Eligible sales", "FEE_BASIS"),
+    "centrally_held": ("Centrally held", "MEMO"),
+    "vendor_retained_cash": ("Vendor-retained cash", "MEMO"),
+    "tax": ("Sales tax", "PROTECTED"),
+    "tips": ("Tips", "PROTECTED"),
+    "commission_assessed": ("Commission assessed", "FEE"),
+    "fee_assessed": ("Fee assessed", "FEE"),
+    "fee_collected_from_central": ("Fee collected from centrally-held funds", "DEDUCTION"),
+    "processor_fee_assessed": ("Processor fee assessed", "FEE"),
+    "processor_fee_collected": ("Processor fee collected", "DEDUCTION"),
+    "vendor_fee_receivable": ("Fee receivable from vendor", "MEMO"),
+    "unpaid_balance": ("Unpaid balance carried forward", "MEMO"),
+    "vendor_payout": ("Vendor payout", "PAYOUT"),
+    "additional_payout": ("Additional payout (correction)", "PAYOUT"),
+    "overpayment_recovery": ("Overpayment recovery", "DEDUCTION"),
+}
+
+
+class SettlementLineItemOut(BaseModel):
+    id: str
+    line_type: str
+    amount_cents: int
+    source_refs: list
+    # Same line under the names the reader's contract uses. Both are served so
+    # the existing /line-items consumers keep working unchanged.
+    line_id: str
+    kind: str
+    label: str
+    treatment: str
+
+
 class SettlementOut(BaseModel):
     id: str
+    # Optimistic-concurrency version, and the hash of the input manifest this
+    # calculation read. Both were on the row and never served, so no screen
+    # could say which inputs produced the number.
+    version: int
+    source_manifest_hash: str | None
     festival_id: str
     vendor_id: str
     business_date: date
@@ -72,6 +115,15 @@ class SettlementOut(BaseModel):
     correction_of: str | None
     correction_reason: str | None
     status: str
+    # Policy version ids applied to this settlement (C03 serves ids; the full
+    # records, with policy id and version, follow in `applied_policies` so the
+    # trace keeps them).
+    policy_refs: list[str]
+    applied_policies: list[dict]
+    # The lines the figure is made of. Also available on
+    # GET /settlements/{id}/line-items; served here so one read explains the
+    # number rather than two.
+    line_items: list[SettlementLineItemOut]
 
 
 class CalculateResultOut(BaseModel):
@@ -86,6 +138,37 @@ class CalculateResponse(BaseModel):
     festival_id: str
     business_date: date
     results: list[CalculateResultOut]
+
+
+def _line_item_out(li: SettlementLineItem) -> SettlementLineItemOut:
+    label, treatment = _LINE_PRESENTATION.get(
+        li.line_type, (li.line_type.replace("_", " ").capitalize(), "MEMO")
+    )
+    return SettlementLineItemOut(
+        id=li.id,
+        line_id=li.id,
+        line_type=li.line_type,
+        kind=li.line_type,
+        label=label,
+        treatment=treatment,
+        amount_cents=li.amount_cents,
+        source_refs=li.source_refs,
+    )
+
+
+def _policy_version_ids(policy_refs: list | None) -> list[str]:
+    """The policy VERSION ids a settlement applied, in recorded order.
+
+    `policy_refs` is stored as records ({policy_id, policy_version_id,
+    version}); C03 serves the version ids, which is what identifies the exact
+    rule that was applied. A record without one is skipped rather than guessed
+    at from the policy id, which names the family and not the version.
+    """
+    ids: list[str] = []
+    for ref in policy_refs or []:
+        if isinstance(ref, dict) and isinstance(ref.get("policy_version_id"), str):
+            ids.append(ref["policy_version_id"])
+    return ids
 
 
 def _to_settlement_out(s: Settlement) -> SettlementOut:
@@ -120,6 +203,14 @@ def _to_settlement_out(s: Settlement) -> SettlementOut:
         correction_of=s.correction_of,
         correction_reason=s.correction_reason,
         status=s.status,
+        version=s.version,
+        source_manifest_hash=s.source_manifest_hash,
+        policy_refs=_policy_version_ids(s.policy_refs),
+        applied_policies=[r for r in (s.policy_refs or []) if isinstance(r, dict)],
+        line_items=[
+            _line_item_out(li)
+            for li in sorted(s.line_items or [], key=lambda li: (li.line_type, li.id))
+        ],
     )
 
 
@@ -216,13 +307,6 @@ def get_settlement(
     return _to_settlement_out(s)
 
 
-class SettlementLineItemOut(BaseModel):
-    id: str
-    line_type: str
-    amount_cents: int
-    source_refs: list
-
-
 @router.get("/{settlement_id}/line-items", response_model=list[SettlementLineItemOut])
 def get_settlement_line_items(
     settlement_id: str,
@@ -239,12 +323,7 @@ def get_settlement_line_items(
         .scalars()
         .all()
     )
-    return [
-        SettlementLineItemOut(
-            id=r.id, line_type=r.line_type, amount_cents=r.amount_cents, source_refs=r.source_refs
-        )
-        for r in rows
-    ]
+    return [_line_item_out(r) for r in rows]
 
 
 @router.get("/{settlement_id}/corrections", response_model=list[SettlementOut])
