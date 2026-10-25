@@ -146,11 +146,84 @@ def _members_of(db: Session, group: MatchGroup) -> list[tuple[str, str, str, int
     ]
 
 
+# Postgres accepts at most 65535 bind parameters per statement, so an `IN`
+# over a whole festival night's orders is chunked -- same constant and reason
+# as app/settlement.py's `_IN_CHUNK`.
+_IN_CHUNK = 5_000
+
+
+def _chunks(values: list[str], size: int = _IN_CHUNK):
+    for i in range(0, len(values), size):
+        yield values[i : i + size]
+
+
+@dataclass
+class _OrderRows:
+    """Everything the per-order loop below reads, loaded in bulk.
+
+    Keyed exactly the way the loop looks things up, so the loop's logic is
+    unchanged -- it reads from dictionaries instead of issuing three queries
+    per order (the order's payments, its current classification, and that
+    group's members). At 40,000 orders that was ~120,000 round trips a run.
+    """
+
+    payments_by_order: dict[str, list[Payment]] = field(default_factory=dict)
+    current_group_by_order: dict[str, MatchGroup] = field(default_factory=dict)
+    members_by_group: dict[str, list[tuple[str, str, str, int]]] = field(default_factory=dict)
+
+
+def _load_order_rows(db: Session, orders: list[Order]) -> _OrderRows:
+    rows = _OrderRows()
+    order_ids = [o.id for o in orders]
+    if not order_ids:
+        return rows
+
+    for chunk in _chunks(order_ids):
+        for p in (
+            db.execute(select(Payment).where(Payment.order_id.in_(chunk)).order_by(Payment.id))
+            .scalars()
+            .all()
+        ):
+            rows.payments_by_order.setdefault(p.order_id, []).append(p)
+
+        # Newest order_capture group per order: ordered so the FIRST row seen
+        # for an order is its newest, matching the per-order `_current_group`
+        # query this replaces (created_at desc, then id desc).
+        for member_id, group in db.execute(
+            select(MatchGroupMember.member_id, MatchGroup)
+            .join(MatchGroup, MatchGroup.id == MatchGroupMember.match_group_id)
+            .where(
+                MatchGroup.match_type == "order_capture",
+                MatchGroupMember.member_kind == "order",
+                MatchGroupMember.member_id.in_(chunk),
+            )
+            .order_by(
+                MatchGroupMember.member_id.asc(),
+                MatchGroup.created_at.desc(),
+                MatchGroup.id.desc(),
+            )
+        ):
+            rows.current_group_by_order.setdefault(member_id, group)
+
+    current_ids = sorted({g.id for g in rows.current_group_by_order.values()})
+    for chunk in _chunks(current_ids):
+        for m in (
+            db.execute(select(MatchGroupMember).where(MatchGroupMember.match_group_id.in_(chunk)))
+            .scalars()
+            .all()
+        ):
+            rows.members_by_group.setdefault(m.match_group_id, []).append(
+                (m.member_kind, m.member_id, m.role, m.amount_cents)
+            )
+    return rows
+
+
 def _is_still_current(
     db: Session,
     group: MatchGroup,
     result: a03.ClassificationResult,
     members: list[tuple[str, str, str, int]],
+    existing_members: list[tuple[str, str, str, int]] | None = None,
 ) -> bool:
     """True when `group` already records exactly what the current inputs
     classify to, so there is nothing to supersede.
@@ -163,7 +236,11 @@ def _is_still_current(
     when the four amounts happen to come out the same -- e.g. one capture
     replaced by two summing to it. Member order is not significant (the
     payment queries behind these lists are not all ordered), so compare
-    sorted."""
+    sorted.
+
+    `existing_members` lets a caller that has already loaded this group's
+    members in bulk pass them in rather than have one query issued per
+    record here."""
     if (
         group.status != result.status
         or group.reason_code != result.reason_code
@@ -171,7 +248,8 @@ def _is_still_current(
         or group.matched_amount_cents != result.matched_amount_cents
     ):
         return False
-    return sorted(_members_of(db, group)) == sorted(members)
+    have = _members_of(db, group) if existing_members is None else existing_members
+    return sorted(have) == sorted(members)
 
 
 def _supersede_case(
@@ -284,12 +362,13 @@ def reconcile_vendor_day(
         .scalars()
         .all()
     )
+    # Everything the loop below reads, fetched up front in a handful of
+    # queries instead of three per order. The arithmetic is unchanged --
+    # only where the rows come from.
+    batch = _load_order_rows(db, list(orders))
+
     for order in orders:
-        payments = (
-            db.execute(select(Payment).where(Payment.order_id == order.id).order_by(Payment.id))
-            .scalars()
-            .all()
-        )
+        payments = batch.payments_by_order.get(order.id, [])
         facts = [
             a03.PaymentFact(id=p.id, amount_cents=p.amount_cents, kind=p.kind) for p in payments
         ]
@@ -301,8 +380,14 @@ def reconcile_vendor_day(
         members = [("order", order.id, "expected", order.gross_cents)] + [
             ("payment", p.id, p.kind, p.amount_cents) for p in payments
         ]
-        current = _current_group(db, "order_capture", "order", order.id)
-        if current is not None and _is_still_current(db, current, result, members):
+        current = batch.current_group_by_order.get(order.id)
+        if current is not None and _is_still_current(
+            db,
+            current,
+            result,
+            members,
+            existing_members=batch.members_by_group.get(current.id, []),
+        ):
             out.skipped_already_matched += 1
             continue
         group = a03._record_match_group(
@@ -446,7 +531,14 @@ def reconcile_bank_deposits_day(
         )
         result = a03.classify_bank_deposit(
             captures_total_cents=sum(p.amount_cents for p in payments if p.kind == "capture"),
+            # Refunds and chargebacks the processor took back out of this
+            # same batch: the deposit lands net of them, so A03 has to
+            # expect it net of them too.
+            adjustments_total_cents=sum(
+                p.amount_cents for p in payments if p.kind in ("refund", "chargeback")
+            ),
             entry_amount_cents=entry.amount_cents,
+            direction=entry.direction,
             batch_fee_cents=entry.batch_fee_cents,
             settlement_status=entry.settlement_status,
             earliest_payment_business_date=min(order_dates) if order_dates else entry.business_date,
