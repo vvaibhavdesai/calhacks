@@ -503,7 +503,23 @@ def gather_reconciled_day_facts(
             entry = (
                 batch.bank_entries.get(payment.bank_entry_id) if payment.kind == "capture" else None
             )
-            if entry is not None and entry.batch_fee_cents:
+            if payment.kind == "capture" and payment.processor_fee_cents is not None:
+                # The processor's settlement file states this payment's own
+                # fee (migration 0019). Preferred over any apportionment of
+                # the batch total: a per-transaction schedule is not
+                # proportional to amount, so apportioning charges a vendor
+                # of many small tickets too little and a vendor of few
+                # large ones too much. On full_v1 the apportionment was the
+                # only remaining difference from the independent oracle on
+                # 43 of 240 vendor-nights.
+                facts.processor_fee_assessed_cents += payment.processor_fee_cents
+                facts.source_refs.append(
+                    {"ref_kind": "payment", "ref_id": payment.id, "role": "processor_fee_stated"}
+                )
+            elif entry is not None and entry.batch_fee_cents:
+                # Fallback for a payment imported before the per-payment fee
+                # was recorded: its share of its settled bank entry's stated
+                # batch fee, by amount (fixture 6).
                 total = batch.bank_entry_capture_totals.get(entry.id) or 1
                 fee_share = _round_half_up(
                     Decimal(entry.batch_fee_cents) * Decimal(payment.amount_cents) / Decimal(total)
