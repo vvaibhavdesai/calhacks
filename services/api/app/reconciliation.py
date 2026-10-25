@@ -128,6 +128,34 @@ def classify_order_capture(
     net_captured = captures_total - adjustments_total
     variance = captures_total - expected_cents
 
+    # A standalone refund order: the POS books the refund as its own order
+    # with a negative total and one refund payment against it, rather than
+    # as an adjustment hung off the original sale (`refund_of_order_id`
+    # carries the link). Its money movement is the refund, so the thing to
+    # compare against the order total is the NET movement, not the capture
+    # total -- otherwise every refund order reads as "refunded more than
+    # was ever captured" and its negative eligible sales are dropped,
+    # leaving commission assessed on money the customer already got back.
+    if expected_cents < 0 and not captures and adjustments:
+        refund_variance = net_captured - expected_cents
+        if abs(refund_variance) <= AMOUNT_TOLERANCE_CENTS:
+            return ClassificationResult(
+                status="matched",
+                reason_code="refund_order_match",
+                variance_cents=0,
+                # Negative by construction: this order reduces the
+                # vendor-day's eligible sales by what went back.
+                matched_amount_cents=net_captured,
+                notes="refund-only order; refund payment matches the order total",
+            )
+        return ClassificationResult(
+            status="case",
+            reason_code="refund_order_amount_mismatch",
+            variance_cents=refund_variance,
+            matched_amount_cents=net_captured,
+            notes="refund payment does not match the refund order total",
+        )
+
     # Sanity check first: refunding/charging back more than was ever
     # captured for this order is always a case, regardless of the raw
     # capture-vs-order variance -- never silently net this to zero.
@@ -236,12 +264,28 @@ def classify_bank_deposit(
     settlement_status: str,
     earliest_payment_business_date: date | None,
     as_of: date,
+    adjustments_total_cents: int = 0,
+    direction: str = "credit",
 ) -> ClassificationResult:
     """Grouped net bank settlement <-> allocated centrally-collected
-    payments matching for one BankEntry batch."""
+    payments matching for one BankEntry batch.
+
+    A processor pays out its batch NET: captures, less the refunds and
+    chargebacks it took back out of the same batch, less its fee. So the
+    refunds allocated to this entry have to come off the expected figure
+    (`adjustments_total_cents`) -- otherwise every batch that contains a
+    refund reads as short by exactly the refunds it contains, and the
+    centrally-collected money it settled stays held.
+
+    `entry_amount_cents` is the statement line's magnitude and `direction`
+    says which way it went, as `bank_entries` stores them. A batch whose
+    refunds outweigh its captures is a net DEBIT: the processor takes the
+    money back, and the line is a legitimate match for a negative expected
+    net, not a variance."""
     fee = batch_fee_cents or 0
-    expected_net = captures_total_cents - fee
-    variance = entry_amount_cents - expected_net
+    signed_entry = -entry_amount_cents if direction == "debit" else entry_amount_cents
+    expected_net = captures_total_cents - adjustments_total_cents - fee
+    variance = signed_entry - expected_net
 
     if settlement_status != "settled":
         # Pending/in-transit funds are never "matched" -- acceptance
@@ -271,19 +315,24 @@ def classify_bank_deposit(
         )
 
     if abs(variance) <= AMOUNT_TOLERANCE_CENTS:
-        reason = "processor_fee_explained" if fee else "bank_deposit_match"
+        if signed_entry < 0:
+            reason = "net_debit_refunds"
+        elif fee:
+            reason = "processor_fee_explained"
+        else:
+            reason = "bank_deposit_match"
         return ClassificationResult(
             status="matched",
             reason_code=reason,
             variance_cents=0,
-            matched_amount_cents=entry_amount_cents,
+            matched_amount_cents=signed_entry,
             notes=f"fee of {fee} cents accounted for" if fee else "",
         )
     return ClassificationResult(
         status="case",
         reason_code="bank_deposit_variance_unexplained",
         variance_cents=variance,
-        matched_amount_cents=captures_total_cents,
+        matched_amount_cents=captures_total_cents - adjustments_total_cents,
         notes="settled bank deposit does not match allocated payments net of known fee",
     )
 
