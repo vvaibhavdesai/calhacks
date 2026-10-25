@@ -11,7 +11,9 @@ view below is computed live from the database.
 
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
+import json
+from datetime import UTC, date, datetime, timedelta
+from pathlib import Path
 
 import domain.payout_dispatch as domain_payout_dispatch
 import domain.settlement as domain_settlement
@@ -641,6 +643,131 @@ def list_supplier_quotes(
             for r in rows
         ],
         "next_cursor": None,
+    }
+
+
+_FIXTURE_DIR = Path(__file__).resolve().parents[4] / "fixtures" / "encore-procurement-synthetic-v1"
+
+
+def _load_fixture_json(name: str):
+    with open(_FIXTURE_DIR / "data" / f"{name}.json") as f:
+        return json.load(f)
+
+
+@router.get("/supplier-comparison")
+def supplier_comparison(
+    request_key: str,
+    as_of: date,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict:
+    """TICKET section 7. Quote amounts come from the imported `supplier_quotes`
+    rows (demo-clock-gated by `available_at <= as_of`); the cash-impact
+    baseline and supplier history are read directly from the fixture's
+    cash_inputs.json/historical_contracts.json -- a labelled synthetic
+    comparison, never written to cash_pools/opening_balances/the journal.
+    Selection stays undecided here: no winner field, no aggregate score."""
+    import domain.procurement_cash as cash_rules
+
+    from app.models_finance import SupplierQuote
+
+    cutoff = datetime.combine(as_of, datetime.min.time())
+    quotes = (
+        db.execute(
+            select(SupplierQuote).where(
+                SupplierQuote.request_key == request_key, SupplierQuote.available_at <= cutoff
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+    try:
+        cash = _load_fixture_json("cash_inputs")
+        hist_contracts = {h["supplier_id"]: h for h in _load_fixture_json("historical_contracts")}
+        hist_deliveries = {d["supplier_id"]: d for d in _load_fixture_json("historical_deliveries")}
+    except FileNotFoundError:
+        cash, hist_contracts, hist_deliveries = None, {}, {}
+
+    rows = []
+    for q in quotes:
+        missing = []
+        if q.delivery_cents is None:
+            missing.append("delivery pricing")
+        if not q.insurance_evidence:
+            missing.append("insurance evidence")
+        complete = not missing
+        complete_total = (
+            (q.base_cents or 0) + (q.delivery_cents or 0) + (q.tax_cents or 0) if complete else None
+        )
+
+        breach = None
+        if cash is not None and q.deposit_cents is not None and q.deposit_due is not None:
+            result = cash_rules.synthetic_cash_breach(
+                as_of=date.fromisoformat(cash["as_of"]),
+                opening_posted_cents=cash["opening_posted_cents"],
+                buffer_cents=cash["buffer_cents"],
+                scheduled_outflows=[
+                    (date.fromisoformat(o["date"]), o["amount_cents"])
+                    for o in cash["scheduled_outflows"]
+                ],
+                deposit_due=q.deposit_due,
+                deposit_cents=q.deposit_cents,
+                horizon_end=date.fromisoformat(cash["as_of"]) + timedelta(days=10),
+            )
+            breach = {
+                "minimum_closing_cents": result.minimum_closing_cents,
+                "first_breach_date": (
+                    result.first_breach_date.isoformat() if result.first_breach_date else None
+                ),
+                "buffer_gap_cents": result.buffer_gap_cents,
+            }
+
+        h = hist_contracts.get(q.supplier_id)
+        history_label = "no_history"
+        variance_bps = None
+        otif = None
+        if h is not None:
+            history_label = "has_history"
+            variance_bps = round(
+                (h["final_net_cost_cents"] - h["original_budget_cents"])
+                / h["original_budget_cents"]
+                * 10000
+            )
+            d = hist_deliveries.get(q.supplier_id)
+            if d is not None:
+                on_time = d["completed_at"] <= d["deadline"]
+                otif = f"{1 if on_time else 0}/{d.get('scheduled_delivery_count', 1)}"
+
+        rows.append(
+            {
+                "supplier_id": q.supplier_id,
+                "quote_id": q.id,
+                "version": q.version,
+                "supersedes_id": q.supersedes_id,
+                "complete": complete,
+                "missing_requirements": missing,
+                "complete_quote_cents": complete_total,
+                "deposit_cents": q.deposit_cents,
+                "deposit_due": q.deposit_due.isoformat() if q.deposit_due else None,
+                "balance_due": q.balance_due.isoformat() if q.balance_due else None,
+                "cash_impact_synthetic": breach,
+                "history_label": history_label,
+                "history_variance_bps": variance_bps,
+                "history_otif": otif,
+            }
+        )
+
+    return {
+        "request_key": request_key,
+        "as_of": as_of.isoformat(),
+        "cash_baseline_note": (
+            "Synthetic demo baseline (fixture cash_inputs.json): proposed, not approved "
+            "business policy. Not the real books."
+        ),
+        "selection": "undecided",
+        "no_automatic_winner": True,
+        "quotes": rows,
     }
 
 
