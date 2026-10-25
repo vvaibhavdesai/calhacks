@@ -25,6 +25,7 @@ from app.routers import (
     payouts,
     reconciliation,
     recorder,
+    records,
     settlement,
     terms,
     vendors,
@@ -92,6 +93,7 @@ app.include_router(terms.router)
 app.include_router(festivals.router)
 app.include_router(festivals.current_router)
 app.include_router(vendors.router)
+app.include_router(records.router)
 
 
 @app.get("/")

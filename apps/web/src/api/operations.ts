@@ -76,38 +76,16 @@ export const OPERATIONS = {
   },
 
   // ------------------------------------------------------- C02 input reads
-  listOrders: {
-    method: 'GET',
-    path: '/orders',
-    backend: 'absent',
-    gap: 'GET /api/v1/orders (filter vendor_id, business_date; cursor paging). Orders can be imported but never read back.',
-  },
-  listPayments: {
-    method: 'GET',
-    path: '/payments',
-    backend: 'absent',
-    gap: 'GET /api/v1/payments (filter vendor_id, business_date; cursor paging).',
-  },
-  listBankEntries: {
-    method: 'GET',
-    path: '/bank-entries',
-    backend: 'absent',
-    route: '/finance/bank-entries/scan',
-    gap: 'GET /api/v1/bank-entries (filter direction; cursor paging). Only POST /finance/bank-entries/scan exists, which ingests rather than reads.',
-  },
+  listOrders: { method: 'GET', path: '/orders', backend: 'live', query: { sort: null } },
+  listPayments: { method: 'GET', path: '/payments', backend: 'live', query: { sort: null } },
+  listBankEntries: { method: 'GET', path: '/bank-entries', backend: 'live', query: { sort: null } },
   listProcessorBatches: {
     method: 'GET',
     path: '/processor-batches',
     backend: 'absent',
     gap: 'GET /api/v1/processor-batches (cursor paging).',
   },
-  listCashCounts: {
-    method: 'GET',
-    path: '/cash-counts',
-    backend: 'absent',
-    route: '/finance/cash-office',
-    gap: 'GET /api/v1/cash-counts (filter vendor_id, business_date). POST /finance/cash-office/counts records counts and GET /finance/cash-office?festival_id= summarises the office, but no route lists the counts themselves.',
-  },
+  listCashCounts: { method: 'GET', path: '/cash-counts', backend: 'live', query: { sort: null } },
   listSourceDocuments: { method: 'GET', path: '/source-documents', backend: 'live', query: { ...NO_PAGING, kind: 'kind', vendor_id: 'vendor_id' } },
   getSourceDocument: { method: 'GET', path: '/sources/{source_document_id}', backend: 'live' },
 
@@ -207,12 +185,7 @@ export const OPERATIONS = {
     gap: 'GET /api/v1/invoices?festival_id= returns {as_of, invoices[], total_outstanding_cents} -- the collection is nested under `invoices`, not the {items, next_cursor} envelope or a bare array this client can read.',
   },
   getSupplierInvoice: { method: 'GET', path: '/invoices/{invoice_id}', backend: 'live' },
-  listSupplierPayments: {
-    method: 'GET',
-    path: '/supplier-payments',
-    backend: 'absent',
-    gap: 'GET /api/v1/supplier-payments (filter supplier_id; scheduled_date, amount_cents, state). POST /invoices/{id}/pay makes them; nothing lists them.',
-  },
+  listSupplierPayments: { method: 'GET', path: '/supplier-payments', backend: 'live', query: { sort: null } },
 
   // ------------------------------------------------------- accounting (C07)
   listJournalEntries: { method: 'GET', path: '/journal', backend: 'live', query: { sort: null } },

@@ -106,6 +106,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/bank-entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Bank Entries */
+        get: operations["list_bank_entries_api_v1_bank_entries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/branches": {
         parameters: {
             query?: never;
@@ -258,6 +275,23 @@ export interface paths {
         };
         /** Get Cash */
         get: operations["get_cash_api_v1_cash_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cash-counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Cash Counts */
+        get: operations["list_cash_counts_api_v1_cash_counts_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1302,6 +1336,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Orders */
+        get: operations["list_orders_api_v1_orders_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Payments */
+        get: operations["list_payments_api_v1_payments_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/payouts": {
         parameters: {
             query?: never;
@@ -2046,6 +2114,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/supplier-payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Supplier Payments */
+        get: operations["list_supplier_payments_api_v1_supplier_payments_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/suppliers": {
         parameters: {
             query?: never;
@@ -2301,6 +2386,50 @@ export interface components {
             /** Source Refs */
             source_refs: unknown[];
         };
+        /** BankEntryListOut */
+        BankEntryListOut: {
+            /** Items */
+            items: components["schemas"]["BankEntryOut"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /** BankEntryOut */
+        BankEntryOut: {
+            /** Account Id */
+            account_id: string;
+            /** Amount Cents */
+            amount_cents: number;
+            /** Batch Fee Cents */
+            batch_fee_cents?: number | null;
+            /** Batch Gross Cents */
+            batch_gross_cents?: number | null;
+            /**
+             * Business Date
+             * Format: date
+             */
+            business_date: string;
+            /** Description */
+            description?: string | null;
+            /** Direction */
+            direction: string;
+            /** Festival Id */
+            festival_id: string;
+            /** Id */
+            id: string;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /** Provider Reference */
+            provider_reference?: string | null;
+            /** Settled At */
+            settled_at?: string | null;
+            /** Source Refs */
+            source_refs: components["schemas"]["SourceRefOut"][];
+            /** Status */
+            status: string;
+        };
         /** CalculateRequest */
         CalculateRequest: {
             /**
@@ -2374,6 +2503,43 @@ export interface components {
             id?: string | null;
             /** Source Refs */
             source_refs?: unknown[];
+            /** Vendor Id */
+            vendor_id: string;
+        };
+        /** CashCountListOut */
+        CashCountListOut: {
+            /** Items */
+            items: components["schemas"]["CashCountOut"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /** CashCountOut */
+        CashCountOut: {
+            /** Amount Cents */
+            amount_cents: number;
+            /**
+             * Business Date
+             * Format: date
+             */
+            business_date: string;
+            /**
+             * Counted At
+             * Format: date-time
+             */
+            counted_at: string;
+            /** Counted By */
+            counted_by?: string | null;
+            /**
+             * Custody
+             * @default VENDOR_RETAINED
+             */
+            custody: string;
+            /** Description */
+            description?: string | null;
+            /** Id */
+            id: string;
+            /** Source Refs */
+            source_refs: components["schemas"]["SourceRefOut"][];
             /** Vendor Id */
             vendor_id: string;
         };
@@ -2844,6 +3010,48 @@ export interface components {
             /** Source Refs */
             source_refs?: unknown[];
         };
+        /** OrderListOut */
+        OrderListOut: {
+            /** Items */
+            items: components["schemas"]["OrderOut"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /** OrderOut */
+        OrderOut: {
+            /**
+             * Business Date
+             * Format: date
+             */
+            business_date: string;
+            /** Currency */
+            currency: string;
+            /** Eligible Net Cents */
+            eligible_net_cents: number;
+            /** Gross Cents */
+            gross_cents: number;
+            /** Id */
+            id: string;
+            /**
+             * Ordered At
+             * Format: date-time
+             */
+            ordered_at: string;
+            /** Source Native Id */
+            source_native_id: string;
+            /** Source Refs */
+            source_refs: components["schemas"]["SourceRefOut"][];
+            /** Source System */
+            source_system: string;
+            /** Status */
+            status: string;
+            /** Tax Cents */
+            tax_cents: number;
+            /** Tips Cents */
+            tips_cents: number;
+            /** Vendor Id */
+            vendor_id: string;
+        };
         /** PayIn */
         PayIn: {
             /** Amount Cents */
@@ -2855,6 +3063,47 @@ export interface components {
              * Format: date
              */
             business_date: string;
+        };
+        /** PaymentListOut */
+        PaymentListOut: {
+            /** Items */
+            items: components["schemas"]["PaymentOut"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /** PaymentOut */
+        PaymentOut: {
+            /** Amount Cents */
+            amount_cents: number;
+            /** Bank Entry Id */
+            bank_entry_id?: string | null;
+            /** Business Date */
+            business_date?: string | null;
+            /** Currency */
+            currency: string;
+            /** Custody */
+            custody: string;
+            /** Id */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Method */
+            method: string;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /** Order Id */
+            order_id?: string | null;
+            /** Provider Reference */
+            provider_reference?: string | null;
+            /** Source Refs */
+            source_refs: components["schemas"]["SourceRefOut"][];
+            /** Status */
+            status: string;
+            /** Vendor Id */
+            vendor_id: string;
         };
         /** PayoutApprovalOut */
         PayoutApprovalOut: {
@@ -3300,6 +3549,19 @@ export interface components {
             /** Versions */
             versions: components["schemas"]["SourceVersionOut"][];
         };
+        /** SourceRefOut */
+        SourceRefOut: {
+            /** Content Hash */
+            content_hash?: string | null;
+            /** Locator */
+            locator?: string | null;
+            /** Locator Kind */
+            locator_kind?: string | null;
+            /** Source Document Id */
+            source_document_id: string;
+            /** Source Version */
+            source_version?: number | null;
+        };
         /** SourceVersionOut */
         SourceVersionOut: {
             /** Byte Size */
@@ -3411,6 +3673,46 @@ export interface components {
             festival_id: string;
             /** Name */
             name: string;
+        };
+        /** SupplierPaymentListOut */
+        SupplierPaymentListOut: {
+            /** Items */
+            items: components["schemas"]["SupplierPaymentOut"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /** SupplierPaymentOut */
+        SupplierPaymentOut: {
+            /** Amount Cents */
+            amount_cents: number;
+            /** Approved By */
+            approved_by?: string | null;
+            /** Approved Capability */
+            approved_capability: string;
+            /**
+             * Business Date
+             * Format: date
+             */
+            business_date: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Festival Id */
+            festival_id: string;
+            /** Id */
+            id: string;
+            /** Invoice Id */
+            invoice_id: string;
+            /** Journal Entry Id */
+            journal_entry_id?: string | null;
+            /** Payment Reference */
+            payment_reference: string;
+            /** State */
+            state: string;
+            /** Supplier Id */
+            supplier_id: string;
         };
         /** SuspendPolicyRequest */
         SuspendPolicyRequest: {
@@ -3870,6 +4172,41 @@ export interface operations {
             };
         };
     };
+    list_bank_entries_api_v1_bank_entries_get: {
+        parameters: {
+            query?: {
+                festival_id?: string | null;
+                direction?: string | null;
+                business_date?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankEntryListOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_branches_api_v1_branches_get: {
         parameters: {
             query?: {
@@ -4189,6 +4526,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": Record<string, never>;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_cash_counts_api_v1_cash_counts_get: {
+        parameters: {
+            query?: {
+                vendor_id?: string | null;
+                business_date?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CashCountListOut"];
                 };
             };
             /** @description Validation Error */
@@ -6320,6 +6691,75 @@ export interface operations {
             };
         };
     };
+    list_orders_api_v1_orders_get: {
+        parameters: {
+            query?: {
+                vendor_id?: string | null;
+                business_date?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderListOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_payments_api_v1_payments_get: {
+        parameters: {
+            query?: {
+                vendor_id?: string | null;
+                order_id?: string | null;
+                kind?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentListOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_payouts_api_v1_payouts_get: {
         parameters: {
             query?: {
@@ -7844,6 +8284,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": Record<string, never>;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_supplier_payments_api_v1_supplier_payments_get: {
+        parameters: {
+            query?: {
+                festival_id?: string | null;
+                supplier_id?: string | null;
+                invoice_id?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplierPaymentListOut"];
                 };
             };
             /** @description Validation Error */
