@@ -1510,45 +1510,6 @@
         "title": "HoldOut",
         "type": "object"
       },
-      "ImportRequest": {
-        "properties": {
-          "content_base64": {
-            "title": "Content Base64",
-            "type": "string"
-          },
-          "mime_type": {
-            "title": "Mime Type",
-            "type": "string"
-          },
-          "parser_version": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Parser Version"
-          },
-          "source_native_id": {
-            "title": "Source Native Id",
-            "type": "string"
-          },
-          "source_system": {
-            "title": "Source System",
-            "type": "string"
-          }
-        },
-        "required": [
-          "source_system",
-          "source_native_id",
-          "mime_type",
-          "content_base64"
-        ],
-        "title": "ImportRequest",
-        "type": "object"
-      },
       "ImportResponse": {
         "properties": {
           "content_hash": {
@@ -3978,61 +3939,6 @@
           "business_date"
         ],
         "title": "SponsorReceiptIn",
-        "type": "object"
-      },
-      "StartRunIn": {
-        "properties": {
-          "budget_usd": {
-            "default": 0.0,
-            "maximum": 5.0,
-            "minimum": 0.0,
-            "title": "Budget Usd",
-            "type": "number"
-          },
-          "business_date": {
-            "format": "date",
-            "title": "Business Date",
-            "type": "string"
-          },
-          "command_id": {
-            "anyOf": [
-              {
-                "maxLength": 64,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Command Id"
-          },
-          "explain_cases": {
-            "default": false,
-            "title": "Explain Cases",
-            "type": "boolean"
-          },
-          "festival_id": {
-            "title": "Festival Id",
-            "type": "string"
-          },
-          "is_final_period": {
-            "default": false,
-            "title": "Is Final Period",
-            "type": "boolean"
-          },
-          "max_concurrency": {
-            "default": 4,
-            "maximum": 16.0,
-            "minimum": 1.0,
-            "title": "Max Concurrency",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "festival_id",
-          "business_date"
-        ],
-        "title": "StartRunIn",
         "type": "object"
       },
       "StatementIn": {
@@ -8559,11 +8465,18 @@
           {
             "in": "query",
             "name": "knowledge_cutoff",
-            "required": true,
+            "required": false,
             "schema": {
-              "format": "date-time",
-              "title": "Knowledge Cutoff",
-              "type": "string"
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Knowledge Cutoff"
             }
           },
           {
@@ -8825,7 +8738,8 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ImportRequest"
+                "title": "Raw",
+                "type": "object"
               }
             }
           },
@@ -9771,7 +9685,8 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/StartRunIn"
+                "title": "Raw",
+                "type": "object"
               }
             }
           },

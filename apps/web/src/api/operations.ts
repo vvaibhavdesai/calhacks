@@ -99,13 +99,7 @@ export const OPERATIONS = {
 
   // ---------------------------------------------------- orchestration (C04)
   listRuns: { method: 'GET', path: '/orchestration/runs', backend: 'live', query: NO_PAGING },
-  startRun: {
-    method: 'POST',
-    path: '/runs',
-    backend: 'shape',
-    route: '/orchestration/runs',
-    gap: 'POST /api/v1/orchestration/runs takes StartRunIn {festival_id, business_date, ...} rather than the C03 command envelope, and its 202 body is a run record rather than {job_id, status_url}.',
-  },
+  startRun: { method: 'POST', path: '/orchestration/runs', backend: 'live' },
   getRun: { method: 'GET', path: '/orchestration/runs/{run_id}', backend: 'live' },
   listRunVendors: {
     method: 'GET',
@@ -165,13 +159,7 @@ export const OPERATIONS = {
   // ---------------------------------------------------------- payables (C07)
   listSuppliers: { method: 'GET', path: '/suppliers', backend: 'live', query: NO_PAGING },
   listPurchaseOrders: { method: 'GET', path: '/purchase-orders', backend: 'live', query: NO_PAGING },
-  listSupplierInvoices: {
-    method: 'GET',
-    path: '/invoices',
-    backend: 'shape',
-    route: '/invoices',
-    gap: 'GET /api/v1/invoices?festival_id= returns {as_of, invoices[], total_outstanding_cents} -- the collection is nested under `invoices`, not the {items, next_cursor} envelope or a bare array this client can read.',
-  },
+  listSupplierInvoices: { method: 'GET', path: '/invoices', backend: 'live', query: NO_PAGING },
   getSupplierInvoice: { method: 'GET', path: '/invoices/{invoice_id}', backend: 'live' },
   listSupplierPayments: { method: 'GET', path: '/supplier-payments', backend: 'live', query: { sort: null } },
 
@@ -184,24 +172,12 @@ export const OPERATIONS = {
   getTaxReport: { method: 'GET', path: '/reports/by-id/{report_id}', backend: 'live' },
   listFinancialReports: { method: 'GET', path: '/reports', backend: 'live', query: NO_PAGING },
   getFinancialReport: { method: 'GET', path: '/reports/by-id/{report_id}', backend: 'live' },
-  listCashPositions: {
-    method: 'GET',
-    path: '/cash',
-    backend: 'shape',
-    route: '/cash',
-    gap: 'GET /api/v1/cash?festival_id= returns ONE position object (as_of, bank_cents, protected, reserved_payouts_cents, ...), not a series. The cash screen lists positions plus forecast points, so this needs a collection.',
-  },
+  listCashPositions: { method: 'GET', path: '/cash', backend: 'live', query: NO_PAGING },
 
   // ------------------------------------------- flight recorder (C08, live)
   listEvents: { method: 'GET', path: '/events', backend: 'live', query: { sort: null } },
   getEvent: { method: 'GET', path: '/events/{event_id}', backend: 'live' },
-  getHistoricalProjection: {
-    method: 'GET',
-    path: '/history/projection',
-    backend: 'shape',
-    route: '/history/projection',
-    gap: 'GET /api/v1/history/projection requires `knowledge_cutoff` (verified: 422 without it) even though the draft declares every parameter optional. The UI asks "what did we know at time T" from the screen state and does not have a cutoff to supply yet.',
-  },
+  getHistoricalProjection: { method: 'GET', path: '/history/projection', backend: 'live' },
   listChallenges: { method: 'GET', path: '/challenges', backend: 'live', query: NO_PAGING },
   getChallenge: { method: 'GET', path: '/challenges/{challenge_id}', backend: 'live' },
   getCorrection: { method: 'GET', path: '/corrections/{correction_id}', backend: 'live' },
@@ -209,19 +185,17 @@ export const OPERATIONS = {
   getBranch: { method: 'GET', path: '/branches/{branch_id}', backend: 'live' },
   listReplays: { method: 'GET', path: '/replays', backend: 'live', query: NO_PAGING },
   getReplay: { method: 'GET', path: '/replays/{replay_id}', backend: 'live' },
+  // Superseded, not missing: live updates are done by polling the event log's
+  // head position (see LiveUpdates in src/app/App.tsx), which needs no
+  // streaming endpoint. src/api/sse.ts remains the client half if a stream is
+  // ever served.
   streamEvents: {
     method: 'GET',
     path: '/events/stream',
     backend: 'absent',
-    gap: 'GET /api/v1/events/stream as text/event-stream (cursor resume, Last-Event-ID, 410 on an expired cursor). Without it the shell cannot be told that a projection changed; screens only refresh when the operator reloads.',
+    gap: 'Not built: superseded by polling listEvents head_sequence every 5s. A stream would reduce latency from seconds to immediate; nothing depends on it.',
   },
-  createImport: {
-    method: 'POST',
-    path: '/imports',
-    backend: 'shape',
-    route: '/imports',
-    gap: 'POST /api/v1/imports takes {source_system, source_native_id, mime_type, content_base64} with no command envelope and no Idempotency-Key (it dedupes on content hash instead), so the UI command this client sends would be rejected.',
-  },
+  createImport: { method: 'POST', path: '/imports', backend: 'live' },
   createChallenge: { method: 'POST', path: '/challenges', backend: 'live' },
   previewCorrection: { method: 'POST', path: '/corrections/preview', backend: 'live' },
   approveCorrection: { method: 'POST', path: '/corrections/{correction_id}/approve', backend: 'live' },

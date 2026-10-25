@@ -14,8 +14,8 @@ from __future__ import annotations
 
 import base64
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
+from pydantic import BaseModel, ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -30,6 +30,22 @@ router = APIRouter(prefix="/api/v1", tags=["imports"])
 
 
 class ImportRequest(BaseModel):
+    """Accepts the flat body and the C03 command envelope alike.
+
+    The envelope ({command_id, expected_version, payload}) is what the UI's
+    command client sends for every effectful call; this route predates it and
+    took the fields at the top level. Both work: `payload` is merged over the
+    top level before validation, so existing scripts are unaffected.
+
+    Idempotency still comes from the content hash, as it always has -- the same
+    bytes for the same document are one version however many times they are
+    posted -- so command_id is recorded rather than used as the key.
+    """
+
+    model_config = {"extra": "ignore"}
+
+    command_id: str | None = None
+
     source_system: str
     source_native_id: str
     mime_type: str
@@ -196,12 +212,34 @@ def list_source_documents(
     )
 
 
+def _unwrap_envelope(body: dict) -> dict:
+    """Flatten a C03 command envelope onto the top level.
+
+    A reader sending {command_id, expected_version, payload: {...}} and a
+    script sending the fields directly should reach the same handler.
+    """
+    payload = body.get("payload")
+    if isinstance(payload, dict):
+        merged = {k: v for k, v in body.items() if k != "payload"}
+        merged.update(payload)
+        return merged
+    return body
+
+
 @router.post("/imports", response_model=ImportResponse, status_code=201)
 def create_import(
-    body: ImportRequest,
+    raw: dict = Body(...),
     db: Session = Depends(get_db),
     user: User = Depends(require_capability(CAPABILITY_IMPORT_SOURCE)),
 ) -> ImportResponse:
+    # Taken raw so a command envelope can be flattened before validation;
+    # FastAPI would otherwise reject the envelope's shape first.
+    try:
+        body = ImportRequest(**_unwrap_envelope(raw))
+    except ValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=exc.errors()
+        ) from exc
     try:
         content_bytes = base64.b64decode(body.content_base64, validate=True)
     except ValueError as exc:

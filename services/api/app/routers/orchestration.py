@@ -16,9 +16,9 @@ from __future__ import annotations
 import uuid
 from datetime import date
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Body, Depends, Header, HTTPException
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -96,8 +96,14 @@ class ResumeIn(BaseModel):
 
 
 def _command_id(body_id: str | None, header_id: str | None) -> str:
-    if body_id and header_id and body_id != header_id:
-        raise HTTPException(status_code=422, detail={"code": "command_id_mismatch"})
+    """The command's identity, from the body or the Idempotency-Key header.
+
+    The body wins when both are given. They are NOT required to agree: the
+    command client derives its idempotency key from a separate random id
+    precisely so the key is not guessable from the command id, so two different
+    values is its normal behaviour rather than a caller error. Either one alone
+    identifies the command, and a caller that supplies neither gets one.
+    """
     value = body_id or header_id or uuid.uuid4().hex
     if len(value) > 64:
         raise HTTPException(status_code=422, detail={"code": "command_id_too_long"})
@@ -247,11 +253,25 @@ def _vendor_out(v: OrchestrationVendorRun) -> dict:
 
 @router.post("/runs", status_code=202)
 def start_run(
-    body: StartRunIn,
+    raw: dict = Body(...),
     idempotency_key: str | None = Header(None, alias="Idempotency-Key"),
     db: Session = Depends(get_db),
     user: User = Depends(require_capability(CAPABILITY_RUN_RECONCILIATION)),
 ):
+    # Taken raw so the C03 command envelope ({command_id, expected_version,
+    # payload}) can be flattened before validation, alongside the flat body
+    # the verify scripts and the worker already send. FastAPI would reject the
+    # envelope's shape first.
+    payload = raw.get("payload")
+    flat = dict(raw)
+    if isinstance(payload, dict):
+        flat.pop("payload", None)
+        flat.update(payload)
+    flat.pop("expected_version", None)  # a run has no prior version to bind to
+    try:
+        body = StartRunIn(**flat)
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=exc.errors()) from exc
     if body.explain_cases and body.budget_usd > 0:
         if CAPABILITY_RUN_AGENTS not in get_user_capability_codes(db, user.id):
             raise HTTPException(
@@ -280,7 +300,16 @@ def start_run(
     db.commit()
     return JSONResponse(
         status_code=202 if created else 200,
-        content={"command_id": command_id, "created": created, **_run_out(orch)},
+        content={
+            "command_id": command_id,
+            "created": created,
+            # C03 long-job shape. The job IS the run here -- there is no
+            # separate job record -- so the run's id and its status URL are
+            # reported under the names a command client follows.
+            "job_id": orch.id,
+            "status_url": _status_url(orch.id),
+            **_run_out(orch),
+        },
     )
 
 

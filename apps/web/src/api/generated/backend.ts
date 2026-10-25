@@ -2905,19 +2905,6 @@ export interface components {
             /** Since */
             since?: string | null;
         };
-        /** ImportRequest */
-        ImportRequest: {
-            /** Content Base64 */
-            content_base64: string;
-            /** Mime Type */
-            mime_type: string;
-            /** Parser Version */
-            parser_version?: string | null;
-            /** Source Native Id */
-            source_native_id: string;
-            /** Source System */
-            source_system: string;
-        };
         /** ImportResponse */
         ImportResponse: {
             /** Content Hash */
@@ -3725,38 +3712,6 @@ export interface components {
             source_refs?: unknown[];
             /** Sponsor Invoice Id */
             sponsor_invoice_id: string;
-        };
-        /** StartRunIn */
-        StartRunIn: {
-            /**
-             * Budget Usd
-             * @default 0
-             */
-            budget_usd: number;
-            /**
-             * Business Date
-             * Format: date
-             */
-            business_date: string;
-            /** Command Id */
-            command_id?: string | null;
-            /**
-             * Explain Cases
-             * @default false
-             */
-            explain_cases: boolean;
-            /** Festival Id */
-            festival_id: string;
-            /**
-             * Is Final Period
-             * @default false
-             */
-            is_final_period: boolean;
-            /**
-             * Max Concurrency
-             * @default 4
-             */
-            max_concurrency: number;
         };
         /** StatementIn */
         StatementIn: {
@@ -5951,8 +5906,8 @@ export interface operations {
     };
     get_historical_projection_api_v1_history_projection_get: {
         parameters: {
-            query: {
-                knowledge_cutoff: string;
+            query?: {
+                knowledge_cutoff?: string | null;
                 business_date?: string | null;
                 vendor_id?: string | null;
                 festival_id?: string | null;
@@ -6087,7 +6042,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ImportRequest"];
+                "application/json": Record<string, never>;
             };
         };
         responses: {
@@ -6605,7 +6560,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["StartRunIn"];
+                "application/json": Record<string, never>;
             };
         };
         responses: {

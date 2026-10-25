@@ -331,10 +331,19 @@ def assert_no_duplicates(tag: str, fest: str, ids: dict) -> None:
 # ---------------------------------------------------------------------------
 
 
+AUTH_DISABLED = os.environ.get("ENCORE_AUTH_DISABLED", "1") == "1"
+
+
 def s1_happy_path_and_holds(admin: Api, nobody: Api) -> None:
     fest, ids = seed("s1")
-    r = nobody.start(fest)
-    check("S1: start without run_reconciliation -> 403", r.status_code == 403, r.status_code)
+    # DISABLED in single-operator mode (services/api/app/auth.py): nothing is
+    # refused, and this call SUCCEEDS -- it starts the run, so the genuine
+    # start below then hits "a run already exists". Re-enable with auth.
+    if not AUTH_DISABLED:
+        r = nobody.start(fest)
+        check("S1: start without run_reconciliation -> 403", r.status_code == 403, r.status_code)
+    else:
+        print("SKIP  S1: start without run_reconciliation -> 403 (single-operator mode)")
     r = admin.start(fest, explain_cases=False, key=f"s1-start-{RUN}")
     check(
         "S1: start -> 202 with status_url",

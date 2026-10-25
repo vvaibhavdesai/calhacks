@@ -331,7 +331,12 @@ def list_invoices(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> dict:
-    return payables.payables_summary(db, festival_id=festival_id, as_of=as_of or date.today())
+    out = payables.payables_summary(db, festival_id=festival_id, as_of=as_of or date.today())
+    # The summary nests its collection under `invoices`; readers of a list
+    # expect {items, next_cursor}. Both are served: the summary's own totals
+    # stay where its existing callers look for them. Not paged -- the payables
+    # of one festival are a page, not a stream -- so next_cursor is null.
+    return {**out, "items": out.get("invoices") or [], "next_cursor": None}
 
 
 @router.get("/invoices/{invoice_id}")
@@ -867,7 +872,11 @@ def get_cash(
 ) -> dict:
     out = reports.cash_report(db, festival_id=festival_id, as_of=as_of or date.today())
     db.commit()
-    return out
+    # A cash position is a single as-of snapshot, and the forecast points it
+    # carries are inside it. Served ALSO as a one-entry collection so a reader
+    # of a list gets the shape it expects rather than a bare object; the flat
+    # keys stay for the callers that already read them.
+    return {**out, "items": [out], "next_cursor": None}
 
 
 @router.get("/reports/pnl")

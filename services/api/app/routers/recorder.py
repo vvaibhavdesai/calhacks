@@ -8,7 +8,7 @@ business data.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
@@ -104,7 +104,10 @@ def get_event(
 
 @router.get("/history/projection")
 def get_historical_projection(
-    knowledge_cutoff: datetime,
+    # "As known at" defaults to now, which is the projection a reader wants
+    # before they have chosen a point in the past. It was required, so the
+    # screen could not ask the question at all without inventing a cutoff.
+    knowledge_cutoff: datetime | None = None,
     business_date: date | None = None,
     vendor_id: str | None = None,
     festival_id: str | None = None,
@@ -112,6 +115,8 @@ def get_historical_projection(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> dict:
+    if knowledge_cutoff is None:
+        knowledge_cutoff = datetime.now(UTC)
     if branch_id:
         raise error(
             422,
