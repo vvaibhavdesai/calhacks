@@ -337,6 +337,77 @@ def _supersede_case(
     return case.id
 
 
+def _resolve_stranded_cases(
+    db: Session,
+    uow: UnitOfWork,
+    *,
+    run: Run,
+    match_type: str,
+    member_kind: str,
+    current_group_by_member: dict[str, MatchGroup],
+    actor_id: str,
+    actor_capability: str,
+) -> list[str]:
+    """Resolve OPEN cases left behind by classifications that are no longer
+    current -- not just the one generation `_supersede_case` replaced.
+
+    `_supersede_case` resolves the case of the group it directly replaces,
+    which is correct and sufficient when every re-classification goes
+    through this pass. It is not sufficient in general: a record can be
+    re-classified by a path that did not pair the two groups (a different
+    code path, a pass interrupted between recording the new group and
+    resolving the old case), and `_is_still_current` deliberately skips a
+    record whose classification has not changed, so no pairing happens then
+    either. Each such hop can leave a case attached to a group that is no
+    longer the record's classification.
+
+    That is not a harmless orphan. `release_payout` refuses to pay a vendor
+    with ANY open blocking case, and the nightly graph's check_controls
+    holds the vendor, so a case whose finding is gone from the data
+    withholds the vendor's money for ever -- the exact outcome
+    `_supersede_case`'s docstring says this must not produce. On the scored
+    festival it stranded 693 such cases across 59 of the 80 vendors; the
+    current classification of the records behind 681 of them is `matched`.
+
+    This sweeps per record, from the current classification backwards: any
+    group for the same record other than its current one is superseded by
+    definition, so a still-OPEN case it opened is stale. A case a human or
+    a policy decided is untouched (status is no longer OPEN), and a case on
+    the CURRENT group is untouched -- that finding is live.
+    """
+    if not current_group_by_member:
+        return []
+    resolved: list[str] = []
+    member_ids = list(current_group_by_member)
+    for chunk in _chunks(member_ids):
+        rows = db.execute(
+            select(MatchGroupMember.member_id, MatchGroup)
+            .join(MatchGroup, MatchGroup.id == MatchGroupMember.match_group_id)
+            .where(
+                MatchGroup.match_type == match_type,
+                MatchGroup.case_id.is_not(None),
+                MatchGroupMember.member_kind == member_kind,
+                MatchGroupMember.member_id.in_(chunk),
+            )
+        ).all()
+        for member_id, group in rows:
+            current = current_group_by_member.get(member_id)
+            if current is None or group.id == current.id:
+                continue
+            case_id = _supersede_case(
+                db,
+                uow,
+                run=run,
+                superseded=group,
+                superseding=current,
+                actor_id=actor_id,
+                actor_capability=actor_capability,
+            )
+            if case_id:
+                resolved.append(case_id)
+    return resolved
+
+
 def reconcile_vendor_day(
     db: Session,
     *,
@@ -366,6 +437,10 @@ def reconcile_vendor_day(
     # queries instead of three per order. The arithmetic is unchanged --
     # only where the rows come from.
     batch = _load_order_rows(db, list(orders))
+    # The classification each order ends this pass with: whatever was
+    # current coming in, replaced by anything recorded below. Fed to
+    # `_resolve_stranded_cases` after the loop.
+    current_after: dict[str, MatchGroup] = dict(batch.current_group_by_order)
 
     for order in orders:
         payments = batch.payments_by_order.get(order.id, [])
@@ -404,6 +479,7 @@ def reconcile_vendor_day(
             actor_capability=actor_capability,
         )
         out.order_groups += 1
+        current_after[order.id] = group
         if group.case_id:
             out.case_ids.append(group.case_id)
         if current is not None:
@@ -419,6 +495,23 @@ def reconcile_vendor_day(
             )
             if resolved:
                 out.resolved_case_ids.append(resolved)
+
+    # Cases left open by any EARLIER classification of these same orders,
+    # not just the one generation replaced above. See
+    # `_resolve_stranded_cases`: one of these withholds the vendor's money
+    # for ever.
+    out.resolved_case_ids.extend(
+        _resolve_stranded_cases(
+            db,
+            uow,
+            run=run,
+            match_type="order_capture",
+            member_kind="order",
+            current_group_by_member=current_after,
+            actor_id=actor_id,
+            actor_capability=actor_capability,
+        )
+    )
 
     counts = (
         db.execute(
