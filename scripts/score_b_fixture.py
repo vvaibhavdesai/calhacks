@@ -236,6 +236,17 @@ def load(fixture: Path, decision_set: str, state_path: Path) -> None:
                 "status": p["status"].lower(),
                 "kind": p["kind"].lower(),
                 "provider_reference": p["provider_reference"],
+                # The fee the processor states for THIS payment. The batch
+                # total on the bank entry is the sum of these; settlement
+                # needs the per-payment figure, because apportioning the
+                # batch total by amount charges a vendor of many small
+                # tickets too little and a vendor of few large ones too
+                # much. Absent for cash, which has no processor.
+                "processor_fee_cents": (
+                    cents(p["processor_fee_cents"])
+                    if p.get("processor_fee_cents") is not None
+                    else None
+                ),
                 **src_cols(p["source_refs"]),
             }
         )

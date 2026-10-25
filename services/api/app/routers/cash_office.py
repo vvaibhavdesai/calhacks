@@ -51,6 +51,251 @@ def _err(exc: Exception) -> HTTPException:
     raise exc
 
 
+# Instants are `str`: the handlers emit `.isoformat()` (offset `+00:00`),
+# and a `datetime` field would make pydantic rewrite that to `...Z`.
+#
+# Every route below sets `response_model_exclude_unset`. Two shapes here
+# genuinely omit keys rather than sending them null -- a deposit posting
+# that has not posted carries no `entry_keys`, and a case resolution's
+# `resolution_effect` carries different keys per decision -- and without
+# `exclude_unset` FastAPI would serialise the model defaults and add keys
+# these responses have never had.
+
+
+class PostingStatusOut(BaseModel):
+    """Whether a slip's cash has reached the books
+    (app/cash_office.py `_deposit_posting_status`)."""
+
+    # POSTED | AWAITING_BANK_CREDIT | BANK_CREDIT_PENDING | NOT_POSTED
+    status: str
+    # Null until the slip's bank credit is known.
+    bank_entry_id: str | None
+    # Sent ONLY when status is POSTED; absent (not null) otherwise.
+    entry_keys: list[str] = []
+
+
+class CaseSubjectOut(BaseModel):
+    ref_kind: str
+    ref_id: str
+    role: str
+
+
+class CashCaseOut(BaseModel):
+    """A cash-office or bank case (app/cash_office.py `case_out`). Also the
+    element type of `open_cases` on the cash-office view."""
+
+    case_id: str
+    reason_code: str
+    vendor_id: str | None
+    business_date: str | None
+    status: str
+    financial_impact_cents: int
+    # Null when the case does not name one record.
+    subject: CaseSubjectOut | None
+    required_capability: str | None
+    # Null while the case is still OPEN.
+    resolution_decision: str | None
+    # What the recorded decision did. The keys depend on the decision
+    # (`variance_cents` + `journal_entry_key` for an over/short,
+    # `reversal_entry_key` for a reversed suspense), so this stays an open
+    # object rather than a model that would drop the other branches.
+    resolution_effect: dict | None
+
+
+class CashCaseListOut(BaseModel):
+    items: list[CashCaseOut]
+    # Always null: one festival's cash cases are a page, not a stream.
+    next_cursor: str | None
+
+
+class CashOfficeCountOut(BaseModel):
+    """A cash-office BAG count. Named for its router because
+    `records.CashCountOut` is a different thing -- a POS till count, with
+    `amount_cents` and a custody -- and two models under one name mangle
+    the generated client.
+    """
+
+    id: str
+    festival_id: str
+    vendor_id: str
+    business_date: str
+    bag_reference: str
+    counted_cents: int
+    counted_at: str | None
+    counted_by: str | None
+    source_refs: list
+
+
+class RecordCountOut(BaseModel):
+    count: CashOfficeCountOut
+    # False when an identical count was already recorded (idempotent replay).
+    created: bool
+
+
+class SlipSummaryOut(BaseModel):
+    """A slip as the cash-office view lists it."""
+
+    slip_id: str
+    slip_reference: str
+    business_date: str
+    bag_total_cents: int
+    # Null until a bank credit is matched to the slip.
+    bank_cents: int | None
+    status: str
+    posting: PostingStatusOut
+
+
+class SuspenseItemOut(BaseModel):
+    """A bank entry held in suspense because no record explains it."""
+
+    bank_entry_id: str
+    business_date: str
+    suspense_cents: int
+    status: str  # IN_SUSPENSE | RECLASSIFIED | REVERSED
+    case_id: str | None
+    case_status: str | None
+
+
+class CashOfficeOut(BaseModel):
+    deposit_slips: list[SlipSummaryOut]
+    deposited_cents: int
+    awaiting_bank_credit_cents: int
+    open_cases: list[CashCaseOut]
+    counts: list[CashOfficeCountOut]
+    suspense: list[SuspenseItemOut]
+    note: str
+
+
+class RecordSlipOut(BaseModel):
+    slip_id: str
+    slip_reference: str
+    created: bool
+    bag_total_cents: int
+    unlabelled_bag_count: int
+    check_status: str
+    posting: PostingStatusOut
+
+
+class SlipBagOut(BaseModel):
+    id: str
+    bag_reference: str
+    # Null for an unlabelled bag -- no count claims it.
+    cash_count_id: str | None
+    amount_cents: int
+
+
+class SlipDetailOut(BaseModel):
+    slip_id: str
+    slip_reference: str
+    business_date: str
+    stated_total_cents: int
+    bags: list[SlipBagOut]
+    bag_total_cents: int
+    # Both null until the slip's bank credit is known.
+    bank_cents: int | None
+    bank_variance_cents: int | None
+    check_status: str
+    posting: PostingStatusOut
+    source_refs: list
+
+
+class ReconcileVendorOut(BaseModel):
+    vendor_id: str
+    expected_pos_cash_cents: int
+    # All three stay null when the cash office recorded NO count for this
+    # vendor-night: there is nothing to compare, which is itself the finding.
+    counted_cents: int | None
+    variance_cents: int | None
+    status: str | None
+    cash_count_ids: list[str]
+    case_id: str | None
+
+
+class ReconcileSlipOut(BaseModel):
+    slip_id: str
+    slip_reference: str
+    bag_total_cents: int
+    stated_total_cents: int
+    bank_entry_id: str | None
+    bank_cents: int | None
+    bank_variance_cents: int | None
+    unlabelled_bag_count: int
+    bag_count_mismatches: int
+    status: str
+    posting: PostingStatusOut
+    case_id: str | None
+
+
+class UnlabelledBagOut(BaseModel):
+    slip_id: str
+    bag_id: str
+    bag_reference: str
+    amount_cents: int
+
+
+class ReconcileOut(BaseModel):
+    festival_id: str
+    business_date: str
+    vendors: list[ReconcileVendorOut]
+    slips: list[ReconcileSlipOut]
+    unlabelled_bags: list[UnlabelledBagOut]
+    unlabelled_bag_case_ids: list[str]
+    open_case_ids: list[str]
+
+
+class ScanBankEntryOut(BaseModel):
+    bank_entry_id: str
+    provider_reference: str | None
+    business_date: str
+    # Signed: a credit is positive, a debit negative.
+    signed_amount_cents: int
+    # The record that accounts for this entry, or null if nothing does --
+    # which is what makes it unmatched.
+    explained_by: str | None
+    status: str | None
+    case_id: str | None
+    entry_keys: list[str]
+
+
+class ScanOut(BaseModel):
+    festival_id: str
+    # Null when the scan covered every settled date, not just one night.
+    business_date: str | None
+    bank_entries: list[ScanBankEntryOut]
+    unmatched_count: int
+
+
+class ChargebackFeeStatusOut(BaseModel):
+    id: str
+    payment_id: str
+    vendor_id: str
+    business_date: str
+    fee_cents: int
+    # Whether the vendor's terms allow recharging the fee, and how much of
+    # it was. Null `contract_term_id` means no term was in force to consult.
+    recharge_permitted_by_contract: bool
+    recharged_cents: int
+    contract_term_id: str | None
+    expense_booked_via: str
+
+
+class ChargebackFeeOut(BaseModel):
+    chargeback_fee: ChargebackFeeStatusOut
+    created: bool
+
+
+class ChargebackFeeListOut(BaseModel):
+    items: list[ChargebackFeeStatusOut]
+    next_cursor: str | None
+
+
+class DecisionOut(BaseModel):
+    case: CashCaseOut
+    # What the decision booked. Keys vary by decision, as on
+    # `CashCaseOut.resolution_effect`.
+    effect: dict
+
+
 def _count_out(c: CashOfficeCount) -> dict:
     return {
         "id": c.id,
@@ -82,7 +327,12 @@ class CashCountIn(BaseModel):
     id: str | None = Field(default=None, max_length=32)
 
 
-@router.post("/cash-office/counts", status_code=201)
+@router.post(
+    "/cash-office/counts",
+    status_code=201,
+    response_model=RecordCountOut,
+    response_model_exclude_unset=True,
+)
 def record_count(
     body: CashCountIn,
     db: Session = Depends(get_db),
@@ -127,7 +377,12 @@ class SlipIn(BaseModel):
     id: str | None = Field(default=None, max_length=32)
 
 
-@router.post("/cash-office/deposit-slips", status_code=201)
+@router.post(
+    "/cash-office/deposit-slips",
+    status_code=201,
+    response_model=RecordSlipOut,
+    response_model_exclude_unset=True,
+)
 def record_slip(
     body: SlipIn,
     db: Session = Depends(get_db),
@@ -166,7 +421,7 @@ def record_slip(
     }
 
 
-@router.get("/cash-office")
+@router.get("/cash-office", response_model=CashOfficeOut, response_model_exclude_unset=True)
 def get_cash_office(
     festival_id: str,
     business_date: date | None = None,
@@ -196,7 +451,9 @@ class DayIn(BaseModel):
     business_date: date
 
 
-@router.post("/cash-office/reconcile")
+@router.post(
+    "/cash-office/reconcile", response_model=ReconcileOut, response_model_exclude_unset=True
+)
 def reconcile(
     body: DayIn,
     db: Session = Depends(get_db),
@@ -229,7 +486,7 @@ class ScanIn(BaseModel):
     business_date: date | None = None
 
 
-@router.post("/bank-entries/scan")
+@router.post("/bank-entries/scan", response_model=ScanOut, response_model_exclude_unset=True)
 def scan(
     body: ScanIn,
     db: Session = Depends(get_db),
@@ -266,7 +523,7 @@ class ChargebackFeeIn(BaseModel):
     source_refs: list = Field(default_factory=list)
 
 
-@router.post("/chargeback-fees", status_code=201)
+@router.post("/chargeback-fees", status_code=201, response_model=ChargebackFeeOut)
 def record_chargeback_fee(
     body: ChargebackFeeIn,
     db: Session = Depends(get_db),
@@ -286,7 +543,7 @@ def record_chargeback_fee(
     return {"chargeback_fee": status, "created": created}
 
 
-@router.get("/chargeback-fees")
+@router.get("/chargeback-fees", response_model=ChargebackFeeListOut)
 def list_chargeback_fees(
     festival_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ) -> dict:
@@ -311,7 +568,11 @@ class DecisionIn(BaseModel):
     business_date: date | None = None
 
 
-@router.post("/cash-cases/{case_id}/decision")
+@router.post(
+    "/cash-cases/{case_id}/decision",
+    response_model=DecisionOut,
+    response_model_exclude_unset=True,
+)
 def decide(
     case_id: str,
     body: DecisionIn,
@@ -335,7 +596,7 @@ def decide(
     return {"case": co.case_out(case), "effect": effect}
 
 
-@router.get("/cash-cases")
+@router.get("/cash-cases", response_model=CashCaseListOut, response_model_exclude_unset=True)
 def list_cash_cases(
     festival_id: str,
     status: str | None = None,
@@ -348,7 +609,11 @@ def list_cash_cases(
     return {"items": [co.case_out(c) for c in rows], "next_cursor": None}
 
 
-@router.get("/cash-office/deposit-slips/{slip_id}")
+@router.get(
+    "/cash-office/deposit-slips/{slip_id}",
+    response_model=SlipDetailOut,
+    response_model_exclude_unset=True,
+)
 def get_slip(
     slip_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ) -> dict:

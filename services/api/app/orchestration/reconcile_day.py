@@ -146,11 +146,84 @@ def _members_of(db: Session, group: MatchGroup) -> list[tuple[str, str, str, int
     ]
 
 
+# Postgres accepts at most 65535 bind parameters per statement, so an `IN`
+# over a whole festival night's orders is chunked -- same constant and reason
+# as app/settlement.py's `_IN_CHUNK`.
+_IN_CHUNK = 5_000
+
+
+def _chunks(values: list[str], size: int = _IN_CHUNK):
+    for i in range(0, len(values), size):
+        yield values[i : i + size]
+
+
+@dataclass
+class _OrderRows:
+    """Everything the per-order loop below reads, loaded in bulk.
+
+    Keyed exactly the way the loop looks things up, so the loop's logic is
+    unchanged -- it reads from dictionaries instead of issuing three queries
+    per order (the order's payments, its current classification, and that
+    group's members). At 40,000 orders that was ~120,000 round trips a run.
+    """
+
+    payments_by_order: dict[str, list[Payment]] = field(default_factory=dict)
+    current_group_by_order: dict[str, MatchGroup] = field(default_factory=dict)
+    members_by_group: dict[str, list[tuple[str, str, str, int]]] = field(default_factory=dict)
+
+
+def _load_order_rows(db: Session, orders: list[Order]) -> _OrderRows:
+    rows = _OrderRows()
+    order_ids = [o.id for o in orders]
+    if not order_ids:
+        return rows
+
+    for chunk in _chunks(order_ids):
+        for p in (
+            db.execute(select(Payment).where(Payment.order_id.in_(chunk)).order_by(Payment.id))
+            .scalars()
+            .all()
+        ):
+            rows.payments_by_order.setdefault(p.order_id, []).append(p)
+
+        # Newest order_capture group per order: ordered so the FIRST row seen
+        # for an order is its newest, matching the per-order `_current_group`
+        # query this replaces (created_at desc, then id desc).
+        for member_id, group in db.execute(
+            select(MatchGroupMember.member_id, MatchGroup)
+            .join(MatchGroup, MatchGroup.id == MatchGroupMember.match_group_id)
+            .where(
+                MatchGroup.match_type == "order_capture",
+                MatchGroupMember.member_kind == "order",
+                MatchGroupMember.member_id.in_(chunk),
+            )
+            .order_by(
+                MatchGroupMember.member_id.asc(),
+                MatchGroup.created_at.desc(),
+                MatchGroup.id.desc(),
+            )
+        ):
+            rows.current_group_by_order.setdefault(member_id, group)
+
+    current_ids = sorted({g.id for g in rows.current_group_by_order.values()})
+    for chunk in _chunks(current_ids):
+        for m in (
+            db.execute(select(MatchGroupMember).where(MatchGroupMember.match_group_id.in_(chunk)))
+            .scalars()
+            .all()
+        ):
+            rows.members_by_group.setdefault(m.match_group_id, []).append(
+                (m.member_kind, m.member_id, m.role, m.amount_cents)
+            )
+    return rows
+
+
 def _is_still_current(
     db: Session,
     group: MatchGroup,
     result: a03.ClassificationResult,
     members: list[tuple[str, str, str, int]],
+    existing_members: list[tuple[str, str, str, int]] | None = None,
 ) -> bool:
     """True when `group` already records exactly what the current inputs
     classify to, so there is nothing to supersede.
@@ -163,7 +236,11 @@ def _is_still_current(
     when the four amounts happen to come out the same -- e.g. one capture
     replaced by two summing to it. Member order is not significant (the
     payment queries behind these lists are not all ordered), so compare
-    sorted."""
+    sorted.
+
+    `existing_members` lets a caller that has already loaded this group's
+    members in bulk pass them in rather than have one query issued per
+    record here."""
     if (
         group.status != result.status
         or group.reason_code != result.reason_code
@@ -171,7 +248,8 @@ def _is_still_current(
         or group.matched_amount_cents != result.matched_amount_cents
     ):
         return False
-    return sorted(_members_of(db, group)) == sorted(members)
+    have = _members_of(db, group) if existing_members is None else existing_members
+    return sorted(have) == sorted(members)
 
 
 def _supersede_case(
@@ -259,6 +337,77 @@ def _supersede_case(
     return case.id
 
 
+def _resolve_stranded_cases(
+    db: Session,
+    uow: UnitOfWork,
+    *,
+    run: Run,
+    match_type: str,
+    member_kind: str,
+    current_group_by_member: dict[str, MatchGroup],
+    actor_id: str,
+    actor_capability: str,
+) -> list[str]:
+    """Resolve OPEN cases left behind by classifications that are no longer
+    current -- not just the one generation `_supersede_case` replaced.
+
+    `_supersede_case` resolves the case of the group it directly replaces,
+    which is correct and sufficient when every re-classification goes
+    through this pass. It is not sufficient in general: a record can be
+    re-classified by a path that did not pair the two groups (a different
+    code path, a pass interrupted between recording the new group and
+    resolving the old case), and `_is_still_current` deliberately skips a
+    record whose classification has not changed, so no pairing happens then
+    either. Each such hop can leave a case attached to a group that is no
+    longer the record's classification.
+
+    That is not a harmless orphan. `release_payout` refuses to pay a vendor
+    with ANY open blocking case, and the nightly graph's check_controls
+    holds the vendor, so a case whose finding is gone from the data
+    withholds the vendor's money for ever -- the exact outcome
+    `_supersede_case`'s docstring says this must not produce. On the scored
+    festival it stranded 693 such cases across 59 of the 80 vendors; the
+    current classification of the records behind 681 of them is `matched`.
+
+    This sweeps per record, from the current classification backwards: any
+    group for the same record other than its current one is superseded by
+    definition, so a still-OPEN case it opened is stale. A case a human or
+    a policy decided is untouched (status is no longer OPEN), and a case on
+    the CURRENT group is untouched -- that finding is live.
+    """
+    if not current_group_by_member:
+        return []
+    resolved: list[str] = []
+    member_ids = list(current_group_by_member)
+    for chunk in _chunks(member_ids):
+        rows = db.execute(
+            select(MatchGroupMember.member_id, MatchGroup)
+            .join(MatchGroup, MatchGroup.id == MatchGroupMember.match_group_id)
+            .where(
+                MatchGroup.match_type == match_type,
+                MatchGroup.case_id.is_not(None),
+                MatchGroupMember.member_kind == member_kind,
+                MatchGroupMember.member_id.in_(chunk),
+            )
+        ).all()
+        for member_id, group in rows:
+            current = current_group_by_member.get(member_id)
+            if current is None or group.id == current.id:
+                continue
+            case_id = _supersede_case(
+                db,
+                uow,
+                run=run,
+                superseded=group,
+                superseding=current,
+                actor_id=actor_id,
+                actor_capability=actor_capability,
+            )
+            if case_id:
+                resolved.append(case_id)
+    return resolved
+
+
 def reconcile_vendor_day(
     db: Session,
     *,
@@ -284,12 +433,17 @@ def reconcile_vendor_day(
         .scalars()
         .all()
     )
+    # Everything the loop below reads, fetched up front in a handful of
+    # queries instead of three per order. The arithmetic is unchanged --
+    # only where the rows come from.
+    batch = _load_order_rows(db, list(orders))
+    # The classification each order ends this pass with: whatever was
+    # current coming in, replaced by anything recorded below. Fed to
+    # `_resolve_stranded_cases` after the loop.
+    current_after: dict[str, MatchGroup] = dict(batch.current_group_by_order)
+
     for order in orders:
-        payments = (
-            db.execute(select(Payment).where(Payment.order_id == order.id).order_by(Payment.id))
-            .scalars()
-            .all()
-        )
+        payments = batch.payments_by_order.get(order.id, [])
         facts = [
             a03.PaymentFact(id=p.id, amount_cents=p.amount_cents, kind=p.kind) for p in payments
         ]
@@ -301,8 +455,14 @@ def reconcile_vendor_day(
         members = [("order", order.id, "expected", order.gross_cents)] + [
             ("payment", p.id, p.kind, p.amount_cents) for p in payments
         ]
-        current = _current_group(db, "order_capture", "order", order.id)
-        if current is not None and _is_still_current(db, current, result, members):
+        current = batch.current_group_by_order.get(order.id)
+        if current is not None and _is_still_current(
+            db,
+            current,
+            result,
+            members,
+            existing_members=batch.members_by_group.get(current.id, []),
+        ):
             out.skipped_already_matched += 1
             continue
         group = a03._record_match_group(
@@ -319,6 +479,7 @@ def reconcile_vendor_day(
             actor_capability=actor_capability,
         )
         out.order_groups += 1
+        current_after[order.id] = group
         if group.case_id:
             out.case_ids.append(group.case_id)
         if current is not None:
@@ -334,6 +495,23 @@ def reconcile_vendor_day(
             )
             if resolved:
                 out.resolved_case_ids.append(resolved)
+
+    # Cases left open by any EARLIER classification of these same orders,
+    # not just the one generation replaced above. See
+    # `_resolve_stranded_cases`: one of these withholds the vendor's money
+    # for ever.
+    out.resolved_case_ids.extend(
+        _resolve_stranded_cases(
+            db,
+            uow,
+            run=run,
+            match_type="order_capture",
+            member_kind="order",
+            current_group_by_member=current_after,
+            actor_id=actor_id,
+            actor_capability=actor_capability,
+        )
+    )
 
     counts = (
         db.execute(
@@ -446,7 +624,14 @@ def reconcile_bank_deposits_day(
         )
         result = a03.classify_bank_deposit(
             captures_total_cents=sum(p.amount_cents for p in payments if p.kind == "capture"),
+            # Refunds and chargebacks the processor took back out of this
+            # same batch: the deposit lands net of them, so A03 has to
+            # expect it net of them too.
+            adjustments_total_cents=sum(
+                p.amount_cents for p in payments if p.kind in ("refund", "chargeback")
+            ),
             entry_amount_cents=entry.amount_cents,
+            direction=entry.direction,
             batch_fee_cents=entry.batch_fee_cents,
             settlement_status=entry.settlement_status,
             earliest_payment_business_date=min(order_dates) if order_dates else entry.business_date,

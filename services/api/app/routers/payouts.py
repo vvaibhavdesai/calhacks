@@ -16,20 +16,31 @@ particular stands in for "the worker" in this task (A06's eventual
 scheduler/LangGraph node, or any future background process, can call the
 exact same endpoint or the underlying `app.payout_dispatch.dispatch_payout`
 function without any change here) -- see docs/progress/A07-handoff.md.
+
+V1-04: the two endpoints that commit money -- approve and release -- honour
+`Idempotency-Key` through the SAME C03 ledger the A09 commands use
+(app/commands.py, `command_records`). A double-click, a retried POST or a
+flaky network can no longer approve twice; see `_idempotent` below.
 """
 
 from __future__ import annotations
 
+import json
+from collections.abc import Callable
 from datetime import date
-from typing import Literal
+from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from domain.corrections import canonical_hash
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, ConfigDict, model_validator
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 import app.payout_dispatch as payout_dispatch
 from app.auth import get_user_capability_codes, require_capability
+from app.commands import remember, replayed, require_key, unwrap_envelope
 from app.db import get_db
 from app.models import CAPABILITY_APPROVE_PAYOUT, CAPABILITY_FINANCE_LEAD, User
 from app.models_ledger import Payout
@@ -68,6 +79,145 @@ def _http_error_for(exc: Exception) -> HTTPException:
             detail={"code": exc.reason_code, "details": exc.details},
         )
     return HTTPException(status_code=500, detail=str(exc))
+
+
+# ---------------------------------------------------------------------------
+# Idempotency-Key (C03) for the effectful payout commands
+# ---------------------------------------------------------------------------
+
+
+async def raw_request_body(request: Request) -> bytes:
+    """The request body as sent.
+
+    Declared as a dependency (async, so it runs in the event loop even
+    though the endpoints below are sync): Starlette caches the bytes on the
+    Request, so FastAPI still parses the typed body model from them.
+
+    The fingerprint is taken from the WHOLE body rather than from the
+    parsed request model, because the request models here ignore unknown
+    fields: a replay that changed something this endpoint does not read
+    must still be a 409, never a silent accept.
+    """
+    return await request.body()
+
+
+def _request_fingerprint(action: str, raw: bytes, path: dict) -> str:
+    try:
+        body = json.loads(raw) if raw.strip() else None
+    except ValueError:
+        # Unparseable bytes still have to fingerprint to something stable,
+        # and to something no valid JSON body can collide with.
+        body = {"__unparsed__": raw.decode("utf-8", "replace")}
+    return canonical_hash({"action": action, "path": path, "body": body})
+
+
+def _idempotent(
+    db: Session,
+    *,
+    user: User,
+    action: str,
+    key: str | None,
+    raw: bytes,
+    path: dict,
+    fn: Callable[[], tuple[dict, int]],
+) -> JSONResponse:
+    """One commit point, with C03 replay when the caller sent a key.
+
+    `fn` performs the effect and returns the response body it would have
+    returned plus its status code. The `command_records` row is inserted in
+    the SAME transaction as the effect, so a rolled-back approval leaves no
+    record behind and a committed one cannot run a second time (unique
+    `scope_key`, scoped by authenticated user + action + key).
+
+      - same key + same body -> the ORIGINAL response, replayed, with no
+        second effect and no second event (`Idempotent-Replay: true`);
+      - same key + any other body -> 409 IDEMPOTENCY_KEY_REUSED.
+
+    A replay returns the response as it was when the command ran, which may
+    differ from the row's current state -- that is the point of a replay,
+    not a staleness bug. It is value-identical, not byte-identical: the
+    stored body round-trips through JSONB, which does not preserve key
+    order.
+
+    The header stays OPTIONAL, so the callers that never sent one (the A07
+    verify scripts, the A06 nightly workflow) are unaffected. The web
+    client has always sent one on these endpoints and the server used to
+    ignore it -- that is the hole V1-04 names.
+
+    Only successful commands are remembered, exactly as A09's `_run_command`
+    does: a refused approval (stale version, consent mismatch, missing
+    capability) leaves the key unused, so the caller may fix the request and
+    retry with it.
+    """
+    if key is None:
+        body, status_code = fn()
+        db.commit()
+        return JSONResponse(status_code=status_code, content=body)
+
+    key = require_key(key)
+    req_hash = _request_fingerprint(action, raw, path)
+    prior = replayed(db, user_id=user.id, action=action, key=key, req_hash=req_hash)
+    if prior is not None:
+        return prior
+
+    body, status_code = fn()
+    remember(
+        db,
+        user_id=user.id,
+        action=action,
+        key=key,
+        req_hash=req_hash,
+        status_code=status_code,
+        response=body,
+    )
+    try:
+        db.commit()
+    except IntegrityError:
+        # A genuinely concurrent double-click: the other transaction won the
+        # unique scope_key, so this one's effect rolls back with it and the
+        # winner's response is what the caller gets.
+        db.rollback()
+        prior = replayed(db, user_id=user.id, action=action, key=key, req_hash=req_hash)
+        if prior is not None:
+            return prior
+        raise
+    return JSONResponse(status_code=status_code, content=body)
+
+
+# ---------------------------------------------------------------------------
+# Request shapes: the C03 envelope AND the flat body
+# ---------------------------------------------------------------------------
+
+
+class EnvelopeTolerantRequest(BaseModel):
+    """Base for the request models on the endpoints the UI commands.
+
+    Two things, both aimed at the same failure: a consent echo that is sent
+    but never read.
+
+    1. `payload` is flattened onto the top level before validation
+       (`app.commands.unwrap_envelope`), so one model accepts the UI's C03
+       envelope and the verify scripts' flat body alike. Without this the
+       approval screen's `amount_cents`/`beneficiary_version` sat one level
+       down inside `payload`, where this endpoint never looked -- the
+       binding was implemented and enforced, and unreachable from the only
+       path a human uses.
+    2. Unknown fields are REFUSED rather than ignored, so that failure
+       cannot recur quietly: a shape the server does not understand is a
+       422, not a 200 that bound nothing.
+
+    Validated against every caller: the A07/A08/A09 verify scripts post
+    `{}` or `{"expected_version": n}` or `{"note": ...}`, all declared
+    below; the A06 nightly workflow calls `app.payout_dispatch` in-process
+    and sends no HTTP body at all.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _flatten_command_envelope(cls, data: Any) -> Any:
+        return unwrap_envelope(data) if isinstance(data, dict) else data
 
 
 # ---------------------------------------------------------------------------
@@ -163,43 +313,76 @@ def create_payout(
 # ---------------------------------------------------------------------------
 
 
-class ApproveRequest(BaseModel):
+class ApproveRequest(EnvelopeTolerantRequest):
+    """Both shapes the real callers send (see `EnvelopeTolerantRequest`).
+
+    The last four fields are lane B's `ApprovePayoutPayload` (draft Q39),
+    which is what the approval screen puts inside the envelope's `payload`.
+    They are echoes of what the approver was shown, so the server refuses
+    an approval that no longer matches any of them -- and because extras
+    are forbidden, a field the UI starts sending that the server does not
+    know is a loud 422 rather than a silently discarded consent echo.
+    """
+
     expected_version: int | None = None
     note: str | None = None
-    # Echo of what the approver was shown. Optional so existing callers keep
-    # working; when present the server refuses an approval that does not match.
+    # The envelope's own id. Nothing here reads it: replay protection is the
+    # Idempotency-Key ledger (`_idempotent`), not this field. Declared so it
+    # survives `extra="forbid"`.
+    command_id: str | None = None
+    # Which command this is. Only one action is valid on this endpoint, so a
+    # mis-routed envelope is a 422 instead of an approval.
+    action: Literal["APPROVE_PAYOUT_ABOVE_LIMIT"] | None = None
     amount_cents: int | None = None
     beneficiary_version: int | None = None
+    logical_obligation_id: str | None = None
+    vendor_id: str | None = None
+    business_date: date | None = None
 
 
 @router.post("/{payout_id}/approve", response_model=PayoutOut)
 def approve(
     payout_id: str,
     body: ApproveRequest,
+    raw_body: bytes = Depends(raw_request_body),
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
     db: Session = Depends(get_db),
     user: User = Depends(require_capability(CAPABILITY_APPROVE_PAYOUT)),
-) -> PayoutOut:
-    capability_codes = get_user_capability_codes(db, user.id)
-    try:
-        payout = payout_dispatch.approve_payout(
-            db,
-            payout_id=payout_id,
-            actor_id=user.id,
-            user_capability_codes=capability_codes,
-            expected_version=body.expected_version,
-            note=body.note,
-            approved_amount_cents=body.amount_cents,
-            approved_beneficiary_version=body.beneficiary_version,
-        )
-    except (
-        payout_dispatch.PayoutNotFoundError,
-        payout_dispatch.PayoutVersionConflictError,
-        payout_dispatch.PayoutConsentMismatchError,
-        payout_dispatch.PayoutCapabilityError,
-    ) as exc:
-        raise _http_error_for(exc) from exc
-    db.commit()
-    return _to_out(payout)
+):
+    def run() -> tuple[dict, int]:
+        capability_codes = get_user_capability_codes(db, user.id)
+        try:
+            payout = payout_dispatch.approve_payout(
+                db,
+                payout_id=payout_id,
+                actor_id=user.id,
+                user_capability_codes=capability_codes,
+                expected_version=body.expected_version,
+                note=body.note,
+                approved_amount_cents=body.amount_cents,
+                approved_beneficiary_version=body.beneficiary_version,
+                approved_logical_obligation_id=body.logical_obligation_id,
+                approved_vendor_id=body.vendor_id,
+                approved_business_date=body.business_date,
+            )
+        except (
+            payout_dispatch.PayoutNotFoundError,
+            payout_dispatch.PayoutVersionConflictError,
+            payout_dispatch.PayoutConsentMismatchError,
+            payout_dispatch.PayoutCapabilityError,
+        ) as exc:
+            raise _http_error_for(exc) from exc
+        return _to_out(payout).model_dump(mode="json"), 200
+
+    return _idempotent(
+        db,
+        user=user,
+        action="payout.approve",
+        key=idempotency_key,
+        raw=raw_body,
+        path={"payout_id": payout_id},
+        fn=run,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -207,8 +390,14 @@ def approve(
 # ---------------------------------------------------------------------------
 
 
-class ReleaseRequest(BaseModel):
+class ReleaseRequest(EnvelopeTolerantRequest):
+    """Release takes the same shape, although no UI screen calls it yet
+    (there is no `release` operation in apps/web's client): a caller that
+    retries a release through the command client must not have its
+    `expected_version` quietly dropped either."""
+
     expected_version: int | None = None
+    command_id: str | None = None
 
 
 class ReleaseResponse(BaseModel):
@@ -221,28 +410,43 @@ class ReleaseResponse(BaseModel):
 def release(
     payout_id: str,
     body: ReleaseRequest,
+    raw_body: bytes = Depends(raw_request_body),
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
     db: Session = Depends(get_db),
     user: User = Depends(require_capability(CAPABILITY_APPROVE_PAYOUT)),
-) -> ReleaseResponse:
-    try:
-        outcome = payout_dispatch.release_payout(
-            db,
-            payout_id=payout_id,
-            actor_id=user.id,
-            actor_capability=CAPABILITY_APPROVE_PAYOUT,
-            expected_version=body.expected_version,
+):
+    def run() -> tuple[dict, int]:
+        try:
+            outcome = payout_dispatch.release_payout(
+                db,
+                payout_id=payout_id,
+                actor_id=user.id,
+                actor_capability=CAPABILITY_APPROVE_PAYOUT,
+                expected_version=body.expected_version,
+            )
+        except (
+            payout_dispatch.PayoutNotFoundError,
+            payout_dispatch.PayoutVersionConflictError,
+            payout_dispatch.PayoutBlockedError,
+        ) as exc:
+            raise _http_error_for(exc) from exc
+        return (
+            ReleaseResponse(
+                payout=_to_out(outcome.payout),
+                changed=outcome.changed,
+                already_released=outcome.already_released,
+            ).model_dump(mode="json"),
+            200,
         )
-    except (
-        payout_dispatch.PayoutNotFoundError,
-        payout_dispatch.PayoutVersionConflictError,
-        payout_dispatch.PayoutBlockedError,
-    ) as exc:
-        raise _http_error_for(exc) from exc
-    db.commit()
-    return ReleaseResponse(
-        payout=_to_out(outcome.payout),
-        changed=outcome.changed,
-        already_released=outcome.already_released,
+
+    return _idempotent(
+        db,
+        user=user,
+        action="payout.release",
+        key=idempotency_key,
+        raw=raw_body,
+        path={"payout_id": payout_id},
+        fn=run,
     )
 
 

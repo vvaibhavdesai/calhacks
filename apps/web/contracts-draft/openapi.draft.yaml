@@ -455,6 +455,20 @@ paths:
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody: { $ref: '#/components/requestBodies/Command' }
       responses: *commandResponses
+  /cases/{id}/approve-policy:
+    post:
+      tags: [commands]
+      operationId: approveCasePolicy
+      description: >-
+        payload is ApproveCasePolicyPayload. How a reusable rule is BORN: a second, separate human
+        decision that makes an already-resolved case's resolution reusable, creating the policy
+        version. Addressed by the case because no policy exists yet. Approving an existing version
+        that is still waiting for a human is POST /policies/{id}/approve instead.
+      parameters:
+        - $ref: '#/components/parameters/PathId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody: { $ref: '#/components/requestBodies/Command' }
+      responses: *commandResponses
   /policies:
     get:
       tags: [reads]
@@ -502,6 +516,14 @@ paths:
     post:
       tags: [commands]
       operationId: approvePolicy
+      description: >-
+        payload is ApprovePolicyPayload. Approves ONE exact policy version that is waiting for a
+        human (status DRAFT), from the policy itself, and binds the decision to the version,
+        evidence hash and scope the approver had on screen. It never changes what the rule says and
+        never creates one: a rule is born on the deciding case
+        (POST /cases/{id}/approve-policy). A version that is already ACTIVE, SUSPENDED by an open
+        challenge or SUPERSEDED is refused -- reviving a challenged rule is the correction flow's
+        decision, not an approval's.
       parameters:
         - $ref: '#/components/parameters/PathId'
         - $ref: '#/components/parameters/IdempotencyKey'
@@ -2179,6 +2201,23 @@ components:
         evidence_hash: { type: string }
         scope: { $ref: '#/components/schemas/PolicyScope' }
         source_case_id: { type: [string, 'null'] }
+        note: { type: string, maxLength: 2000 }
+    ApproveCasePolicyPayload:
+      type: object
+      x-encore-proposal: Q36
+      description: >-
+        payload of POST /cases/{id}/approve-policy. Approves REUSE of the decision an already
+        RESOLVED case made, which is what creates the policy version. The rule's scope, predicates
+        and effect are the case's own and are never supplied here; only the validity window is
+        chosen. `evidence_hash` is echoed from the case whenever the server served one, and the
+        server refuses the approval if it no longer matches.
+      additionalProperties: false
+      required: [action, valid_from]
+      properties:
+        action: { const: APPROVE_REUSABLE_POLICY }
+        valid_from: { $ref: '#/components/schemas/BusinessDate' }
+        valid_to: { anyOf: [{ $ref: '#/components/schemas/BusinessDate' }, { type: 'null' }] }
+        evidence_hash: { type: string }
         note: { type: string, maxLength: 2000 }
     Approval:
       type: object

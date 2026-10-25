@@ -34,7 +34,98 @@ class ExtractIn(BaseModel):
     budget_usd: float = Field(2.0, gt=0, le=50)
 
 
-@router.post("/extract-documents")
+class ExtractResultOut(BaseModel):
+    """One document's outcome (app/agents/extraction.py `ExtractResult`).
+    `cost_usd` is deliberately NOT reported per document -- only the batch
+    total is, under `spent_usd_estimate`."""
+
+    source_document_id: str
+    status: str  # REUSED | SUCCEEDED | <failure status> | SKIPPED
+    # Null when no extraction record was written (a SKIPPED or ERROR document).
+    extraction_id: str | None
+    claims: int
+    verified: int
+    note: str | None
+
+
+class ExtractOut(BaseModel):
+    model: str
+    documents: int
+    # Documents per status, e.g. {"SUCCEEDED": 3, "REUSED": 1}. The keys are
+    # whichever statuses occurred, so this stays an open map.
+    counts: dict[str, int]
+    spent_usd_estimate: float
+    stopped_for_budget: bool
+    budget_usd_applied: float
+    capped_by_daily_budget: bool
+    results: list[ExtractResultOut]
+
+
+class ExtractionUsageOut(BaseModel):
+    # Null for a record written before any token count was known.
+    input_tokens: int | None
+    output_tokens: int | None
+
+
+class ExtractionOut(BaseModel):
+    id: str
+    source_document_id: str
+    content_hash: str
+    parser: str
+    model_requested: str
+    model_served: str | None
+    prompt_version: str
+    attempt: int
+    status: str
+    retryable: bool
+    error: str | None
+    request_id: str | None
+    usage: ExtractionUsageOut
+    document_kind: str | None
+    summary: str | None
+    # Null for a record written before the prompt-injection check existed.
+    embedded_instructions_detected: bool | None
+
+
+class ExtractionListOut(BaseModel):
+    items: list[ExtractionOut]
+    # Always null: a festival's extractions are a page, not a stream.
+    next_cursor: str | None
+
+
+class ClaimOut(BaseModel):
+    id: str
+    extraction_id: str
+    # Null while the claimed vendor name has not been matched to a vendor.
+    vendor_id: str | None
+    claim_kind: str
+    value_raw: str
+    # Null means "this claim does not state that field", never zero.
+    commission_bps: int | None
+    minimum_fee_cents: int | None
+    minimum_period: str | None
+    processing_fee_deductible: bool | None
+    effective_from: str | None
+    speaker_role: str
+    restates_existing_terms: bool
+    available_from: str
+    verified: bool
+    # A LIST of notes from the code verifier, not a single message.
+    verification_notes: list[str]
+    # Evidence locator ({source_document_id, source_version, content_hash,
+    # locator_kind, locator, quoted_excerpt}); left as an open object because
+    # the locator keys differ by document kind.
+    source_ref: dict
+    # Constant provenance warning; never a decision.
+    label: str
+
+
+class ClaimListOut(BaseModel):
+    items: list[ClaimOut]
+    next_cursor: str | None
+
+
+@router.post("/extract-documents", response_model=ExtractOut)
 def extract_documents(
     body: ExtractIn,
     db: Session = Depends(get_db),
@@ -90,7 +181,7 @@ def extract_documents(
     }
 
 
-@router.get("/extractions")
+@router.get("/extractions", response_model=ExtractionListOut)
 def list_extractions(
     source_document_id: str | None = None,
     db: Session = Depends(get_db),
@@ -125,7 +216,7 @@ def list_extractions(
     }
 
 
-@router.get("/claims")
+@router.get("/claims", response_model=ClaimListOut)
 def list_claims(
     vendor_id: str | None = None,
     verified: bool | None = None,

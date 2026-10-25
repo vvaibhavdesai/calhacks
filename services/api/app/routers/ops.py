@@ -18,6 +18,7 @@ import hmac
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from fastapi.responses import PlainTextResponse
+from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -31,12 +32,115 @@ from app.ops import collect_signals, signals_to_json, signals_to_prometheus
 router = APIRouter(tags=["ops"])
 
 
-@router.get("/api/v1/ops/alerts")
+# Every instant below is declared `str` rather than `datetime`, here and in
+# the other routers typed in this pass: the handlers already emit
+# `.isoformat()`, which keeps the `+00:00` offset, while a `datetime` field
+# would make pydantic re-serialise it as `...Z`. Same instant, different
+# bytes -- and screens compare these strings.
+
+
+class AlertOut(BaseModel):
+    """One firing alert (app/ops.py `Alert`)."""
+
+    code: str
+    severity: str  # "critical" | "warning"
+    count: int
+    detail: str
+
+
+class OpsSignalsOut(BaseModel):
+    """The raw gauges the alerts are derived from (app/ops.py `Signals`)."""
+
+    runs_active: int
+    runs_stalled: int
+    outbox_pending: int
+    outbox_pending_stale: int
+    # Null when nothing is pending: there is no age to report.
+    outbox_oldest_pending_age_seconds: float | None
+    outbox_unconsumed_pending: int
+    outbox_unknown: int
+    outbox_failed: int
+    payouts_unknown: int
+    payouts_recovery_required: int
+    claude_spent_24h_usd_estimate: float
+    claude_daily_budget_usd: float
+    # Null = no worker URL configured, so liveness was never checked.
+    # That is NOT the same as a worker that is down (false).
+    worker_up: bool | None
+    audit_chain_head_mismatches: int
+    audit_chain_head_streams: list[str]
+
+
+class OpsAlertsOut(BaseModel):
+    status: str  # "ok" | "alerting"
+    checked_at: str
+    alerts: list[AlertOut]
+    signals: OpsSignalsOut
+
+
+class ChainDivergenceOut(BaseModel):
+    """One hash/linkage/sequence divergence (app/audit_chain.py `Divergence`)."""
+
+    stream_id: str
+    sequence: int
+    event_id: str | None
+    kind: str
+    expected: str | None
+    stored: str | None
+    detail: str
+
+
+class ChainStreamOut(BaseModel):
+    stream_id: str
+    ok: bool
+    events: int
+    # Null for a stream with no events in scope.
+    first_sequence: int | None
+    last_sequence: int | None
+    sequence_contiguous: bool
+    linkage_intact: bool
+    hashes_intact: bool
+    first_divergent_sequence: int | None
+    divergences_truncated: bool
+    divergences: list[ChainDivergenceOut]
+
+
+class ChainHeadFindingOut(BaseModel):
+    """A `stream_heads` pointer that disagrees with the events that exist."""
+
+    stream_id: str
+    kind: str
+    expected: str | None
+    stored: str | None
+    detail: str
+
+
+class ChainSummaryOut(BaseModel):
+    streams_checked: int
+    streams_diverged: int
+    events_checked: int
+    hash_mismatches: int
+    broken_links: int
+    sequence_gaps: int
+    head_findings: int
+    divergences_truncated: bool
+
+
+class AuditChainOut(BaseModel):
+    status: str  # "ok" | "diverged"
+    checked_at: str
+    summary: ChainSummaryOut
+    # Intact streams are omitted unless `include_ok_streams` asks for them.
+    streams: list[ChainStreamOut]
+    head_findings: list[ChainHeadFindingOut]
+
+
+@router.get("/api/v1/ops/alerts", response_model=OpsAlertsOut)
 def ops_alerts(db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> dict:
     return signals_to_json(collect_signals(db, get_settings()))
 
 
-@router.get("/api/v1/ops/audit-chain")
+@router.get("/api/v1/ops/audit-chain", response_model=AuditChainOut)
 def ops_audit_chain(
     stream_id: str | None = Query(default=None, description="verify only this stream"),
     stream_prefix: str | None = Query(
