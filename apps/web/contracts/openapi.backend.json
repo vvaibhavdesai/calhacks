@@ -2,7 +2,52 @@
   "components": {
     "schemas": {
       "ApprovePolicyRequest": {
+        "description": "Approve REUSE of the decision this case already made.\n\nSeparate from resolving the case, deliberately: a one-time resolution is\nnever auto-promoted into a reusable rule. The scope is the case's own\nvendor and effect; only the validity window is chosen here.",
         "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action"
+          },
+          "evidence_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Hash"
+          },
+          "expected_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Version"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
           "valid_from": {
             "format": "date",
             "title": "Valid From",
@@ -1903,6 +1948,17 @@
             "title": "Id",
             "type": "string"
           },
+          "origin_case_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin Case Id"
+          },
           "policy_id": {
             "title": "Policy Id",
             "type": "string"
@@ -1983,7 +2039,8 @@
           "valid_to",
           "status",
           "supersedes_version",
-          "source_case_id"
+          "source_case_id",
+          "origin_case_id"
         ],
         "title": "PolicyOut",
         "type": "object"

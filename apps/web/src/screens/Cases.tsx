@@ -21,7 +21,7 @@ import { useApiQuery } from '../hooks/useApiQuery';
 import { useCommand } from '../hooks/useCommand';
 import { useListParams } from '../hooks/useListParams';
 import { useLookups } from '../hooks/useLookups';
-import { PolicyApprovalPanel, PolicyRuleView } from './Policies';
+import { PolicyRuleView } from './Policies';
 
 const STATUS_OPTIONS: { value: CaseStatus; label: string }[] = (['OPEN', 'IN_REVIEW', 'RESOLVED', 'REJECTED'] as const).map((v) => ({
   value: v,
@@ -303,6 +303,7 @@ export function CaseDetail() {
           ) : null}
 
           <CaseDecision c={c} onServerChange={result.refetch} />
+          <ApproveReuse c={c} onServerChange={result.refetch} />
           {c.policy_candidate_id ? <CandidatePolicy id={c.policy_candidate_id} /> : null}
         </>
       ) : null}
@@ -310,6 +311,125 @@ export function CaseDetail() {
     </>
   );
 }
+
+/**
+ * Approve REUSE of a decision this case already made.
+ *
+ * Deliberately separate from resolving the case: a one-time resolution is
+ * never promoted into a rule on its own. It is a command on the CASE, not on
+ * a policy, because no policy exists until this is approved -- there is no
+ * DRAFT policy version in this system to approve.
+ *
+ * Only offered on a case a human resolved by choosing an option, and not on
+ * one a policy already resolved: approving reuse from an auto-resolved case
+ * would let a rule widen itself with no new human decision.
+ */
+function ApproveReuse({ c, onServerChange }: { c: Case; onServerChange: () => void }) {
+  const { capabilities } = useApp();
+  const cmd = useCommand('approvePolicy', { case_id: c.id }, { onServerChange });
+  const { prepared, state, discard } = cmd;
+  const [validFrom, setValidFrom] = useState(c.business_date ?? '');
+  const [validTo, setValidTo] = useState('');
+  const [note, setNote] = useState('');
+  const fromId = useId();
+  const toId = useId();
+  const noteId = useId();
+
+  const decision = (c as unknown as { resolution_decision?: string | null }).resolution_decision;
+  const autoResolved = (c as unknown as { auto_resolved?: boolean }).auto_resolved === true;
+  const appliedPolicy = (c as unknown as { applied_policy_version_id?: string | null })
+    .applied_policy_version_id;
+  const eligible =
+    c.status === 'RESOLVED' && (decision === 'approve' || decision === 'edit') && !autoResolved;
+  if (!eligible) return null;
+  if (appliedPolicy) return null;
+  if (!hasCapability(capabilities, 'policy.approve')) return null;
+
+  const pending = state.phase === 'pending';
+  return (
+    <section className="panel" aria-labelledby="reuse-heading">
+      <h2 id="reuse-heading" className="panel-title">
+        Approve this decision as a reusable rule
+      </h2>
+      {!prepared ? (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!validFrom) return;
+            cmd.prepare({
+              expectedVersion: c.version,
+              payload: {
+                action: 'APPROVE_REUSABLE_POLICY',
+                valid_from: validFrom,
+                ...(validTo ? { valid_to: validTo } : {}),
+                ...(note.trim() ? { note: note.trim() } : {}),
+                ...(c.evidence_hash ? { evidence_hash: c.evidence_hash } : {}),
+              } as unknown as Record<string, unknown>,
+            });
+          }}
+        >
+          <p>
+            A later case matching this one exactly would then be resolved the same way without
+            asking. Outside the window below, it asks again.
+          </p>
+          <div className="field">
+            <label htmlFor={fromId}>Valid from</label>
+            <input id={fromId} type="date" value={validFrom} required onChange={(e) => setValidFrom(e.target.value)} />
+          </div>
+          <div className="field">
+            <label htmlFor={toId}>Valid to (optional)</label>
+            <input id={toId} type="date" value={validTo} onChange={(e) => setValidTo(e.target.value)} />
+          </div>
+          <div className="field">
+            <label htmlFor={noteId}>Note for the record (optional)</label>
+            <textarea id={noteId} value={note} maxLength={2000} rows={2} onChange={(e) => setNote(e.target.value)} />
+          </div>
+          <button type="submit" className="button" disabled={!validFrom}>
+            Review reusable rule
+          </button>
+        </form>
+      ) : (
+        <div className="review-box" aria-label="Review reusable rule">
+          <h3 className="review-title">Confirm exactly what will be sent</h3>
+          <dl className="facts">
+            <div>
+              <dt>Action</dt>
+              <dd>
+                Approve reuse <Code>{`POST /cases/${c.id}/approve-policy`}</Code>
+              </dd>
+            </div>
+            <div>
+              <dt>Window</dt>
+              <dd>
+                {validFrom} to {validTo || 'no end date'}
+              </dd>
+            </div>
+            <div>
+              <dt>Bound to case version</dt>
+              <dd>{prepared.expectedVersion}</dd>
+            </div>
+            <div>
+              <dt>Evidence hash</dt>
+              <dd>
+                <code className="code code-wrap">{c.evidence_hash}</code>
+              </dd>
+            </div>
+          </dl>
+          <div className="review-actions">
+            <button type="button" className="button" onClick={() => void cmd.submit()} disabled={pending} aria-busy={pending || undefined}>
+              {pending ? 'Approving…' : 'Confirm reusable rule'}
+            </button>
+            <button type="button" className="button button-quiet" onClick={discard} disabled={pending}>
+              Back
+            </button>
+          </div>
+        </div>
+      )}
+      <CommandStatus state={state} onRetry={() => void cmd.submit()} subject="policy" />
+    </section>
+  );
+}
+
 
 /**
  * One-time case resolution (C03 POST /cases/{id}/resolve). Binds the decision
@@ -516,7 +636,6 @@ function CandidatePolicy({ id }: { id: string }) {
         </p>
         <PolicyRuleView p={p} />
       </section>
-      <PolicyApprovalPanel p={p} onServerChange={policy.refetch} />
     </>
   );
 }

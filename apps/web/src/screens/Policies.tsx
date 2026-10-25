@@ -1,9 +1,7 @@
-import { useEffect, useId, useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useApp } from '../app/AppContext';
-import { hasCapability } from '../api/capabilities';
-import type { ApprovePolicyPayload, PolicyScope, PolicyStatus, PolicyVersion, SourceRef } from '../api/types';
-import { CommandStatus } from '../components/CommandStatus';
+import type { PolicyScope, PolicyStatus, PolicyVersion, SourceRef } from '../api/types';
 import { DataTable, type Column } from '../components/DataTable';
 import { EvidenceButton } from '../components/EvidenceButton';
 import { EvidenceDrawer } from '../components/EvidenceDrawer';
@@ -17,7 +15,6 @@ import { EmptyState, ErrorState, Loading } from '../components/QueryState';
 import { StatusBadge } from '../components/StatusBadge';
 import { formatBasisPoints } from '../lib/money';
 import { useApiQuery } from '../hooks/useApiQuery';
-import { useCommand } from '../hooks/useCommand';
 import { useListParams } from '../hooks/useListParams';
 import { useLookups, type Lookups } from '../hooks/useLookups';
 
@@ -25,20 +22,35 @@ const STATUS_OPTIONS: { value: PolicyStatus; label: string }[] = (
   ['DRAFT', 'ACTIVE', 'SUSPENDED', 'EXPIRED', 'SUPERSEDED', 'REVOKED'] as const
 ).map((v) => ({ value: v, label: v.toLowerCase() }));
 
-export function PolicyScopeView({ scope, lookups }: { scope: PolicyScope; lookups: Lookups }) {
+export /**
+ * The vendors a policy covers.
+ *
+ * The server scopes a policy to ONE vendor (`scope.vendor_id`); the draft
+ * modelled a `vendor_ids` list with an empty list meaning "every vendor".
+ * Accept either, and treat neither as festival-wide, which is what an empty
+ * list has always meant here.
+ */
+function scopeVendorIds(scope: { vendor_ids?: string[]; vendor_id?: string | null }): string[] {
+  if (Array.isArray(scope.vendor_ids)) return scope.vendor_ids;
+  return scope.vendor_id ? [scope.vendor_id] : [];
+}
+
+function PolicyScopeView({ scope, lookups }: { scope: PolicyScope; lookups: Lookups }) {
   return (
     <dl className="facts">
-      <div>
-        <dt>Scope</dt>
-        <dd>{scope.description}</dd>
-      </div>
+      {scope.description ? (
+        <div>
+          <dt>Scope</dt>
+          <dd>{scope.description}</dd>
+        </div>
+      ) : null}
       <div>
         <dt>Vendors</dt>
         <dd>
-          {scope.vendor_ids.length === 0 ? (
+          {scopeVendorIds(scope).length === 0 ? (
             <strong>Every vendor in the festival</strong>
           ) : (
-            scope.vendor_ids.map((v, i) => (
+            scopeVendorIds(scope).map((v, i) => (
               <span key={v}>
                 {i > 0 ? ', ' : ''}
                 {lookups.vendorName(v)}
@@ -101,153 +113,28 @@ export function PolicyRuleView({ p }: { p: PolicyVersion }) {
 }
 
 /**
- * Reusable policy approval: a SEPARATE command from resolving a case
- * (C03: /policies/{id}/approve). Binds to this exact policy version, its
- * record revision (expected_version), evidence hash and the scope shown.
+ * Where this rule came from.
+ *
+ * There is no "approve this policy" action: a policy does not exist before it
+ * is approved, so reuse is approved on the CASE that decided it (see
+ * ApproveReuse in Cases.tsx). This states the provenance instead of offering
+ * a command that cannot be issued here.
  */
-export function PolicyApprovalPanel({ p, onServerChange, headingLevel = 2 }: { p: PolicyVersion; onServerChange: () => void; headingLevel?: 2 | 3 }) {
-  const { capabilities } = useApp();
-  const { lookups } = useLookups();
-  const cmd = useCommand('approvePolicy', { id: p.id }, { onServerChange });
-  const [acknowledged, setAcknowledged] = useState(false);
-  const [staleAt, setStaleAt] = useState<number | null>(null);
-  const headingId = useId();
-  const ackId = useId();
-  const H = headingLevel === 2 ? 'h2' : 'h3';
-  const { prepared, state, discard } = cmd;
-
-  // A changed record (revision or evidence) invalidates a prepared approval: review again.
-  useEffect(() => {
-    if (!prepared || state.phase === 'pending' || state.phase === 'confirmed') return;
-    const payload = prepared.envelope.payload as unknown as ApprovePolicyPayload;
-    if (prepared.expectedVersion !== (p.record_version ?? null) || payload.evidence_hash !== p.evidence_hash) {
-      discard();
-      setAcknowledged(false);
-      setStaleAt(p.record_version ?? null);
-    }
-  }, [p.record_version, p.evidence_hash, prepared, state.phase, discard]);
-
-  const header = (
-    <H id={headingId} className={headingLevel === 2 ? 'panel-title' : 'panel-subtitle'}>
-      Reusable policy (separate approval)
-    </H>
-  );
-  const wrap = (body: ReactNode) => (
-    <section className="panel decision decision-policy" aria-labelledby={headingId}>
-      {header}
-      <p className="decision-explainer">
-        Approving lets Encore handle <strong>future</strong> cases that match these conditions automatically, within this
-        scope only, citing this approval. It does <strong>not</strong> resolve any open case. New facts, expiry or a scope
-        change send cases back to a human.
+export function PolicyProvenance({ p }: { p: PolicyVersion }) {
+  const originCaseId = (p as unknown as { origin_case_id?: string | null }).origin_case_id;
+  if (!originCaseId) return null;
+  return (
+    <section className="panel" aria-labelledby="provenance-heading">
+      <h2 id="provenance-heading" className="panel-title">
+        Where this rule came from
+      </h2>
+      <p>
+        Approved as reusable from{' '}
+        <Link to={`/cases/${encodeURIComponent(originCaseId)}`}>the case that decided it</Link>. A
+        rule is never created by resolving a case alone -- that approval is a separate human
+        decision.
       </p>
-      {body}
     </section>
-  );
-
-  if (state.phase === 'confirmed' || state.phase === 'job_succeeded') {
-    return wrap(<CommandStatus state={state} onRetry={() => void cmd.submit()} subject="policy version" />);
-  }
-  if (p.status !== 'DRAFT') {
-    return wrap(
-      <p className="muted">
-        This policy version is <StatusBadge status={p.status} />; only a DRAFT version can be approved for reuse.
-      </p>,
-    );
-  }
-  if (capabilities.status === 'loading') return wrap(<p className="muted">Checking your permissions…</p>);
-  if (!p.required_capability || !hasCapability(capabilities, p.required_capability)) {
-    return wrap(
-      <p className="capability-note">
-        Your session does not include the{' '}
-        <Code>{p.required_capability ?? 'required (not stated by the server)'}</Code> capability needed to approve reusable
-        policies. The server decides who can act; ask a finance lead.
-      </p>,
-    );
-  }
-  if (typeof p.record_version !== 'number' || !p.evidence_hash) {
-    return wrap(<p className="capability-note">Approval unavailable: the server did not provide the record revision and evidence hash to bind an approval to.</p>);
-  }
-
-  const pending = state.phase === 'pending';
-  return wrap(
-    <>
-      {staleAt !== null ? (
-        <p className="command-status is-error" role="alert">
-          This policy version changed while you were reviewing it (now revision {staleAt}). The latest version is shown;
-          review it again.
-        </p>
-      ) : null}
-      {!prepared ? (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!acknowledged) return;
-            setStaleAt(null);
-            const payload: ApprovePolicyPayload = {
-              action: 'APPROVE_REUSABLE_POLICY',
-              policy_id: p.policy_id,
-              policy_version: p.version,
-              evidence_hash: p.evidence_hash as string,
-              scope: p.scope,
-              source_case_id: p.origin_case_id ?? null,
-            };
-            cmd.prepare({ expectedVersion: p.record_version as number, payload: payload as unknown as Record<string, unknown> });
-          }}
-        >
-          <PolicyScopeView scope={p.scope} lookups={lookups} />
-          <div className="checkbox-field">
-            <input id={ackId} type="checkbox" checked={acknowledged} onChange={(e) => setAcknowledged(e.target.checked)} />
-            <label htmlFor={ackId}>
-              I approve reuse of policy version {p.version} within exactly this scope.
-            </label>
-          </div>
-          <button type="submit" className="button" disabled={!acknowledged}>
-            Review policy approval
-          </button>
-        </form>
-      ) : (
-        <div className="review-box" aria-label="Review policy approval">
-          <h4 className="review-title">Confirm exactly what will be sent</h4>
-          <dl className="facts">
-            <div>
-              <dt>Action</dt>
-              <dd>
-                Approve reusable policy <Code>{`POST /policies/${p.id}/approve`}</Code>
-              </dd>
-            </div>
-            <div>
-              <dt>Policy version</dt>
-              <dd>
-                <Code>{p.policy_id}</Code> v{p.version}
-              </dd>
-            </div>
-            <div>
-              <dt>Bound to record revision</dt>
-              <dd>{prepared.expectedVersion}</dd>
-            </div>
-            <div>
-              <dt>Evidence hash</dt>
-              <dd>
-                <code className="code code-wrap">{p.evidence_hash}</code>
-              </dd>
-            </div>
-            <div>
-              <dt>Scope</dt>
-              <dd>{p.scope.description}</dd>
-            </div>
-          </dl>
-          <div className="review-actions">
-            <button type="button" className="button" onClick={() => void cmd.submit()} disabled={pending} aria-busy={pending || undefined}>
-              {pending ? 'Approving…' : 'Confirm policy approval'}
-            </button>
-            <button type="button" className="button button-quiet" onClick={() => { discard(); setAcknowledged(false); }} disabled={pending}>
-              Back
-            </button>
-          </div>
-        </div>
-      )}
-      <CommandStatus state={state} onRetry={() => void cmd.submit()} subject="policy version" />
-    </>,
   );
 }
 
@@ -424,7 +311,7 @@ export function PolicyDetail() {
             </p>
             <PolicyChallenges p={p} />
           </section>
-          <PolicyApprovalPanel p={p} onServerChange={result.refetch} />
+          <PolicyProvenance p={p} />
           <section className="panel" aria-labelledby="hist-heading">
             <h2 id="hist-heading" className="panel-title">
               All versions of this policy

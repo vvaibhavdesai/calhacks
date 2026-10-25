@@ -248,6 +248,11 @@ class PolicyOut(BaseModel):
     status: str
     supersedes_version: int | None
     source_case_id: str | None
+    # Same value under the name the reader's contract uses: the case whose
+    # human decision this rule was approved from. It is the rule's provenance,
+    # and the only place reuse can be approved, since a policy does not exist
+    # before approval.
+    origin_case_id: str | None
 
 
 def _to_policy_out(p: PolicyVersion) -> PolicyOut:
@@ -264,6 +269,7 @@ def _to_policy_out(p: PolicyVersion) -> PolicyOut:
         valid_to=p.valid_to,
         status=p.status,
         supersedes_version=p.supersedes_version,
+        origin_case_id=p.source_case_id,
         source_case_id=p.source_case_id,
     )
 
@@ -478,8 +484,21 @@ def resolve_case_endpoint(
 
 
 class ApprovePolicyRequest(BaseModel):
+    """Approve REUSE of the decision this case already made.
+
+    Separate from resolving the case, deliberately: a one-time resolution is
+    never auto-promoted into a reusable rule. The scope is the case's own
+    vendor and effect; only the validity window is chosen here.
+    """
+
     valid_from: date
     valid_to: date | None = None
+    # Reviewer-facing envelope, matching POST /cases/{id}/resolve. Optional so
+    # existing callers are unaffected; enforced whenever stated.
+    action: str | None = None
+    note: str | None = None
+    expected_version: int | None = None
+    evidence_hash: str | None = None
 
 
 @router.post("/{case_id}/approve-policy", response_model=PolicyOut, status_code=201)
@@ -492,6 +511,31 @@ def approve_policy_endpoint(
     case = db.get(Case, case_id)
     if case is None:
         raise HTTPException(status_code=404, detail="case not found")
+    # Same bindings as resolving the case: making a decision REUSABLE is the
+    # larger of the two commitments, so it must not be made against a stale
+    # view either.
+    if body.expected_version is not None and body.expected_version != case.version:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "version_conflict",
+                "message": "the case changed since it was read",
+                "expected_version": body.expected_version,
+                "current_version": case.version,
+            },
+        )
+    if body.evidence_hash is not None:
+        current = _evidence_hash(case.evidence_refs)
+        if body.evidence_hash != current:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "evidence_changed",
+                    "message": "the case's evidence changed since it was read",
+                    "expected_evidence_hash": body.evidence_hash,
+                    "current_evidence_hash": current,
+                },
+            )
     uow = UnitOfWork(db)
     try:
         policy = approve_case_policy(

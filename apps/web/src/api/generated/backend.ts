@@ -2241,8 +2241,23 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        /** ApprovePolicyRequest */
+        /**
+         * ApprovePolicyRequest
+         * @description Approve REUSE of the decision this case already made.
+         *
+         *     Separate from resolving the case, deliberately: a one-time resolution is
+         *     never auto-promoted into a reusable rule. The scope is the case's own
+         *     vendor and effect; only the validity window is chosen here.
+         */
         ApprovePolicyRequest: {
+            /** Action */
+            action?: string | null;
+            /** Evidence Hash */
+            evidence_hash?: string | null;
+            /** Expected Version */
+            expected_version?: number | null;
+            /** Note */
+            note?: string | null;
             /**
              * Valid From
              * Format: date
@@ -2908,6 +2923,8 @@ export interface components {
             evidence_refs: unknown[];
             /** Id */
             id: string;
+            /** Origin Case Id */
+            origin_case_id: string | null;
             /** Policy Id */
             policy_id: string;
             /** Predicates */

@@ -157,13 +157,12 @@ export const OPERATIONS = {
     query: { ...NO_PAGING, status: 'status_' },
   },
   getPolicyVersion: { method: 'GET', path: '/policies/{policy_version_id}', backend: 'live' },
-  approvePolicy: {
-    method: 'POST',
-    path: '/policies/{id}/approve',
-    backend: 'absent',
-    route: '/cases/{case_id}/approve-policy',
-    gap: 'Policy approval is only reachable as POST /api/v1/cases/{case_id}/approve-policy with {valid_from, valid_to}. The policy screen approves a policy version it is looking at and has no case id; it also needs the envelope with expected_version, scope and evidence_hash.',
-  },
+  // Approving REUSE is a command on the deciding CASE, not on a policy: no
+  // DRAFT policy version exists in this system (checked -- policy_versions
+  // only ever hold ACTIVE/SUSPENDED/SUPERSEDED), the policy comes into
+  // existence at approval. So this operation targets the case, and the control
+  // lives on the case screen where the case id is.
+  approvePolicy: { method: 'POST', path: '/cases/{case_id}/approve-policy', backend: 'live' },
 
   // ----------------------------------------------------------- payouts (C06)
   listPayouts: {
