@@ -116,6 +116,28 @@ describe('Settlements against captured live responses', () => {
     expect(counted.length).toBeGreaterThan(0);
   });
 
+  it('drops a column no row can fill, and keeps the ones with data', async () => {
+    // Statement is `—` on every captured row (the list response carries no
+    // statement_status at all) and Rules applied is None on every row (no
+    // settlement here was policy-driven). Neither earns space on a table
+    // that already scrolls sideways.
+    const rows = settlements as { statement_status?: string; applied_policies?: unknown[] }[];
+    expect(rows.some((r) => r.statement_status)).toBe(false);
+    expect(rows.some((r) => r.applied_policies?.length)).toBe(false);
+
+    renderLive('/settlements');
+    const table = await screen.findByRole('table');
+    await waitFor(() => expect(table.querySelectorAll('tbody tr').length).toBeGreaterThan(0));
+    const headers = [...table.querySelectorAll('thead th')].map((th) => th.textContent?.trim());
+
+    expect(headers).not.toContain('Statement');
+    expect(headers).not.toContain('Rules applied');
+    // The columns that do have data are untouched.
+    for (const kept of ['Vendor', 'Business date', 'Fee assessed', 'Payout', 'Holds']) {
+      expect(headers).toContain(kept);
+    }
+  });
+
   it('every call the screen makes is one the captured set answers', async () => {
     const seen = renderLive('/settlements');
     const table = await screen.findByRole('table');
