@@ -81,7 +81,7 @@ export function TaxDetail() {
   const { client } = useApp();
   const { lookups, describeSource } = useLookups();
   const [evidence, setEvidence] = useState<{ title: string; refs: SourceRef[] } | null>(null);
-  const result = useApiQuery(`tax-report:${taxId}`, (signal) => client.get('getTaxReport', { signal, path: { id: taxId } }));
+  const result = useApiQuery(`tax-report:${taxId}`, (signal) => client.get('getTaxReport', { signal, path: { report_id: taxId } }));
   const t = result.data;
   const open = (title: string, refs: SourceRef[]) => setEvidence({ title, refs });
   const columns: Column<TaxReportLine>[] = [

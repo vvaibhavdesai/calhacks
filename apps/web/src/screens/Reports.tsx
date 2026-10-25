@@ -101,7 +101,7 @@ export function ReportDetail() {
   const { client } = useApp();
   const { describeSource } = useLookups();
   const [evidence, setEvidence] = useState<{ title: string; refs: SourceRef[] } | null>(null);
-  const result = useApiQuery(`report:${reportId}`, (signal) => client.get('getFinancialReport', { signal, path: { id: reportId } }));
+  const result = useApiQuery(`report:${reportId}`, (signal) => client.get('getFinancialReport', { signal, path: { report_id: reportId } }));
   const r = result.data;
   const open = (title: string, refs: SourceRef[]) => setEvidence({ title, refs });
   const lineColumns: Column<FinancialReportLine>[] = [

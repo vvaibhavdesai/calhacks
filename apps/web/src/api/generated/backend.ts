@@ -1858,6 +1858,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Reports
+         * @description Every report that can be produced for this festival, newest basis first.
+         *
+         *     `next_cursor` is always null: there are three kinds, not a stream of
+         *     reports, so the envelope keeps the shape every other list uses without
+         *     pretending to page.
+         */
+        get: operations["list_reports_api_v1_reports_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/by-id/{report_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Report
+         * @description One report, resolved from an id that states its own inputs.
+         */
+        get: operations["get_report_api_v1_reports_by_id__report_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/festival": {
         parameters: {
             query?: never;
@@ -3274,6 +3318,53 @@ export interface components {
             /** Changed */
             changed: boolean;
             payout: components["schemas"]["PayoutOut"];
+        };
+        /** ReportListOut */
+        ReportListOut: {
+            /** Items */
+            items: components["schemas"]["ReportOut"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /** ReportOut */
+        ReportOut: {
+            /** Basis Note */
+            basis_note: string;
+            /** Festival Id */
+            festival_id: string;
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Headline */
+            headline: Record<string, never>[];
+            /** Id */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Period To */
+            period_to?: string | null;
+            /** Sections */
+            sections: components["schemas"]["ReportSectionOut"][];
+            /**
+             * Source Refs
+             * @default []
+             */
+            source_refs: unknown[];
+            /** Status */
+            status: string;
+            /** Title */
+            title: string;
+        };
+        /** ReportSectionOut */
+        ReportSectionOut: {
+            /** Lines */
+            lines: Record<string, never>[];
+            /** Section Id */
+            section_id: string;
+            /** Title */
+            title: string;
         };
         /**
          * ResolutionOptionOut
@@ -7814,6 +7905,69 @@ export interface operations {
                 };
                 content: {
                     "application/json": Record<string, never>;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_reports_api_v1_reports_get: {
+        parameters: {
+            query: {
+                festival_id: string;
+                through?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportListOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_report_api_v1_reports_by_id__report_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                report_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportOut"];
                 };
             };
             /** @description Validation Error */

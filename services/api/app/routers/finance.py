@@ -11,7 +11,7 @@ view below is computed live from the database.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
@@ -635,6 +635,215 @@ def get_journal_entry(
 # ---------------------------------------------------------------------------
 # Reports
 # ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# Reports as addressable records
+#
+# These reports are computed from the books on request; none is stored. That
+# would normally mean nothing can be linked to, opened by id or exported --
+# which is what the reports screen needs.
+#
+# Rather than add a table and an "issue report" step, a report id states its
+# own inputs: `<kind>:<festival_id>:<through>`. Because a report is a pure
+# function of the books at a date, that id IS a durable reference -- resolving
+# it recomputes exactly the same report. Nothing is invented and no schema
+# changes; the trade is that a report reflects the books as they are NOW at
+# that date, so a correction posted later changes what the id resolves to.
+# Issuing immutable snapshots is a separate decision, recorded in
+# docs/progress/V1-READINESS.md.
+# ---------------------------------------------------------------------------
+
+_REPORT_KINDS = {
+    "tax": ("Sales tax", "DRAFT, NOT FILED"),
+    "pnl": ("Profit and loss", "DRAFT"),
+    "festival": ("Festival summary", "DRAFT"),
+}
+
+
+class ReportSectionOut(BaseModel):
+    section_id: str
+    title: str
+    lines: list[dict]
+
+
+class ReportOut(BaseModel):
+    id: str
+    kind: str
+    title: str
+    status: str
+    festival_id: str
+    period_to: date | None = None
+    generated_at: datetime
+    # What the report rests on, so a reader is not left guessing whether these
+    # numbers are filed, final or illustrative.
+    basis_note: str
+    headline: list[dict]
+    sections: list[ReportSectionOut]
+    source_refs: list = []
+
+
+class ReportListOut(BaseModel):
+    items: list[ReportOut]
+    next_cursor: str | None = None
+
+
+def _report_id(kind: str, festival_id: str, through: date | None) -> str:
+    return f"{kind}:{festival_id}:{through.isoformat() if through else 'latest'}"
+
+
+def _parse_report_id(report_id: str) -> tuple[str, str, date | None]:
+    kind, _, rest = report_id.partition(":")
+    festival_id, _, through = rest.rpartition(":")
+    if kind not in _REPORT_KINDS or not festival_id:
+        raise HTTPException(status_code=404, detail="report not found")
+    if through in ("", "latest"):
+        return kind, festival_id, None
+    try:
+        return kind, festival_id, date.fromisoformat(through)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail="report not found") from exc
+
+
+def _money_lines(pairs: list[tuple[str, int]], prefix: str) -> list[dict]:
+    return [
+        {"line_id": f"{prefix}.{i}", "label": label, "amount_cents": amount}
+        for i, (label, amount) in enumerate(pairs)
+    ]
+
+
+def _section_lines(value: object) -> list[dict]:
+    """A report section's lines, always as objects.
+
+    The computed reports mix shapes: a list of row dicts, a single summary
+    dict, or a plain list of strings (the closed business dates). A reader
+    should not have to branch on that, so a bare value becomes {"label": ...}
+    rather than being dropped or stringified into one blob.
+    """
+    if isinstance(value, dict):
+        return [{"label": k.replace("_", " "), "value": v} for k, v in value.items()]
+    if isinstance(value, list):
+        return [v if isinstance(v, dict) else {"label": str(v)} for v in value]
+    return [{"label": str(value)}]
+
+
+def _build_report(db: Session, kind: str, festival_id: str, through: date | None) -> ReportOut:
+    """Compute one report and shape it as sections a reader can read.
+
+    The three computed reports each have their own natural shape; this is the
+    only place that knows how to present each one, so no screen has to.
+    """
+    title, status = _REPORT_KINDS[kind]
+    headline: list[dict] = []
+    sections: list[ReportSectionOut] = []
+    basis = ""
+
+    if kind == "tax":
+        r = reports.tax_summary(db, festival_id=festival_id, through=through)
+        totals = r.get("totals") or {}
+        basis = f"{r.get('status', '')} {r.get('config_label', '')}".strip()
+        headline = _money_lines([(k.replace("_", " "), v) for k, v in totals.items()], "total")
+        sections = [
+            ReportSectionOut(
+                section_id="by_business_date",
+                title="By business date",
+                lines=list(r.get("by_business_date") or []),
+            ),
+            ReportSectionOut(
+                section_id="mismatch_lines",
+                title="Supplied vs recalculated differences",
+                lines=list(r.get("mismatch_lines") or []),
+            ),
+        ]
+    elif kind == "pnl":
+        r = reports.profit_and_loss(db, festival_id=festival_id, through=through)
+        basis = str(r.get("note") or "")
+        headline = _money_lines(
+            [
+                ("Total revenue", int(r.get("total_revenue_cents") or 0)),
+                ("Total expenses", int(r.get("total_expenses_cents") or 0)),
+                ("Net income", int(r.get("net_income_cents") or 0)),
+            ],
+            "headline",
+        )
+        sections = [
+            ReportSectionOut(
+                section_id="revenue", title="Revenue", lines=list(r.get("revenue") or [])
+            ),
+            ReportSectionOut(
+                section_id="expenses", title="Expenses", lines=list(r.get("expenses") or [])
+            ),
+        ]
+    else:
+        # festival_report is as-of a date, not through one; the id's date is
+        # that as-of, and today when the id says "latest".
+        r = reports.festival_report(db, festival_id=festival_id, as_of=through or date.today())
+        basis = "; ".join(str(x) for x in (r.get("labels") or []))
+        pnl = r.get("profit_and_loss") or {}
+        headline = _money_lines(
+            [
+                ("Net income", int(pnl.get("net_income_cents") or 0)),
+                ("Cash in bank", int((r.get("cash") or {}).get("bank_cents") or 0)),
+                (
+                    "Payables outstanding",
+                    int((r.get("payables") or {}).get("outstanding_cents") or 0),
+                ),
+            ],
+            "headline",
+        )
+        sections = [
+            ReportSectionOut(
+                section_id=name,
+                title=name.replace("_", " ").capitalize(),
+                lines=_section_lines(value),
+            )
+            for name, value in r.items()
+            if isinstance(value, list | dict) and value
+        ]
+
+    return ReportOut(
+        id=_report_id(kind, festival_id, through),
+        kind=kind,
+        title=title,
+        status=status,
+        festival_id=festival_id,
+        period_to=through,
+        generated_at=datetime.now(UTC),
+        basis_note=basis,
+        headline=headline,
+        sections=sections,
+    )
+
+
+@router.get("/reports", response_model=ReportListOut)
+def list_reports(
+    festival_id: str,
+    through: date | None = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> ReportListOut:
+    """Every report that can be produced for this festival, newest basis first.
+
+    `next_cursor` is always null: there are three kinds, not a stream of
+    reports, so the envelope keeps the shape every other list uses without
+    pretending to page.
+    """
+    items = [_build_report(db, kind, festival_id, through) for kind in _REPORT_KINDS]
+    db.commit()  # first use may create the default finance config version
+    return ReportListOut(items=items, next_cursor=None)
+
+
+@router.get("/reports/by-id/{report_id}", response_model=ReportOut)
+def get_report(
+    report_id: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> ReportOut:
+    """One report, resolved from an id that states its own inputs."""
+    kind, festival_id, through = _parse_report_id(report_id)
+    out = _build_report(db, kind, festival_id, through)
+    db.commit()  # first use may create the default finance config version
+    return out
 
 
 @router.get("/reports/tax")

@@ -225,7 +225,7 @@ describe('fixture transport with illustrative outputs', () => {
     expect((await client.list('listSupplierInvoices', { query: { kind: 'CREDIT_NOTE' } })).items).toHaveLength(1);
     expect((await client.list('listPurchaseOrders', { query: { supplier_id: 'illus_sup_ice' } })).items).toHaveLength(1);
     expect((await client.get('getJournalEntry', { path: { entry_id: 'illus_je_inv_ice_rev' } })).correction_of).toBe('illus_je_inv_ice');
-    expect((await client.get('getTaxReport', { path: { id: 'illus_tax_draft_n1' } })).status).toBe('DRAFT_NOT_FILED');
+    expect((await client.get('getTaxReport', { path: { report_id: 'illus_tax_draft_n1' } })).status).toBe('DRAFT_NOT_FILED');
     expect((await client.list('listFinancialReports', { query: { business_date: '2026-10-17' } })).items.map((r) => r.kind).sort()).toEqual(['FESTIVAL_CASH', 'FESTIVAL_PNL']);
     expect((await client.list('listTaxReports')).items).toHaveLength(1);
   });

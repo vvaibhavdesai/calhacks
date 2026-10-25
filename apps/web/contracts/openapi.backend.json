@@ -2726,6 +2726,137 @@
         "title": "ReleaseResponse",
         "type": "object"
       },
+      "ReportListOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ReportOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "ReportListOut",
+        "type": "object"
+      },
+      "ReportOut": {
+        "properties": {
+          "basis_note": {
+            "title": "Basis Note",
+            "type": "string"
+          },
+          "festival_id": {
+            "title": "Festival Id",
+            "type": "string"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "headline": {
+            "items": {
+              "type": "object"
+            },
+            "title": "Headline",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "period_to": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period To"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/ReportSectionOut"
+            },
+            "title": "Sections",
+            "type": "array"
+          },
+          "source_refs": {
+            "default": [],
+            "items": {},
+            "title": "Source Refs",
+            "type": "array"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "status",
+          "festival_id",
+          "generated_at",
+          "basis_note",
+          "headline",
+          "sections"
+        ],
+        "title": "ReportOut",
+        "type": "object"
+      },
+      "ReportSectionOut": {
+        "properties": {
+          "lines": {
+            "items": {
+              "type": "object"
+            },
+            "title": "Lines",
+            "type": "array"
+          },
+          "section_id": {
+            "title": "Section Id",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "section_id",
+          "title",
+          "lines"
+        ],
+        "title": "ReportSectionOut",
+        "type": "object"
+      },
       "ResolutionOptionOut": {
         "description": "One rate a human may choose when resolving a contract-term conflict.\n\nDerived from the case's own `evidence_refs`, never supplied by the caller:\nthe options are exactly the candidate terms the detector cited, so a client\ncannot introduce a rate nobody detected.",
         "properties": {
@@ -12104,6 +12235,119 @@
         "summary": "Get Replay",
         "tags": [
           "corrections"
+        ]
+      }
+    },
+    "/api/v1/reports": {
+      "get": {
+        "description": "Every report that can be produced for this festival, newest basis first.\n\n`next_cursor` is always null: there are three kinds, not a stream of\nreports, so the envelope keeps the shape every other list uses without\npretending to page.",
+        "operationId": "list_reports_api_v1_reports_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "festival_id",
+            "required": true,
+            "schema": {
+              "title": "Festival Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "through",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Through"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportListOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Reports",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/v1/reports/by-id/{report_id}": {
+      "get": {
+        "description": "One report, resolved from an id that states its own inputs.",
+        "operationId": "get_report_api_v1_reports_by_id__report_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "report_id",
+            "required": true,
+            "schema": {
+              "title": "Report Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get Report",
+        "tags": [
+          "finance"
         ]
       }
     },

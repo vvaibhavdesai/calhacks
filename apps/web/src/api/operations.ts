@@ -180,32 +180,10 @@ export const OPERATIONS = {
   getJournalEntry: { method: 'GET', path: '/journal/{entry_id}', backend: 'live' },
 
   // ---------------------------------------------------------- reports (C07)
-  listTaxReports: {
-    method: 'GET',
-    path: '/reports/tax',
-    backend: 'shape',
-    route: '/reports/tax',
-    gap: 'GET /api/v1/reports/tax?festival_id= computes ONE current report (status, by_business_date, totals, mismatch_lines) rather than listing issued reports. The screen lists reports and opens one by id, so this needs stored reports.',
-  },
-  getTaxReport: {
-    method: 'GET',
-    path: '/reports/tax/{id}',
-    backend: 'absent',
-    gap: 'GET /api/v1/reports/tax/{report_id}: tax reports are computed on demand and never stored, so there is nothing to link to or export.',
-  },
-  listFinancialReports: {
-    method: 'GET',
-    path: '/reports',
-    backend: 'absent',
-    route: '/reports/festival',
-    gap: 'GET /api/v1/reports listing issued reports. /reports/festival and /reports/pnl compute a single report from festival_id and declare no response model.',
-  },
-  getFinancialReport: {
-    method: 'GET',
-    path: '/reports/{id}',
-    backend: 'absent',
-    gap: 'GET /api/v1/reports/{report_id} (sections and lines of an issued report).',
-  },
+  listTaxReports: { method: 'GET', path: '/reports', backend: 'live', query: NO_PAGING },
+  getTaxReport: { method: 'GET', path: '/reports/by-id/{report_id}', backend: 'live' },
+  listFinancialReports: { method: 'GET', path: '/reports', backend: 'live', query: NO_PAGING },
+  getFinancialReport: { method: 'GET', path: '/reports/by-id/{report_id}', backend: 'live' },
   listCashPositions: {
     method: 'GET',
     path: '/cash',

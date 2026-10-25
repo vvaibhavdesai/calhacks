@@ -298,9 +298,9 @@ describe('fixture transport responses conform', () => {
     expectValid('JournalEntryList', await out.list('listJournalEntries'));
     for (const e of (await out.list('listJournalEntries')).items) expectValid('JournalEntry', await out.get('getJournalEntry', { path: { entry_id: e.entry_id } }));
     expectValid('TaxReportList', await out.list('listTaxReports'));
-    for (const t of (await out.list('listTaxReports')).items) expectValid('TaxReport', await out.get('getTaxReport', { path: { id: t.id } }));
+    for (const t of (await out.list('listTaxReports')).items) expectValid('TaxReport', await out.get('getTaxReport', { path: { report_id: t.id } }));
     expectValid('FinancialReportList', await out.list('listFinancialReports'));
-    for (const r of (await out.list('listFinancialReports')).items) expectValid('FinancialReport', await out.get('getFinancialReport', { path: { id: r.id } }));
+    for (const r of (await out.list('listFinancialReports')).items) expectValid('FinancialReport', await out.get('getFinancialReport', { path: { report_id: r.id } }));
   });
 
   it('B06 night3 (ILLUSTRATIVE) recorder, history, challenge, correction, branch and replay responses validate', async () => {
