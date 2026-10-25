@@ -1,9 +1,16 @@
-"""V1-04: `POST /payouts/{id}/approve` must honour `Idempotency-Key`.
+"""V1-04: payout approval binds what the approver saw, and is replay-safe.
 
-Approval is the one request that commits money, and the web client has
-always sent an `Idempotency-Key` on it -- the server used to ignore the
-header entirely, so a double-click, a retried POST or a flaky network could
-approve the same payout twice.
+Approval is the one request that commits money. Two holes, both closed here:
+
+  - the server ignored `Idempotency-Key` outright, although the web client
+    has always sent one on this endpoint, so a double-click, a retried POST
+    or a flaky network could run the approval twice;
+  - the approval screen sends the C03 envelope, so its `amount_cents` and
+    `beneficiary_version` echo arrived one level down inside `payload`,
+    where the endpoint never looked and pydantic's default dropped it. The
+    binding was implemented, tested and unreachable from the only path a
+    human uses. `TestTheShapeTheApprovalScreenActuallySends` posts the exact
+    body `apps/web/src/screens/Payouts.tsx` builds.
 
 What is asserted here is the replay contract itself, over real HTTP against
 the real Postgres test database:
@@ -329,8 +336,209 @@ def test_too_short_a_key_is_refused_rather_than_ignored(client, db_session, appr
 
 
 # ---------------------------------------------------------------------------
-# The binding half of V1-04 (already implemented -- pinned here so the
-# idempotency work above cannot quietly regress it)
+# The shape the approval screen actually sends
+#
+# `apps/web/src/screens/Payouts.tsx` builds an ApprovePayoutPayload (draft
+# Q39) and `client.command()` posts it as {command_id, expected_version,
+# payload: {...}}. Every assertion below is about THAT body, because it is
+# the only one a human ever causes.
+# ---------------------------------------------------------------------------
+
+
+def _ui_envelope(payout: Payout, vendor: Vendor, **override) -> dict:
+    """The exact body Payouts.tsx sends, field for field."""
+    payload = {
+        "action": "APPROVE_PAYOUT_ABOVE_LIMIT",
+        "logical_obligation_id": payout.logical_obligation_id,
+        "amount_cents": payout.amount_cents,
+        "beneficiary_version": payout.beneficiary_version,
+        "business_date": payout.business_date.isoformat(),
+        "vendor_id": vendor.id,
+        "note": "finance lead override",
+    }
+    payload.update(override)
+    return {
+        "command_id": "11111111-2222-3333-4444-555555555555",
+        "expected_version": payout.version,
+        "payload": payload,
+    }
+
+
+class TestTheShapeTheApprovalScreenActuallySends:
+    def test_a_stale_amount_inside_payload_is_refused(self, client, db_session, approver):
+        """The regression that made the binding dead code on the UI path.
+
+        Before the envelope was flattened this returned 200 and approved a
+        payout whose amount the approver had not consented to.
+        """
+        vendor = _vendor(db_session)
+        payout = _payout(db_session, vendor, cents=UNDER_LIMIT_CENTS, key="idem:ui:stale")
+        db_session.commit()
+        headers = {**_auth(client), "Idempotency-Key": "idem-ui-stale-key-01"}
+
+        resp = client.post(
+            f"/api/v1/payouts/{payout.id}/approve",
+            json=_ui_envelope(payout, vendor, amount_cents=UNDER_LIMIT_CENTS - 50_000),
+            headers=headers,
+        )
+        assert resp.status_code == 409, resp.text
+        assert resp.json()["detail"]["code"] == "approval_consent_mismatch"
+        assert resp.json()["detail"]["field"] == "amount_cents"
+
+        db_session.expire_all()
+        assert db_session.get(Payout, payout.id).state == "DRAFT"
+        assert _events(db_session, payout) == []
+        assert db_session.query(CommandRecord).count() == 0
+
+    def test_a_stale_beneficiary_version_inside_payload_is_refused(
+        self, client, db_session, approver
+    ):
+        vendor = _vendor(db_session)
+        payout = _payout(db_session, vendor, cents=UNDER_LIMIT_CENTS, key="idem:ui:benef")
+        db_session.commit()
+        headers = _auth(client)
+
+        resp = client.post(
+            f"/api/v1/payouts/{payout.id}/approve",
+            json=_ui_envelope(payout, vendor, beneficiary_version=payout.beneficiary_version + 1),
+            headers=headers,
+        )
+        assert resp.status_code == 409, resp.text
+        assert resp.json()["detail"]["field"] == "beneficiary_version"
+
+        db_session.expire_all()
+        assert db_session.get(Payout, payout.id).state == "DRAFT"
+
+    @pytest.mark.parametrize(
+        "field,value",
+        [
+            ("logical_obligation_id", "some-other-obligation"),
+            ("business_date", "2026-10-18"),
+        ],
+    )
+    def test_the_other_consent_echoes_are_bound_too(
+        self, client, db_session, approver, field, value
+    ):
+        """Accepting an echo and not comparing it is the same hole in
+        miniature: the screen says these were bound."""
+        vendor = _vendor(db_session)
+        payout = _payout(db_session, vendor, cents=UNDER_LIMIT_CENTS, key=f"idem:ui:{field}")
+        db_session.commit()
+
+        resp = client.post(
+            f"/api/v1/payouts/{payout.id}/approve",
+            json=_ui_envelope(payout, vendor, **{field: value}),
+            headers=_auth(client),
+        )
+        assert resp.status_code == 409, resp.text
+        assert resp.json()["detail"]["code"] == "approval_consent_mismatch"
+        assert resp.json()["detail"]["field"] == field
+
+        db_session.expire_all()
+        assert db_session.get(Payout, payout.id).state == "DRAFT"
+
+    def test_a_matching_envelope_approves(self, client, db_session, approver):
+        vendor = _vendor(db_session)
+        payout = _payout(db_session, vendor, cents=UNDER_LIMIT_CENTS, key="idem:ui:ok")
+        db_session.commit()
+        headers = {**_auth(client), "Idempotency-Key": "idem-ui-happy-key-01"}
+        body = _ui_envelope(payout, vendor)
+
+        resp = client.post(f"/api/v1/payouts/{payout.id}/approve", json=body, headers=headers)
+        assert resp.status_code == 200, resp.text
+        assert resp.json()["state"] == "APPROVED"
+
+        db_session.expire_all()
+        approvals = _approvals(db_session, payout)
+        assert len(approvals) == 1
+        assert approvals[0].note == "finance lead override"  # read from inside `payload`
+
+        # And the whole intent replays, envelope and all.
+        replay = client.post(f"/api/v1/payouts/{payout.id}/approve", json=body, headers=headers)
+        assert replay.status_code == 200, replay.text
+        assert replay.headers["Idempotent-Replay"] == "true"
+        assert replay.json() == resp.json()
+        db_session.expire_all()
+        assert _events(db_session, payout) == ["payout.approved"]
+
+    def test_a_stale_expected_version_in_the_envelope_is_refused(
+        self, client, db_session, approver
+    ):
+        vendor = _vendor(db_session)
+        payout = _payout(db_session, vendor, cents=UNDER_LIMIT_CENTS, key="idem:ui:ver")
+        db_session.commit()
+        body = _ui_envelope(payout, vendor)
+        body["expected_version"] = payout.version + 3
+
+        resp = client.post(f"/api/v1/payouts/{payout.id}/approve", json=body, headers=_auth(client))
+        assert resp.status_code == 409, resp.text
+        assert resp.json()["detail"]["code"] == "version_conflict"
+
+    def test_an_unknown_field_is_a_422_not_a_silent_accept(self, client, db_session, approver):
+        """What stops this from happening again: a field the server does not
+        know is refused loudly instead of discarded."""
+        vendor = _vendor(db_session)
+        payout = _payout(db_session, vendor, cents=UNDER_LIMIT_CENTS, key="idem:ui:unknown")
+        db_session.commit()
+
+        resp = client.post(
+            f"/api/v1/payouts/{payout.id}/approve",
+            json=_ui_envelope(payout, vendor, approved_by="someone-else"),
+            headers=_auth(client),
+        )
+        assert resp.status_code == 422, resp.text
+
+        db_session.expire_all()
+        assert db_session.get(Payout, payout.id).state == "DRAFT"
+
+    def test_a_mis_routed_action_is_refused(self, client, db_session, approver):
+        vendor = _vendor(db_session)
+        payout = _payout(db_session, vendor, cents=UNDER_LIMIT_CENTS, key="idem:ui:action")
+        db_session.commit()
+
+        resp = client.post(
+            f"/api/v1/payouts/{payout.id}/approve",
+            json=_ui_envelope(payout, vendor, action="RESOLVE_CASE"),
+            headers=_auth(client),
+        )
+        assert resp.status_code == 422, resp.text
+
+        db_session.expire_all()
+        assert db_session.get(Payout, payout.id).state == "DRAFT"
+
+
+def test_release_also_accepts_the_envelope_shape(client, db_session, approver):
+    """No UI screen releases yet, but the mismatch must not be waiting there
+    either: `expected_version` has to bind through the envelope too."""
+    vendor = _vendor(db_session)
+    payout = _payout(db_session, vendor, cents=UNDER_LIMIT_CENTS, key="idem:release:env")
+    db_session.add(CashPool(festival_id=FESTIVAL, available_cents=1_000_000, reserved_cents=0))
+    db_session.commit()
+    headers = _auth(client)
+    approve = client.post(f"/api/v1/payouts/{payout.id}/approve", json={}, headers=headers)
+    assert approve.status_code == 200, approve.text
+
+    db_session.expire_all()
+    current = db_session.get(Payout, payout.id).version
+    stale = client.post(
+        f"/api/v1/payouts/{payout.id}/release",
+        json={"command_id": "abc", "expected_version": current + 2, "payload": {}},
+        headers=headers,
+    )
+    assert stale.status_code == 409, stale.text
+    assert stale.json()["detail"]["code"] == "version_conflict"
+
+    ok = client.post(
+        f"/api/v1/payouts/{payout.id}/release",
+        json={"command_id": "abc", "expected_version": current, "payload": {}},
+        headers=headers,
+    )
+    assert ok.status_code == 200, ok.text
+    assert ok.json()["changed"] is True
+
+
+# ---------------------------------------------------------------------------
+# The flat shape the verify scripts and the nightly workflow send
 # ---------------------------------------------------------------------------
 
 

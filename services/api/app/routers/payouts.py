@@ -28,19 +28,19 @@ from __future__ import annotations
 import json
 from collections.abc import Callable
 from datetime import date
-from typing import Literal
+from typing import Any, Literal
 
 from domain.corrections import canonical_hash
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, model_validator
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 import app.payout_dispatch as payout_dispatch
 from app.auth import get_user_capability_codes, require_capability
-from app.commands import remember, replayed, require_key
+from app.commands import remember, replayed, require_key, unwrap_envelope
 from app.db import get_db
 from app.models import CAPABILITY_APPROVE_PAYOUT, CAPABILITY_FINANCE_LEAD, User
 from app.models_ledger import Payout
@@ -185,6 +185,42 @@ def _idempotent(
 
 
 # ---------------------------------------------------------------------------
+# Request shapes: the C03 envelope AND the flat body
+# ---------------------------------------------------------------------------
+
+
+class EnvelopeTolerantRequest(BaseModel):
+    """Base for the request models on the endpoints the UI commands.
+
+    Two things, both aimed at the same failure: a consent echo that is sent
+    but never read.
+
+    1. `payload` is flattened onto the top level before validation
+       (`app.commands.unwrap_envelope`), so one model accepts the UI's C03
+       envelope and the verify scripts' flat body alike. Without this the
+       approval screen's `amount_cents`/`beneficiary_version` sat one level
+       down inside `payload`, where this endpoint never looked -- the
+       binding was implemented and enforced, and unreachable from the only
+       path a human uses.
+    2. Unknown fields are REFUSED rather than ignored, so that failure
+       cannot recur quietly: a shape the server does not understand is a
+       422, not a 200 that bound nothing.
+
+    Validated against every caller: the A07/A08/A09 verify scripts post
+    `{}` or `{"expected_version": n}` or `{"note": ...}`, all declared
+    below; the A06 nightly workflow calls `app.payout_dispatch` in-process
+    and sends no HTTP body at all.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _flatten_command_envelope(cls, data: Any) -> Any:
+        return unwrap_envelope(data) if isinstance(data, dict) else data
+
+
+# ---------------------------------------------------------------------------
 # Response models
 # ---------------------------------------------------------------------------
 
@@ -277,13 +313,31 @@ def create_payout(
 # ---------------------------------------------------------------------------
 
 
-class ApproveRequest(BaseModel):
+class ApproveRequest(EnvelopeTolerantRequest):
+    """Both shapes the real callers send (see `EnvelopeTolerantRequest`).
+
+    The last four fields are lane B's `ApprovePayoutPayload` (draft Q39),
+    which is what the approval screen puts inside the envelope's `payload`.
+    They are echoes of what the approver was shown, so the server refuses
+    an approval that no longer matches any of them -- and because extras
+    are forbidden, a field the UI starts sending that the server does not
+    know is a loud 422 rather than a silently discarded consent echo.
+    """
+
     expected_version: int | None = None
     note: str | None = None
-    # Echo of what the approver was shown. Optional so existing callers keep
-    # working; when present the server refuses an approval that does not match.
+    # The envelope's own id. Nothing here reads it: replay protection is the
+    # Idempotency-Key ledger (`_idempotent`), not this field. Declared so it
+    # survives `extra="forbid"`.
+    command_id: str | None = None
+    # Which command this is. Only one action is valid on this endpoint, so a
+    # mis-routed envelope is a 422 instead of an approval.
+    action: Literal["APPROVE_PAYOUT_ABOVE_LIMIT"] | None = None
     amount_cents: int | None = None
     beneficiary_version: int | None = None
+    logical_obligation_id: str | None = None
+    vendor_id: str | None = None
+    business_date: date | None = None
 
 
 @router.post("/{payout_id}/approve", response_model=PayoutOut)
@@ -307,6 +361,9 @@ def approve(
                 note=body.note,
                 approved_amount_cents=body.amount_cents,
                 approved_beneficiary_version=body.beneficiary_version,
+                approved_logical_obligation_id=body.logical_obligation_id,
+                approved_vendor_id=body.vendor_id,
+                approved_business_date=body.business_date,
             )
         except (
             payout_dispatch.PayoutNotFoundError,
@@ -333,8 +390,14 @@ def approve(
 # ---------------------------------------------------------------------------
 
 
-class ReleaseRequest(BaseModel):
+class ReleaseRequest(EnvelopeTolerantRequest):
+    """Release takes the same shape, although no UI screen calls it yet
+    (there is no `release` operation in apps/web's client): a caller that
+    retries a release through the command client must not have its
+    `expected_version` quietly dropped either."""
+
     expected_version: int | None = None
+    command_id: str | None = None
 
 
 class ReleaseResponse(BaseModel):
