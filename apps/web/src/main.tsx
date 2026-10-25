@@ -47,21 +47,11 @@ async function bootstrap() {
       },
       signOut: () => tokens.set(null),
     };
-    // Dev convenience: one operator who holds every capability, so the app
-    // opens straight onto the data instead of a sign-in form. The server still
-    // checks capabilities per request -- this only skips typing them in.
-    // `import.meta.env.DEV` is statically false in a build, so the branch and
-    // the credentials are dropped from the production bundle.
-    const devEmail = import.meta.env.VITE_ENCORE_DEV_EMAIL;
-    const devPassword = import.meta.env.VITE_ENCORE_DEV_PASSWORD;
-    if (import.meta.env.DEV && devEmail && devPassword && !tokens.get()) {
-      try {
-        tokens.set(await login(transport, config.apiOrigin, { email: devEmail, password: devPassword }));
-      } catch (e) {
-        // Fall through to the sign-in form rather than failing to boot.
-        console.warn('dev auto sign-in failed:', e);
-      }
-    }
+    // SINGLE-OPERATOR MODE: the backend authenticates nobody (see
+    // services/api/app/auth.py) because one person operates the whole app, so
+    // the client sends no token and never shows a sign-in form. The `auth`
+    // service above is left wired up, unused, as the thing to restore when
+    // authentication comes back.
   }
 
   const client = new ApiClient({
