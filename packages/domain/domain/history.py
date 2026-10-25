@@ -247,8 +247,23 @@ def _iso(value: Any) -> str | None:
 
 
 def apply(state: dict, e: dict) -> dict:
-    """Pure: returns a NEW state with `e` applied."""
-    s = copy.deepcopy(state)
+    """Pure: returns a NEW state with `e` applied.
+
+    The copy is what makes this pure, and it is why `fold` does NOT call
+    this in its loop: copying the accumulated state once per event makes a
+    fold quadratic in the number of events (see `fold`). Callers that want
+    one event applied to a state they still hold use this; `fold` uses
+    `_apply_in_place` under a single copy.
+    """
+    return _apply_in_place(copy.deepcopy(state), e)
+
+
+def _apply_in_place(s: dict, e: dict) -> dict:
+    """`apply` without the copy: MUTATES `s` and returns it.
+
+    Private because mutating a caller's state is only safe where the caller
+    owns it outright, which is true inside `fold` and nowhere else so far.
+    """
     t = e["event_type"]
     p = e.get("payload") or {}
     agg = e["aggregate_id"]
@@ -353,15 +368,28 @@ def apply(state: dict, e: dict) -> dict:
             if key in p:
                 rec[key] = p[key]
         rec.update(_times(e))
-    s["events_applied"] = state.get("events_applied", 0) + 1
-    s["last_position"] = max(int(e.get("global_position") or 0), state.get("last_position", 0))
+    # `s` is the state being accumulated, so these read their own previous
+    # value rather than a separate pre-copy one.
+    s["events_applied"] = s.get("events_applied", 0) + 1
+    s["last_position"] = max(int(e.get("global_position") or 0), s.get("last_position", 0))
     return s
 
 
 def fold(events: list[dict], start: dict | None = None) -> dict:
-    state = start if start is not None else empty_state()
+    """Fold events into one state. Still a pure function of its arguments:
+    `start` is copied, never mutated, and the result is a fresh object.
+
+    The copy happens ONCE here rather than once per event inside `apply`.
+    Copying per event made a fold O(events x state): the state grows as
+    records accumulate, so every later event deep-copied a bigger
+    structure. On the demo festival -- 202,795 events folding into ~1,830
+    records -- that was 582 seconds for work that is 1.5 seconds of actual
+    folding. `start` must be copied because callers pass a snapshot's
+    stored state straight off an ORM object, which must not be mutated.
+    """
+    state = copy.deepcopy(start) if start is not None else empty_state()
     for e in events:
-        state = apply(state, e)
+        _apply_in_place(state, e)
     return state
 
 
