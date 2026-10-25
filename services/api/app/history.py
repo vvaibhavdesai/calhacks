@@ -329,6 +329,40 @@ def _festival_events_query(db: Session, festival_id: str):
     )
 
 
+# Exactly the columns `_as_dict` reads, in that order. A fold over a whole
+# festival touches every event, and hydrating 202,795 full ORM entities to
+# read twelve fields off each cost 2.8s of the 4.3s the projection took
+# after the fold itself was fixed. A Row exposes the same attribute names,
+# so `_as_dict` takes either without knowing the difference.
+_FOLD_COLUMNS = (
+    BusinessEvent.event_id,
+    BusinessEvent.event_type,
+    BusinessEvent.stream_id,
+    BusinessEvent.aggregate_id,
+    BusinessEvent.aggregate_version,
+    BusinessEvent.payload,
+    BusinessEvent.vendor_id,
+    BusinessEvent.branch_id,
+    BusinessEvent.recorded_at,
+    BusinessEvent.occurred_at,
+    BusinessEvent.global_position,
+    BusinessEvent.actor_type,
+)
+
+
+def _festival_fold_query(db: Session, festival_id: str):
+    """`_festival_events_query` narrowed to the columns a fold reads.
+
+    Same rows, same order, same predicate -- so the folded state, its hash
+    and `events_applied` are unchanged. Only the hydration is cheaper.
+    """
+    return (
+        select(*_FOLD_COLUMNS)
+        .where(BusinessEvent.branch_id.is_(None), festival_event_clause(db, festival_id))
+        .order_by(BusinessEvent.global_position)
+    )
+
+
 def _count_through(db: Session, festival_id: str, cutoff: datetime) -> int:
     return db.execute(
         select(func.count())
@@ -348,15 +382,9 @@ def _snapshot_stream(festival_id: str) -> str:
 def take_snapshot(db: Session, *, festival_id: str, knowledge_cutoff: datetime) -> dict:
     """Derived and rebuildable: fold from scratch and store the result.
     Never business data; deleting every snapshot loses nothing."""
-    events = (
-        db.execute(
-            _festival_events_query(db, festival_id).where(
-                BusinessEvent.recorded_at <= knowledge_cutoff
-            )
-        )
-        .scalars()
-        .all()
-    )
+    events = db.execute(
+        _festival_fold_query(db, festival_id).where(BusinessEvent.recorded_at <= knowledge_cutoff)
+    ).all()
     state = dh.fold([_as_dict(e) for e in events])
     count = len(events)
     existing = db.execute(
@@ -433,13 +461,13 @@ def historical_projection(
     vendor_id: str | None,
 ) -> dict:
     snap, rejected = _usable_snapshot(db, festival_id, knowledge_cutoff)
-    q = _festival_events_query(db, festival_id).where(BusinessEvent.recorded_at <= knowledge_cutoff)
+    q = _festival_fold_query(db, festival_id).where(BusinessEvent.recorded_at <= knowledge_cutoff)
     start = None
     if snap is not None:
         snap_cutoff = datetime.fromisoformat(snap.state["knowledge_cutoff"])
         q = q.where(BusinessEvent.recorded_at > snap_cutoff)
         start = snap.state["fold"]
-    events = db.execute(q).scalars().all()
+    events = db.execute(q).all()
     state = dh.fold([_as_dict(e) for e in events], start=start)
     rows = dh.rows(state, business_date=business_date, vendor_id=vendor_id)
     for r in rows:
@@ -515,7 +543,7 @@ def historical_projection(
 
 
 def verify_projection(db: Session, *, festival_id: str) -> dict:
-    events = db.execute(_festival_events_query(db, festival_id)).scalars().all()
+    events = db.execute(_festival_fold_query(db, festival_id)).all()
     state = dh.fold([_as_dict(e) for e in events])
     mismatches: list[dict] = []
     checked = 0
