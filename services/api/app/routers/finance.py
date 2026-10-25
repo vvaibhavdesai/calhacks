@@ -11,14 +11,17 @@ view below is computed live from the database.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 
+import domain.payout_dispatch as domain_payout_dispatch
+import domain.settlement as domain_settlement
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 import app.accounting as accounting
+import app.cash_office as cash_office
 import app.finance_records as records
 import app.finance_reports as reports
 import app.payables as payables
@@ -32,6 +35,7 @@ from app.models import (
 )
 from app.models_finance import DailyClose, PurchaseOrder, VendorStatement
 from app.models_ledger import JournalEntry, Supplier, SupplierInvoice, Vendor
+from app.models_reconciliation import BankEntry
 from app.models_settlement import Settlement
 
 router = APIRouter(prefix="/api/v1", tags=["finance"])
@@ -277,6 +281,9 @@ def approve_variance(
 class PayIn(BaseModel):
     amount_cents: int
     business_date: date
+    # The bank debit that carried this payment, when known: it is cited in
+    # the journal so the unmatched-bank scan treats that debit as explained.
+    bank_entry_id: str | None = None
 
 
 @router.post("/invoices/{invoice_id}/pay")
@@ -287,6 +294,8 @@ def pay_invoice(
     db: Session = Depends(get_db),
     user: User = Depends(require_capability(CAPABILITY_MANAGE_PAYABLES)),
 ) -> dict:
+    if body.bank_entry_id is not None and db.get(BankEntry, body.bank_entry_id) is None:
+        raise HTTPException(status_code=404, detail="bank entry not found")
     try:
         payment, created = payables.pay_invoice(
             db,
@@ -294,6 +303,7 @@ def pay_invoice(
             amount_cents=body.amount_cents,
             idempotency_key=f"ap:{user.id}:{idempotency_key}",
             business_date=body.business_date,
+            bank_entry_id=body.bank_entry_id,
             actor_id=user.id,
             actor_capability=CAPABILITY_MANAGE_PAYABLES,
         )
@@ -323,7 +333,12 @@ def list_invoices(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> dict:
-    return payables.payables_summary(db, festival_id=festival_id, as_of=as_of or date.today())
+    out = payables.payables_summary(db, festival_id=festival_id, as_of=as_of or date.today())
+    # The summary nests its collection under `invoices`; readers of a list
+    # expect {items, next_cursor}. Both are served: the summary's own totals
+    # stay where its existing callers look for them. Not paged -- the payables
+    # of one festival are a page, not a stream -- so next_cursor is null.
+    return {**out, "items": out.get("invoices") or [], "next_cursor": None}
 
 
 @router.get("/invoices/{invoice_id}")
@@ -494,6 +509,50 @@ def _config_out(cfg) -> dict:
     }
 
 
+@router.get("/business-config")
+def get_business_config(
+    festival_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)
+) -> dict:
+    """The C05 business configuration: how this festival charges and pays.
+
+    The finance posting config carries the versioned, stored part (timezone,
+    the 9 AM / 10 AM times, the forecast horizon, the tax configuration). The
+    rest -- the default terms a vendor falls back to and the payout controls --
+    lives in the domain package as the constants the engines actually apply, so
+    it is read from there rather than restated. If a value here disagreed with
+    what settlement and release use, this endpoint would be the thing that is
+    wrong.
+
+    `currency` is C01's fixed USD for v1. `draft_notice` carries the config's
+    own label, so nobody reads these as approved business facts.
+    """
+    cfg = records.get_or_default_config(db, festival_id)
+    db.commit()
+    out = _config_out(cfg)
+    return {
+        **out,
+        "currency": "USD",
+        "draft_notice": out.get("label"),
+        "default_terms": {
+            # Applied when a vendor's active term leaves these null -- "null
+            # means use the festival default, never zero".
+            "commission_bps": domain_settlement.DEFAULT_COMMISSION_BPS,
+            "festival_minimum_cents": domain_settlement.DEFAULT_MINIMUM_FEE_CENTS,
+            "basis": "Applies only where a vendor's own contract terms do not state a rate.",
+        },
+        "payout_controls": {
+            "auto_limit_cents_per_vendor_day": domain_payout_dispatch.AUTOMATIC_RELEASE_LIMIT_CENTS,
+            # No real rail is reachable from this system; every payout is
+            # executed against the simulator, which is stated rather than
+            # implied so a reader never takes a CONFIRMED payout for a
+            # real transfer.
+            "payment_mode": "SIMULATED",
+            "statement_local_time": out.get("statement_local_time"),
+            "payout_local_time": out.get("payout_local_time"),
+        },
+    }
+
+
 @router.get("/finance/config")
 def get_config(
     festival_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)
@@ -545,7 +604,9 @@ def post_day(
     user: User = Depends(require_capability(CAPABILITY_CLOSE_BOOKS)),
 ) -> dict:
     """Posts (idempotently) the day's centrally collected sales net of
-    refunds/chargebacks, processor deposits and settlement commissions."""
+    refunds/chargebacks, processor deposits, settlement commissions,
+    cash-office deposits whose bank credit landed that day, and chargeback
+    fee recharges dated that day (re-evaluated against current terms)."""
     kw = dict(
         festival_id=body.festival_id,
         business_date=body.business_date,
@@ -557,6 +618,8 @@ def post_day(
             accounting.post_sales_for_day(db, **kw)
             + accounting.post_processor_deposits(db, **kw)
             + accounting.post_settlements_for_day(db, **kw)
+            + cash_office.post_cash_deposits(db, **kw)
+            + cash_office.post_chargeback_fees_for_day(db, **kw)
         )
     except _DOMAIN_ERRORS as exc:
         db.rollback()
@@ -625,6 +688,215 @@ def get_journal_entry(
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# Reports as addressable records
+#
+# These reports are computed from the books on request; none is stored. That
+# would normally mean nothing can be linked to, opened by id or exported --
+# which is what the reports screen needs.
+#
+# Rather than add a table and an "issue report" step, a report id states its
+# own inputs: `<kind>:<festival_id>:<through>`. Because a report is a pure
+# function of the books at a date, that id IS a durable reference -- resolving
+# it recomputes exactly the same report. Nothing is invented and no schema
+# changes; the trade is that a report reflects the books as they are NOW at
+# that date, so a correction posted later changes what the id resolves to.
+# Issuing immutable snapshots is a separate decision, recorded in
+# docs/progress/V1-READINESS.md.
+# ---------------------------------------------------------------------------
+
+_REPORT_KINDS = {
+    "tax": ("Sales tax", "DRAFT, NOT FILED"),
+    "pnl": ("Profit and loss", "DRAFT"),
+    "festival": ("Festival summary", "DRAFT"),
+}
+
+
+class ReportSectionOut(BaseModel):
+    section_id: str
+    title: str
+    lines: list[dict]
+
+
+class ReportOut(BaseModel):
+    id: str
+    kind: str
+    title: str
+    status: str
+    festival_id: str
+    period_to: date | None = None
+    generated_at: datetime
+    # What the report rests on, so a reader is not left guessing whether these
+    # numbers are filed, final or illustrative.
+    basis_note: str
+    headline: list[dict]
+    sections: list[ReportSectionOut]
+    source_refs: list = []
+
+
+class ReportListOut(BaseModel):
+    items: list[ReportOut]
+    next_cursor: str | None = None
+
+
+def _report_id(kind: str, festival_id: str, through: date | None) -> str:
+    return f"{kind}:{festival_id}:{through.isoformat() if through else 'latest'}"
+
+
+def _parse_report_id(report_id: str) -> tuple[str, str, date | None]:
+    kind, _, rest = report_id.partition(":")
+    festival_id, _, through = rest.rpartition(":")
+    if kind not in _REPORT_KINDS or not festival_id:
+        raise HTTPException(status_code=404, detail="report not found")
+    if through in ("", "latest"):
+        return kind, festival_id, None
+    try:
+        return kind, festival_id, date.fromisoformat(through)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail="report not found") from exc
+
+
+def _money_lines(pairs: list[tuple[str, int]], prefix: str) -> list[dict]:
+    return [
+        {"line_id": f"{prefix}.{i}", "label": label, "amount_cents": amount}
+        for i, (label, amount) in enumerate(pairs)
+    ]
+
+
+def _section_lines(value: object) -> list[dict]:
+    """A report section's lines, always as objects.
+
+    The computed reports mix shapes: a list of row dicts, a single summary
+    dict, or a plain list of strings (the closed business dates). A reader
+    should not have to branch on that, so a bare value becomes {"label": ...}
+    rather than being dropped or stringified into one blob.
+    """
+    if isinstance(value, dict):
+        return [{"label": k.replace("_", " "), "value": v} for k, v in value.items()]
+    if isinstance(value, list):
+        return [v if isinstance(v, dict) else {"label": str(v)} for v in value]
+    return [{"label": str(value)}]
+
+
+def _build_report(db: Session, kind: str, festival_id: str, through: date | None) -> ReportOut:
+    """Compute one report and shape it as sections a reader can read.
+
+    The three computed reports each have their own natural shape; this is the
+    only place that knows how to present each one, so no screen has to.
+    """
+    title, status = _REPORT_KINDS[kind]
+    headline: list[dict] = []
+    sections: list[ReportSectionOut] = []
+    basis = ""
+
+    if kind == "tax":
+        r = reports.tax_summary(db, festival_id=festival_id, through=through)
+        totals = r.get("totals") or {}
+        basis = f"{r.get('status', '')} {r.get('config_label', '')}".strip()
+        headline = _money_lines([(k.replace("_", " "), v) for k, v in totals.items()], "total")
+        sections = [
+            ReportSectionOut(
+                section_id="by_business_date",
+                title="By business date",
+                lines=list(r.get("by_business_date") or []),
+            ),
+            ReportSectionOut(
+                section_id="mismatch_lines",
+                title="Supplied vs recalculated differences",
+                lines=list(r.get("mismatch_lines") or []),
+            ),
+        ]
+    elif kind == "pnl":
+        r = reports.profit_and_loss(db, festival_id=festival_id, through=through)
+        basis = str(r.get("note") or "")
+        headline = _money_lines(
+            [
+                ("Total revenue", int(r.get("total_revenue_cents") or 0)),
+                ("Total expenses", int(r.get("total_expenses_cents") or 0)),
+                ("Net income", int(r.get("net_income_cents") or 0)),
+            ],
+            "headline",
+        )
+        sections = [
+            ReportSectionOut(
+                section_id="revenue", title="Revenue", lines=list(r.get("revenue") or [])
+            ),
+            ReportSectionOut(
+                section_id="expenses", title="Expenses", lines=list(r.get("expenses") or [])
+            ),
+        ]
+    else:
+        # festival_report is as-of a date, not through one; the id's date is
+        # that as-of, and today when the id says "latest".
+        r = reports.festival_report(db, festival_id=festival_id, as_of=through or date.today())
+        basis = "; ".join(str(x) for x in (r.get("labels") or []))
+        pnl = r.get("profit_and_loss") or {}
+        headline = _money_lines(
+            [
+                ("Net income", int(pnl.get("net_income_cents") or 0)),
+                ("Cash in bank", int((r.get("cash") or {}).get("bank_cents") or 0)),
+                (
+                    "Payables outstanding",
+                    int((r.get("payables") or {}).get("outstanding_cents") or 0),
+                ),
+            ],
+            "headline",
+        )
+        sections = [
+            ReportSectionOut(
+                section_id=name,
+                title=name.replace("_", " ").capitalize(),
+                lines=_section_lines(value),
+            )
+            for name, value in r.items()
+            if isinstance(value, list | dict) and value
+        ]
+
+    return ReportOut(
+        id=_report_id(kind, festival_id, through),
+        kind=kind,
+        title=title,
+        status=status,
+        festival_id=festival_id,
+        period_to=through,
+        generated_at=datetime.now(UTC),
+        basis_note=basis,
+        headline=headline,
+        sections=sections,
+    )
+
+
+@router.get("/reports", response_model=ReportListOut)
+def list_reports(
+    festival_id: str,
+    through: date | None = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> ReportListOut:
+    """Every report that can be produced for this festival, newest basis first.
+
+    `next_cursor` is always null: there are three kinds, not a stream of
+    reports, so the envelope keeps the shape every other list uses without
+    pretending to page.
+    """
+    items = [_build_report(db, kind, festival_id, through) for kind in _REPORT_KINDS]
+    db.commit()  # first use may create the default finance config version
+    return ReportListOut(items=items, next_cursor=None)
+
+
+@router.get("/reports/by-id/{report_id}", response_model=ReportOut)
+def get_report(
+    report_id: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> ReportOut:
+    """One report, resolved from an id that states its own inputs."""
+    kind, festival_id, through = _parse_report_id(report_id)
+    out = _build_report(db, kind, festival_id, through)
+    db.commit()  # first use may create the default finance config version
+    return out
+
+
 @router.get("/reports/tax")
 def get_tax(
     festival_id: str,
@@ -646,7 +918,11 @@ def get_cash(
 ) -> dict:
     out = reports.cash_report(db, festival_id=festival_id, as_of=as_of or date.today())
     db.commit()
-    return out
+    # A cash position is a single as-of snapshot, and the forecast points it
+    # carries are inside it. Served ALSO as a one-entry collection so a reader
+    # of a list gets the shape it expects rather than a bare object; the flat
+    # keys stay for the callers that already read them.
+    return {**out, "items": [out], "next_cursor": None}
 
 
 @router.get("/reports/pnl")

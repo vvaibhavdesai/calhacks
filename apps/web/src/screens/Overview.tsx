@@ -2,10 +2,12 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useApp } from '../app/AppContext';
 import type { Case } from '../api/types';
 import { BusinessDate, Money } from '../components/Formatted';
+import { BackendGapNote } from '../components/BackendGapNote';
 import { IllustrativeNote } from '../components/IllustrativeNote';
 import { PageHeader } from '../components/PageHeader';
 import { EmptyState, ErrorState, Loading } from '../components/QueryState';
 import { StatusBadge } from '../components/StatusBadge';
+import { caseImpactCents } from '../lib/money';
 import { useApiQuery } from '../hooks/useApiQuery';
 import { useLookups } from '../hooks/useLookups';
 import { RunSummary, VendorPipeline } from './Runs';
@@ -83,6 +85,7 @@ function LatestRun() {
         Close run
       </h2>
       <IllustrativeNote />
+      <BackendGapNote ops={['getFestival', 'listRuns', 'listCases']} />
       {runs.status === 'loading' ? <Loading label="Loading close runs" /> : null}
       {runs.status === 'error' ? <ErrorState error={runs.error} onRetry={runs.refetch} /> : null}
       {runs.status === 'success' && !run ? <EmptyState title="No close run has started yet" /> : null}
@@ -147,7 +150,11 @@ function NeedsDecision() {
             <li key={c.id}>
               <Link to={`/cases/${encodeURIComponent(c.id)}`}>{c.title ?? c.reason_code}</Link>{' '}
               <StatusBadge status={c.status} /> <span className="muted">{lookups.vendorName(c.vendor_id)}</span>{' '}
-              <span className="muted">· impact</span> <Money cents={c.financial_impact.amount_cents} />
+              {caseImpactCents(c) !== null ? (
+                <>
+                  <span className="muted">· impact</span> <Money cents={caseImpactCents(c)!} />
+                </>
+              ) : null}
             </li>
           ))}
         </ul>

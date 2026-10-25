@@ -1,0 +1,16 @@
+# Secret-scanning config for gitleaks (A10). Used by CI (.github/workflows/ci.yml
+# job `secret-scan`) and scripts/check_secrets.sh. Extends gitleaks' default
+# rules; only narrowly-scoped, reviewed false positives are allowlisted here.
+title = "encore gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Reviewed non-secrets"
+# Hand-authored ILLUSTRATIVE fixture ids (apps/web/src/fixtures/illustrative),
+# e.g. "idempotency_key": "illus_idem_spay_tents_2210" -- labeled sample ids,
+# never credentials.
+# Alembic revision ids such as 0002_canonical_records (progress notes quote
+# "0001_baseline_auth -> 0002_canonical_records").
+regexes = ['''^illus_[a-z0-9_]+$''', '''^[0-9]{4}_[a-z0-9_]+$''']

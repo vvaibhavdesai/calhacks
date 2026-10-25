@@ -1,0 +1,217 @@
+# A10 production-like stack: postgres + migrate + api + worker + web, plus an
+# opt-in `backup` job. Host-agnostic: runs on any Docker host; the hosting
+# destination has NOT been chosen (CONTRACTS.md C00, docs/deploy.md).
+#
+#   cp infra/.env.prod.example infra/.env.prod     # fill in; never commit it
+#   docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod up -d --build
+#   docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod \
+#       --profile bootstrap run --rm seed-admin      # first deploy only
+#   docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod \
+#       --profile ops run --rm backup                # scheduled by the host
+#
+# Secrets come ONLY from the environment / the untracked env file. Every
+# required secret uses ${VAR:?...}, so a missing one fails `compose up`
+# instead of starting with a blank or default credential. There are no
+# development-password fallbacks in this file.
+#
+# Only `web` publishes a port. TLS terminates in front of it (host load
+# balancer / reverse proxy); PostgreSQL, the API and the worker are reachable
+# only on the private compose network.
+name: encore-prod
+
+x-api-image: &api-build
+  context: ..
+  dockerfile: services/api/Dockerfile
+
+services:
+  postgres:
+    image: postgres:16.6
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-encore}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-encore}
+    volumes:
+      - encore_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # One-shot: applies migrations as the schema-owning role, then exits.
+  # api/worker start only after it completed successfully. Migration 0003
+  # creates/updates the restricted encore_app role with ENCORE_APP_DB_PASSWORD.
+  migrate:
+    build: *api-build
+    image: encore-api:${RELEASE_TAG:-local}
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-encore}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-encore}
+      ENCORE_APP_DB_PASSWORD: ${ENCORE_APP_DB_PASSWORD:?set ENCORE_APP_DB_PASSWORD}
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:?set AUTH_JWT_SECRET}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    working_dir: /repo
+    command: ["alembic", "-c", "db/migrations/alembic.ini", "upgrade", "head"]
+    restart: "no"
+
+  # First deploy only: create the initial all-capabilities user.
+  seed-admin:
+    profiles: ["bootstrap"]
+    image: encore-api:${RELEASE_TAG:-local}
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-encore}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-encore}
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:?set AUTH_JWT_SECRET}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:-}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    working_dir: /repo
+    command: ["python", "scripts/seed_admin.py"]
+    restart: "no"
+
+  api:
+    image: encore-api:${RELEASE_TAG:-local}
+    build: *api-build
+    restart: unless-stopped
+    environment:
+      # Restricted runtime role: cannot UPDATE/DELETE the append-only audit,
+      # source and journal tables (migration 0003, docs/notes/audit-trust-boundary.md).
+      DATABASE_URL: postgresql+psycopg://encore_app:${ENCORE_APP_DB_PASSWORD:?set ENCORE_APP_DB_PASSWORD}@postgres:5432/${POSTGRES_DB:-encore}
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:?set AUTH_JWT_SECRET}
+      AUTH_TOKEN_TTL_MINUTES: ${AUTH_TOKEN_TTL_MINUTES:-60}
+      APP_ENV: ${APP_ENV:-production}
+      ALLOWED_ORIGINS: ${PUBLIC_ORIGIN:?set PUBLIC_ORIGIN}
+      PAYMENT_MODE: simulated
+      DOCUMENT_STORAGE_BACKEND: local
+      DOCUMENT_STORAGE_ROOT: /data/documents
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-5-5}
+      CLAUDE_MAX_BUDGET_USD_PER_REQUEST: ${CLAUDE_MAX_BUDGET_USD_PER_REQUEST:-5}
+      CLAUDE_DAILY_BUDGET_USD: ${CLAUDE_DAILY_BUDGET_USD:-20}
+      CLAUDE_MAX_DOCUMENTS_PER_REQUEST: ${CLAUDE_MAX_DOCUMENTS_PER_REQUEST:-200}
+      CLAUDE_MAX_CONCURRENCY: ${CLAUDE_MAX_CONCURRENCY:-4}
+      CLAUDE_MAX_BATCHES_PER_HOUR: ${CLAUDE_MAX_BATCHES_PER_HOUR:-20}
+      OPS_METRICS_TOKEN: ${OPS_METRICS_TOKEN:-}
+      OPS_WORKER_HEALTH_URL: http://worker:8100/health/live
+      OPS_STALLED_RUN_MINUTES: ${OPS_STALLED_RUN_MINUTES:-30}
+      OPS_OUTBOX_STALE_MINUTES: ${OPS_OUTBOX_STALE_MINUTES:-10}
+      # Both intent types this system enqueues now have a dispatcher, so
+      # nothing is PENDING "by design" any more -- see .env.example.
+      OPS_OUTBOX_UNCONSUMED_INTENT_TYPES: ${OPS_OUTBOX_UNCONSUMED_INTENT_TYPES-}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - encore_documents:/data/documents
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=3).status == 200 else 1)"
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # The autonomous side of the system: the nightly-close coordinator, the
+  # outbox dispatcher and the schedule, each as a loop inside this one
+  # process (services/worker/worker/main.py). It keeps exposing the liveness
+  # contract (heartbeat-based /health/live) the API's WORKER_DOWN alert and
+  # the healthcheck below depend on, and is now stale as soon as ANY enabled
+  # loop stops making progress.
+  #
+  # Scaling out is safe (`--scale worker=N`): every loop claims its work
+  # from PostgreSQL with a lease, and the schedule's exactly-once key is
+  # UNIQUE(job_name, scheduled_for). There is no leader election and no
+  # assumption of a singleton process. Do NOT map host ports if you scale.
+  worker:
+    build:
+      context: ..
+      dockerfile: services/worker/Dockerfile
+    image: encore-worker:${RELEASE_TAG:-local}
+    restart: unless-stopped
+    environment:
+      WORKER_HEALTH_PORT: "8100"
+      WORKER_HEARTBEAT_SECONDS: "30"
+      # Restricted runtime role, as the api service above.
+      DATABASE_URL: postgresql+psycopg://encore_app:${ENCORE_APP_DB_PASSWORD:?set ENCORE_APP_DB_PASSWORD}@postgres:5432/${POSTGRES_DB:-encore}
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:?set AUTH_JWT_SECRET}
+      APP_ENV: ${APP_ENV:-production}
+      PAYMENT_MODE: simulated
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-5-5}
+      ORCHESTRATION_WORKER_ENABLED: ${ORCHESTRATION_WORKER_ENABLED:-1}
+      OUTBOX_DISPATCHER_ENABLED: ${OUTBOX_DISPATCHER_ENABLED:-1}
+      SCHEDULER_ENABLED: ${SCHEDULER_ENABLED:-1}
+      OUTBOX_MAX_ATTEMPTS: ${OUTBOX_MAX_ATTEMPTS:-5}
+      OUTBOX_RELEASE_WINDOW_ENABLED: ${OUTBOX_RELEASE_WINDOW_ENABLED:-1}
+      SCHEDULE_FESTIVAL_ID: ${SCHEDULE_FESTIVAL_ID:-}
+      SCHEDULE_ACTOR_EMAIL: ${SCHEDULE_ACTOR_EMAIL:-}
+      SCHEDULE_STATEMENTS_AT: ${SCHEDULE_STATEMENTS_AT:-09:00}
+      SCHEDULE_PAYOUT_RELEASE_AT: ${SCHEDULE_PAYOUT_RELEASE_AT:-10:00}
+      SCHEDULE_FIRST_BUSINESS_DATE: ${SCHEDULE_FIRST_BUSINESS_DATE:-2026-10-16}
+      SCHEDULE_LAST_BUSINESS_DATE: ${SCHEDULE_LAST_BUSINESS_DATE:-2026-10-18}
+      # APP_ENV=production already makes the demo clock inert; this is the
+      # second, explicit switch.
+      DEMO_CLOCK_MODE: "off"
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8100/health/live', timeout=3).status == 200 else 1)"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  web:
+    build:
+      context: ..
+      dockerfile: infra/web/Dockerfile
+    image: encore-web:${RELEASE_TAG:-local}
+    restart: unless-stopped
+    ports:
+      - "${WEB_BIND:-127.0.0.1}:${WEB_PORT:-8080}:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+
+  # Opt-in backup job (`--profile ops run --rm backup`); schedule it from the
+  # host (cron/systemd timer/scheduler of the chosen platform). Writes
+  # database + documents + manifest into the encore_backups volume; copy that
+  # off-host (see docs/runbooks/backup-restore.md).
+  backup:
+    profiles: ["ops"]
+    image: postgres:16.6
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER:-encore}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-encore}
+    volumes:
+      - ../scripts/ops:/ops:ro
+      - encore_documents:/data/documents:ro
+      - encore_backups:/backups
+    entrypoint: ["bash", "-c", "/ops/backup.sh --db \"$$POSTGRES_DB\" --documents-dir /data/documents --out /backups"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+volumes:
+  encore_postgres_data:
+  encore_documents:
+  encore_backups:

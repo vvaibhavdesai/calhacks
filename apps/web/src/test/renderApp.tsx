@@ -61,7 +61,17 @@ export const fixtureConfig: AppConfig = { dataMode: 'fixture', apiOrigin: '', au
 export function renderApp(path: string, transport: Transport, config: AppConfig = fixtureConfig) {
   const client = new ApiClient({ transport });
   return render(
-    <App services={{ config, client, fixtureId: config.dataMode === 'fixture' ? 'compact_v1' : null }} initialEntries={[path]} />,
+    <App
+      services={{
+        config,
+        client,
+        fixtureId: config.dataMode === 'fixture' ? 'compact_v1' : null,
+        // The harness serves /events/stream itself (vi.stubGlobal('fetch')),
+        // so the stream is opened here even though the real backend has none.
+        eventStream: true,
+      }}
+      initialEntries={[path]}
+    />,
   );
 }
 

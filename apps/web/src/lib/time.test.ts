@@ -28,6 +28,9 @@ describe('business dates vs UTC instants (C01)', () => {
     expect(isBusinessDate('2026-10-16T00:00:00Z')).toBe(false);
     expect(isUtcInstant('2026-10-16T20:16:00Z')).toBe(true);
     expect(isUtcInstant('2026-10-16T20:16:00.123Z')).toBe(true);
+    // The live API returns Python's UTC isoformat; it is the same instant.
+    expect(isUtcInstant('2026-10-24T22:31:23.147739+00:00')).toBe(true);
+    expect(formatInstant('2026-10-17T00:00:00+00:00')).toBe('Oct 16, 2026, 5:00:00 PM PDT');
     expect(isUtcInstant('2026-10-16T13:16:00-07:00')).toBe(false); // must be UTC on the wire
     expect(() => formatInstant('2026-10-16')).toThrow(DateFormatError);
     expect(() => formatBusinessDate('10/16/2026')).toThrow(DateFormatError);

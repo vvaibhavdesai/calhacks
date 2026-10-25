@@ -7,10 +7,19 @@ a page). Nothing here trusts it. A claim is usable only if:
      normalisation only) in the exact text the model was given -- on the
      cited page when one is cited;
   2. its value parses into the strict normalised form for its kind;
-  3. when the excerpt itself contains a figure of the same kind (a percent
-     for a rate, a dollar amount for a minimum), that figure equals the
-     claimed value. Excerpts that state a value only in words ("fifteen
-     percent") are accepted on check 1-2 alone and flagged, not guessed.
+  3. the excerpt states that value AS the claimed term. Containing the
+     number is not enough: the words around the figure must say it is the
+     commission / the minimum fee, and a figure the excerpt gives as
+     something else ("10% off for staff") is no evidence. Excerpts that
+     state a value only in words ("fifteen percent") are accepted on
+     check 1-2 plus the term's wording alone, and flagged, not guessed;
+  4. for the non-numeric kinds (processing-fee deduction, minimum period)
+     the excerpt must talk about that term and must not state the opposite
+     of the claimed value.
+
+Anything these checks cannot support is returned unverified -- never as an
+exception: the claim text is untrusted model output, and by the time it is
+checked the model call has already been paid for.
 
 No DB, no network, no clock -- same convention as the other domain modules.
 """
@@ -18,6 +27,7 @@ No DB, no network, no clock -- same convention as the other domain modules.
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import date
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
@@ -110,21 +120,189 @@ def parse_value(kind: str, raw: str, effective_from: str | None) -> tuple[Normal
 _PCT = re.compile(r"(\d{1,3}(?:\.\d+)?)\s*(?:%|percent|per cent)", re.I)
 _USD = re.compile(r"(?:\$|USD\s*)(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)", re.I)
 
+# A number is evidence for a claim only when the words beside it say the
+# number IS that term. Support and conflict phrases are weighed by their
+# distance from the figure, so the near "Commission" in "Commission: 15% of
+# eligible sales. Eligible sales exclude sales tax and tips" wins over the
+# far "sales tax", while "Staff and volunteers get 10% off" has no support
+# at all. Nothing further than _CONTEXT_CHARS from the figure counts as
+# surrounding text.
+_CONTEXT_CHARS = 80
+
+# The last alternative covers "of eligible sales", "of your eligible
+# festival sales" and "of Gross Sales".
+_RATE_SUPPORT = re.compile(
+    r"commission|organi[sz]er fee|our fee|booth fee|fee is|fee of|"
+    r"shall pay organi[sz]er|"
+    r"of (?:the |your |all )?(?:eligible|gross|net|festival)[\w ]{0,20}sales",
+    re.I,
+)
+_RATE_CONFLICT = re.compile(
+    r"discount|% off|percent off|off at|staff|volunteer|compliment|tip|gratuit|"
+    r"sales tax|tax rate|interest|late (?:fee|charge)|penalt|"
+    r"processing (?:fee|charge)|processor fee|card fee|wristband fee|"
+    r"surcharge|deposit|amp\b",
+    re.I,
+)
+_MIN_SUPPORT = re.compile(r"minimum|min\.? fee|guarantee", re.I)
+_MIN_CONFLICT = re.compile(
+    r"discount|deposit|insurance|permit|penalt|late (?:fee|charge)|fine\b|"
+    r"invoice|sales tax|tip|gratuit|unpaid balance|"
+    r"processing (?:fee|charge)|processor fee",
+    re.I,
+)
+
+# Processing-fee deduction and minimum period carry no figure, so the test
+# is the term's own wording plus its polarity.
+_PROCESSING_FEE_TERM = re.compile(
+    r"processing[ -](?:fee|charge)|processor fee|card (?:processing )?fee|"
+    r"wristband (?:processing )?fee",
+    re.I,
+)
+_NOT_DEDUCTED = re.compile(
+    r"not (?:be )?deducted|never deducted|no deduction|not (?:be )?netted|"
+    r"absorb|organi[sz]er (?:bears|shall bear|will bear)|"
+    r"borne by (?:the )?organi[sz]er",
+    re.I,
+)
+_DEDUCTED = re.compile(
+    r"deducted|deduct(?:s|ed)? from|netted against|net(?:ted)? off|"
+    r"vendor (?:bears|shall bear|pays)|charged to (?:the )?vendor|"
+    r"borne by (?:the )?vendor",
+    re.I,
+)
+_NIGHTLY = re.compile(r"per night|per day|nightly|each night|each day|daily", re.I)
+# "... for the entire festival, not per night" states FESTIVAL, not NIGHTLY.
+_NEGATED = re.compile(r"(?:not|never|rather than|instead of)\s+(?:be\s+)?(?:charged\s+)?$", re.I)
+_PER_FESTIVAL = re.compile(
+    r"entire festival|whole festival|per festival|once per festival|"
+    r"for the festival|charged once|once, not|across all",
+    re.I,
+)
+
+
+def _nearest(pattern: re.Pattern[str], text: str, span: tuple[int, int]) -> int | None:
+    """Smallest character gap between `span` and a match of `pattern`, or
+    None when the pattern matches nothing inside the context window."""
+    gaps = [
+        gap
+        for m in pattern.finditer(text)
+        if (gap := max(0, m.start() - span[1], span[0] - m.end())) <= _CONTEXT_CHARS
+    ]
+    return min(gaps) if gaps else None
+
+
+def _stated_figures(
+    text: str,
+    pattern: re.Pattern[str],
+    convert: Callable[[str], int],
+    support: re.Pattern[str],
+    conflict: re.Pattern[str],
+) -> tuple[set[int], list[str]]:
+    """The figures the excerpt states as the claimed term, and the raw
+    figures it states as something else or that do not parse (e.g. "150%",
+    which is a rejected claim, never an exception)."""
+    stated: set[int] = set()
+    other: list[str] = []
+    for m in pattern.finditer(text):
+        try:
+            value = convert(m.group(1))
+        except (InvalidOperation, ValueError):
+            other.append(m.group(0))
+            continue
+        near_support = _nearest(support, text, m.span())
+        near_conflict = _nearest(conflict, text, m.span())
+        if near_support is None or (near_conflict is not None and near_conflict < near_support):
+            other.append(m.group(0))
+            continue
+        stated.add(value)
+    return stated, other
+
+
+def _figure_consistent(
+    text: str,
+    claimed: int,
+    pattern: re.Pattern[str],
+    convert: Callable[[str], int],
+    support: re.Pattern[str],
+    conflict: re.Pattern[str],
+    *,
+    term: str,
+    mismatch: str,
+    unit: str,
+) -> tuple[bool, list[str]]:
+    stated, other = _stated_figures(text, pattern, convert, support, conflict)
+    if claimed in stated:
+        return True, []
+    if stated:
+        return False, [f"{mismatch}: excerpt states {sorted(stated)} {unit}"]
+    if not support.search(text):
+        return False, [f"excerpt_does_not_state_a_{term}"]
+    if other:
+        return False, [f"figure_not_stated_as_{term}: {other}"]
+    return True, ["value_stated_in_words_not_numerically_checked"]
+
+
+def _fee_deduction_consistent(deductible: bool, text: str) -> tuple[bool, list[str]]:
+    if not _PROCESSING_FEE_TERM.search(text):
+        return False, ["excerpt_does_not_state_a_processing_fee_term"]
+    if _NOT_DEDUCTED.search(text):
+        stated = False
+    elif _DEDUCTED.search(text):
+        stated = True
+    else:
+        return True, ["fee_deduction_direction_not_stated_in_excerpt"]
+    if stated is not deductible:
+        return False, [f"fee_deduction_mismatch: excerpt states {stated}"]
+    return True, []
+
+
+def _minimum_period_consistent(period: str, text: str) -> tuple[bool, list[str]]:
+    if not _MIN_SUPPORT.search(text):
+        return False, ["excerpt_does_not_state_a_minimum"]
+    nightly = any(not _NEGATED.search(text[: m.start()]) for m in _NIGHTLY.finditer(text))
+    if nightly:
+        stated = "NIGHTLY"
+    elif _PER_FESTIVAL.search(text) or _NIGHTLY.search(text):
+        stated = "FESTIVAL"  # "once per festival", or a negated "per night"
+    else:
+        return True, ["minimum_period_not_stated_in_excerpt"]
+    if stated != period:
+        return False, [f"minimum_period_mismatch: excerpt states {stated}"]
+    return True, []
+
 
 def figures_consistent(kind: str, n: Normalized, excerpt: str) -> tuple[bool, list[str]]:
-    """If the excerpt states a figure of the claimed kind, it must match."""
+    """The excerpt must state the claimed value AS the claimed term."""
+    text = normalize(excerpt)
     if kind == "COMMISSION_RATE" and n.commission_bps is not None:
-        found = {_percent_to_bps(m) for m in _PCT.findall(excerpt)}
-        if not found:
-            return True, ["value_stated_in_words_not_numerically_checked"]
-        if n.commission_bps not in found:
-            return False, [f"rate_mismatch: excerpt states {sorted(found)} bps"]
+        return _figure_consistent(
+            text,
+            n.commission_bps,
+            _PCT,
+            _percent_to_bps,
+            _RATE_SUPPORT,
+            _RATE_CONFLICT,
+            term="commission_rate",
+            mismatch="rate_mismatch",
+            unit="bps",
+        )
     if kind == "MINIMUM_FEE" and n.minimum_fee_cents is not None:
-        found = {_dollars_to_cents(m) for m in _USD.findall(excerpt)}
-        if not found:
-            return True, ["value_stated_in_words_not_numerically_checked"]
-        if n.minimum_fee_cents not in found:
-            return False, [f"amount_mismatch: excerpt states {sorted(found)} cents"]
+        return _figure_consistent(
+            text,
+            n.minimum_fee_cents,
+            _USD,
+            _dollars_to_cents,
+            _MIN_SUPPORT,
+            _MIN_CONFLICT,
+            term="minimum_fee",
+            mismatch="amount_mismatch",
+            unit="cents",
+        )
+    if kind == "PROCESSING_FEE_DEDUCTION" and n.processing_fee_deductible is not None:
+        return _fee_deduction_consistent(n.processing_fee_deductible, text)
+    if kind == "MINIMUM_PERIOD" and n.minimum_period is not None:
+        return _minimum_period_consistent(n.minimum_period, text)
     return True, []
 
 

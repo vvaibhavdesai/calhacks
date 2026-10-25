@@ -63,6 +63,6 @@ describe('fixture transport (dev/test only)', () => {
   });
 
   it('404s unknown detail ids', async () => {
-    await expect(client.get('getVendor', { path: { id: 'ven_missing' } })).rejects.toMatchObject({ kind: 'not_found' });
+    await expect(client.get('getVendor', { path: { vendor_id: 'ven_missing' } })).rejects.toMatchObject({ kind: 'not_found' });
   });
 });

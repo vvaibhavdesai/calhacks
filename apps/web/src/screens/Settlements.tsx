@@ -9,6 +9,7 @@ import { EvidenceDrawer } from '../components/EvidenceDrawer';
 import { FilterBar } from '../components/FilterBar';
 import { BusinessDate, Code, Instant, Money } from '../components/Formatted';
 import { HoldList } from '../components/HoldList';
+import { BackendGapNote } from '../components/BackendGapNote';
 import { IllustrativeNote } from '../components/IllustrativeNote';
 import { PageHeader } from '../components/PageHeader';
 import { Pagination } from '../components/Pagination';
@@ -75,6 +76,7 @@ export function SettlementsList() {
     <>
       <PageHeader title="Settlements" qualifier={MONEY_QUALIFIER} />
       <IllustrativeNote />
+      <BackendGapNote ops={['listSettlements']} />
       <section className="panel" aria-labelledby="set-heading">
         <h2 id="set-heading" className="panel-title">
           Vendor settlements
@@ -128,7 +130,7 @@ export function SettlementDetail() {
   const { client } = useApp();
   const { lookups, describeSource } = useLookups();
   const [evidence, setEvidence] = useState<{ title: string; refs: SourceRef[] } | null>(null);
-  const result = useApiQuery(`settlement:${settlementId}`, (signal) => client.get('getSettlement', { signal, path: { id: settlementId } }));
+  const result = useApiQuery(`settlement:${settlementId}`, (signal) => client.get('getSettlement', { signal, path: { settlement_id: settlementId } }));
   const s = result.data;
   const open = (title: string, refs: SourceRef[]) => setEvidence({ title, refs });
 
@@ -146,6 +148,7 @@ export function SettlementDetail() {
         </Link>
       </PageHeader>
       <IllustrativeNote />
+      <BackendGapNote ops={['getSettlement']} />
       {result.status === 'loading' ? <Loading label="Loading settlement" /> : null}
       {result.status === 'error' ? <ErrorState error={result.error} onRetry={result.refetch} /> : null}
       {s ? (

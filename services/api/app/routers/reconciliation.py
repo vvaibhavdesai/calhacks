@@ -107,6 +107,62 @@ class MatchGroupOut(BaseModel):
     status: str
     case_id: str | None
     members: list[MatchGroupMemberOut]
+    # Same value under the name the reader's contract uses.
+    match_kind: str
+    # What this group was matched out of: one entry per member, so a reader can
+    # drill from the group to the order, payment, bank entry or cash count it
+    # was computed from.
+    member_refs: list[MatchGroupMemberOut]
+    member_kinds: list[str]
+    # Totals per side, keyed `<kind>.<role>` (order.expected, payment.capture,
+    # payment.refund, ...). This is what makes a variance legible: the two
+    # sides are shown rather than only their difference.
+    matched_amounts: dict[str, int]
+    # The group's own provenance column, which was never served.
+    source_refs: list
+    # One sentence for the reason code, so a reader is not left decoding it.
+    explanation: str
+
+
+# A sentence per reason code. The classifier's codes are stable and few; an
+# unmapped one is humanised from the code rather than guessed at, so a new
+# classification shows up readably instead of blank.
+_RECONCILIATION_EXPLANATIONS = {
+    "order_payment_match": ("The payments captured for this order sum to the order total."),
+    "cash_count_match": (
+        "The counted cash matches what this vendor's orders say was taken in cash."
+    ),
+    "deposit_settled_no_fee": (
+        "This bank deposit settled for the amount expected, with no fee deducted."
+    ),
+    "deposit_pending_settlement": ("The deposit is expected but has not settled at the bank yet."),
+    "deposit_settlement_overdue": ("The deposit has not settled within the window allowed for it."),
+    "processor_fee_explained": (
+        "The shortfall against the gross is exactly the processor's stated fee."
+    ),
+    "refund_applied": ("A refund was recorded against this order and is netted out of its sales."),
+    "chargeback_applied": (
+        "A chargeback was recorded against this order and is netted out of its sales."
+    ),
+    "duplicate_charge_refunded": "The order was charged twice and the duplicate was refunded.",
+    "suspected_duplicate_charge": (
+        "Two captures of the same amount with no refund -- a human decides."
+    ),
+    "refund_exceeds_captured_amount": "More was refunded than was ever captured for this order.",
+    "order_overcharged": ("More was captured than the order total, and no refund explains it."),
+    "missing_or_partial_payment": "The order is not fully covered by captured payments.",
+    "cash_variance": (
+        "The counted cash does not match what the orders say, and no count explains it."
+    ),
+    "bank_deposit_variance_unexplained": (
+        "The bank deposit does not match the expected amount, and no fee or refund explains it."
+    ),
+}
+
+
+def _explanation(reason_code: str) -> str:
+    stated = _RECONCILIATION_EXPLANATIONS.get(reason_code)
+    return stated or reason_code.replace("_", " ").capitalize() + "."
 
 
 @router.get("/groups", response_model=list[MatchGroupOut])
@@ -152,27 +208,44 @@ def _to_group_out(db: Session, group: MatchGroup) -> MatchGroupOut:
         .scalars()
         .all()
     )
+    member_out = [
+        MatchGroupMemberOut(
+            member_kind=m.member_kind,
+            member_id=m.member_id,
+            role=m.role,
+            amount_cents=m.amount_cents,
+        )
+        for m in members
+    ]
+    # Sum per side rather than per member: two captures on one order are one
+    # side of the comparison, and it is the sides a reader needs to see.
+    amounts: dict[str, int] = {}
+    kinds: list[str] = []
+    for m in members:
+        amounts[f"{m.member_kind}.{m.role}"] = (
+            amounts.get(f"{m.member_kind}.{m.role}", 0) + m.amount_cents
+        )
+        if m.member_kind not in kinds:
+            kinds.append(m.member_kind)
     return MatchGroupOut(
         id=group.id,
         run_id=group.run_id,
         festival_id=group.festival_id,
         vendor_id=group.vendor_id,
         match_type=group.match_type,
+        match_kind=group.match_type,
         business_date=group.business_date,
         matched_amount_cents=group.matched_amount_cents,
         variance_cents=group.variance_cents,
         reason_code=group.reason_code,
+        explanation=_explanation(group.reason_code),
         status=group.status,
         case_id=group.case_id,
-        members=[
-            MatchGroupMemberOut(
-                member_kind=m.member_kind,
-                member_id=m.member_id,
-                role=m.role,
-                amount_cents=m.amount_cents,
-            )
-            for m in members
-        ],
+        members=member_out,
+        member_refs=member_out,
+        member_kinds=kinds,
+        matched_amounts=amounts,
+        source_refs=group.source_refs or [],
     )
 
 

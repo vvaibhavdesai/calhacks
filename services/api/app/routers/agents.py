@@ -14,9 +14,11 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.agents import limits
 from app.agents.extraction import configured_model, make_client
 from app.agents.runner import festival_documents, run_batch
 from app.auth import get_current_user, require_capability
+from app.config import get_settings
 from app.db import get_db
 from app.models import CAPABILITY_RUN_AGENTS, User
 from app.models_agents import DocumentClaim, DocumentExtraction
@@ -38,24 +40,42 @@ def extract_documents(
     db: Session = Depends(get_db),
     user: User = Depends(require_capability(CAPABILITY_RUN_AGENTS)),
 ) -> dict:
+    # A10: config-driven caps are checked BEFORE a client is built, so a
+    # refused request never reaches Claude (app/agents/limits.py).
+    try:
+        grant = limits.check_request(
+            db, get_settings(), budget_usd=body.budget_usd, max_documents=body.max_documents
+        )
+    except limits.LimitError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
     ids = body.source_document_ids or festival_documents(db, body.festival_id)
-    ids = ids[: body.max_documents]
+    ids = ids[: grant.max_documents]
     try:
         client = make_client()
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail={"code": "model_not_configured"}) from exc
-    res = run_batch(
-        document_ids=ids,
-        storage=get_document_storage(),
-        client=client,
-        budget_usd=body.budget_usd,
-    )
+    try:
+        limits.gate.try_start(get_settings().claude_max_batches_per_hour)
+    except limits.LimitError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+    try:
+        res = run_batch(
+            document_ids=ids,
+            storage=get_document_storage(),
+            client=client,
+            budget_usd=grant.budget_usd,
+            concurrency=grant.concurrency,
+        )
+    finally:
+        limits.gate.finish()
     return {
         "model": configured_model(),
         "documents": len(ids),
         "counts": res.counts(),
         "spent_usd_estimate": round(res.spent_usd, 4),
         "stopped_for_budget": res.stopped_for_budget,
+        "budget_usd_applied": round(grant.budget_usd, 4),
+        "capped_by_daily_budget": grant.capped_by_daily_budget,
         "results": [
             {
                 "source_document_id": r.source_document_id,

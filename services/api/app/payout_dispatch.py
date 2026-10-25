@@ -45,6 +45,7 @@ from sqlalchemy.orm import Session
 
 import app.accounting as accounting
 import app.rail_simulator as rail_simulator
+from app.holds import active_hold_for_payout
 from app.models import CAPABILITY_APPROVE_PAYOUT, CAPABILITY_FINANCE_LEAD
 from app.models_ledger import Case, OutboxIntent, Payout, Vendor
 from app.models_payout_dispatch import CashPool, PayoutApproval, VendorDayPayoutAggregate
@@ -62,6 +63,23 @@ class PayoutVersionConflictError(ValueError):
     def __init__(self, expected: int, current: int) -> None:
         super().__init__(f"expected_version={expected} does not match current version={current}")
         self.expected = expected
+        self.current = current
+
+
+class PayoutConsentMismatchError(ValueError):
+    """The approver stated a figure that is not the payout's own.
+
+    The approval screen makes a person affirm an exact amount and an exact
+    beneficiary version. Echoing those back lets the server refuse an approval
+    taken against a view that has since moved, instead of trusting that the
+    row version alone covered it. `field` names what disagreed so the client
+    can say which one.
+    """
+
+    def __init__(self, field: str, stated: int, current: int) -> None:
+        super().__init__(f"approved {field}={stated} does not match current {field}={current}")
+        self.field = field
+        self.stated = stated
         self.current = current
 
 
@@ -168,8 +186,22 @@ def _append_payout_event(
         actor_capability=actor_capability,
         occurred_at=datetime.now(UTC),
         vendor_id=payout.vendor_id,
-        payload=payload,
-        lineage_refs=[{"ref_kind": "payout", "ref_id": payout.id}],
+        # A09: every payout event records the state and amount it left the
+        # payout in, so the flight recorder can rebuild payout history from
+        # events alone (app/history.py) instead of from the mutable row.
+        payload={
+            **payload,
+            "state_after": payout.state,
+            "amount_cents_after": payout.amount_cents,
+            "business_date": payout.business_date.isoformat(),
+            "settlement_id": payout.settlement_id,
+        },
+        lineage_refs=[{"ref_kind": "payout", "ref_id": payout.id}]
+        + (
+            [{"ref_kind": "settlement", "ref_id": payout.settlement_id}]
+            if payout.settlement_id
+            else []
+        ),
     )
 
 
@@ -353,6 +385,8 @@ def approve_payout(
     user_capability_codes: set[str],
     expected_version: int | None,
     note: str | None = None,
+    approved_amount_cents: int | None = None,
+    approved_beneficiary_version: int | None = None,
 ) -> Payout:
     """DRAFT -> APPROVED. Requires CAPABILITY_APPROVE_PAYOUT always (the
     router's `require_capability` dependency already guarantees this --
@@ -374,6 +408,20 @@ def approve_payout(
         raise PayoutNotFoundError(f"payout {payout_id} not found")
     if expected_version is not None and payout.version != expected_version:
         raise PayoutVersionConflictError(expected_version, payout.version)
+
+    # What the approver actually consented to. Optional, so existing callers
+    # are unaffected; enforced whenever stated. `amount_cents` is immutable
+    # after creation and the beneficiary is re-checked at release, so this is
+    # the record of consent rather than the only thing standing in the way.
+    if approved_amount_cents is not None and approved_amount_cents != payout.amount_cents:
+        raise PayoutConsentMismatchError("amount_cents", approved_amount_cents, payout.amount_cents)
+    if (
+        approved_beneficiary_version is not None
+        and approved_beneficiary_version != payout.beneficiary_version
+    ):
+        raise PayoutConsentMismatchError(
+            "beneficiary_version", approved_beneficiary_version, payout.beneficiary_version
+        )
 
     if payout.state == "APPROVED" and CAPABILITY_FINANCE_LEAD in user_capability_codes:
         # Escalation: an ordinary approval that release later blocked with
@@ -413,6 +461,7 @@ def approve_payout(
             actor_capability=CAPABILITY_FINANCE_LEAD,
             payload={
                 "amount_cents": payout.amount_cents,
+                "beneficiary_version": payout.beneficiary_version,
                 "committed_prior_cents": check.committed_prior_cents,
                 "projected_total_cents": check.projected_total_cents,
             },
@@ -453,6 +502,10 @@ def approve_payout(
         actor_capability=required_capability,
         payload={
             "amount_cents": payout.amount_cents,
+            # The beneficiary this approval consented to. `release_payout`
+            # refuses to pay a different one; recording it here means the
+            # audit trail states what was approved, not only that it was.
+            "beneficiary_version": payout.beneficiary_version,
             "committed_prior_cents": check.committed_prior_cents,
             "required_capability": required_capability,
             "exceeded_automatic_limit": check.exceeds_limit,
@@ -528,9 +581,16 @@ def release_payout(
 
     # 3. Unresolved holds: an OPEN case on this vendor is a hard blocker,
     # independent of amount/approval (AGENT_HANDOFF.md: "An amount approval
-    # does not waive unrelated controls").
+    # does not waive unrelated controls"). `blocking` defaults to true, so
+    # every case kind that ever blocked still blocks; the one exception is
+    # A06 stage 2's `minimum_period_claim`, where the signed contract
+    # already decides the night and the open question withholds nothing.
     open_case = db.execute(
-        select(Case.id).where(Case.vendor_id == payout.vendor_id, Case.status == "OPEN")
+        select(Case.id).where(
+            Case.vendor_id == payout.vendor_id,
+            Case.status == "OPEN",
+            Case.blocking.is_(True),
+        )
     ).first()
     if open_case is not None:
         _block(
@@ -538,6 +598,26 @@ def release_payout(
             payout,
             reason_code="open_unresolved_case",
             details={"case_id": open_case[0]},
+            actor_id=actor_id,
+            actor_capability=actor_capability,
+        )
+
+    # 3b. A09 work holds: an open challenge of the rule/result this vendor's
+    # money depends on, or an undecided vendor recovery, blocks release
+    # regardless of amount or approval.
+    hold = active_hold_for_payout(
+        db, vendor_id=payout.vendor_id, payout_id=payout.id, settlement_id=payout.settlement_id
+    )
+    if hold is not None:
+        _block(
+            db,
+            payout,
+            reason_code=hold.reason_code,
+            details={
+                "hold_id": hold.id,
+                "source_kind": hold.source_kind,
+                "source_id": hold.source_id,
+            },
             actor_id=actor_id,
             actor_capability=actor_capability,
         )
@@ -642,6 +722,10 @@ def release_payout(
             "amount_cents": payout.amount_cents,
             "committed_prior_cents": check.committed_prior_cents,
             "projected_total_cents": check.projected_total_cents,
+            "state_after": payout.state,
+            "amount_cents_after": payout.amount_cents,
+            "business_date": payout.business_date.isoformat(),
+            "settlement_id": payout.settlement_id,
         },
         lineage_refs=[{"ref_kind": "payout", "ref_id": payout.id}],
     )
@@ -724,6 +808,28 @@ def dispatch_payout(
     if intent is None:
         raise RuntimeError(
             f"no outbox intent for payout {payout.id} -- release_payout must run first"
+        )
+
+    # A09 recheck at execution: a challenge that landed after release holds
+    # the dispatch too, as long as the rail has not been contacted yet (once
+    # it has, only cancellation/reconciliation can follow -- never a pretend
+    # "unsent").
+    hold = active_hold_for_payout(
+        db, vendor_id=payout.vendor_id, payout_id=payout.id, settlement_id=payout.settlement_id
+    )
+    if hold is not None and rail_simulator.lookup(db, payout.idempotency_key) is None:
+        _block(
+            db,
+            payout,
+            reason_code=hold.reason_code,
+            details={
+                "hold_id": hold.id,
+                "source_kind": hold.source_kind,
+                "source_id": hold.source_id,
+                "stage": "dispatch",
+            },
+            actor_id=actor_id,
+            actor_capability=actor_capability,
         )
 
     # Nothing on `db` is mutated above this line (only SELECTs/locks) --

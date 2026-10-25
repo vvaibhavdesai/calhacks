@@ -18,6 +18,8 @@ dist/
 .env.*
 !.env.example
 !*/.env.example
+# A10: committed templates such as infra/.env.prod.example (no values)
+!*.example
 
 # Document storage (local dev adapter)
 .data/
@@ -28,3 +30,7 @@ var/documents/
 
 # Logs
 *.log
+
+# Claude Code session state and agent worktrees (never committed; also keeps
+# black/ruff from walking into other branches, incl. lane B's excluded files).
+.claude/

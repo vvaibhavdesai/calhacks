@@ -4,14 +4,17 @@
  * - business_date: YYYY-MM-DD, a festival-local calendar date in
  *   America/Los_Angeles. It is a label, NOT an instant: it is never converted
  *   through the browser time zone.
- * - Instants: UTC RFC3339 ("...Z"). Displayed in festival time (Pacific) with
- *   the UTC value available for audit.
+ * - Instants: UTC RFC3339. The backend serializes them two ways - "...Z" and
+ *   Python's "...+00:00" (datetime.isoformat on a UTC datetime, which is what
+ *   the live /events feed returns) - so both are accepted. A non-zero offset
+ *   is not: an instant on the wire is UTC. Displayed in festival time
+ *   (Pacific) with the UTC value available for audit.
  */
 
 export const FESTIVAL_TIME_ZONE = 'America/Los_Angeles';
 
 const BUSINESS_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
-const UTC_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,9})?Z$/;
+const UTC_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,9})?(Z|[+-]00:00)$/;
 
 export class DateFormatError extends Error {
   constructor(readonly raw: unknown, kind: string) {

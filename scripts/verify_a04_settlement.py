@@ -116,6 +116,9 @@ def result_for_vendor(response: dict, vendor_id: str) -> dict:
     raise AssertionError(f"no result for vendor {vendor_id} in {response}")
 
 
+AUTH_DISABLED = os.environ.get("ENCORE_AUTH_DISABLED", "1") == "1"
+
+
 def main() -> int:
     make_engine()
     session_factory = get_session_factory()
@@ -137,19 +140,25 @@ def main() -> int:
     token = login.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
 
-    unauth = client.post(
-        "/api/v1/settlements/calculate",
-        json={
-            "festival_id": ids["fixture1_festival_id"],
-            "business_date": ids["fixture1_business_date"],
-            "is_final_period": True,
-        },
-    )
-    check(
-        "POST /settlements/calculate with no token is rejected",
-        unauth.status_code == 401,
-        f"status={unauth.status_code}",
-    )
+    # DISABLED in single-operator mode (services/api/app/auth.py): nothing is
+    # refused, and this call SUCCEEDS -- it calculates fixture1's settlement
+    # early, which later assertions would then find already present.
+    if not AUTH_DISABLED:
+        unauth = client.post(
+            "/api/v1/settlements/calculate",
+            json={
+                "festival_id": ids["fixture1_festival_id"],
+                "business_date": ids["fixture1_business_date"],
+                "is_final_period": True,
+            },
+        )
+        check(
+            "POST /settlements/calculate with no token is rejected",
+            unauth.status_code == 401,
+            f"status={unauth.status_code}",
+        )
+    else:
+        print("SKIP  unauthenticated calculate is rejected (single-operator mode)")
 
     # =======================================================================
     # Fixture 1: $10,000 eligible -> $1,500 commission / $8,500 entitlement.

@@ -7,6 +7,7 @@ import { EvidenceButton } from '../components/EvidenceButton';
 import { EvidenceDrawer } from '../components/EvidenceDrawer';
 import { FilterBar, type FilterField } from '../components/FilterBar';
 import { BusinessDate, Code, Instant, Money } from '../components/Formatted';
+import { BackendGapNote } from '../components/BackendGapNote';
 import { PageHeader } from '../components/PageHeader';
 import { Pagination } from '../components/Pagination';
 import { EmptyState, ErrorState, Loading } from '../components/QueryState';
@@ -41,15 +42,30 @@ const DEFS = {
     rowKey: (r) => r.id,
     columns: () => [
       { id: 'name', header: 'Vendor', sortField: 'name', rowHeader: true, render: (r) => r.name },
-      { id: 'booths', header: 'Booths', render: (r) => (r.booths ?? []).map((b) => b.label).join(', ') || r.booth_ids.join(', ') },
+      {
+        // Booths and the active contract reference are fixture-only: the
+        // backend has no booth model, and a vendor's contract is reachable
+        // through its terms rather than a pinned source version. Rendered as
+        // absent rather than crashing the table on a field that is not sent.
+        id: 'booths',
+        header: 'Booths',
+        render: (r) => {
+          const labels = (r.booths ?? []).map((b) => b.label);
+          const ids = labels.length ? labels : (r.booth_ids ?? []);
+          return ids.length ? ids.join(', ') : <span className="muted">—</span>;
+        },
+      },
       {
         id: 'contract',
         header: 'Active contract',
-        render: (r) => (
-          <>
-            <Code>{r.active_contract_version.source_id}</Code> v{r.active_contract_version.source_version}
-          </>
-        ),
+        render: (r) =>
+          r.active_contract_version ? (
+            <>
+              <Code>{r.active_contract_version.source_id}</Code> v{r.active_contract_version.source_version}
+            </>
+          ) : (
+            <span className="muted">—</span>
+          ),
       },
       { id: 'beneficiary', header: 'Beneficiary version', numeric: true, render: (r) => r.beneficiary_version },
       { id: 'status', header: 'Status', render: (r) => <span className="badge">{r.status}</span> },
@@ -241,6 +257,7 @@ function RecordList({ def }: { def: CollectionDef<ListOperationId> }) {
       <h2 id="records-heading" className="panel-title">
         {def.label}
       </h2>
+      <BackendGapNote ops={[def.op]} />
       {filterFields.length > 0 ? <FilterBar fields={filterFields} values={params.filters} onApply={setFilters} /> : null}
       {result.status === 'loading' ? <Loading label={`Loading ${def.label.toLowerCase()}`} /> : null}
       {result.status === 'error' ? <ErrorState error={result.error} onRetry={result.refetch} /> : null}

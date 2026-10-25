@@ -8,6 +8,7 @@ import { EvidenceDrawer } from '../components/EvidenceDrawer';
 import { ExportButtons } from '../components/ExportButtons';
 import { FilterBar } from '../components/FilterBar';
 import { BusinessDate, Code, Instant, Money } from '../components/Formatted';
+import { BackendGapNote } from '../components/BackendGapNote';
 import { IllustrativeNote } from '../components/IllustrativeNote';
 import { PageHeader } from '../components/PageHeader';
 import { Pagination } from '../components/Pagination';
@@ -61,6 +62,7 @@ export function ReportsList() {
         </Link>
       </PageHeader>
       <IllustrativeNote />
+      <BackendGapNote ops={['listFinancialReports']} />
       <section className="panel" aria-labelledby="reports-heading">
         <h2 id="reports-heading" className="panel-title">
           Financial reports
@@ -99,7 +101,7 @@ export function ReportDetail() {
   const { client } = useApp();
   const { describeSource } = useLookups();
   const [evidence, setEvidence] = useState<{ title: string; refs: SourceRef[] } | null>(null);
-  const result = useApiQuery(`report:${reportId}`, (signal) => client.get('getFinancialReport', { signal, path: { id: reportId } }));
+  const result = useApiQuery(`report:${reportId}`, (signal) => client.get('getFinancialReport', { signal, path: { report_id: reportId } }));
   const r = result.data;
   const open = (title: string, refs: SourceRef[]) => setEvidence({ title, refs });
   const lineColumns: Column<FinancialReportLine>[] = [
@@ -131,6 +133,7 @@ export function ReportDetail() {
         </Link>
       </PageHeader>
       <IllustrativeNote />
+      <BackendGapNote ops={['getFinancialReport']} />
       {result.status === 'loading' ? <Loading label="Loading report" /> : null}
       {result.status === 'error' ? <ErrorState error={result.error} onRetry={result.refetch} /> : null}
       {r ? (

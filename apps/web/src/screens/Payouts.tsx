@@ -9,6 +9,7 @@ import { SimulatedBanner, SIMULATED_TEXT } from '../components/FinanceLabels';
 import { FilterBar } from '../components/FilterBar';
 import { BusinessDate, Code, Instant, Money } from '../components/Formatted';
 import { HoldList } from '../components/HoldList';
+import { BackendGapNote } from '../components/BackendGapNote';
 import { IllustrativeNote } from '../components/IllustrativeNote';
 import { PageHeader } from '../components/PageHeader';
 import { Pagination } from '../components/Pagination';
@@ -77,6 +78,7 @@ export function PayoutsList() {
       <PageHeader title="Payouts" qualifier={QUALIFIER} />
       <SimulatedBanner what="Vendor payouts" />
       <IllustrativeNote />
+      <BackendGapNote ops={['listPayouts', 'listPayoutBatches']} />
       <section className="panel" aria-labelledby="batches-heading">
         <h2 id="batches-heading" className="panel-title">
           Release batches
@@ -174,7 +176,7 @@ export function PayoutDetail() {
   const { payoutId = '' } = useParams();
   const { client } = useApp();
   const { lookups } = useLookups();
-  const result = useApiQuery(`payout:${payoutId}`, (signal) => client.get('getPayout', { signal, path: { id: payoutId } }));
+  const result = useApiQuery(`payout:${payoutId}`, (signal) => client.get('getPayout', { signal, path: { payout_id: payoutId } }));
   const p = result.data;
 
   return (
@@ -192,6 +194,7 @@ export function PayoutDetail() {
       </PageHeader>
       <SimulatedBanner what="This payout" />
       <IllustrativeNote />
+      <BackendGapNote ops={['getPayout', 'approvePayout']} />
       {result.status === 'loading' ? <Loading label="Loading payout" /> : null}
       {result.status === 'error' ? <ErrorState error={result.error} onRetry={result.refetch} /> : null}
       {p ? (
@@ -403,7 +406,7 @@ function PayoutApproval({ p, onServerChange }: { p: Payout; onServerChange: () =
   const [acknowledged, setAcknowledged] = useState(false);
   const [note, setNote] = useState('');
   const [staleAt, setStaleAt] = useState<number | null>(null);
-  const cmd = useCommand('approvePayout', { id: p.id }, { onServerChange });
+  const cmd = useCommand('approvePayout', { payout_id: p.id }, { onServerChange });
   const { prepared, state, discard } = cmd;
   const headingId = useId();
   const noteId = useId();

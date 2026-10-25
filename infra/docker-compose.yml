@@ -49,6 +49,9 @@ services:
       APP_ENV: ${APP_ENV:-development}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-}
+      # Both intent types this system enqueues now have a dispatcher, so
+      # nothing is PENDING "by design" any more -- see .env.example.
+      OPS_OUTBOX_UNCONSUMED_INTENT_TYPES: ${OPS_OUTBOX_UNCONSUMED_INTENT_TYPES-}
     ports:
       - "8000:8000"
     volumes:
@@ -65,6 +68,32 @@ services:
       dockerfile: services/worker/Dockerfile
     environment:
       WORKER_HEALTH_PORT: "8100"
+      # Same restricted `encore_app` role as the api service.
+      DATABASE_URL: postgresql+psycopg://encore_app:${ENCORE_APP_DB_PASSWORD:-encore_app_dev_password}@postgres:5432/${POSTGRES_DB:-encore}
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET}
+      APP_ENV: ${APP_ENV:-development}
+      PAYMENT_MODE: simulated
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-}
+      # The three work loops (worker/main.py). Each one claims its own work
+      # from the database, so scaling this service out is safe.
+      ORCHESTRATION_WORKER_ENABLED: ${ORCHESTRATION_WORKER_ENABLED:-1}
+      OUTBOX_DISPATCHER_ENABLED: ${OUTBOX_DISPATCHER_ENABLED:-1}
+      SCHEDULER_ENABLED: ${SCHEDULER_ENABLED:-1}
+      OUTBOX_POLL_SECONDS: ${OUTBOX_POLL_SECONDS:-2}
+      OUTBOX_BATCH: ${OUTBOX_BATCH:-20}
+      OUTBOX_MAX_ATTEMPTS: ${OUTBOX_MAX_ATTEMPTS:-5}
+      OUTBOX_RELEASE_WINDOW_ENABLED: ${OUTBOX_RELEASE_WINDOW_ENABLED:-1}
+      # Blank SCHEDULE_FESTIVAL_ID = the scheduler runs but schedules
+      # nothing, which is the safe default for a fresh database.
+      SCHEDULE_FESTIVAL_ID: ${SCHEDULE_FESTIVAL_ID:-}
+      SCHEDULE_ACTOR_EMAIL: ${SCHEDULE_ACTOR_EMAIL:-}
+      SCHEDULE_STATEMENTS_AT: ${SCHEDULE_STATEMENTS_AT:-09:00}
+      SCHEDULE_PAYOUT_RELEASE_AT: ${SCHEDULE_PAYOUT_RELEASE_AT:-10:00}
+      SCHEDULE_FIRST_BUSINESS_DATE: ${SCHEDULE_FIRST_BUSINESS_DATE:-2026-10-16}
+      SCHEDULE_LAST_BUSINESS_DATE: ${SCHEDULE_LAST_BUSINESS_DATE:-2026-10-18}
+      DEMO_CLOCK_MODE: ${DEMO_CLOCK_MODE:-enabled}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
     ports:
       - "8100:8100"
     depends_on:
@@ -73,14 +102,17 @@ services:
       migrate:
         condition: service_completed_successfully
 
+  # A10: same image as production (infra/web/Dockerfile): nginx serving the
+  # built SPA and proxying /api to the api service on one origin. (The old
+  # apps/web/Dockerfile build context could not see data/generator, which
+  # the production-bundle guard needs.) For hot-reload development use
+  # `npm run dev` in apps/web instead.
   web:
     build:
-      context: ../apps/web
-      dockerfile: Dockerfile
-    environment:
-      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
+      context: ..
+      dockerfile: infra/web/Dockerfile
     ports:
-      - "5173:5173"
+      - "5173:8080"
     depends_on:
       - api
 

@@ -48,6 +48,16 @@ def _http_error_for(exc: Exception) -> HTTPException:
             status_code=409,
             detail={"code": "version_conflict", "expected": exc.expected, "current": exc.current},
         )
+    if isinstance(exc, payout_dispatch.PayoutConsentMismatchError):
+        return HTTPException(
+            status_code=409,
+            detail={
+                "code": "approval_consent_mismatch",
+                "field": exc.field,
+                "approved": exc.stated,
+                "current": exc.current,
+            },
+        )
     if isinstance(exc, payout_dispatch.PayoutCapabilityError):
         return HTTPException(
             status_code=403, detail=f"missing required capability: {exc.required_capability}"
@@ -156,6 +166,10 @@ def create_payout(
 class ApproveRequest(BaseModel):
     expected_version: int | None = None
     note: str | None = None
+    # Echo of what the approver was shown. Optional so existing callers keep
+    # working; when present the server refuses an approval that does not match.
+    amount_cents: int | None = None
+    beneficiary_version: int | None = None
 
 
 @router.post("/{payout_id}/approve", response_model=PayoutOut)
@@ -174,10 +188,13 @@ def approve(
             user_capability_codes=capability_codes,
             expected_version=body.expected_version,
             note=body.note,
+            approved_amount_cents=body.amount_cents,
+            approved_beneficiary_version=body.beneficiary_version,
         )
     except (
         payout_dispatch.PayoutNotFoundError,
         payout_dispatch.PayoutVersionConflictError,
+        payout_dispatch.PayoutConsentMismatchError,
         payout_dispatch.PayoutCapabilityError,
     ) as exc:
         raise _http_error_for(exc) from exc
@@ -263,7 +280,8 @@ def dispatch(
             actor_capability=CAPABILITY_APPROVE_PAYOUT,
             simulate_outcome=body.simulate_outcome,
         )
-    except payout_dispatch.PayoutNotFoundError as exc:
+    except (payout_dispatch.PayoutNotFoundError, payout_dispatch.PayoutBlockedError) as exc:
+        # A09: dispatch can now be blocked by a work hold (recheck at execution).
         raise _http_error_for(exc) from exc
     db.commit()
     return DispatchResponse(

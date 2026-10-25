@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { RouterProvider, createBrowserRouter, createMemoryRouter, type RouteObject } from 'react-router-dom';
-import { EventStreamClient, liveStreamOpener } from '../api/sse';
+import { isLive } from '../api/operations';
 import { CaseDetail, CasesList } from '../screens/Cases';
 import { CashScreen } from '../screens/Cash';
 import { JournalDetail, JournalList } from '../screens/Journal';
@@ -24,6 +24,7 @@ import { PlaceholderScreen } from '../screens/PlaceholderScreen';
 import { SourceRecords } from '../screens/SourceRecords';
 import { AppProvider, useApp, type AppServices } from './AppContext';
 import { Layout } from './Layout';
+import { RouteError } from '../components/RouteError';
 import { PLACEHOLDERS } from './navigation';
 
 const ROUTER_FUTURE = {
@@ -38,6 +39,9 @@ export const routes: RouteObject[] = [
   {
     path: '/',
     element: <Layout />,
+    // Scoped to the children so the shell and navigation survive a screen
+    // that throws; without it React Router replaces the whole app.
+    errorElement: <RouteError />,
     children: [
       { index: true, element: <Overview /> },
       { path: 'runs', element: <RunsList /> },
@@ -85,25 +89,62 @@ export const routes: RouteObject[] = [
 ];
 
 /**
- * Starts the SSE notification stream in live mode. Every event or resync just
- * invalidates projections (refetch); events never change capabilities.
+ * Keeps the open screen current in live mode.
+ *
+ * The nightly close runs in a worker, so a vendor can go from held to paid
+ * with no request from this browser. Rather than leave the operator reloading
+ * to find out, this polls the event log's head position -- one cheap read --
+ * and invalidates projections when it moves. Events only ever trigger a
+ * refetch; they never change capabilities.
+ *
+ * Polling, not a stream: the backend serves no /events/stream route, and a
+ * poll of an endpoint that already exists needs nothing new on the server. The
+ * cost is that an update lands within POLL_MS rather than immediately, which
+ * is the right trade for a back-office view. `src/api/sse.ts` stays as the
+ * client half of a stream if one is served later.
  */
+const LIVE_POLL_MS = 5000;
+
 function LiveUpdates() {
-  const { client, fixtureId, invalidateAll, setStreamStatus, config } = useApp();
+  const { client, fixtureId, invalidateAll, setStreamStatus, eventStream } = useApp();
   useEffect(() => {
-    if (fixtureId) return; // no event stream in fixture mode
-    const stream = new EventStreamClient({
-      open: liveStreamOpener(
-        (cursor) => client.url('streamEvents', { query: { cursor } }),
-        config.apiOrigin ? 'include' : 'same-origin',
-      ),
-      onEvent: () => invalidateAll(),
-      onResync: () => invalidateAll(),
-      onStatus: setStreamStatus,
-    });
-    void stream.start();
-    return () => stream.stop();
-  }, [client, fixtureId, invalidateAll, setStreamStatus, config.apiOrigin]);
+    if (fixtureId) return; // no live updates against fixtures
+    if (!(eventStream ?? isLive('listEvents'))) {
+      setStreamStatus({ state: 'stopped', reason: 'unavailable' });
+      return;
+    }
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    // Only the first reading establishes a baseline; it must not trigger a
+    // refetch of screens that have just loaded.
+    let lastHead: number | null = null;
+
+    const tick = async () => {
+      if (stopped) return;
+      try {
+        const page = (await client.list('listEvents', { query: { limit: 1 } })) as unknown as {
+          head_sequence?: number;
+        };
+        const head = typeof page.head_sequence === 'number' ? page.head_sequence : null;
+        if (!stopped) {
+          setStreamStatus({ state: 'open' });
+          if (head !== null && lastHead !== null && head !== lastHead) invalidateAll();
+          if (head !== null) lastHead = head;
+        }
+      } catch {
+        // A failed poll is not worth interrupting the operator over, and not
+        // worth flapping the indicator for: the data on screen is still
+        // whatever the server last served, and the next tick retries in
+        // LIVE_POLL_MS. The status is left as it was.
+      }
+      if (!stopped) timer = setTimeout(() => void tick(), LIVE_POLL_MS);
+    };
+    void tick();
+    return () => {
+      stopped = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [client, fixtureId, invalidateAll, setStreamStatus, eventStream]);
   return null;
 }
 

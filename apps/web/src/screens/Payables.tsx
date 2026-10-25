@@ -8,6 +8,7 @@ import { EvidenceDrawer } from '../components/EvidenceDrawer';
 import { SimulatedBanner, SIMULATED_TEXT } from '../components/FinanceLabels';
 import { FilterBar } from '../components/FilterBar';
 import { BusinessDate, Code, Money } from '../components/Formatted';
+import { BackendGapNote } from '../components/BackendGapNote';
 import { IllustrativeNote } from '../components/IllustrativeNote';
 import { PageHeader } from '../components/PageHeader';
 import { Pagination } from '../components/Pagination';
@@ -64,6 +65,7 @@ export function PayablesScreen({ tab }: { tab: TabSlug }) {
       <PageHeader title="Suppliers & invoices" qualifier={QUALIFIER} />
       {tab === 'payments' ? <SimulatedBanner what="Supplier payments" /> : null}
       <IllustrativeNote />
+      <BackendGapNote ops={['listSuppliers', 'listPurchaseOrders', 'listSupplierInvoices', 'listSupplierPayments']} />
       <nav aria-label="Payables views" className="tabs">
         <ul>
           {TABS.map((t) => (
@@ -285,7 +287,7 @@ export function InvoiceDetail() {
   const { describeSource } = useLookups();
   const suppliers = useSupplierNames();
   const [evidence, setEvidence] = useState<Evidence>(null);
-  const result = useApiQuery(`invoice:${invoiceId}`, (signal) => client.get('getSupplierInvoice', { signal, path: { id: invoiceId } }));
+  const result = useApiQuery(`invoice:${invoiceId}`, (signal) => client.get('getSupplierInvoice', { signal, path: { invoice_id: invoiceId } }));
   const i = result.data;
   return (
     <>
@@ -295,6 +297,7 @@ export function InvoiceDetail() {
         </Link>
       </PageHeader>
       <IllustrativeNote />
+      <BackendGapNote ops={['getSupplierInvoice']} />
       {result.status === 'loading' ? <Loading label="Loading invoice" /> : null}
       {result.status === 'error' ? <ErrorState error={result.error} onRetry={result.refetch} /> : null}
       {i ? (

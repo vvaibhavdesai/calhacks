@@ -4,9 +4,12 @@ Flow for one source document version:
 
   1. Code extracts the text (pypdf for PDFs, the stdlib email parser for
      .eml), records the parser and the text's sha256, and numbers pages.
-  2. If a SUCCEEDED extraction already exists for (source version, model,
-     prompt version) it is reused -- no second model call, ever, for the
-     same input. This is what makes resume / replay safe.
+  2. Writers serialize on a transaction-scoped advisory lock keyed by
+     (source version, model, prompt version), and then: if a SUCCEEDED
+     extraction already exists for that key it is reused -- no second model
+     call, ever, for the same input, not even from a concurrent process.
+     This is what makes resume / replay safe. A previous attempt that was
+     recorded as not retryable (a refusal, a 4xx) is not re-asked either.
   3. Otherwise one structured-output call to Claude. The document text is
      wrapped as untrusted data; the system prompt tells the model to ignore
      any instructions inside it and to report that it saw some.
@@ -15,9 +18,13 @@ Flow for one source document version:
      consistency. Unverified claims are stored but never used.
   5. The call is recorded: a `document_extractions` row (model requested and
      served, prompt version, request id, usage, status, retryable) and an
-     audit event. Failures (refusal, truncation, invalid output, API/rate
-     errors) are rows too, never silent; the document text and any hidden
-     reasoning are never written to the event log.
+     audit event, committed before this module returns. Failures (refusal,
+     truncation, invalid output, API/rate errors) are rows too, never
+     silent; the document text and any hidden reasoning are never written
+     to the event log. Once the call has been paid for its record is never
+     allowed to be lost: verification cannot raise, and a recording
+     transaction that fails anyway is followed by a RECORD_FAILED row for
+     the same call, so the spend stays visible to the daily budget.
 
 The model has no tools here and its output is only ever written to
 `document_extractions` / `document_claims`.
@@ -37,10 +44,11 @@ import anthropic
 import pypdf
 from domain import extraction as rules
 from pydantic import BaseModel, Field, ValidationError
-from sqlalchemy import func, select
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
+from app.effects_guard import assert_effects_allowed
 from app.models_agents import DocumentClaim, DocumentExtraction
 from app.models_ledger import SourceDocument, SourceVersion, Vendor
 from app.storage.base import DocumentStorage
@@ -194,6 +202,42 @@ def _record_event(db: Session, ext: DocumentExtraction, payload: dict, event_typ
     )
 
 
+def _lock(db: Session, source_version_id: str, model: str) -> None:
+    # Two processes could otherwise both pass the "already SUCCEEDED?" check
+    # and both pay for the same (version, model, prompt) call. The extraction
+    # tables are append-only for encore_app -- no UPDATE privilege, so no
+    # SELECT ... FOR UPDATE -- so writers serialize on a transaction-scoped
+    # advisory lock, as in app/cash_office.py. It is held across the model
+    # call and released when this document's transaction ends; the key is
+    # per document version, so other documents are never blocked.
+    db.execute(
+        text("SELECT pg_advisory_xact_lock(hashtext(:k))"),
+        {"k": f"agent_extraction:{source_version_id}:{model}:{PROMPT_VERSION}"},
+    )
+
+
+def _verify(pages: list[str], c: ClaimOut) -> rules.Verification:
+    """Pure code over untrusted model text. A surprise in it must not throw
+    away a call that has already been paid for, so it degrades to an
+    unverifiable claim with a note."""
+    try:
+        return rules.verify_claim(
+            pages=pages,
+            kind=c.claim_kind,
+            value_raw=c.value,
+            effective_from=c.effective_from,
+            quoted_excerpt=c.quoted_excerpt,
+            page=c.page,
+            speaker_role=c.speaker_role,
+        )
+    except Exception as exc:  # defensive: never raise after a paid call
+        return rules.Verification(
+            False,
+            rules.Normalized(),
+            [f"verifier_error: {type(exc).__name__}: {exc}"[:300]],
+        )
+
+
 def _match_vendor(db: Session, doc: SourceDocument, claimed: str) -> str | None:
     if doc.vendor_id:
         return doc.vendor_id
@@ -233,26 +277,38 @@ def extract_document(
     if sv is None:
         return ExtractResult(doc.id, "SKIPPED", None, note="no active version")
 
-    done = db.execute(
-        select(DocumentExtraction).where(
-            DocumentExtraction.source_version_id == sv.id,
-            DocumentExtraction.model_requested == model,
-            DocumentExtraction.prompt_version == PROMPT_VERSION,
-            DocumentExtraction.status == "SUCCEEDED",
+    # Serialize on the idempotency key BEFORE reading it, so a second
+    # process racing this one waits here and then sees the REUSED row
+    # instead of paying for the same call again.
+    _lock(db, sv.id, model)
+    prior = (
+        db.execute(
+            select(DocumentExtraction)
+            .where(
+                DocumentExtraction.source_version_id == sv.id,
+                DocumentExtraction.model_requested == model,
+                DocumentExtraction.prompt_version == PROMPT_VERSION,
+            )
+            .order_by(DocumentExtraction.attempt.desc())
         )
-    ).scalar_one_or_none()
+        .scalars()
+        .all()
+    )
+    done = next((e for e in prior if e.status == "SUCCEEDED"), None)
     if done is not None:
         return ExtractResult(doc.id, "REUSED", done.id)
 
-    attempts = db.execute(
-        select(func.count())
-        .select_from(DocumentExtraction)
-        .where(
-            DocumentExtraction.source_version_id == sv.id,
-            DocumentExtraction.model_requested == model,
-            DocumentExtraction.prompt_version == PROMPT_VERSION,
+    attempts = len(prior)
+    # `retryable` is decided per failure above; honour it here, where the
+    # retry actually happens. A REFUSED or 4xx attempt is not retried --
+    # re-asking would only pay for the same answer again.
+    if prior and not prior[0].retryable:
+        return ExtractResult(
+            doc.id,
+            "SKIPPED",
+            None,
+            note=f"last attempt {prior[0].status} is not retryable; needs review",
         )
-    ).scalar_one()
     if attempts >= MAX_ATTEMPTS:
         return ExtractResult(doc.id, "SKIPPED", None, note="max attempts reached; needs review")
 
@@ -260,16 +316,20 @@ def extract_document(
     rendered = _render(pages)
     text_sha = hashlib.sha256(rendered.encode()).hexdigest()
 
-    ext = DocumentExtraction(
-        source_document_id=doc.id,
-        source_version_id=sv.id,
-        content_hash=sv.content_hash,
-        parser=parser,
-        text_sha256=text_sha,
-        model_requested=model,
-        prompt_version=PROMPT_VERSION,
-        attempt=attempts + 1,
-    )
+    row = {
+        "source_document_id": doc.id,
+        "source_version_id": sv.id,
+        "content_hash": sv.content_hash,
+        "parser": parser,
+        "text_sha256": text_sha,
+        "model_requested": model,
+        "prompt_version": PROMPT_VERSION,
+        "attempt": attempts + 1,
+    }
+    # The call's outcome is kept as plain data, not only on an ORM object, so
+    # that a paid call can still be recorded if the recording transaction
+    # below has to be rolled back.
+    call: dict = {}
     parsed: ExtractionOut | None = None
     cost = 0.0
     try:
@@ -290,34 +350,82 @@ def extract_document(
             ],
             output_format=ExtractionOut,
         )
-        ext.request_id = getattr(resp, "_request_id", None)
-        ext.model_served = resp.model
-        ext.stop_reason = resp.stop_reason
-        ext.input_tokens = resp.usage.input_tokens
-        ext.output_tokens = resp.usage.output_tokens
-        cost = ext.input_tokens * PRICE_IN + ext.output_tokens * PRICE_OUT
+        call["request_id"] = getattr(resp, "_request_id", None)
+        call["model_served"] = resp.model
+        call["stop_reason"] = resp.stop_reason
+        call["input_tokens"] = resp.usage.input_tokens
+        call["output_tokens"] = resp.usage.output_tokens
+        cost = call["input_tokens"] * PRICE_IN + call["output_tokens"] * PRICE_OUT
         if resp.stop_reason == "refusal":
-            ext.status, ext.retryable = "REFUSED", False
             category = getattr(getattr(resp, "stop_details", None), "category", None)
-            ext.error = f"model refused (category={category})"
+            call["status"], call["retryable"] = "REFUSED", False
+            call["error"] = f"model refused (category={category})"
         elif resp.stop_reason == "max_tokens":
-            ext.status, ext.retryable, ext.error = "TRUNCATED", True, "output hit max_tokens"
+            call.update(status="TRUNCATED", retryable=True, error="output hit max_tokens")
         elif resp.parsed_output is None:
-            ext.status, ext.retryable, ext.error = "INVALID_OUTPUT", True, "no parsed output"
+            call.update(status="INVALID_OUTPUT", retryable=True, error="no parsed output")
         else:
             parsed = resp.parsed_output
-            ext.status = "SUCCEEDED"
+            call["status"] = "SUCCEEDED"
     except ValidationError as exc:
-        ext.status, ext.retryable, ext.error = "INVALID_OUTPUT", True, str(exc)[:500]
+        call.update(status="INVALID_OUTPUT", retryable=True, error=str(exc)[:500])
     except anthropic.RateLimitError as exc:
-        ext.status, ext.retryable, ext.error = "API_ERROR", True, f"429: {exc.message}"
+        call.update(status="API_ERROR", retryable=True, error=f"429: {exc.message}")
     except anthropic.APIStatusError as exc:
-        ext.status = "API_ERROR"
-        ext.retryable = exc.status_code >= 500
-        ext.error = f"{exc.status_code}: {exc.message}"[:500]
+        call.update(
+            status="API_ERROR",
+            retryable=exc.status_code >= 500,
+            error=f"{exc.status_code}: {exc.message}"[:500],
+        )
     except anthropic.APIConnectionError as exc:
-        ext.status, ext.retryable, ext.error = "API_ERROR", True, f"connection: {exc}"[:500]
+        call.update(status="API_ERROR", retryable=True, error=f"connection: {exc}"[:500])
+    except Exception as exc:  # unexpected -- the call may still be billed
+        call.update(
+            status="API_ERROR",
+            retryable=True,
+            error=f"unexpected {type(exc).__name__}: {exc}"[:500],
+        )
 
+    # From here on the call has already been PAID for. Nothing below may
+    # raise it away: the next run would pay again, and the spend would also
+    # be invisible to the daily budget, which sums the recorded token usage.
+    # Claim verification is therefore defensive (_verify), and if the
+    # recording transaction fails anyway the call is re-recorded on its own.
+    try:
+        return _record(db, doc, sv, pages, row | call, parsed, cost)
+    except Exception as exc:
+        db.rollback()
+        failed = call | {
+            "status": "RECORD_FAILED",
+            "retryable": True,
+            "error": f"{call.get('status')} call not stored: {type(exc).__name__}: {exc}"[:500],
+        }
+        # The row alone, without the event: appending the event is one of the
+        # things that may just have failed, and the row is what makes the
+        # spend visible and the attempt reviewable.
+        db.add(DocumentExtraction(**row, **failed))
+        db.commit()
+        return ExtractResult(
+            row["source_document_id"],
+            "RECORD_FAILED",
+            None,
+            cost_usd=cost,
+            note=f"{type(exc).__name__}: {exc}"[:300],
+        )
+
+
+def _record(
+    db: Session,
+    doc: SourceDocument,
+    sv: SourceVersion,
+    pages: list[str],
+    fields: dict,
+    parsed: ExtractionOut | None,
+    cost: float,
+) -> ExtractResult:
+    """Store the call, the claims code verified from it and the audit event
+    as one transaction, and commit it before returning."""
+    ext = DocumentExtraction(**fields)
     if parsed is not None:
         ext.document_kind = parsed.document_kind
         ext.summary = parsed.summary
@@ -329,15 +437,7 @@ def extract_document(
     claim_notes = []
     if parsed is not None:
         for c in parsed.claims:
-            v = rules.verify_claim(
-                pages=pages,
-                kind=c.claim_kind,
-                value_raw=c.value,
-                effective_from=c.effective_from,
-                quoted_excerpt=c.quoted_excerpt,
-                page=c.page,
-                speaker_role=c.speaker_role,
-            )
+            v = _verify(pages, c)
             vendor_id = _match_vendor(db, doc, c.vendor_name)
             notes = list(v.notes)
             if vendor_id is None:
@@ -382,7 +482,7 @@ def extract_document(
             "source_document_id": doc.id,
             "source_version": sv.version,
             "content_hash": sv.content_hash,
-            "text_sha256": text_sha,
+            "text_sha256": ext.text_sha256,
             "status": ext.status,
             "retryable": ext.retryable,
             "error": ext.error,
@@ -397,7 +497,7 @@ def extract_document(
             else "agent.document_extraction_failed"
         ),
     )
-    return ExtractResult(
+    result = ExtractResult(
         doc.id,
         ext.status,
         ext.id,
@@ -406,9 +506,16 @@ def extract_document(
         cost_usd=cost,
         note=ext.error,
     )
+    # Commit here, not in the caller: the record of a paid call must be
+    # durable before this function returns, and a failure to commit it is
+    # handled by the caller's re-record path.
+    db.commit()
+    return result
 
 
 def make_client() -> anthropic.Anthropic:
+    # A09: replay/what-if never make a fresh model call (C06).
+    assert_effects_allowed("live_model_call")
     key = get_settings().anthropic_api_key
     if not key:
         raise RuntimeError("ANTHROPIC_API_KEY is not configured (server-side only)")

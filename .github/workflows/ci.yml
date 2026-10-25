@@ -2,12 +2,23 @@ name: CI
 
 on:
   push:
-    branches: ["main", "a-track-implementation", "b-track-implementation"]
+    branches: ["main", "integration", "lane", "lane-b"]
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   PYTHON_VERSION: "3.11"
   NODE_VERSION: "20"
+  GITLEAKS_VERSION: "8.21.2"
+  # sha256 of gitleaks_8.21.2_linux_x64.tar.gz from the release's checksums file.
+  GITLEAKS_SHA256: "5bc41815076e6ed6ef8fbecc9d9b75bcae31f39029ceb55da08086315316e3ba"
 
 jobs:
   python-lint:
@@ -19,24 +30,10 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - run: uv sync --all-extras --dev
+      # pyproject.toml excludes tests/oracle and data/generator (lane B's
+      # evaluator/generator follow their own conventions; see lane-b-evaluator).
       - run: uv run ruff check .
       - run: uv run black --check .
-
-  web-lint:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/web
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-          cache-dependency-path: apps/web/package-lock.json
-      - run: npm ci
-      - run: npm run lint
-      - run: npm test
 
   python-tests:
     runs-on: ubuntu-latest
@@ -55,9 +52,12 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
+      # conftest.py refuses any database whose name lacks "test".
       TEST_DATABASE_URL: postgresql+psycopg://encore:encore_ci_password@localhost:5432/encore_test
       DATABASE_URL: postgresql+psycopg://encore:encore_ci_password@localhost:5432/encore_test
       AUTH_JWT_SECRET: ci-only-secret-not-for-production-use
+      ENCORE_APP_DB_PASSWORD: encore_app_dev_password
+      DOCUMENT_STORAGE_ROOT: /tmp/encore-ci-documents
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v4
@@ -65,6 +65,17 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - run: uv sync --all-extras --dev
+      # test_db_privileges.py connects AS the restricted encore_app role
+      # (created by migration 0003 in real databases). The test suite builds
+      # its schema with create_all(), so create the role here.
+      - name: Create the encore_app login role
+        run: |
+          uv run python - <<'EOF'
+          import os, psycopg
+          with psycopg.connect("postgresql://encore:encore_ci_password@localhost:5432/encore_test", autocommit=True) as c:
+              pw = os.environ["ENCORE_APP_DB_PASSWORD"].replace("'", "''")
+              c.execute(f"CREATE ROLE encore_app WITH LOGIN PASSWORD '{pw}'")
+          EOF
       - run: uv run pytest -v
 
   migrations-fresh-db:
@@ -96,6 +107,57 @@ jobs:
         run: uv run alembic -c db/migrations/alembic.ini upgrade head
       - name: Downgrade back to base (round-trip sanity check)
         run: uv run alembic -c db/migrations/alembic.ini downgrade base
+      - name: Upgrade again (migrations are re-runnable after a rollback)
+        run: uv run alembic -c db/migrations/alembic.ini upgrade head
+
+  backup-restore-drill:
+    # docs/runbooks/backup-restore.md: back up a migrated, seeded database and
+    # its documents, restore into a separate database, prove they match.
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: encore
+          POSTGRES_PASSWORD: encore_ci_password
+          POSTGRES_DB: encore_drill_src
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U encore -d encore_drill_src"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: encore
+      PGPASSWORD: encore_ci_password
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: uv sync --all-extras --dev
+      - name: PostgreSQL 16 client tools (pg_dump must match the server major)
+        run: |
+          if ! pg_dump --version 2>/dev/null | grep -q ' 16\.'; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq postgresql-client-16
+          fi
+          if [ -d /usr/lib/postgresql/16/bin ]; then
+            echo "/usr/lib/postgresql/16/bin" >> "$GITHUB_PATH"
+          fi
+      - run: pg_dump --version
+      - run: createdb encore_drill_restore
+      - name: Restore drill
+        run: >-
+          scripts/ops/restore_drill.sh
+          --source-db encore_drill_src
+          --target-db encore_drill_restore
+          --documents-dir "$RUNNER_TEMP/drill-docs"
+          --work-dir "$RUNNER_TEMP/drill-backups"
 
   contracts-validate:
     runs-on: ubuntu-latest
@@ -111,8 +173,49 @@ jobs:
       - name: Generate-TS-types stub is wired and runnable
         run: uv run python packages/contracts/scripts/generate_ts_types.py
 
-  web-typecheck-build:
+  api-contract-drift:
+    # The web client's TypeScript types are GENERATED from the backend's own
+    # OpenAPI document, via a committed snapshot of app.openapi()
+    # (apps/web/contracts/openapi.backend.json). Two checks, in order:
+    #   1. the snapshot still equals app.openapi() -- if a router gained, lost
+    #      or renamed a route, a parameter or a response model, this fails and
+    #      names what moved;
+    #   2. the generated client is exactly what that snapshot generates.
+    # src/api/contract.test.ts (in web-check) then asserts that every operation
+    # the client calls really exists in the snapshot, so the frontend cannot
+    # drift away from the backend without CI saying so.
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: uv sync --all-extras --dev
+      - name: Backend OpenAPI snapshot is current
+        run: uv run python scripts/dump_openapi.py --check
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: apps/web/package-lock.json
+      - name: Generated client matches the snapshot
+        working-directory: apps/web
+        run: |
+          npm ci
+          npm run check:api
+
+  web-check:
+    # `npm run check` is lane B's own definition of green for apps/web:
+    # check:api (generated types fresh), typecheck, lint, test, build (+ the
+    # production-bundle fixture guard, which reads data/generator/fixtures).
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 18.18.2 is what lane B develops on (engines >=18.18); 20 is the
+        # Docker/ADR runtime.
+        node: ["18.18.2", "20"]
     defaults:
       run:
         working-directory: apps/web
@@ -120,9 +223,76 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: ${{ matrix.node }}
           cache: "npm"
           cache-dependency-path: apps/web/package-lock.json
       - run: npm ci
-      - run: npm run typecheck
-      - run: npm run build
+      - run: npm run check
+
+  lane-b-evaluator:
+    # Lane B's independent generator + oracle (stdlib only, unittest). The
+    # full-dataset tests need the generated data, which is rebuilt here
+    # (~5 s) rather than committed. Expected answers stay in the runner.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Regenerate full_v1 and verify against the committed manifest
+        run: python data/generator/generate_full.py --verify
+      - name: Build full-dataset oracle answers
+        run: python tests/oracle/oracle_full.py
+      - name: Generator tests
+        run: python -m unittest discover -s data/generator/tests -v
+      - name: Oracle tests
+        run: python -m unittest discover -s tests/oracle -v
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # scan full history, not just the tip
+      - name: Install pinned gitleaks (checksum-verified)
+        run: |
+          f="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -sSfL -o "$RUNNER_TEMP/$f" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/$f"
+          echo "${GITLEAKS_SHA256}  $RUNNER_TEMP/$f" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/$f" -C "$RUNNER_TEMP" gitleaks
+      - name: gitleaks (history, redacted output)
+        run: >-
+          "$RUNNER_TEMP/gitleaks" detect --source . --config .gitleaks.toml
+          --redact --no-banner --verbose
+      - name: No env files tracked
+        run: |
+          bad=$(git ls-files | grep -E '(^|/)\.env($|\.)' \
+            | grep -vE '\.example$|^apps/web/\.env\.fixtures(-[a-z0-9]+)?$' || true)
+          if [ -n "$bad" ]; then echo "tracked env files: $bad"; exit 1; fi
+
+  docker-build:
+    # Builds (never pushes) every production image and validates both compose
+    # files. Nothing is deployed anywhere. Values below are CI-only dummies
+    # that only satisfy compose's required-variable checks.
+    runs-on: ubuntu-latest
+    env:
+      POSTGRES_PASSWORD: ci-dummy
+      ENCORE_APP_DB_PASSWORD: ci-dummy
+      AUTH_JWT_SECRET: ci-dummy
+      PUBLIC_ORIGIN: https://ci.invalid
+      RELEASE_TAG: ci-${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate compose files
+        run: |
+          docker compose -f infra/docker-compose.prod.yml config -q
+          docker compose -f infra/docker-compose.prod.yml --profile ops --profile bootstrap config -q
+          docker compose -f infra/docker-compose.yml config -q
+      - name: Required secrets are enforced (compose must refuse without them)
+        run: |
+          if env -u AUTH_JWT_SECRET docker compose -f infra/docker-compose.prod.yml config -q 2>/dev/null; then
+            echo "compose accepted a missing AUTH_JWT_SECRET"; exit 1
+          fi
+      - name: Build api, worker and web images
+        run: docker compose -f infra/docker-compose.prod.yml build

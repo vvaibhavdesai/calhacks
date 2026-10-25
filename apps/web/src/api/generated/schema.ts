@@ -922,9 +922,10 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        /** @description USD integer cents as a canonical base-10 string (C01). A leading '-' for refunds is a DRAFT assumption (DA07, open question Q4); '-0' and leading zeros are not canonical. */
-        MoneyCents: string;
-        NonNegativeMoneyCents: string;
+        /** @description USD integer cents (C01). The backend sends a JSON integer; the dev/test fixtures carry the same value as a canonical base-10 string, so both forms are accepted and src/lib/money.ts is the only module that reads either. Never a float. A leading '-' for refunds is a DRAFT assumption (DA07, open question Q4); '-0' and leading zeros are not canonical. */
+        MoneyCents: number | string;
+        /** @description USD integer cents, never negative. Backend integer or fixture string (see MoneyCents). */
+        NonNegativeMoneyCents: number | string;
         /** @enum {string} */
         Currency: "USD";
         /**
@@ -934,7 +935,7 @@ export interface components {
         BusinessDate: string;
         /**
          * Format: date-time
-         * @description UTC RFC3339 instant.
+         * @description UTC RFC3339 instant. The backend emits both "...Z" and Python's "...+00:00" (datetime.isoformat on a UTC datetime); a non-zero offset is not an instant on this wire.
          */
         Instant: string;
         Version: number;

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { Brand } from '../components/Brand';
 import { FixtureBanner } from '../components/FixtureBanner';
+import { SignIn } from '../components/SignIn';
 import type { StreamStatus } from '../api/sse';
 import { useApp } from './AppContext';
 import { NAV } from './navigation';
@@ -16,7 +17,9 @@ function streamLabel(s: StreamStatus, fixture: boolean): string {
     case 'reconnecting':
       return `Live updates reconnecting (retry in ${Math.ceil(s.delayMs / 1000)} s)`;
     case 'stopped':
-      return s.reason === 'unauthenticated'
+      return s.reason === 'unavailable'
+        ? 'Live updates unavailable (the API has no event stream)'
+        : s.reason === 'unauthenticated'
         ? 'Live updates stopped: sign in required'
         : s.reason === 'forbidden'
           ? 'Live updates not permitted'
@@ -101,6 +104,9 @@ export function Layout() {
           </div>
         </aside>
         <main id="main" ref={mainRef} tabIndex={-1} className="work-area">
+          {/* Every read 401s without a token, so the shell offers the form
+              above the page; the panels keep showing their own sign-in state. */}
+          {capabilities.status === 'unauthenticated' ? <SignIn /> : null}
           <Outlet />
         </main>
       </div>

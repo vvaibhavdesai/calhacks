@@ -177,9 +177,9 @@ frontend.
   - Tips are not passed through to vendors. A04's `payout_cents` excludes
     tips, so tips stay in TIPS_LIABILITY as protected cash. The oracle pays
     tips with the payout. **This needs a decision** before scoring.
-  - Cash-office deposits (cash office → bank) and cash over/short postings
-    aren't built, because there is no deposit-slip model on `lane`.
-  - Unmatched bank entries are not posted to suspense.
+  - ~~Cash-office deposits and cash over/short postings aren't built~~ and
+    ~~unmatched bank entries are not posted to suspense~~: closed, see
+    "A08 gap closure" below.
   - There is no recovery/offset workflow for a vendor who owes money back
     after a late refund. The debit balance is visible in vendor payable and
     the cash report, but the collection itself is A09.
@@ -213,3 +213,255 @@ settlements, `#adj` entries, append-only statements and closes, plus
 the verification of record.
 
 Reviewer: _unassigned_. Merge commit: _none yet_.
+
+---
+
+## A08 gap closure (branch `agent/a08-gaps`, base `integration` 950eb34)
+
+Closes the A08-owned gaps that do not wait on a human decision: cash-office
+deposits, cash count variance, unmatched bank entries and the chargeback
+processor fee. **Out of scope, still pending decisions:** tips pass-through
+and DA17 (moving chargebacks/refunds to their own business date).
+
+### What was built
+
+| Item | Where | Posting (DRAFT C02 roles) |
+|---|---|---|
+| Cash-office counts, deposit slips, bags | `models_cash_office.py`, `cash_office.py`, `POST /finance/cash-office/counts`, `POST /finance/cash-office/deposit-slips` | `CASHDEP:<slip>` Dr BANK_OPERATING / Cr CASH_OFFICE for the amount the bank credited, on the bank credit's business date, only once that bank entry is `settled` |
+| Count variance | `POST /finance/cash-office/reconcile` | none (opens cases) |
+| Human decision on a variance | `POST /finance/cash-cases/{id}/decision` (`finance_lead`) | `CASH_OVER_SHORT:<case>` Dr CASH_OVER_SHORT / Cr CASH_OFFICE (shortage), reversed for an overage; `CHARGE_TO_VENDOR` books VENDOR_RECEIVABLE instead |
+| Unmatched bank entries | `POST /finance/bank-entries/scan` | `BANK_UNMATCHED:<bank entry>` Dr/Cr BANK_OPERATING vs SUSPENSE (1999) |
+| BOOK_AS_BANK_FEE | same decision endpoint | `BANK_FEE_RECLASS:<bank entry>` Dr OPERATING_EXPENSE / Cr SUSPENSE, `correction_of` = the suspense entry (never rewritten) |
+| Chargeback fee | `POST /finance/chargeback-fees`, `GET /finance/chargeback-fees` | expense via the processor batch deposit that withheld it (already in `DEPOSIT:<bank entry>`), else `CHARGEBACK_FEE:<payment>` Dr PROCESSOR_FEE_EXPENSE / Cr PROCESSOR_CLEARING; recharge `CHARGEBACK_FEE_RECHARGE:<payment>` Dr VENDOR_FUNDS_PAYABLE / Cr PROCESSOR_FEE_EXPENSE only if A04 `resolve_vendor_terms` says `processor_fee_deductible` |
+| Reads | `GET /finance/cash-office`, `GET /finance/cash-office/deposit-slips/{id}`, `GET /finance/cash-cases` | none |
+
+Design points:
+
+- **Why a new count table.** A03's `cash_counts` are vendor-drawer counts.
+  `app/reconciliation.py` matches them against VENDOR-RETAINED cash. An
+  organizer cash-office count of CENTRALLY COLLECTED cash is a different
+  custody, so it gets its own table, `cash_office_counts`. The chain is
+  POS central cash → count → bag → slip → bank entry.
+- **Expected cash** is computed with the same per-order split and asset
+  choice as `post_sales_for_day`, so "expected" is exactly what the sales
+  posting debited to CASH_OFFICE.
+- **Cases** are A05 `cases` rows with `required_capability = finance_lead`
+  and a `role: "subject"` ref, which makes opening them idempotent:
+  - CASH_VARIANCE and MISSING_CASH_COUNT are **vendor-scoped**. A07's payout
+    gate holds only that vendor, and the statement shows HELD.
+  - An unlabelled bag is cited as `candidate_unlabelled_bag` evidence on
+    the MISSING_CASH_COUNT case of a vendor-night that has POS cash but no
+    count. If no vendor-night lacks a count, the bag gets its own
+    festival-level MISSING_CASH_COUNT case.
+  - A slip whose bank credit differs from its bags opens
+    CASH_DEPOSIT_VARIANCE.
+  - UNMATCHED_BANK_ENTRY is festival-level.
+  - Every case carries a `{"ref_kind": "festival"}` scope ref, so cases with
+    no vendor can still be listed per festival.
+- **Nothing is written off automatically.** CASH_OVER_SHORT and the bank-fee
+  reclass are posted only by the decision endpoint, which requires
+  `finance_lead`. The amount is recomputed live from the records at
+  decision time. The real resolver and capability are recorded on the
+  case, with a `case.resolved` event.
+  - Allowed decisions: CASH_VARIANCE takes ORGANIZER_ABSORBS_SHORTAGE,
+    BOOK_OVERAGE or CHARGE_TO_VENDOR. CASH_DEPOSIT_VARIANCE takes
+    ORGANIZER_ABSORBS_SHORTAGE or BOOK_OVERAGE. MISSING_CASH_COUNT takes
+    ACCEPT_POS_AND_BANK_DEPOSIT_AS_EVIDENCE, which posts nothing.
+    UNMATCHED_BANK_ENTRY takes BOOK_AS_BANK_FEE.
+  - The posting date defaults to the case's night or the bank entry's date.
+    If that day is closed, the endpoint returns 409 `business_date_closed`
+    and the caller passes an open `business_date`.
+- **What explains a bank entry.** Any of these:
+  - a processor batch, where `batch_gross_cents` is set;
+  - `payments.bank_entry_id`;
+  - a deposit slip, linked explicitly or by
+    provider_reference == slip_reference;
+  - any non-suspense journal entry that cites the bank entry id in
+    `source_record_ids`. That covers tickets, sponsorship receipts and
+    expenses with `bank_entry_id`, and now **supplier payments**:
+    `POST /invoices/{id}/pay` accepts an optional `bank_entry_id`, which
+    returns 404 if unknown and is cited in the SUPPLIER_PAYMENT journal.
+
+  If a bank entry in suspense is explained later, the next scan reverses
+  the suspense posting with a linked `#adj` and resolves the case as
+  `EXPLAINED_BY_RECORD` with no human resolver. That is matching, not a
+  write-off. If it is explained only after a human already reclassified
+  it, the scan reports `EXPLAINED_AFTER_HUMAN_DECISION_NEEDS_REVIEW` and
+  posts nothing.
+- **Slips never need an UPDATE.** A slip's bank credit is linked
+  explicitly or found later by reference. Post-day for the bank credit's
+  date posts `CASHDEP`. Recording a slip whose credit has already settled
+  posts it in the same transaction.
+- **Chargeback fee recharge is cumulative.** `post-day` re-evaluates the
+  fees dated that day, so a contract term activated later (A06) adds the
+  recharge, or a withdrawn one reverses it, as a linked adjustment.
+- **Append-only, as `encore_app`.** All four new tables are REVOKE
+  UPDATE/DELETE. Rows are inserted once, complete. Writers serialize on
+  `pg_advisory_xact_lock`, never `SELECT ... FOR UPDATE`. The only
+  `FOR UPDATE` is on `cases`, which `encore_app` may update.
+- **Reports.**
+  - `/cash` gains `cash_office`: balance, slips with bank/posting status,
+    deposited vs awaiting, open cash/bank cases. It also gains `suspense`:
+    balance and items.
+  - `/close/checks` gains two **hard** checks,
+    `bank_entries_accounted_for` and `cash_deposits_posted`. Every settled
+    bank entry through the date must be explained or in suspense, and every
+    landed slip must be posted. It also gains one warning,
+    `cash_office_and_bank_cases_resolved`, plus the offending ids.
+  - `/reports/festival` gains `cash_office_and_bank_cases` and
+    `chargeback_fees`.
+  - Journal drill-down resolves `cash_deposit_slip`, `cash_office_count`,
+    `chargeback_fee` and `case` ids.
+
+### Migration
+
+`db/migrations/versions/0010_a08_cash_deposits.py` (down_revision
+`0009_agent_extractions`). New tables only. Upgrade, downgrade and
+re-upgrade were exercised.
+
+**Merge-order risk:** any other branch adding a revision on top of `0009`
+creates a second head. Whichever merges second must re-point its
+`down_revision`, or add an `alembic merge` revision.
+
+### Commands actually run and results
+
+Databases `encore_gaps_dev` and `encore_gaps_test`; API on `127.0.0.1:8051`.
+
+1. `alembic upgrade head` → `downgrade -1` → `upgrade head`: clean.
+2. `pytest -q` (TEST_DATABASE_URL=encore_gaps_test): **34 passed**.
+3. `scripts/verify_a08_gaps.py` (new, hand-checked fixture, NOT B01):
+   **76/76** with the API as the owner role, and **76/76** with the API as
+   **`encore_app`**, 0 HTTP 500s. Coverage:
+   - concurrent identical slip records produce exactly one row;
+   - concurrent scans produce exactly one suspense entry per bank entry;
+   - a closed night refuses the default decision date;
+   - a `close_books`-only user gets 403 on decisions;
+   - the suspense entry is unchanged after the reclass;
+   - the late explanation is reversed by `#adj`;
+   - the chargeback recharge is added when a contract term is activated
+     later;
+   - the hand-worked ending balances match by role;
+   - D2 and D3 closes pass every hard check;
+   - audit events are written;
+   - `encore_app` cannot UPDATE the four new tables.
+4. Regression, under both roles: `verify_a08_finance.py` **76/76**,
+   `verify_a07_payouts.py` **73/73**.
+5. `black --check .` and `ruff check .`: clean.
+6. **Probe against lane B's real runtime inputs.** This used a scratch
+   script, not committed, against `encore_gaps_dev`. It read only
+   `data/generator/out/full_v1/api/*.json` and never the oracle outputs.
+   - It loaded the 1,328 central-cash payments with their orders, the three
+     cash-deposit bank credits and the bank analysis fee. Then it called the
+     endpoints exactly as described below.
+   - Reconcile found one CASH_VARIANCE of -4,000 on 10-17 and one
+     MISSING_CASH_COUNT on 10-17, the vendor whose cash is the unlabelled
+     bag. The scan found exactly one unmatched entry, BANK-ANALYSIS-FEE.
+   - After applying F1_story's scripted decisions: **CASH_OFFICE 0,
+     CASH_OVER_SHORT 4,000, SUSPENSE 0, OPERATING_EXPENSE +8,500.** These
+     are the role values the oracle scoring listed as A08-owned mismatches.
+
+### Wiring into `scripts/score_b_fixture.py` (for the agent that owns it)
+
+I did not edit that file. These are the steps to add to `load()`. Use the
+real HTTP API through `api.call` as everything else there does.
+
+0. **Supplier payments** (step 6, `kind == "supplier_payment"`): add
+   `"bank_entry_id": rec["bank_entry_id"]` to the `/invoices/{id}/pay`
+   body. Without it the scan puts the six ACH debits in suspense.
+1. **After step 7** (post-day for every date), record organizer cash-office
+   counts. Only the `CENTRALLY_COLLECTED` ones go here. VENDOR_RETAINED
+   drawer counts belong to A03's `cash_counts`.
+   ```python
+   for cc in items(fixture, "cash_counts"):
+       if cc["custody"] != "CENTRALLY_COLLECTED":
+           continue
+       api.call("POST", "/finance/cash-office/counts", {
+           "festival_id": festival_id, "vendor_id": cc["vendor_id"],
+           "business_date": cc["business_date"], "bag_reference": cc["source_native_id"],
+           "counted_cents": cents(cc["amount_cents"]), "counted_at": cc["counted_at"],
+           "counted_by": cc["counted_by_role"], "source_refs": cc["source_refs"],
+           "id": cc["id"]})            # keep B's id: slip bags reference it
+   ```
+2. **Deposit slips.** Each posts `CASHDEP` immediately, because step 5
+   loads the bank entries as `settled`.
+   ```python
+   for s in items(fixture, "cash_deposit_slips"):
+       api.call("POST", "/finance/cash-office/deposit-slips", {
+           "festival_id": festival_id, "slip_reference": s["slip_reference"],
+           "business_date": s["business_date"], "total_cents": cents(s["total_cents"]),
+           "bank_entry_id": s["bank_entry_id"], "source_refs": s["source_refs"], "id": s["id"],
+           "bags": [{"bag_reference": b["bag_reference"], "amount_cents": cents(b["amount_cents"]),
+                     "cash_count_id": b["cash_count_id"]} for b in s["bags"]]})
+   ```
+3. **Reconcile** every night that has a slip (or every date in the window):
+   `api.call("POST", "/finance/cash-office/reconcile", {"festival_id": festival_id, "business_date": d})`.
+4. **Chargeback fees.** For each kept payment with `kind == "CHARGEBACK"`
+   and `processor_fee_cents > 0`:
+   ```python
+   batch = {b["id"]: b for b in items(fixture, "processor_batches")}[p["processor_batch_id"]]
+   be_id = next(be["id"] for be in items(fixture, "bank_entries")
+                if be["provider_reference"] == batch["payout_reference"])
+   api.call("POST", "/finance/chargeback-fees", {
+       "payment_id": p["id"], "fee_cents": cents(p["processor_fee_cents"]),
+       "business_date": p["business_date"], "bank_entry_id": be_id,
+       "source_refs": p["source_refs"]})
+   ```
+   In full_v1 that is `pay_675be6e4a046a499`: fee 1,500, batch
+   `CARDCO-PO-0005`, whose only member is the chargeback. The fee is already
+   in that deposit's 5100 debit, so this adds no expense. It recharges only
+   if the vendor has an active term with `processor_fee_deductible`. That
+   needs A06 terms, so **re-run `post-day` for 2026-10-24 after terms are
+   activated.**
+5. **Scan**, once, after everything that cites a bank entry has been
+   recorded (tickets, sponsor receipts, expenses, supplier payments, slips):
+   `api.call("POST", "/finance/bank-entries/scan", {"festival_id": festival_id})`.
+   In full_v1 exactly one entry goes to suspense, BANK-ANALYSIS-FEE.
+6. **Scripted decisions.** The reason codes match B's:
+   ```python
+   for case in api.call("GET", "/finance/cash-cases",
+                        params={"festival_id": festival_id, "status": "OPEN"})["items"]:
+       decision = rules.get(case["reason_code"])
+       if decision:  # F1: ORGANIZER_ABSORBS_SHORTAGE / ACCEPT_POS_AND_BANK_DEPOSIT_AS_EVIDENCE / BOOK_AS_BANK_FEE
+           api.call("POST", f"/finance/cash-cases/{case['case_id']}/decision",
+                    {"decision": decision, "note": f"scripted decision {decision_set}"})
+   ```
+   The admin user has `finance_lead`. CASH_DEPOSIT_VARIANCE has no rule in
+   B's decision sets, and none occurs in full_v1.
+7. **Export (optional).** The three case kinds can go into the reviews
+   export. `GET /finance/cash-cases` gives `reason_code`, `vendor_id`,
+   `business_date`, `status`, `resolution_decision` and
+   `financial_impact_cents`.
+
+Expected role effect on F1_story:
+- CASH_OFFICE goes from 3,302,902 to **0**.
+- CASH_OVER_SHORT goes from 0 to **4,000**.
+- OPERATING_EXPENSE goes from 13,885,000 to **13,893,500**.
+- SUSPENSE stays 0.
+- BANK_OPERATING moves by +3,298,902 - 8,500, but it still depends on the
+  vendor payouts (A06).
+- PROCESSOR_FEE_EXPENSE is unchanged until A06 terms exist. The remaining
+  gap is the settlement-side recharges, plus at most this one $15.
+
+### Hand-offs and remaining gaps
+
+- **A04 (settlement side of the chargeback fee).**
+  `app/settlement.py` spreads a batch's whole `batch_fee_cents` over that
+  batch's *captures*. If a batch ever contains both captures and a
+  chargeback with a recorded `chargeback_fees` row, that fee would be
+  recharged twice: once to the capture vendors through
+  `processor_fee_collected`, and once to the chargeback vendor here.
+  A04 should subtract the `chargeback_fees.fee_cents` that cite the same
+  `bank_entry_id` before the proportional split. This does not happen in
+  full_v1, where the chargeback batch has no captures. The A08 recharge
+  is also uncapped: if the vendor has already been paid out,
+  VENDOR_FUNDS_PAYABLE goes debit (the vendor owes), and recovery is A09.
+- **Scan ordering.** A bank entry scanned before its explaining record is
+  recorded goes to suspense and is reversed on the next scan. Run the scan
+  after loading, and again before each close. The hard close check makes
+  forgetting it visible.
+- **Corrections to counts/slips** (a recount, a corrected slip) are 409
+  conflicts today, never silent edits. A versioned correction flow is A09.
+- `POSTING_RULE_VERSION` was not bumped for the added rules. They are new
+  entry kinds, and no existing rule changed.
+- Not done: DA17, tips pass-through, CI, second-machine reproduction, and
+  the scorer edits above.

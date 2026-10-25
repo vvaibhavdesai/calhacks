@@ -142,37 +142,37 @@ describe('fixture transport with illustrative outputs', () => {
 
   it('serves lists, filters and details', async () => {
     const { client } = make();
-    expect((await client.list('listRunVendors', { path: { id: 'illus_run_n1' }, query: { state: 'HELD' } })).items).toHaveLength(3);
+    expect((await client.list('listRunVendors', { path: { run_id: 'illus_run_n1' }, query: { state: 'HELD' } })).items).toHaveLength(3);
     expect((await client.list('listCases', { query: { status: 'OPEN' } })).items.map((c) => c.id)).toEqual(['illus_case_taco_rate']);
-    expect((await client.get('getPolicyVersion', { path: { id: 'illus_pv_kettle_bag_v2' } })).status).toBe('ACTIVE');
-    await expect(client.get('getSettlement', { path: { id: 'nope' } })).rejects.toMatchObject({ kind: 'not_found' });
+    expect((await client.get('getPolicyVersion', { path: { policy_version_id: 'illus_pv_kettle_bag_v2' } })).status).toBe('ACTIVE');
+    await expect(client.get('getSettlement', { path: { settlement_id: 'nope' } })).rejects.toMatchObject({ kind: 'not_found' });
     await expect(client.list('listEvents')).rejects.toMatchObject({ status: 501 }); // B06 outputs are not faked
   });
 
   it('enforces capability, expected_version, idempotent replay and transitions', async () => {
     const { client, transport } = make(['fixture.read']);
-    await expect(client.command('resolveCase', resolveCmd(3), { path: { id: 'illus_case_taco_rate' } })).rejects.toMatchObject({
+    await expect(client.command('resolveCase', resolveCmd(3), { path: { case_id: 'illus_case_taco_rate' } })).rejects.toMatchObject({
       kind: 'forbidden',
     });
 
     const ok = make();
-    await expect(ok.client.command('resolveCase', resolveCmd(2), { path: { id: 'illus_case_taco_rate' } })).rejects.toMatchObject({
+    await expect(ok.client.command('resolveCase', resolveCmd(2), { path: { case_id: 'illus_case_taco_rate' } })).rejects.toMatchObject({
       kind: 'conflict',
       currentVersion: 3,
     });
     const cmd = resolveCmd(3);
-    const first = await ok.client.command('resolveCase', cmd, { path: { id: 'illus_case_taco_rate' } });
+    const first = await ok.client.command('resolveCase', cmd, { path: { case_id: 'illus_case_taco_rate' } });
     expect(first).toMatchObject({ kind: 'completed', result: { status: 'RESOLVED', version: 4 } });
-    const replay = await ok.client.command('resolveCase', cmd, { path: { id: 'illus_case_taco_rate' } });
+    const replay = await ok.client.command('resolveCase', cmd, { path: { case_id: 'illus_case_taco_rate' } });
     expect(replay).toEqual(first);
-    expect((await ok.client.get('getCase', { path: { id: 'illus_case_taco_rate' } })).version).toBe(4);
+    expect((await ok.client.get('getCase', { path: { case_id: 'illus_case_taco_rate' } })).version).toBe(4);
 
     const reused = { ...resolveCmd(4, 'opt_contract_rate'), idempotencyKey: cmd.idempotencyKey };
-    await expect(ok.client.command('resolveCase', reused, { path: { id: 'illus_case_taco_rate' } })).rejects.toMatchObject({
+    await expect(ok.client.command('resolveCase', reused, { path: { case_id: 'illus_case_taco_rate' } })).rejects.toMatchObject({
       kind: 'conflict',
       code: 'IDEMPOTENCY_KEY_REUSED',
     });
-    await expect(ok.client.command('resolveCase', resolveCmd(4), { path: { id: 'illus_case_taco_rate' } })).rejects.toMatchObject({
+    await expect(ok.client.command('resolveCase', resolveCmd(4), { path: { case_id: 'illus_case_taco_rate' } })).rejects.toMatchObject({
       kind: 'invalid',
       code: 'INVALID_TRANSITION',
     });
@@ -182,20 +182,20 @@ describe('fixture transport with illustrative outputs', () => {
 
   it('policy approval checks the echoed scope and exact version', async () => {
     const { client } = make();
-    const p = await client.get('getPolicyVersion', { path: { id: 'illus_pv_taco_rate_v1' } });
+    const p = await client.get('getPolicyVersion', { path: { policy_version_id: 'illus_pv_taco_rate_v1' } });
     const base = { action: 'APPROVE_REUSABLE_POLICY', policy_id: p.policy_id, policy_version: p.version, evidence_hash: p.evidence_hash, scope: p.scope };
     const widened = prepareCommand({ expectedVersion: 1, payload: { ...base, scope: { ...p.scope, vendor_ids: [] } } });
-    await expect(client.command('approvePolicy', widened, { path: { id: p.id } })).rejects.toMatchObject({ code: 'SCOPE_MISMATCH' });
-    const ok = await client.command('approvePolicy', prepareCommand({ expectedVersion: 1, payload: base }), { path: { id: p.id } });
+    await expect(client.command('approvePolicy', widened, { path: { case_id: p.id } })).rejects.toMatchObject({ code: 'SCOPE_MISMATCH' });
+    const ok = await client.command('approvePolicy', prepareCommand({ expectedVersion: 1, payload: base }), { path: { case_id: p.id } });
     expect(ok).toMatchObject({ kind: 'completed', result: { status: 'ACTIVE', version: 2 } });
     // Approving reuse does not touch the case.
-    expect((await client.get('getCase', { path: { id: 'illus_case_taco_rate' } })).status).toBe('OPEN');
+    expect((await client.get('getCase', { path: { case_id: 'illus_case_taco_rate' } })).status).toBe('OPEN');
   });
 
   it('payout approval binds the exact amount, beneficiary version and version; it never clears hard blockers', async () => {
     const caps = ['fixture.read', 'payout.approve_above_limit'];
     const { client } = make(caps);
-    const p = await client.get('getPayout', { path: { id: 'illus_payout_n1_sunrise' } });
+    const p = await client.get('getPayout', { path: { payout_id: 'illus_payout_n1_sunrise' } });
     const payload = {
       action: 'APPROVE_PAYOUT_ABOVE_LIMIT',
       logical_obligation_id: p.logical_obligation_id,
@@ -205,18 +205,18 @@ describe('fixture transport with illustrative outputs', () => {
       vendor_id: p.vendor_id,
     };
     const forbidden = make(['fixture.read']);
-    await expect(forbidden.client.command('approvePayout', prepareCommand({ expectedVersion: p.version, payload }), { path: { id: p.id } })).rejects.toMatchObject({ kind: 'forbidden' });
-    await expect(client.command('approvePayout', prepareCommand({ expectedVersion: p.version, payload: { ...payload, amount_cents: '700000' } }), { path: { id: p.id } })).rejects.toMatchObject({ code: 'AMOUNT_MISMATCH' });
-    await expect(client.command('approvePayout', prepareCommand({ expectedVersion: p.version, payload: { ...payload, beneficiary_version: 2 } }), { path: { id: p.id } })).rejects.toMatchObject({ code: 'BENEFICIARY_CHANGED' });
-    await expect(client.command('approvePayout', prepareCommand({ expectedVersion: 1, payload }), { path: { id: p.id } })).rejects.toMatchObject({ kind: 'conflict', currentVersion: 2 });
-    const ok = await client.command('approvePayout', prepareCommand({ expectedVersion: p.version, payload }), { path: { id: p.id } });
+    await expect(forbidden.client.command('approvePayout', prepareCommand({ expectedVersion: p.version, payload }), { path: { payout_id: p.id } })).rejects.toMatchObject({ kind: 'forbidden' });
+    await expect(client.command('approvePayout', prepareCommand({ expectedVersion: p.version, payload: { ...payload, amount_cents: '700000' } }), { path: { payout_id: p.id } })).rejects.toMatchObject({ code: 'AMOUNT_MISMATCH' });
+    await expect(client.command('approvePayout', prepareCommand({ expectedVersion: p.version, payload: { ...payload, beneficiary_version: 2 } }), { path: { payout_id: p.id } })).rejects.toMatchObject({ code: 'BENEFICIARY_CHANGED' });
+    await expect(client.command('approvePayout', prepareCommand({ expectedVersion: 1, payload }), { path: { payout_id: p.id } })).rejects.toMatchObject({ kind: 'conflict', currentVersion: 2 });
+    const ok = await client.command('approvePayout', prepareCommand({ expectedVersion: p.version, payload }), { path: { payout_id: p.id } });
     expect(ok).toMatchObject({ kind: 'completed', result: { status: 'APPROVED', version: 3 } });
 
     // Churro: below the limit and blocked by a changed beneficiary. No amount approval is pending, so none is accepted.
-    const c = await client.get('getPayout', { path: { id: 'illus_payout_n1_churro' } });
+    const c = await client.get('getPayout', { path: { payout_id: 'illus_payout_n1_churro' } });
     const cPayload = { ...payload, logical_obligation_id: c.logical_obligation_id, amount_cents: c.amount_cents, vendor_id: c.vendor_id };
-    await expect(client.command('approvePayout', prepareCommand({ expectedVersion: c.version, payload: cPayload }), { path: { id: c.id } })).rejects.toMatchObject({ code: 'INVALID_TRANSITION' });
-    expect((await client.get('getPayout', { path: { id: c.id } })).state).toBe('DRAFT');
+    await expect(client.command('approvePayout', prepareCommand({ expectedVersion: c.version, payload: cPayload }), { path: { payout_id: c.id } })).rejects.toMatchObject({ code: 'INVALID_TRANSITION' });
+    expect((await client.get('getPayout', { path: { payout_id: c.id } })).state).toBe('DRAFT');
   });
 
   it('serves finance lists, filters and details (journal by entry_id, tax under /reports/tax)', async () => {
@@ -224,8 +224,8 @@ describe('fixture transport with illustrative outputs', () => {
     expect((await client.list('listPayouts', { query: { state: 'UNKNOWN' } })).items.map((p) => p.id)).toEqual(['illus_payout_n1_lemon']);
     expect((await client.list('listSupplierInvoices', { query: { kind: 'CREDIT_NOTE' } })).items).toHaveLength(1);
     expect((await client.list('listPurchaseOrders', { query: { supplier_id: 'illus_sup_ice' } })).items).toHaveLength(1);
-    expect((await client.get('getJournalEntry', { path: { id: 'illus_je_inv_ice_rev' } })).correction_of).toBe('illus_je_inv_ice');
-    expect((await client.get('getTaxReport', { path: { id: 'illus_tax_draft_n1' } })).status).toBe('DRAFT_NOT_FILED');
+    expect((await client.get('getJournalEntry', { path: { entry_id: 'illus_je_inv_ice_rev' } })).correction_of).toBe('illus_je_inv_ice');
+    expect((await client.get('getTaxReport', { path: { report_id: 'illus_tax_draft_n1' } })).status).toBe('DRAFT_NOT_FILED');
     expect((await client.list('listFinancialReports', { query: { business_date: '2026-10-17' } })).items.map((r) => r.kind).sort()).toEqual(['FESTIVAL_CASH', 'FESTIVAL_PNL']);
     expect((await client.list('listTaxReports')).items).toHaveLength(1);
   });

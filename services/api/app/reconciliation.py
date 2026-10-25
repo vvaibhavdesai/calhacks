@@ -89,6 +89,17 @@ class PaymentFact:
 
 @dataclass
 class ClassificationResult:
+    """One classification outcome.
+
+    `matched_amount_cents` is the amount this group confirms as genuinely
+    matched money -- for an order, its captures NET of every
+    refund/chargeback booked against that same order. A04 settles
+    commission directly off this figure (app/settlement.py's
+    `gather_reconciled_day_facts`), so a refund has to reduce it HERE, at
+    the source; recording the refund only in `notes` would leave
+    commission assessed on money the customer already got back.
+    """
+
     status: str  # "matched" | "pending" | "case"
     reason_code: str
     variance_cents: int
@@ -102,11 +113,19 @@ def classify_order_capture(
     """Order <-> processor payment capture matching for one order.
 
     `payments` is every Payment row linked to this order, of any kind.
+
+    `matched_amount_cents` on the returned result is always captures NET
+    of refunds/chargebacks -- never the raw capture total -- because that
+    figure IS A04's eligible-sales basis for this order. The variance
+    classification is a separate question and is still decided from the
+    RAW capture total vs the order total (a refund explains a variance;
+    it does not make the captures themselves smaller).
     """
     captures = [p for p in payments if p.kind == "capture"]
     adjustments = [p for p in payments if p.kind in ("refund", "chargeback")]
     captures_total = sum(p.amount_cents for p in captures)
     adjustments_total = sum(p.amount_cents for p in adjustments)
+    net_captured = captures_total - adjustments_total
     variance = captures_total - expected_cents
 
     # Sanity check first: refunding/charging back more than was ever
@@ -117,7 +136,11 @@ def classify_order_capture(
             status="case",
             reason_code="refund_exceeds_captured_amount",
             variance_cents=adjustments_total - captures_total,
-            matched_amount_cents=captures_total,
+            # Nothing is confirmed matched: more was given back than was
+            # ever taken. Clamped at zero rather than publishing a
+            # negative "matched" amount -- `variance_cents` above carries
+            # the size of the overrun, so no information is lost.
+            matched_amount_cents=0,
             notes="refund/chargeback total exceeds total captured for this order",
         )
 
@@ -130,18 +153,24 @@ def classify_order_capture(
             kind_label = (
                 "chargeback" if any(p.kind == "chargeback" for p in adjustments) else "refund"
             )
+            # The captures match the order total exactly AND money went
+            # back to the customer: the order reconciles, but only
+            # `net_captured` of it is still eligible sales.
             return ClassificationResult(
                 status="matched",
                 reason_code=f"{kind_label}_applied",
                 variance_cents=0,
-                matched_amount_cents=captures_total,
-                notes=f"{kind_label} of {adjustments_total} cents recorded against this order",
+                matched_amount_cents=net_captured,
+                notes=(
+                    f"{kind_label} of {adjustments_total} cents recorded against this order; "
+                    f"matched amount is net of it"
+                ),
             )
         return ClassificationResult(
             status="matched",
             reason_code="order_payment_match",
             variance_cents=0,
-            matched_amount_cents=captures_total,
+            matched_amount_cents=net_captured,
         )
 
     if variance > 0 and adjustments_total == variance:
@@ -152,7 +181,10 @@ def classify_order_capture(
             status="matched",
             reason_code=reason,
             variance_cents=0,
-            matched_amount_cents=expected_cents,
+            # Identical to `expected_cents` here by construction
+            # (captures_total - variance), spelled as the net so every
+            # branch of this function reports the same quantity.
+            matched_amount_cents=net_captured,
             notes=f"overcharge of {variance} cents fully explained by a refund/chargeback",
         )
 
@@ -163,7 +195,7 @@ def classify_order_capture(
             status="case",
             reason_code=reason,
             variance_cents=variance,
-            matched_amount_cents=captures_total,
+            matched_amount_cents=net_captured,
             notes="captured amount exceeds order total and is not (fully) refunded",
         )
 
@@ -172,7 +204,7 @@ def classify_order_capture(
         status="case",
         reason_code="missing_or_partial_payment",
         variance_cents=variance,
-        matched_amount_cents=captures_total,
+        matched_amount_cents=net_captured,
         notes="captured amount is less than the order total",
     )
 
@@ -517,7 +549,18 @@ def reconcile_bank_deposits(
         payments = (
             db.execute(select(Payment).where(Payment.bank_entry_id == entry.id)).scalars().all()
         )
-        captures_total = sum(p.amount_cents for p in payments if p.kind == "capture")
+        # NET of the refunds and chargebacks allocated to this same deposit.
+        # A processor pays out one net figure per batch: captures it collected
+        # less the refunds it returned, less its fee. Expecting the captures
+        # alone made every batch that contained a single refund look like an
+        # unexplained variance -- which held the money, because A04 will not
+        # treat an unsettled deposit as available cash. The fee stays separate
+        # and is explained by `batch_fee_cents` below; this is the gross side.
+        captures_total = sum(
+            p.amount_cents if p.kind == "capture" else -p.amount_cents
+            for p in payments
+            if p.kind in ("capture", "refund", "chargeback")
+        )
         order_dates = (
             db.execute(
                 select(Order.business_date)

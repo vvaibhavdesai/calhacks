@@ -253,6 +253,46 @@ def operating_expense(amount_cents: int) -> list[Line]:
     return build([("5400", amount_cents, 0), ("1000", 0, amount_cents)])
 
 
+def cash_office_deposit(amount_cents: int) -> list[Line]:
+    """Cash-office bags deposited at the bank: the money the bank actually
+    credited leaves the cash office and lands in the operating account."""
+    return build([("1000", amount_cents, 0), ("1050", 0, amount_cents)])
+
+
+def cash_over_short(variance_cents: int) -> list[Line]:
+    """Human-decided write-off of a counted cash variance (counted minus
+    expected). A shortage (negative) debits CASH_OVER_SHORT and credits the
+    cash office for the cash that never arrived; an overage reverses it.
+    Only ever posted after a recorded human decision -- never automatically."""
+    return build([("5200", -variance_cents, 0), ("1050", 0, -variance_cents)])
+
+
+def cash_shortage_to_vendor(variance_cents: int) -> list[Line]:
+    """Human-decided alternative to absorbing a shortage: the vendor owes it
+    (VENDOR_RECEIVABLE) instead of the organizer expensing it."""
+    return build([("1200", -variance_cents, 0), ("1050", 0, -variance_cents)])
+
+
+def unmatched_bank_entry(signed_cents: int) -> list[Line]:
+    """Bank activity no known record explains. The bank line is booked (the
+    bank really moved) against SUSPENSE, so the books tie to the bank
+    without guessing what it was. `signed_cents` is credit-positive."""
+    return build([("1000", signed_cents, 0), ("1999", 0, signed_cents)])
+
+
+def suspense_reclass(signed_cents: int, to_code: str) -> list[Line]:
+    """Moves an unmatched bank entry out of SUSPENSE to the account a human
+    decided on (e.g. OPERATING_EXPENSE for a bank fee). A linked correction:
+    the suspense entry itself is never rewritten."""
+    return build([("1999", signed_cents, 0), (to_code, 0, signed_cents)])
+
+
+def chargeback_fee_accrual(fee_cents: int) -> list[Line]:
+    """A processor chargeback fee NOT already inside a processor batch's
+    stated fees: expense now, owed to the processor out of clearing."""
+    return build([("5100", fee_cents, 0), ("1100", 0, fee_cents)])
+
+
 def reversal(lines: list[Line]) -> list[Line]:
     """Exact mirror of an entry: the correcting half of a correction. The
     original entry is never touched."""

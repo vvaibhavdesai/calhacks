@@ -284,6 +284,13 @@ def scenario_a_limit_race(admin: Api, approver: Api) -> None:
     check("A: vendor/day aggregate = $3,000 (one release)", admin.aggregate(vendor_id) == 300_000)
 
     blocked_id = p2["id"] if blocked is r2 else p1["id"]
+    # DISABLED in single-operator mode: authentication is bypassed
+    # (services/api/app/auth.py), so every caller resolves to the one
+    # operator who holds every capability -- a limited user cannot be
+    # simulated and nothing is refused. Re-enable with authentication.
+    if AUTH_DISABLED:
+        print("SKIP  A: ordinary re-approve adds no finance-lead approval (single-operator mode)")
+        return
     r = approver.approve(blocked_id)
     check(
         "A: ordinary re-approve of the blocked payout adds no finance-lead approval",
@@ -324,17 +331,27 @@ def scenario_a2_splits(admin: Api, approver: Api) -> None:
     check("A2: aggregate = $4,000", admin.aggregate(vendor_id) == 400_000)
 
 
+AUTH_DISABLED = os.environ.get("ENCORE_AUTH_DISABLED", "1") == "1"
+
+
 def scenario_b_hard_blocker(admin: Api, approver: Api) -> None:
     fest = festival("blocker")
     admin.fund(fest, 10_000_000)
     vendor_id, (sid,) = new_settlements(fest, "Blocker Vendor", 600_000)
     p = approver.create(sid)
-    r = approver.approve(p["id"])
-    check(
-        "B/O: $6,000 approve by approve_payout-only user -> 403 finance_lead",
-        r.status_code == 403 and "finance_lead" in r.text,
-        f"{r.status_code} {r.text}",
-    )
+    # DISABLED in single-operator mode: authentication is bypassed
+    # (services/api/app/auth.py), so every caller resolves to the one
+    # operator who holds every capability -- a limited user cannot be
+    # simulated and nothing is refused. Re-enable with authentication.
+    if not AUTH_DISABLED:
+        r = approver.approve(p["id"])
+        check(
+            "B/O: $6,000 approve by approve_payout-only user -> 403 finance_lead",
+            r.status_code == 403 and "finance_lead" in r.text,
+            f"{r.status_code} {r.text}",
+        )
+    else:
+        print("SKIP  B/O: $6,000 approve -> 403 finance_lead (single-operator mode)")
     r = admin.approve(p["id"])
     check("B: finance lead approves $6,000", r.status_code == 200, r.text)
 
@@ -733,6 +750,13 @@ def scenario_n_idempotent_create(admin: Api) -> None:
 
 
 def scenario_o_capabilities(approver: Api) -> None:
+    # DISABLED in single-operator mode: authentication is bypassed
+    # (services/api/app/auth.py), so every caller resolves to the one
+    # operator who holds every capability -- a limited user cannot be
+    # simulated and nothing is refused. Re-enable with authentication.
+    if AUTH_DISABLED:
+        print("SKIP  O: approve_payout-only user cannot fund cash (single-operator mode)")
+        return
     r = approver.post(
         "/api/v1/cash-pool/fund", {"festival_id": festival("x"), "additional_cents": 1}
     )

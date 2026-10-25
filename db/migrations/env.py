@@ -16,11 +16,16 @@ if _SERVICES_API not in sys.path:
 from app import (  # noqa: E402,F401
     models,
     models_agents,
+    models_cash_office,
+    models_corrections,
+    models_festival,
     models_finance,
     models_ledger,
+    models_orchestration,
     models_payout_dispatch,
     models_reconciliation,
     models_settlement,
+    models_worker,
 )
 
 # side effect of the import above: registers tables on Base.metadata

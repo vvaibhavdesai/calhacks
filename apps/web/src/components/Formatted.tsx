@@ -1,8 +1,8 @@
-import { ariaUsd, centsSign, formatUsd, isCanonicalCents } from '../lib/money';
+import { ariaUsd, centsSign, formatUsd, isCanonicalCents, type Cents } from '../lib/money';
 import { formatBusinessDate, formatInstant, isBusinessDate, isUtcInstant } from '../lib/time';
 
-/** Server-provided cents string -> USD. Shows an explicit marker for invalid values; never guesses. */
-export function Money({ cents, signDisplay }: { cents: string | null | undefined; signDisplay?: 'auto' | 'always' }) {
+/** Server-provided integer cents -> USD. Shows an explicit marker for invalid values; never guesses. */
+export function Money({ cents, signDisplay }: { cents: Cents | null | undefined; signDisplay?: 'auto' | 'always' }) {
   if (cents === null || cents === undefined) return <span className="muted">—</span>;
   if (!isCanonicalCents(cents)) {
     return (
@@ -13,7 +13,7 @@ export function Money({ cents, signDisplay }: { cents: string | null | undefined
   }
   const sign = centsSign(cents);
   return (
-    <data value={cents} className={`num${sign < 0 ? ' num-negative' : ''}`} aria-label={ariaUsd(cents)}>
+    <data value={String(cents)} className={`num${sign < 0 ? ' num-negative' : ''}`} aria-label={ariaUsd(cents)}>
       {formatUsd(cents, signDisplay ? { signDisplay } : {})}
     </data>
   );
