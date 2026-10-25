@@ -66,7 +66,7 @@ from app.ingestion import import_source  # noqa: E402
 from app.models_ledger import Order, OrderLine, Payment, SourceDocument, Vendor  # noqa: E402
 from app.models_reconciliation import BankEntry  # noqa: E402
 from app.storage.local_fs import get_document_storage  # noqa: E402
-from sqlalchemy import insert  # noqa: E402
+from sqlalchemy import insert, update  # noqa: E402
 
 API = os.environ.get("API_BASE_URL", "http://127.0.0.1:8010")
 TZ = ZoneInfo("America/Los_Angeles")
@@ -248,9 +248,16 @@ def load(fixture: Path, decision_set: str, state_path: Path) -> None:
 
     # 5. bank entries; processor deposits carry batch gross/fee
     batches = defaultdict(lambda: [0, 0])
+    # Which payments each processor batch paid out, so the payments can be
+    # allocated to the bank deposit that settled them (below). A real
+    # processor settlement file is exactly this: a payout reference, its
+    # gross and fee, and the payments it covers.
+    batch_payment_ids: dict[str, list[str]] = defaultdict(list)
     for b in items(fixture, "processor_batches"):
         batches[b["payout_reference"]][0] += cents(b["gross_cents"])
         batches[b["payout_reference"]][1] += cents(b["fees_cents"])
+        batch_payment_ids[b["payout_reference"]].extend(b.get("payment_ids") or [])
+    bank_id_by_reference: dict[str, str] = {}
     for be in items(fixture, "bank_entries"):
         g = batches.get(be["provider_reference"])
         db.add(
@@ -269,6 +276,35 @@ def load(fixture: Path, decision_set: str, state_path: Path) -> None:
                 **src_cols(be["source_refs"]),
             )
         )
+        bank_id_by_reference[be["provider_reference"]] = be["id"]
+    # The allocation below is a foreign key onto these rows, so they have to
+    # exist in the transaction before it runs.
+    db.flush()
+
+    # 5b. Allocate each centrally-collected payment to the bank deposit that
+    # settled it, via the processor batch that lists it.
+    #
+    # Without this, settlement is RIGHT to withhold the money: a
+    # centrally-collected payment with no bank_entry_id is cash the organizer
+    # cannot yet prove it has, so A04 holds it rather than paying it out. That
+    # is 94% of this festival's takings, which is why the settlements read as
+    # near-zero until the allocation exists.
+    allocated = 0
+    for reference, payment_ids in batch_payment_ids.items():
+        bank_entry_id = bank_id_by_reference.get(reference)
+        if not bank_entry_id or not payment_ids:
+            continue
+        # One UPDATE per batch rather than per payment: a batch here covers
+        # ~9,000 payments.
+        allocated += (
+            db.execute(
+                update(Payment)
+                .where(Payment.id.in_(payment_ids))
+                .values(bank_entry_id=bank_entry_id)
+            ).rowcount
+            or 0
+        )
+    print(f"payments allocated to bank deposits: {allocated}")
     db.commit()
     db.close()
 

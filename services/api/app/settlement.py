@@ -40,7 +40,7 @@ of, either.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from decimal import ROUND_HALF_UP, Decimal
 
@@ -53,7 +53,7 @@ from domain.settlement import (
     calculate_settlement_adjustment,
     calculate_vendor_settlement,
 )
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.holds import active_vendor_hold
@@ -135,6 +135,104 @@ def _round_half_up(value: Decimal) -> int:
     return int(value.quantize(Decimal("1"), rounding=ROUND_HALF_UP))
 
 
+# Postgres accepts at most 65535 bind parameters per statement, so an `IN`
+# over a whole festival night's orders is chunked. 5,000 keeps each statement
+# well clear of the limit while still being a handful of queries, not
+# thousands.
+_IN_CHUNK = 5_000
+
+
+def _chunks(values: list[str], size: int = _IN_CHUNK):
+    for i in range(0, len(values), size):
+        yield values[i : i + size]
+
+
+@dataclass
+class _DayRows:
+    """Every row `gather_reconciled_day_facts` reads, loaded in bulk.
+
+    Keyed exactly the way the loop looks things up, so the loop's logic is
+    unchanged -- it reads from dictionaries instead of issuing a query per
+    order.
+    """
+
+    members_by_group: dict[str, list[MatchGroupMember]] = field(default_factory=dict)
+    orders: dict[str, Order] = field(default_factory=dict)
+    payments: dict[str, Payment] = field(default_factory=dict)
+    bank_entries: dict[str, BankEntry] = field(default_factory=dict)
+    # Newest bank_deposit classification per bank entry. Newest, not any:
+    # reconciliation re-runs append a group per run, and the hold decision
+    # must not depend on row order.
+    newest_bank_group: dict[str, MatchGroup] = field(default_factory=dict)
+    # Capture total per bank entry, for proportional processor-fee shares.
+    bank_entry_capture_totals: dict[str, int] = field(default_factory=dict)
+
+
+def _load_day_rows(db: Session, order_groups: list[MatchGroup]) -> _DayRows:
+    rows = _DayRows()
+    group_ids = [g.id for g in order_groups]
+    if not group_ids:
+        return rows
+
+    for chunk in _chunks(group_ids):
+        for m in db.execute(
+            select(MatchGroupMember).where(MatchGroupMember.match_group_id.in_(chunk))
+        ).scalars():
+            rows.members_by_group.setdefault(m.match_group_id, []).append(m)
+
+    order_ids: list[str] = []
+    payment_ids: list[str] = []
+    for members in rows.members_by_group.values():
+        for m in members:
+            if m.member_kind == "order":
+                order_ids.append(m.member_id)
+            elif m.member_kind == "payment":
+                payment_ids.append(m.member_id)
+
+    for chunk in _chunks(order_ids):
+        for o in db.execute(select(Order).where(Order.id.in_(chunk))).scalars():
+            rows.orders[o.id] = o
+    for chunk in _chunks(payment_ids):
+        for pay in db.execute(select(Payment).where(Payment.id.in_(chunk))).scalars():
+            rows.payments[pay.id] = pay
+
+    bank_entry_ids = sorted({p.bank_entry_id for p in rows.payments.values() if p.bank_entry_id})
+    if not bank_entry_ids:
+        return rows
+
+    for chunk in _chunks(bank_entry_ids):
+        for b in db.execute(select(BankEntry).where(BankEntry.id.in_(chunk))).scalars():
+            rows.bank_entries[b.id] = b
+
+        # Newest bank_deposit group per entry: ordered so the FIRST row seen
+        # for an entry is its newest, matching the per-payment query this
+        # replaces (created_at desc, then id desc).
+        for member_id, group in db.execute(
+            select(MatchGroupMember.member_id, MatchGroup)
+            .join(MatchGroup, MatchGroup.id == MatchGroupMember.match_group_id)
+            .where(
+                MatchGroup.match_type == "bank_deposit",
+                MatchGroupMember.member_kind == "bank_entry",
+                MatchGroupMember.member_id.in_(chunk),
+            )
+            .order_by(
+                MatchGroupMember.member_id.asc(),
+                MatchGroup.created_at.desc(),
+                MatchGroup.id.desc(),
+            )
+        ):
+            rows.newest_bank_group.setdefault(member_id, group)
+
+        for bank_entry_id, total in db.execute(
+            select(Payment.bank_entry_id, func.sum(Payment.amount_cents))
+            .where(Payment.bank_entry_id.in_(chunk), Payment.kind == "capture")
+            .group_by(Payment.bank_entry_id)
+        ):
+            rows.bank_entry_capture_totals[bank_entry_id] = int(total or 0)
+
+    return rows
+
+
 def _latest_order_capture_groups(
     db: Session, *, vendor_id: str, business_date_: date
 ) -> list[MatchGroup]:
@@ -192,16 +290,24 @@ def gather_reconciled_day_facts(
         db, vendor_id=vendor.id, business_date_=business_date_
     )
 
+    # Everything this loop reads, fetched up front in a handful of queries.
+    #
+    # Each iteration used to issue about eight: the group's members, its order,
+    # its payment (four separate times in the custody comprehensions below),
+    # the newest bank-deposit group for that payment, and the bank entry. At a
+    # real festival's ~13,000 orders a night that is ~104,000 round trips, and
+    # it got worse every time reconciliation re-ran, because the newest-group
+    # lookup then had more generations to sort. Settlement went from 10 seconds
+    # to over five minutes on three reconciliation passes. The arithmetic below
+    # is unchanged -- only where the rows come from.
+    batch = _load_day_rows(db, order_groups)
+
     for group in order_groups:
-        members = (
-            db.execute(select(MatchGroupMember).where(MatchGroupMember.match_group_id == group.id))
-            .scalars()
-            .all()
-        )
+        members = batch.members_by_group.get(group.id, [])
         order_member = next((m for m in members if m.member_kind == "order"), None)
         if order_member is None:
             continue
-        order = db.get(Order, order_member.member_id)
+        order = batch.orders.get(order_member.member_id)
         if order is None:
             continue
 
@@ -234,16 +340,15 @@ def gather_reconciled_day_facts(
             eligible_for_order = 0
 
         payments = [m for m in members if m.member_kind == "payment"]
-        captures = [m for m in payments if db.get(Payment, m.member_id) is not None]
+        captures = [m for m in payments if batch.payments.get(m.member_id) is not None]
         # Determine custody for this order: look at its capture payment(s).
         # In practice an order has one payment method; if a hand-built
         # fixture ever mixes custody on one order, split proportionally by
         # capture amount rather than guessing a single custody.
         capture_payments = [
-            (db.get(Payment, m.member_id), m.amount_cents)
+            (batch.payments[m.member_id], m.amount_cents)
             for m in captures
-            if db.get(Payment, m.member_id) is not None
-            and db.get(Payment, m.member_id).kind == "capture"
+            if batch.payments[m.member_id].kind == "capture"
         ]
         captures_total = sum(amt for _p, amt in capture_payments) or 1
 
@@ -290,23 +395,7 @@ def gather_reconciled_day_facts(
             # `latest_run_id`: the bank_deposit pass is festival-level and
             # may well have last run in a different run than this
             # vendor's order pass.
-            bank_group = (
-                db.execute(
-                    select(MatchGroup)
-                    .join(
-                        MatchGroupMember,
-                        MatchGroupMember.match_group_id == MatchGroup.id,
-                    )
-                    .where(
-                        MatchGroup.match_type == "bank_deposit",
-                        MatchGroupMember.member_kind == "bank_entry",
-                        MatchGroupMember.member_id == payment.bank_entry_id,
-                    )
-                    .order_by(MatchGroup.created_at.desc(), MatchGroup.id.desc())
-                )
-                .scalars()
-                .first()
-            )
+            bank_group = batch.newest_bank_group.get(payment.bank_entry_id)
             if bank_group is None or bank_group.status != "matched":
                 held_this_order = True
                 facts.held_reasons.append(
@@ -332,18 +421,9 @@ def gather_reconciled_day_facts(
 
             # Proportional processor-fee attribution (fixture 6): this
             # payment's share of its settled bank entry's stated fee.
-            entry = db.get(BankEntry, payment.bank_entry_id)
+            entry = batch.bank_entries.get(payment.bank_entry_id)
             if entry is not None and entry.batch_fee_cents:
-                entry_captures_total = (
-                    db.execute(
-                        select(Payment.amount_cents).where(
-                            Payment.bank_entry_id == entry.id, Payment.kind == "capture"
-                        )
-                    )
-                    .scalars()
-                    .all()
-                )
-                total = sum(entry_captures_total) or 1
+                total = batch.bank_entry_capture_totals.get(entry.id) or 1
                 fee_share = _round_half_up(
                     Decimal(entry.batch_fee_cents) * Decimal(payment.amount_cents) / Decimal(total)
                 )

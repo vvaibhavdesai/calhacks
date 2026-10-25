@@ -549,7 +549,18 @@ def reconcile_bank_deposits(
         payments = (
             db.execute(select(Payment).where(Payment.bank_entry_id == entry.id)).scalars().all()
         )
-        captures_total = sum(p.amount_cents for p in payments if p.kind == "capture")
+        # NET of the refunds and chargebacks allocated to this same deposit.
+        # A processor pays out one net figure per batch: captures it collected
+        # less the refunds it returned, less its fee. Expecting the captures
+        # alone made every batch that contained a single refund look like an
+        # unexplained variance -- which held the money, because A04 will not
+        # treat an unsettled deposit as available cash. The fee stays separate
+        # and is explained by `batch_fee_cents` below; this is the gross side.
+        captures_total = sum(
+            p.amount_cents if p.kind == "capture" else -p.amount_cents
+            for p in payments
+            if p.kind in ("capture", "refund", "chargeback")
+        )
         order_dates = (
             db.execute(
                 select(Order.business_date)
