@@ -132,6 +132,36 @@ against the draft contract, fixtures that agree with the screen, and a live
 backend that sends something else. `apps/web/src/test/live-capture/` plus the
 21-route smoke test is the net that now catches that class.
 
+### Two endpoints were unusable, and one was reachable from a screen
+
+Found while declaring response models, not by a test, and fixed on the same
+branch. Both were O(all history) in Python, and neither was slow for the
+reason it looked like:
+
+- `GET /history/projection` took **646.91 s** on 203,379 events, and
+  `apps/web/src/screens/History.tsx` calls it against the live backend -- so
+  that screen never rendered on demo data. 99.5% of the time was in
+  `domain/history.py`'s `fold`, which called a `copy.deepcopy`-on-entry `apply`
+  once per event: quadratic as the folded state grew. The copy moved out of the
+  loop; `apply` keeps its signature and its purity, because that purity is why
+  a snapshot can be a fold stopped part-way. **646.91 s -> 1.8 s**, and
+  **0.45 s** measured end-to-end on the merged code. `GET /history/verify`
+  (699.44 s) and `POST /history/snapshots` were the same bug.
+- `GET /ops/audit-chain` unfiltered was not slow, it was **broken**: HTTP 500
+  after 30.6 s, `number of parameters must be between 0 and 65535`. It
+  enumerated streams in Python -- **202,478 streams for 203,379 events**, so
+  one round-trip each, then that id list went into an `IN (...)`. Replaced with
+  one ordered scan grouped by stream. **500 -> 200 in 7.2 s**, verified on the
+  merge: `status: ok`, no findings, whole chain walked.
+
+Shape was preserved rather than assumed: 11 endpoint variants byte-identical
+before and after, fold equivalence over all 202,795 events, and the OpenAPI
+snapshot unchanged. No index was added, with the `EXPLAIN` to say why. The
+accompanying tests assert the shape of the work -- zero deep copies, no
+statement carrying one bind parameter per stream -- not the clock, because both
+bugs produced *correct* output and no fixture is big enough to catch them by
+result.
+
 ### What may be claimed about the money, as of 2026-10-25
 
 V1-16 has run. The money has been graded against an independent answer key this
