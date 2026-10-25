@@ -952,6 +952,90 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/approvals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** X0.1 generic approval log: every already-granted decision recorded against a subject (a readiness check, a supplier invoice, a forecast snapshot), newest last. Filterable by subject or by the case it cites. */
+        get: operations["listApprovals"];
+        put?: never;
+        /** Records one already-granted decision. The required capability comes from `action`; 403 when the session does not hold it, 422 for an unknown action or a subject_type that action is not legal against. */
+        post: operations["createApproval"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/approvals/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getApproval"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/readiness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** R1: every counterparty's LATEST readiness check for one festival (the highest version of each). Not a C03 list envelope -- the backend keys the collection by `counterparties`. */
+        get: operations["listReadiness"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/readiness/recompute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Recomputes readiness for one counterparty, or for every vendor in the festival when counterparty_id is omitted. Requires `run_readiness`. */
+        post: operations["recomputeReadiness"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/readiness/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getReadiness"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1430,6 +1514,9 @@ export interface components {
             policy_candidate_id?: string | null;
             resolution?: components["schemas"]["CaseResolution"] | null;
             applied_policies?: components["schemas"]["AppliedPolicyRef"][];
+            /** @description What the case is about, beyond the implicit vendor/night (X0.1). Optional here because the ILLUSTRATIVE fixtures predate it; the live backend sends it. An approval that cites a case must name the SAME subject, or the server answers 422 case_subject_mismatch. */
+            subject_type?: components["schemas"]["ApprovalSubjectType"];
+            subject_id?: string | null;
         };
         PolicyScope: {
             festival_id: string;
@@ -2340,6 +2427,94 @@ export interface components {
         ReplayList: {
             items: components["schemas"]["Replay"][];
             next_cursor: components["schemas"]["NextCursor"];
+        };
+        /**
+         * @description What an approval (or a case) can be recorded against (domain.case_routing.SUBJECT_TYPES). Enumerated here because the UI offers these as filters and form choices; the records themselves keep `subject_type` as a plain string, so a value this list has not caught up with is still displayed rather than dropped.
+         * @enum {string}
+         */
+        ApprovalSubjectType: "vendor_run" | "vendor_readiness" | "supplier_readiness" | "supplier_invoice" | "forecast_snapshot" | "contract_obligation";
+        /**
+         * @description What is being approved (domain.approvals.ACTION_CAPABILITY). Each action deterministically implies exactly one required capability and one set of legal subject types -- never inferred from free text.
+         * @enum {string}
+         */
+        ApprovalAction: "approve_interpretation" | "record_amendment" | "approve_invoice_exception" | "release_supplier_payment" | "acknowledge_forecast" | "dispute_invoice_exception" | "request_invoice_credit";
+        /** @description One already-granted decision, append-only. Named ApprovalRecord because `Approval` above is already taken by CONTRACTS.md's own (different, and currently unreferenced) draft approval shape; this is the one X0.1's real /approvals routes serve. `required_capability` is re-derived by the server from `action` and stored -- a caller cannot record a broader capability than the action needed. There is no version: an approval is never edited. */
+        ApprovalRecord: {
+            id: string;
+            subject_type: string;
+            subject_id: string;
+            case_id: string | null;
+            action: string;
+            required_capability: string;
+            note: string | null;
+            payload: Record<string, never>;
+            actor_id: string | null;
+            actor_capability: string;
+        };
+        ApprovalRecordList: {
+            items: components["schemas"]["ApprovalRecord"][];
+            next_cursor: components["schemas"]["NextCursor"];
+        };
+        /** @description Body of POST /approvals. No actor field: the actor is the authenticated session, never supplied by the client (same rule as every C03 command payload). */
+        CreateApprovalRecord: {
+            subject_type: components["schemas"]["ApprovalSubjectType"];
+            subject_id: string;
+            action: components["schemas"]["ApprovalAction"];
+            case_id?: string | null;
+            note?: string | null;
+            payload?: Record<string, never> | null;
+        };
+        /**
+         * @description domain.readiness.STATUSES. `stale` is never produced by R1's own evaluation (R3 sets it); the UI renders whatever the server sends.
+         * @enum {string}
+         */
+        ReadinessStatus: "ready" | "ready_with_interpretation" | "blocked" | "stale";
+        /** @description One of the eight deterministic checks, with its own reason. */
+        ReadinessCheckResult: {
+            check: string;
+            passed: boolean;
+            reason: string;
+            details?: Record<string, never>;
+        };
+        /** @description One counterparty's readiness at one version. `exposure_cents` and `decision_deadline` are always null from R1: both live on the Case that R2 opens for a failing counterparty, and R2 is not built. They are declared (and rendered as "—") rather than hidden, so the shape does not change when R2 fills them. */
+        ReadinessCheck: {
+            id: string;
+            festival_id: string;
+            /** @enum {string} */
+            counterparty_type: "vendor" | "supplier";
+            counterparty_id: string;
+            version: components["schemas"]["Version"];
+            status: components["schemas"]["ReadinessStatus"];
+            failing_checks: string[];
+            checks: components["schemas"]["ReadinessCheckResult"][];
+            /** @description SHA-256 over the exact input versions. The same inputs recompute to the same fingerprint and return the existing row unchanged. */
+            input_fingerprint: string;
+            /** Format: date-time */
+            computed_at: string;
+            exposure_cents: components["schemas"]["MoneyCents"] | null;
+            decision_deadline: components["schemas"]["Instant"] | null;
+        };
+        /** @description Deliberately not the C03 {items, next_cursor} envelope: this is what the backend serves. One entry per counterparty, its latest version. */
+        ReadinessList: {
+            festival_id: string;
+            counterparties: components["schemas"]["ReadinessCheck"][];
+        };
+        /** @description Body of POST /readiness/recompute. */
+        RecomputeReadiness: {
+            festival_id: string;
+            festival_start: components["schemas"]["BusinessDate"];
+            festival_end: components["schemas"]["BusinessDate"];
+            /** @enum {string} */
+            counterparty_type?: "vendor" | "supplier";
+            /** @description Omitted or null recomputes every vendor in the festival. */
+            counterparty_id?: string | null;
+        };
+        ReadinessRecomputeResult: {
+            festival_id: string;
+            counterparties: (components["schemas"]["ReadinessCheck"] & {
+                /** @description False when the inputs were unchanged: the existing row is returned as it was, with no new version and no new event. */
+                created_new_version: boolean;
+            })[];
         };
     };
     responses: {
@@ -4298,6 +4473,164 @@ export interface operations {
             422: components["responses"]["Invalid"];
             429: components["responses"]["RateLimited"];
             503: components["responses"]["Unavailable"];
+        };
+    };
+    listApprovals: {
+        parameters: {
+            query?: {
+                subject_type?: components["schemas"]["ApprovalSubjectType"];
+                subject_id?: string;
+                case_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Approvals in creation order. The backend answers with a bare JSON array; the client normalises that to this envelope (see ApiClient.list), so paging fields are always null here. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalRecordList"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createApproval: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateApprovalRecord"];
+            };
+        };
+        responses: {
+            /** @description The recorded approval. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalRecord"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Invalid"];
+        };
+    };
+    getApproval: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PathId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One approval record. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalRecord"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listReadiness: {
+        parameters: {
+            query: {
+                /** @description Required by the live backend. The UI holds it from GET /festival (hooks/useLookups) and holds the query until it arrives. */
+                festival_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Latest readiness check per counterparty. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadinessList"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["Invalid"];
+        };
+    };
+    recomputeReadiness: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecomputeReadiness"];
+            };
+        };
+        responses: {
+            /** @description The readiness check per counterparty after the recompute, each marked with whether this call wrote a new version. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadinessRecomputeResult"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Invalid"];
+        };
+    };
+    getReadiness: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PathId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One readiness check, with every check's own pass/fail. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadinessCheck"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
 }
