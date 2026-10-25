@@ -108,7 +108,7 @@ export function JournalDetail() {
   const { client } = useApp();
   const { lookups, describeSource } = useLookups();
   const [evidence, setEvidence] = useState<{ title: string; refs: SourceRef[] } | null>(null);
-  const result = useApiQuery(`journal-entry:${entryId}`, (signal) => client.get('getJournalEntry', { signal, path: { id: entryId } }));
+  const result = useApiQuery(`journal-entry:${entryId}`, (signal) => client.get('getJournalEntry', { signal, path: { entry_id: entryId } }));
   const e = result.data;
   const columns: Column<JournalLine>[] = [
     {

@@ -287,7 +287,7 @@ export function InvoiceDetail() {
   const { describeSource } = useLookups();
   const suppliers = useSupplierNames();
   const [evidence, setEvidence] = useState<Evidence>(null);
-  const result = useApiQuery(`invoice:${invoiceId}`, (signal) => client.get('getSupplierInvoice', { signal, path: { id: invoiceId } }));
+  const result = useApiQuery(`invoice:${invoiceId}`, (signal) => client.get('getSupplierInvoice', { signal, path: { invoice_id: invoiceId } }));
   const i = result.data;
   return (
     <>

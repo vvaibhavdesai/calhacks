@@ -205,17 +205,17 @@ describe('fixture transport with illustrative outputs', () => {
       vendor_id: p.vendor_id,
     };
     const forbidden = make(['fixture.read']);
-    await expect(forbidden.client.command('approvePayout', prepareCommand({ expectedVersion: p.version, payload }), { path: { id: p.id } })).rejects.toMatchObject({ kind: 'forbidden' });
-    await expect(client.command('approvePayout', prepareCommand({ expectedVersion: p.version, payload: { ...payload, amount_cents: '700000' } }), { path: { id: p.id } })).rejects.toMatchObject({ code: 'AMOUNT_MISMATCH' });
-    await expect(client.command('approvePayout', prepareCommand({ expectedVersion: p.version, payload: { ...payload, beneficiary_version: 2 } }), { path: { id: p.id } })).rejects.toMatchObject({ code: 'BENEFICIARY_CHANGED' });
-    await expect(client.command('approvePayout', prepareCommand({ expectedVersion: 1, payload }), { path: { id: p.id } })).rejects.toMatchObject({ kind: 'conflict', currentVersion: 2 });
-    const ok = await client.command('approvePayout', prepareCommand({ expectedVersion: p.version, payload }), { path: { id: p.id } });
+    await expect(forbidden.client.command('approvePayout', prepareCommand({ expectedVersion: p.version, payload }), { path: { payout_id: p.id } })).rejects.toMatchObject({ kind: 'forbidden' });
+    await expect(client.command('approvePayout', prepareCommand({ expectedVersion: p.version, payload: { ...payload, amount_cents: '700000' } }), { path: { payout_id: p.id } })).rejects.toMatchObject({ code: 'AMOUNT_MISMATCH' });
+    await expect(client.command('approvePayout', prepareCommand({ expectedVersion: p.version, payload: { ...payload, beneficiary_version: 2 } }), { path: { payout_id: p.id } })).rejects.toMatchObject({ code: 'BENEFICIARY_CHANGED' });
+    await expect(client.command('approvePayout', prepareCommand({ expectedVersion: 1, payload }), { path: { payout_id: p.id } })).rejects.toMatchObject({ kind: 'conflict', currentVersion: 2 });
+    const ok = await client.command('approvePayout', prepareCommand({ expectedVersion: p.version, payload }), { path: { payout_id: p.id } });
     expect(ok).toMatchObject({ kind: 'completed', result: { status: 'APPROVED', version: 3 } });
 
     // Churro: below the limit and blocked by a changed beneficiary. No amount approval is pending, so none is accepted.
     const c = await client.get('getPayout', { path: { payout_id: 'illus_payout_n1_churro' } });
     const cPayload = { ...payload, logical_obligation_id: c.logical_obligation_id, amount_cents: c.amount_cents, vendor_id: c.vendor_id };
-    await expect(client.command('approvePayout', prepareCommand({ expectedVersion: c.version, payload: cPayload }), { path: { id: c.id } })).rejects.toMatchObject({ code: 'INVALID_TRANSITION' });
+    await expect(client.command('approvePayout', prepareCommand({ expectedVersion: c.version, payload: cPayload }), { path: { payout_id: c.id } })).rejects.toMatchObject({ code: 'INVALID_TRANSITION' });
     expect((await client.get('getPayout', { path: { payout_id: c.id } })).state).toBe('DRAFT');
   });
 
@@ -224,7 +224,7 @@ describe('fixture transport with illustrative outputs', () => {
     expect((await client.list('listPayouts', { query: { state: 'UNKNOWN' } })).items.map((p) => p.id)).toEqual(['illus_payout_n1_lemon']);
     expect((await client.list('listSupplierInvoices', { query: { kind: 'CREDIT_NOTE' } })).items).toHaveLength(1);
     expect((await client.list('listPurchaseOrders', { query: { supplier_id: 'illus_sup_ice' } })).items).toHaveLength(1);
-    expect((await client.get('getJournalEntry', { path: { id: 'illus_je_inv_ice_rev' } })).correction_of).toBe('illus_je_inv_ice');
+    expect((await client.get('getJournalEntry', { path: { entry_id: 'illus_je_inv_ice_rev' } })).correction_of).toBe('illus_je_inv_ice');
     expect((await client.get('getTaxReport', { path: { id: 'illus_tax_draft_n1' } })).status).toBe('DRAFT_NOT_FILED');
     expect((await client.list('listFinancialReports', { query: { business_date: '2026-10-17' } })).items.map((r) => r.kind).sort()).toEqual(['FESTIVAL_CASH', 'FESTIVAL_PNL']);
     expect((await client.list('listTaxReports')).items).toHaveLength(1);

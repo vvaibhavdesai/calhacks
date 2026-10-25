@@ -293,10 +293,10 @@ describe('fixture transport responses conform', () => {
     expectValid('SupplierList', await out.list('listSuppliers'));
     expectValid('PurchaseOrderList', await out.list('listPurchaseOrders'));
     expectValid('SupplierInvoiceList', await out.list('listSupplierInvoices'));
-    for (const i of (await out.list('listSupplierInvoices')).items) expectValid('SupplierInvoice', await out.get('getSupplierInvoice', { path: { id: i.id } }));
+    for (const i of (await out.list('listSupplierInvoices')).items) expectValid('SupplierInvoice', await out.get('getSupplierInvoice', { path: { invoice_id: i.id } }));
     expectValid('SupplierPaymentList', await out.list('listSupplierPayments'));
     expectValid('JournalEntryList', await out.list('listJournalEntries'));
-    for (const e of (await out.list('listJournalEntries')).items) expectValid('JournalEntry', await out.get('getJournalEntry', { path: { id: e.entry_id } }));
+    for (const e of (await out.list('listJournalEntries')).items) expectValid('JournalEntry', await out.get('getJournalEntry', { path: { entry_id: e.entry_id } }));
     expectValid('TaxReportList', await out.list('listTaxReports'));
     for (const t of (await out.list('listTaxReports')).items) expectValid('TaxReport', await out.get('getTaxReport', { path: { id: t.id } }));
     expectValid('FinancialReportList', await out.list('listFinancialReports'));

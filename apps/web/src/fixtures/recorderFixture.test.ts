@@ -147,15 +147,15 @@ describe('recorder stand-in: challenge, preview, approval', () => {
 
   it('after the correction: originals preserved and linked, old settlement version still served, pending payout cancelled and replaced', async () => {
     const { client } = make();
-    const before = await client.get('getJournalEntry', { path: { id: 'illus_je_n1_fee_taco' } });
+    const before = await client.get('getJournalEntry', { path: { entry_id: 'illus_je_n1_fee_taco' } });
     const { correctionId } = await runNight3Correction(client);
     const c = await client.get('getCorrection', { path: { correction_id: correctionId } });
     expect(c.status).toBe('COMPLETED');
     expect(c.progress?.every((s) => s.status === 'DONE')).toBe(true);
-    const original = await client.get('getJournalEntry', { path: { id: 'illus_je_n1_fee_taco' } });
+    const original = await client.get('getJournalEntry', { path: { entry_id: 'illus_je_n1_fee_taco' } });
     expect(original.lines).toEqual(before.lines); // never edited
     expect(original.corrected_by).toEqual(['illus_je_n1_fee_taco_rev', 'illus_je_n1_fee_taco_corr']);
-    expect((await client.get('getJournalEntry', { path: { id: 'illus_je_n1_fee_taco_rev' } })).kind).toBe('REVERSAL');
+    expect((await client.get('getJournalEntry', { path: { entry_id: 'illus_je_n1_fee_taco_rev' } })).kind).toBe('REVERSAL');
     expect((await client.get('getSettlement', { path: { settlement_id: 'illus_set_n1_taco' } })).statement_status).toBe('ADJUSTED');
     const old = await client.get('getSettlement', { path: { settlement_id: 'illus_set_n1_taco' }, query: { version: 2 } });
     expect(old.assessed_fee_cents).toBe('8000');

@@ -49,7 +49,7 @@ describe('ApiClient reads', () => {
 
   it('encodes path parameters', () => {
     const { client } = clientReturning(() => jsonResponse(200, {}));
-    expect(client.url('getVendor', { path: { id: 'a/b' } })).toBe('https://api.example/api/v1/vendors/a%2Fb');
+    expect(client.url('getVendor', { path: { vendor_id: 'a/b' } })).toBe('https://api.example/api/v1/vendors/a%2Fb');
   });
 });
 

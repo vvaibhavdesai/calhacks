@@ -137,18 +137,8 @@ export const OPERATIONS = {
   },
 
   // --------------------------------------------------------- vendor records
-  listVendors: {
-    method: 'GET',
-    path: '/vendors',
-    backend: 'absent',
-    gap: 'GET /api/v1/vendors (id, name, festival_id; cursor paging). Only /vendors/{id}/beneficiary (PATCH) and /vendors/{id}/payout-aggregate exist, so no screen can turn a vendor_id into a name.',
-  },
-  getVendor: {
-    method: 'GET',
-    path: '/vendors/{id}',
-    backend: 'absent',
-    gap: 'GET /api/v1/vendors/{vendor_id} (the vendor record, not just its beneficiary).',
-  },
+  listVendors: { method: 'GET', path: '/vendors', backend: 'live', query: { sort: null } },
+  getVendor: { method: 'GET', path: '/vendors/{vendor_id}', backend: 'live' },
 
   // ------------------------------------------------------- settlements (C04)
   listSettlements: { method: 'GET', path: '/settlements', backend: 'live', query: NO_PAGING },
@@ -183,13 +173,7 @@ export const OPERATIONS = {
     query: { ...NO_PAGING, state: 'state', vendor_id: 'vendor_id', business_date: 'business_date' },
   },
   getPayout: { method: 'GET', path: '/payouts/{payout_id}', backend: 'live' },
-  approvePayout: {
-    method: 'POST',
-    path: '/payouts/{id}/approve',
-    backend: 'shape',
-    route: '/payouts/{payout_id}/approve',
-    gap: 'POST /api/v1/payouts/{payout_id}/approve accepts only {expected_version, note}: the approved amount_cents and beneficiary_version are dropped, so the server cannot refuse an approval that no longer matches what the approver saw. It also ignores Idempotency-Key.',
-  },
+  approvePayout: { method: 'POST', path: '/payouts/{payout_id}/approve', backend: 'live' },
   listPayoutBatches: {
     method: 'GET',
     path: '/payout-batches',
@@ -214,34 +198,16 @@ export const OPERATIONS = {
   },
 
   // ---------------------------------------------------------- payables (C07)
-  listSuppliers: {
-    method: 'GET',
-    path: '/suppliers',
-    backend: 'shape',
-    route: '/suppliers',
-    gap: 'GET /api/v1/suppliers requires festival_id (which the UI cannot obtain, see getFestival) and declares no response model, so the supplier record is unknown to the client.',
-  },
-  listPurchaseOrders: {
-    method: 'GET',
-    path: '/purchase-orders',
-    backend: 'shape',
-    route: '/purchase-orders',
-    gap: 'As listSuppliers: requires festival_id and declares no response model.',
-  },
+  listSuppliers: { method: 'GET', path: '/suppliers', backend: 'live', query: NO_PAGING },
+  listPurchaseOrders: { method: 'GET', path: '/purchase-orders', backend: 'live', query: NO_PAGING },
   listSupplierInvoices: {
     method: 'GET',
     path: '/invoices',
     backend: 'shape',
     route: '/invoices',
-    gap: 'As listSuppliers: requires festival_id and declares no response model.',
+    gap: 'GET /api/v1/invoices?festival_id= returns {as_of, invoices[], total_outstanding_cents} -- the collection is nested under `invoices`, not the {items, next_cursor} envelope or a bare array this client can read.',
   },
-  getSupplierInvoice: {
-    method: 'GET',
-    path: '/invoices/{id}',
-    backend: 'shape',
-    route: '/invoices/{invoice_id}',
-    gap: 'Declares no response model, so the invoice record (variance, credit notes, approvals) is unknown to the client.',
-  },
+  getSupplierInvoice: { method: 'GET', path: '/invoices/{invoice_id}', backend: 'live' },
   listSupplierPayments: {
     method: 'GET',
     path: '/supplier-payments',
@@ -250,20 +216,8 @@ export const OPERATIONS = {
   },
 
   // ------------------------------------------------------- accounting (C07)
-  listJournalEntries: {
-    method: 'GET',
-    path: '/journal',
-    backend: 'shape',
-    route: '/journal',
-    gap: 'GET /api/v1/journal requires festival_id and declares no response model; the UI needs the entry record with its balanced lines.',
-  },
-  getJournalEntry: {
-    method: 'GET',
-    path: '/journal/{id}',
-    backend: 'shape',
-    route: '/journal/{entry_id}',
-    gap: 'Declares no response model.',
-  },
+  listJournalEntries: { method: 'GET', path: '/journal', backend: 'live', query: { sort: null } },
+  getJournalEntry: { method: 'GET', path: '/journal/{entry_id}', backend: 'live' },
 
   // ---------------------------------------------------------- reports (C07)
   listTaxReports: {
@@ -271,7 +225,7 @@ export const OPERATIONS = {
     path: '/reports/tax',
     backend: 'shape',
     route: '/reports/tax',
-    gap: 'GET /api/v1/reports/tax?festival_id&through computes one current report and declares no response model. The screen lists issued tax reports and opens one by id, so it needs a stored-report collection.',
+    gap: 'GET /api/v1/reports/tax?festival_id= computes ONE current report (status, by_business_date, totals, mismatch_lines) rather than listing issued reports. The screen lists reports and opens one by id, so this needs stored reports.',
   },
   getTaxReport: {
     method: 'GET',
@@ -297,7 +251,7 @@ export const OPERATIONS = {
     path: '/cash',
     backend: 'shape',
     route: '/cash',
-    gap: 'GET /api/v1/cash requires festival_id, returns one position rather than a series, and declares no response model; the cash screen shows a position plus its forecast points.',
+    gap: 'GET /api/v1/cash?festival_id= returns ONE position object (as_of, bank_cents, protected, reserved_payouts_cents, ...), not a series. The cash screen lists positions plus forecast points, so this needs a collection.',
   },
 
   // ------------------------------------------- flight recorder (C08, live)
@@ -308,7 +262,7 @@ export const OPERATIONS = {
     path: '/history/projection',
     backend: 'shape',
     route: '/history/projection',
-    gap: 'GET /api/v1/history/projection declares festival_id as optional but answers 422 FESTIVAL_REQUIRED without festival_id or a known vendor_id (verified against the running API). The UI can supply neither until the festival and vendor records are exposed, so this read is unreachable even though the route is correct.',
+    gap: 'GET /api/v1/history/projection requires `knowledge_cutoff` (verified: 422 without it) even though the draft declares every parameter optional. The UI asks "what did we know at time T" from the screen state and does not have a cutoff to supply yet.',
   },
   listChallenges: { method: 'GET', path: '/challenges', backend: 'live', query: NO_PAGING },
   getChallenge: { method: 'GET', path: '/challenges/{challenge_id}', backend: 'live' },
@@ -328,7 +282,7 @@ export const OPERATIONS = {
     path: '/imports',
     backend: 'shape',
     route: '/imports',
-    gap: 'POST /api/v1/imports takes {source_system, source_native_id, mime_type, content_base64} with no command envelope and no Idempotency-Key (it dedupes on content hash instead).',
+    gap: 'POST /api/v1/imports takes {source_system, source_native_id, mime_type, content_base64} with no command envelope and no Idempotency-Key (it dedupes on content hash instead), so the UI command this client sends would be rejected.',
   },
   createChallenge: { method: 'POST', path: '/challenges', backend: 'live' },
   previewCorrection: { method: 'POST', path: '/corrections/preview', backend: 'live' },
