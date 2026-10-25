@@ -66,6 +66,7 @@ import argparse
 import json
 import os
 import sys
+from datetime import UTC
 from pathlib import Path
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "services", "api"))
@@ -95,6 +96,39 @@ LIVE_SETTLEMENTS = text(
            holds, policy_refs
       FROM ranked WHERE rn = 1
      ORDER BY business_date, vendor_id
+    """
+)
+
+# One payout per vendor-night, read against the settlement chain the same way
+# LIVE_SETTLEMENTS picks the settlement: a payout against a superseded row is
+# a dead obligation (`release_payout` refuses it and always will), so the
+# vendor-night's payout is the one on its live settlement. `released_at` comes
+# from the `payout.released` event, which is where lane A records when the
+# money was actually let go; `dispatch_attempts` is how many times it was
+# handed to the rail.
+LIVE_PAYOUTS = text(
+    """
+    WITH ranked AS (
+      SELECT s.*, ROW_NUMBER() OVER (
+               PARTITION BY s.vendor_id, s.business_date
+               ORDER BY s.version DESC, s.created_at DESC) AS rn
+        FROM settlements s
+       WHERE s.festival_id = :festival
+         AND NOT EXISTS (SELECT 1 FROM settlements c WHERE c.correction_of = s.id)
+    ),
+    live AS (SELECT * FROM ranked WHERE rn = 1)
+    SELECT p.id, p.vendor_id, p.business_date, p.state, p.amount_cents,
+           p.idempotency_key, p.dispatch_attempts, p.payout_confirmed_at,
+           live.tips_cents,
+           (SELECT e.occurred_at FROM business_events e
+             WHERE e.aggregate_id = p.id AND e.event_type = 'payout.released'
+             ORDER BY e.occurred_at DESC LIMIT 1) AS released_at,
+           (SELECT e.payload FROM business_events e
+             WHERE e.aggregate_id = p.id AND e.event_type = 'payout.release_blocked'
+             ORDER BY e.occurred_at DESC LIMIT 1) AS block_payload
+      FROM payouts p
+      JOIN live ON live.id = p.settlement_id
+     ORDER BY p.business_date, p.vendor_id
     """
 )
 
@@ -248,6 +282,88 @@ def _citations(refs, src_by_doc_id: dict[str, str]) -> list[dict]:
     return out
 
 
+# Lane A's payout states in lane B's `final_state` vocabulary. Lane A's state
+# machine is finer (DRAFT -> APPROVED -> DISPATCH_PENDING -> SUBMITTED ->
+# CONFIRMED, plus REJECTED/CANCELLED/UNKNOWN); lane B asks only how it ended.
+# Anything still short of release reads as HELD, which is what it is from the
+# vendor's side: the money has not moved and something is stopping it.
+PAYOUT_STATE_TO_ORACLE = {
+    "CONFIRMED": "CONFIRMED",
+    "FAILED": "FAILED",
+    "DRAFT": "HELD",
+    "APPROVED": "HELD",
+    "DISPATCH_PENDING": "HELD",
+    "SUBMITTED": "HELD",
+    "CANCEL_REQUESTED": "HELD",
+    "CANCELLED": "HELD",
+    "REJECTED": "HELD",
+    "UNKNOWN": "HELD",
+}
+
+
+def _payout_items(conn, festival_id: str, settlements: list[dict]) -> list[dict]:
+    """Lane A's payouts, plus an explicit NOTHING_TO_PAY for every settled
+    vendor-night that has none.
+
+    The absent ones are not an omission: lane A creates no obligation when a
+    night's `payout_cents` is zero, because `create_payout_obligation` issues
+    what is still OWED and nothing is. Stated rather than left out, so the
+    scorer compares a position instead of a missing row.
+
+    Worth knowing when reading the result: lane A's obligation is the
+    commission-net payout alone. `tips_passthrough_cents` below is read from
+    the settlement because lane A has nowhere else to put it -- no payout row
+    carries tips, so the tips are not part of what this system actually
+    transfers. On a night whose payout is zero but which took tips, lane A
+    moves nothing at all.
+    """
+    rows = conn.execute(LIVE_PAYOUTS, {"festival": festival_id}).mappings().all()
+    items = []
+    for r in rows:
+        payload = r["block_payload"] or {}
+        reason = payload.get("reason_code") if isinstance(payload, dict) else None
+        state = PAYOUT_STATE_TO_ORACLE.get(r["state"], "HELD")
+        items.append(
+            {
+                "vendor_id": r["vendor_id"],
+                "business_date": r["business_date"].isoformat(),
+                "final_state": state,
+                "amount_cents": str(r["amount_cents"]),
+                "tips_passthrough_cents": str(r["tips_cents"]),
+                "idempotency_keys": [r["idempotency_key"]],
+                "provider_submissions": r["dispatch_attempts"],
+                "confirmed_provider_payments": 1 if r["payout_confirmed_at"] else 0,
+                "released_at_utc": (
+                    r["released_at"].astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+                    if r["released_at"]
+                    else None
+                ),
+                "hold_reasons": [reason] if state == "HELD" and reason else [],
+            }
+        )
+    have = {(i["vendor_id"], i["business_date"]) for i in items}
+    for s in settlements:
+        key = (s["vendor_id"], s["business_date"])
+        if key in have:
+            continue
+        items.append(
+            {
+                "vendor_id": s["vendor_id"],
+                "business_date": s["business_date"],
+                "final_state": "NOTHING_TO_PAY",
+                "amount_cents": s["payout_cents"],
+                "tips_passthrough_cents": s["tips_passthrough_cents"],
+                "idempotency_keys": [],
+                "provider_submissions": 0,
+                "confirmed_provider_payments": 0,
+                "released_at_utc": None,
+                "hold_reasons": [],
+            }
+        )
+    items.sort(key=lambda i: (i["business_date"], i["vendor_id"]))
+    return items
+
+
 def _journal_items(conn, festival_id: str) -> list[dict]:
     entries = conn.execute(JOURNAL_ENTRIES, {"festival": festival_id}).mappings().all()
     lines: dict[str, list[dict]] = {}
@@ -362,29 +478,30 @@ def main() -> int:
         reconciliation = _reconciliation_items(conn)
         cases, cases_skipped = _case_items(conn, src_by_doc_id)
 
-    items = []
-    for r in rows:
-        holds = r["holds"] or []
-        items.append(
-            {
-                "vendor_id": r["vendor_id"],
-                "business_date": r["business_date"].isoformat(),
-                # The oracle states every settled night as CALCULATED; ours
-                # carries its own lifecycle (FINAL / CORRECTION). Mapped, not
-                # renamed in the database.
-                "status": "CALCULATED",
-                # Cents as strings, the way the candidate format states them.
-                "assessed_fee_cents": str(r["assessed_fee_cents"]),
-                "collected_fee_cents": str(r["collected_fee_cents"]),
-                "payout_cents": str(r["payout_cents"]),
-                "tips_passthrough_cents": str(r["tips_cents"]),
-                "unpaid_balance_cents": str(r["unpaid_balance_cents"]),
-                "commission_bps": r["commission_bps_used"],
-                # Our holds say `reason`; lane B's candidate says reason_code.
-                "hold_reasons": [h.get("reason_code") or h.get("reason") for h in holds],
-                "citations": _citations(r["policy_refs"], src_by_doc_id),
-            }
-        )
+        items = []
+        for r in rows:
+            holds = r["holds"] or []
+            items.append(
+                {
+                    "vendor_id": r["vendor_id"],
+                    "business_date": r["business_date"].isoformat(),
+                    # The oracle states every settled night as CALCULATED; ours
+                    # carries its own lifecycle (FINAL / CORRECTION). Mapped, not
+                    # renamed in the database.
+                    "status": "CALCULATED",
+                    # Cents as strings, the way the candidate format states them.
+                    "assessed_fee_cents": str(r["assessed_fee_cents"]),
+                    "collected_fee_cents": str(r["collected_fee_cents"]),
+                    "payout_cents": str(r["payout_cents"]),
+                    "tips_passthrough_cents": str(r["tips_cents"]),
+                    "unpaid_balance_cents": str(r["unpaid_balance_cents"]),
+                    "commission_bps": r["commission_bps_used"],
+                    # Our holds say `reason`; lane B's candidate says reason_code.
+                    "hold_reasons": [h.get("reason_code") or h.get("reason") for h in holds],
+                    "citations": _citations(r["policy_refs"], src_by_doc_id),
+                }
+            )
+        payouts = _payout_items(conn, a.festival, items)
 
     a.out.mkdir(parents=True, exist_ok=True)
     (a.out / "meta.json").write_text(
@@ -394,7 +511,7 @@ def main() -> int:
                 "decision_set": a.decision_set,
                 "fixture_id": "full_v1",
                 "fixture_manifest_sha256": FIXTURE_MANIFEST_SHA256,
-                "system": "encore-lane-a (no payouts: see the script docstring)",
+                "system": "encore-lane-a (read from the database)",
             },
             indent=1,
             sort_keys=True,
@@ -407,8 +524,7 @@ def main() -> int:
         "journals": journals,
         "reconciliation": reconciliation,
         "cases": cases,
-        # Stated as empty rather than omitted: this database has no payouts.
-        "payouts": [],
+        "payouts": payouts,
     }
     for name, collection in written.items():
         (a.out / f"{name}.json").write_text(

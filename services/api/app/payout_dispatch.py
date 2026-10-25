@@ -935,6 +935,92 @@ def _release_reservation(db: Session, payout: Payout) -> None:
 # ---------------------------------------------------------------------------
 
 
+def _open_payout_failed_case(
+    db: Session, payout: Payout, *, actor_id: str | None, actor_capability: str | None
+) -> Case | None:
+    """A rail that refused the payment raises a blocking review for the
+    vendor, so the NEXT night's money stops until a human has looked.
+
+    Without this, a payout the rail rejected changed nothing but one row's
+    state. The reservation went back to the pool and the following night's
+    payout to the same beneficiary released normally -- so a permanently
+    dead account (the rail's ACCOUNT_CLOSED) was paid again, and again,
+    with nobody asked. A failure is evidence about the beneficiary, not
+    just about one attempt.
+
+    Deliberately a case rather than a new control: `release_payout`'s
+    check 3 already refuses a vendor with any open blocking case, so this
+    reuses the control that exists instead of adding a parallel one, and a
+    transient failure resolves the ordinary way -- a human decides, the
+    case closes, releases resume. The obligation itself stays payable
+    (C04: no automatic retry under a new key), so resolving the case is
+    what lets it be dispatched again, under the same idempotency key.
+
+    One case per failed payout: re-dispatching the same payout converges
+    on the existing row rather than opening a second review of the same
+    question."""
+    existing = db.execute(
+        select(Case).where(
+            Case.vendor_id == payout.vendor_id,
+            Case.reason_code == "PAYOUT_FAILED",
+            Case.business_date == payout.business_date,
+            Case.status == "OPEN",
+        )
+    ).scalar_one_or_none()
+    if existing is not None:
+        return existing
+    case = Case(
+        vendor_id=payout.vendor_id,
+        reason_code="PAYOUT_FAILED",
+        business_date=payout.business_date,
+        evidence_refs=[
+            {"ref_kind": "payout", "ref_id": payout.id, "role": "subject"},
+            {
+                "ref_kind": "rail_record",
+                "ref_id": payout.idempotency_key,
+                "role": "rail_outcome",
+            },
+        ],
+        financial_impact_cents=payout.amount_cents,
+        proposed_resolution=(
+            "The rail refused this payment. Confirm the vendor's payout account before "
+            "releasing anything further to it; the obligation stays payable and must be "
+            "re-dispatched under the same idempotency key, never a new one."
+        ),
+        required_capability=CAPABILITY_FINANCE_LEAD,
+        blocking=True,
+        status="OPEN",
+    )
+    db.add(case)
+    db.flush()
+    # On the CASE's own stream, the way every other case opener records it
+    # (app/cash_office.py, app/payables.py). Not the payout's stream: the
+    # dispatch event for this same outcome already occupies that row's
+    # version, and `_append_payout_event` keys on `payout.version`.
+    UnitOfWork(db).append_event(
+        stream_id=f"case:{case.id}",
+        event_type="case.opened",
+        aggregate_id=case.id,
+        aggregate_version=case.version,
+        actor_id=actor_id,
+        actor_type="system" if actor_id is None else "human",
+        actor_capability=actor_capability,
+        occurred_at=datetime.now(UTC),
+        vendor_id=payout.vendor_id,
+        payload={
+            "reason_code": case.reason_code,
+            "financial_impact_cents": case.financial_impact_cents,
+            "evidence_refs": case.evidence_refs,
+            "payout_id": payout.id,
+        },
+        lineage_refs=[
+            {"ref_kind": "case", "ref_id": case.id},
+            {"ref_kind": "payout", "ref_id": payout.id},
+        ],
+    )
+    return case
+
+
 def dispatch_payout(
     db: Session,
     *,
@@ -1037,6 +1123,7 @@ def dispatch_payout(
         payout.state = "FAILED"
         intent.status = "FAILED"
         _release_reservation(db, payout)
+        _open_payout_failed_case(db, payout, actor_id=actor_id, actor_capability=actor_capability)
     elif outcome == "UNKNOWN":
         payout.state = "UNKNOWN"
         intent.status = "UNKNOWN"
