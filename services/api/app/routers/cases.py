@@ -94,6 +94,10 @@ class CaseOut(BaseModel):
     # reviewer saw: if the evidence changes, the hash changes and a stale
     # approval is detectable. Deterministic over the refs, nothing else.
     evidence_hash: str | None
+    # --- X0.1: what this case is ABOUT, beyond the implicit vendor/night
+    # assumption (see models_ledger.Case.subject_type for the full note). ---
+    subject_type: str | None
+    subject_id: str | None
 
 
 class ResolutionOptionOut(BaseModel):
@@ -231,6 +235,8 @@ def _to_case_out(case: Case) -> CaseOut:
         resolved_at=case.resolved_at,
         resolution_options=_resolution_options(case),
         evidence_hash=_evidence_hash(case.evidence_refs),
+        subject_type=case.subject_type,
+        subject_id=case.subject_id,
     )
 
 

@@ -125,6 +125,12 @@ def _open_case(
         financial_impact_cents=impact,
         proposed_resolution=proposed,
         required_capability=cap,
+        # X0.1: generalized subject -- this case is about one supplier
+        # invoice (see packages/domain/domain/case_routing.py). Pure
+        # additive tagging; the A08 duplicate/variance workflow below is
+        # unchanged.
+        subject_type="supplier_invoice",
+        subject_id=invoice.id,
         status="OPEN",
         blocking=blocking,
     )
