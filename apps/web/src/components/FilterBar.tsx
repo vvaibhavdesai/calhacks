@@ -108,22 +108,25 @@ export function FilterBar({
           </div>
         );
       })}
-      <div className="filter-actions">
-        <button type="submit" className="button">
-          Apply filters
-        </button>
-        <button
-          type="button"
-          className="button button-quiet"
-          onClick={() => {
-            setDraft({});
-            setErrors({});
-            onApply({});
-          }}
-          disabled={Object.keys(values).length === 0}
-        >
-          Clear
-        </button>
+      <div className="field filter-actions-field">
+        <span className="field-label-gap" aria-hidden="true" />
+        <div className="filter-actions">
+          <button type="submit" className="button">
+            Apply filters
+          </button>
+          <button
+            type="button"
+            className="button button-quiet"
+            onClick={() => {
+              setDraft({});
+              setErrors({});
+              onApply({});
+            }}
+            disabled={Object.keys(values).length === 0}
+          >
+            Clear
+          </button>
+        </div>
       </div>
     </form>
   );

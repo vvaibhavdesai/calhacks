@@ -326,27 +326,34 @@ a {
   border-color: var(--line-strong);
 }
 /*
- * Filter fields line up by row: every label on one line, every control on the
- * next, every hint below that.
+ * Fields are top-aligned, so every label sits on one line and every control
+ * on the next, whether or not a field has a hint under it.
  *
- * Bottom-aligning whole fields (the previous `align-items: flex-end`) looked
- * right only while every field had a hint. A field without one is shorter, so
- * its control sat a whole line below its neighbours -- visible on Approvals,
- * where the "Subject type" select dropped below the two text inputs beside it.
- * Laying the bar out as a grid and letting each field hand its three parts
- * straight to it (`display: contents`) puts every part on its own row, whether
- * or not the field has a hint.
+ * Not bottom-aligned (the original `flex-end`): that lined up the BOTTOM of
+ * each field, so a field without a hint was shorter and its control dropped a
+ * line below its neighbours -- the staggered Approvals filters. Not a grid of
+ * parts either: a grid that puts labels, controls and hints on their own rows
+ * cannot wrap, and the Flight recorder's six fields ran straight off the
+ * panel with the buttons past the edge.
  */
 .filter-bar {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(180px, max-content);
-  grid-template-rows: auto auto auto;
-  justify-content: start;
-  gap: 4px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  align-items: flex-start;
   margin-bottom: 14px;
 }
-.filter-bar .field {
+/* The buttons belong on the controls' line, so they stand in a field of their
+   own whose label is an empty line of the same size. */
+.filter-actions-field .field-label-gap::before {
+  content: '\00a0';
+  font-size: 13px;
+  font-weight: 600;
+}
+.filter-actions-field {
+  min-width: 0;
+}
+.field {
   display: contents;
 }
 /* The buttons belong beside the controls, which is the grid's second row. */
@@ -640,19 +647,6 @@ a {
   .field {
     min-width: 0;
     flex: 1 1 140px;
-  }
-  /* Too narrow for one row per part: stack the fields instead. */
-  .filter-bar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    gap: 12px 16px;
-  }
-  .filter-bar .field {
-    display: flex;
-  }
-  .filter-bar .filter-actions {
-    align-self: flex-start;
   }
 }
 
