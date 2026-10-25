@@ -1,0 +1,32 @@
+[
+  {
+    "contract_id": "contract_b_demo",
+    "deadline": "2026-10-15T12:00:00-07:00",
+    "id": "sla_delivery",
+    "metric": "delivery_in_full",
+    "remedy_clause": "A3",
+    "required_qty": 6,
+    "source_clause": "A2"
+  },
+  {
+    "contract_id": "contract_b_demo",
+    "deadline": "2026-10-16T10:00:00-07:00",
+    "id": "sla_install",
+    "metric": "installation_acceptance",
+    "source_clause": "A2"
+  },
+  {
+    "contract_id": "contract_b_demo",
+    "id": "sla_ack",
+    "metric": "critical_acknowledgment",
+    "source_clause": "A2",
+    "target_minutes": 10
+  },
+  {
+    "contract_id": "contract_b_demo",
+    "id": "sla_restore",
+    "metric": "critical_restoration",
+    "source_clause": "A2",
+    "target_minutes": 60
+  }
+]

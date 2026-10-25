@@ -554,6 +554,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/invoices/{id}/payability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** As-of view of what can be paid now without dispute: agreed/invoiced amounts, deposit applied, accepted-vs-total delivered units, and the most payable now given delivery evidence as of `as_of`. */
+        get: operations["getInvoicePayability"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/supplier-payments": {
         parameters: {
             query?: never;
@@ -1683,6 +1700,24 @@ export interface components {
             duplicate_reason?: string | null;
             payment_ids?: string[];
             journal_entry_ids?: string[];
+        };
+        /** @description The agreed/invoiced/deposit/accepted-units/max-payable/pending picture for one invoice as of a given instant. `total_units`/`unit_price_cents`/ `delivery_supported_cents` are null when the invoice's PO has no line items (no delivery-based limit applies); `has_delivery_limit` says which case this is, so the UI never has to infer it from nulls. */
+        InvoicePayability: {
+            invoice_id: string;
+            /** Format: date-time */
+            as_of: string;
+            agreed_cents: components["schemas"]["MoneyCents"];
+            invoiced_cents: components["schemas"]["MoneyCents"];
+            deposit_applied_cents: components["schemas"]["MoneyCents"];
+            paid_cents: components["schemas"]["MoneyCents"];
+            accepted_units: number;
+            total_units: number | null;
+            unit_price_cents: components["schemas"]["MoneyCents"] | null;
+            delivery_supported_cents: components["schemas"]["MoneyCents"] | null;
+            max_payable_now_cents: components["schemas"]["MoneyCents"];
+            pending_evidence_cents: components["schemas"]["MoneyCents"];
+            outstanding_cents: components["schemas"]["MoneyCents"];
+            has_delivery_limit: boolean;
         };
         SupplierPayment: {
             id: string;
@@ -2958,6 +2993,8 @@ export interface operations {
                 limit?: components["parameters"]["Limit"];
                 vendor_id?: components["parameters"]["VendorId"];
                 status?: components["schemas"]["CaseStatus"];
+                /** @description Exact match, e.g. SLA_POTENTIAL_CREDIT, DELIVERY_SHORTFALL. */
+                reason_code?: string;
             };
             header?: never;
             path?: never;
@@ -3424,6 +3461,34 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SupplierInvoice"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getInvoicePayability: {
+        parameters: {
+            query?: {
+                /** @description Timezone-aware instant; defaults to now if omitted. */
+                as_of?: string;
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["PathId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Invoice payability as of the given instant. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoicePayability"];
                 };
             };
             401: components["responses"]["Unauthenticated"];

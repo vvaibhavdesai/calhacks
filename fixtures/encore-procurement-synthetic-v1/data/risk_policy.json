@@ -1,0 +1,43 @@
+{
+  "not_probability_model": true,
+  "ranking": "No opaque aggregate score; display criteria and tradeoffs. Human selection required.",
+  "rules": [
+    {
+      "blocking": false,
+      "condition": "historical cost above original budget by >20%",
+      "id": "COST_VARIANCE",
+      "label": "high",
+      "requires": "explain approved changes separately"
+    },
+    {
+      "blocking": false,
+      "condition": "quote scenario closes below configured buffer",
+      "id": "CASH_BUFFER",
+      "label": "high",
+      "requires": "finance review"
+    },
+    {
+      "blocking": true,
+      "condition": "mandatory price unspecified",
+      "id": "MISSING_SCOPE_PRICE",
+      "label": "unknown",
+      "requires": "clarification before ranking"
+    },
+    {
+      "blocking": false,
+      "condition": "no historical contracts",
+      "id": "NO_HISTORY",
+      "label": "unknown",
+      "requires": "show no history, not zero reliability"
+    },
+    {
+      "blocking": true,
+      "condition": "insurance evidence absent",
+      "id": "INSURANCE_MISSING",
+      "label": "unknown",
+      "requires": "evidence before commitment"
+    }
+  ],
+  "status": "proposed_demo_policy",
+  "version": "demo-v1"
+}

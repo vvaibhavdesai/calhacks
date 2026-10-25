@@ -1,0 +1,2 @@
+available_at,id,partial_payment_allowed,po_id,selected_quote_id,source_document_id,state,supplier_id,total_cents
+2026-10-07T12:00:00-07:00,contract_b_demo,True,po_gen_b,q_b_v2,contract_b_demo,simulated_signed,sup_b,2250000

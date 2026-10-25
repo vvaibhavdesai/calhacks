@@ -29,7 +29,7 @@ Duplicate detection:
 
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 
 from domain import accounting as acct
 from domain import payables as rules
@@ -37,13 +37,35 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.accounting import post_cumulative
-from app.models import CAPABILITY_FINANCE_LEAD, CAPABILITY_RESOLVE_CASE, _new_id
-from app.models_finance import PurchaseOrder, SupplierPayment
+from app.models import (
+    CAPABILITY_FINANCE_LEAD,
+    CAPABILITY_MANAGE_PAYABLES,
+    CAPABILITY_RESOLVE_CASE,
+    _new_id,
+)
+from app.models_finance import (
+    DeliveryReceipt,
+    PurchaseOrder,
+    PurchaseOrderLine,
+    SupplierDeposit,
+    SupplierDepositApplication,
+    SupplierPayment,
+)
 from app.models_ledger import Case, Supplier, SupplierInvoice
 from app.models_payout_dispatch import CashPool
 from app.uow import UnitOfWork
 
+# Non-blocking: DELIVERY_SHORTFALL and SLA_POTENTIAL_CREDIT are visible but
+# never stop payment of the delivery-supported/undisputed amount -- only
+# the existing duplicate/PO-variance reasons do that.
 BLOCKING_CASE_REASONS = ("POSSIBLE_DUPLICATE_SUPPLIER_INVOICE", "INVOICE_EXCEEDS_PO")
+NON_BLOCKING_INVOICE_CASE_REASONS = ("DELIVERY_SHORTFALL", "SLA_POTENTIAL_CREDIT", "DUPLICATE_SUSPECTED")
+# S6: same supplier + same total within this many days (either direction),
+# on a DIFFERENT invoice_date than any exact match (same-date is already
+# POSSIBLE_DUPLICATE_SUPPLIER_INVOICE, above, and blocking) -- a softer,
+# non-blocking suspicion that a human must look at but that never itself
+# stops payment, and is never auto-rejected by any code path.
+DUPLICATE_SUSPECTED_WINDOW_DAYS = 7
 
 
 class PayablesNotFoundError(LookupError):
@@ -91,7 +113,17 @@ def _invoice_ref(invoice_id: str, role: str = "related") -> dict:
     return {"ref_kind": "supplier_invoice", "ref_id": invoice_id, "role": role}
 
 
-def _open_case(db, *, reason_code, invoice: SupplierInvoice, evidence, impact, proposed, cap):
+def _open_case(
+    db,
+    *,
+    reason_code,
+    invoice: SupplierInvoice,
+    evidence,
+    impact,
+    proposed,
+    cap,
+    blocking: bool = True,
+):
     case = Case(
         vendor_id=None,
         reason_code=reason_code,
@@ -99,7 +131,14 @@ def _open_case(db, *, reason_code, invoice: SupplierInvoice, evidence, impact, p
         financial_impact_cents=impact,
         proposed_resolution=proposed,
         required_capability=cap,
+        # X0.1: generalized subject -- this case is about one supplier
+        # invoice (see packages/domain/domain/case_routing.py). Pure
+        # additive tagging; the A08 duplicate/variance workflow below is
+        # unchanged.
+        subject_type="supplier_invoice",
+        subject_id=invoice.id,
         status="OPEN",
+        blocking=blocking,
     )
     db.add(case)
     db.flush()
@@ -124,7 +163,9 @@ def _blocking_cases(db: Session, invoice_id: str) -> list[Case]:
 
 
 def _balance(inv: SupplierInvoice) -> rules.InvoiceBalance:
-    return rules.InvoiceBalance(inv.gross_cents, inv.credited_cents, inv.paid_cents)
+    return rules.InvoiceBalance(
+        inv.gross_cents, inv.credited_cents, inv.paid_cents, inv.deposit_applied_cents
+    )
 
 
 def _refresh_status(inv: SupplierInvoice, *, as_of: date | None = None) -> None:
@@ -185,12 +226,31 @@ def create_purchase_order(
     source_refs: list,
     actor_id: str,
     actor_capability: str,
+    lines: list[dict] | None = None,
+    partial_payment_allowed: bool = True,
 ) -> tuple[PurchaseOrder, bool]:
+    """`lines` is optional: a PO created without it (every PO before this
+    feature) behaves exactly as before -- no delivery-supported payment
+    limit applies to its invoices (domain.payables.check_payment's
+    `delivery_supported_cents` stays None). Each line dict:
+    {"line_no", "item_code", "quantity", "unit_price_cents"}; their
+    `quantity * unit_price_cents` must sum to `amount_cents`.
+
+    `partial_payment_allowed` (S3) defaults True, matching every PO before
+    this feature: a disputed/undelivered remainder holds only that
+    portion. False holds the whole invoice until fully delivered."""
     supplier = db.get(Supplier, supplier_id)
     if supplier is None:
         raise PayablesNotFoundError(f"supplier {supplier_id} not found")
     if amount_cents <= 0:
         raise PayablesConflictError("po_amount_must_be_positive")
+    if lines is not None:
+        total = sum(line["quantity"] * line["unit_price_cents"] for line in lines)
+        if total != amount_cents:
+            raise PayablesConflictError(
+                "po_lines_do_not_sum_to_amount",
+                {"lines_total_cents": total, "amount_cents": amount_cents},
+            )
     existing = db.execute(
         select(PurchaseOrder).where(
             PurchaseOrder.supplier_id == supplier_id, PurchaseOrder.po_number == po_number
@@ -212,9 +272,23 @@ def create_purchase_order(
         description=description,
         receipt_evidence_refs=receipt_evidence_refs,
         source_refs=source_refs,
+        partial_payment_allowed=partial_payment_allowed,
     )
     db.add(po)
     db.flush()
+    if lines is not None:
+        for line in lines:
+            db.add(
+                PurchaseOrderLine(
+                    po_id=po.id,
+                    line_no=line["line_no"],
+                    item_code=line["item_code"],
+                    quantity=line["quantity"],
+                    unit_price_cents=line["unit_price_cents"],
+                    line_cents=line["quantity"] * line["unit_price_cents"],
+                )
+            )
+        db.flush()
     _event(
         db,
         stream=f"purchase_order:{po.id}",
@@ -223,9 +297,52 @@ def create_purchase_order(
         version=1,
         actor_id=actor_id,
         actor_capability=actor_capability,
-        payload={"po_number": po_number, "amount_cents": amount_cents},
+        payload={
+            "po_number": po_number,
+            "amount_cents": amount_cents,
+            "has_lines": lines is not None,
+        },
     )
     return po, True
+
+
+def _po_lines(db: Session, po_id: str) -> list[PurchaseOrderLine]:
+    return list(
+        db.execute(
+            select(PurchaseOrderLine)
+            .where(PurchaseOrderLine.po_id == po_id)
+            .order_by(PurchaseOrderLine.line_no)
+        )
+        .scalars()
+        .all()
+    )
+
+
+def _delivered_qty(db: Session, po_line_id: str) -> int:
+    return int(
+        db.execute(
+            select(func.coalesce(func.sum(DeliveryReceipt.quantity), 0)).where(
+                DeliveryReceipt.po_line_id == po_line_id
+            )
+        ).scalar_one()
+    )
+
+
+def delivery_supported_cents_for_po(db: Session, po_id: str) -> int | None:
+    """None when the PO has no lines (no delivery-based limit); otherwise
+    the total value of everything accepted so far across all its lines.
+    Reads `delivery_receipts` WITHOUT locking the PO -- the table is
+    append-only, so reading it unlocked can only UNDERSTATE the current
+    total (a concurrent insert not yet visible), never overstate it, which
+    is the safe direction for a payment limit."""
+    lines = _po_lines(db, po_id)
+    if not lines:
+        return None
+    total = 0
+    for line in lines:
+        delivered = min(_delivered_qty(db, line.id), line.quantity)
+        total += delivered * line.unit_price_cents
+    return total
 
 
 def _po_invoiced_cents(db: Session, po_id: str, *, excluding: str | None = None) -> int:
@@ -276,6 +393,373 @@ def _recompute_po(db: Session, po: PurchaseOrder, *, actor_id: str | None) -> No
         _refresh_status(inv)
 
 
+def _non_blocking_invoice_cases(db: Session, invoice_id: str, reason_code: str) -> list[Case]:
+    return list(
+        db.execute(
+            select(Case).where(
+                Case.status == "OPEN",
+                Case.reason_code == reason_code,
+                Case.evidence_refs.contains([_invoice_ref(invoice_id, "subject")]),
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+
+def _recompute_delivery_shortfall(db: Session, po: PurchaseOrder, *, actor_id: str | None) -> None:
+    """DELIVERY_SHORTFALL is non-blocking (NON_BLOCKING_INVOICE_CASE_REASONS):
+    it is visible on the invoice but never stops `pay_invoice` -- only the
+    domain-level delivery-supported check in `check_payment` limits the
+    amount. One OPEN case per invoice; when the shortfall reaches 0 it is
+    auto-resolved with a recorded note, same pattern as INVOICE_EXCEEDS_PO
+    above."""
+    supported = delivery_supported_cents_for_po(db, po.id)
+    if supported is None:
+        return
+    invoices = (
+        db.execute(
+            select(SupplierInvoice).where(
+                SupplierInvoice.kind == "INVOICE", SupplierInvoice.po_refs.contains([po.id])
+            )
+        )
+        .scalars()
+        .all()
+    )
+    for inv in invoices:
+        shortfall = max(inv.gross_cents - supported, 0)
+        open_cases = _non_blocking_invoice_cases(db, inv.id, "DELIVERY_SHORTFALL")
+        if shortfall > 0:
+            if not open_cases:
+                _open_case(
+                    db,
+                    reason_code="DELIVERY_SHORTFALL",
+                    invoice=inv,
+                    evidence=[],
+                    impact=shortfall,
+                    proposed=(
+                        "Accepted delivery evidence does not yet support the full invoiced "
+                        "value. Non-blocking: the undisputed, delivery-supported portion stays "
+                        "payable. Visible until resolved by more evidence."
+                    ),
+                    cap=CAPABILITY_MANAGE_PAYABLES,
+                    blocking=False,
+                )
+            else:
+                for case in open_cases:
+                    if case.financial_impact_cents != shortfall:
+                        case.financial_impact_cents = shortfall
+        else:
+            for case in open_cases:
+                case.status = "RESOLVED"
+                case.auto_resolved = True
+                case.resolution_decision = "DELIVERY_NOW_SUPPORTS_FULL_INVOICE"
+                case.resolution_note = "Accepted delivery evidence now covers the full invoice."
+                case.resolved_at = datetime.now(UTC)
+
+
+def record_delivery_receipt(
+    db: Session,
+    *,
+    po_line_id: str,
+    quantity: int,
+    accepted_at: datetime,
+    available_at: datetime,
+    receipt_key: str,
+    source_refs: list,
+    actor_id: str,
+    actor_capability: str,
+    accepted_by: str | None = None,
+) -> tuple[DeliveryReceipt, bool]:
+    """Idempotent on `receipt_key` (unique). Refuses (`over_receipt`) if
+    recording this receipt would make the line's total received exceed its
+    ordered quantity. Locks the PO row (via its line's `po_id`) for the
+    duration of the over-receipt check and the shortfall recompute that
+    follows -- not held by `pay_invoice`, which never locks the PO.
+
+    `accepted_by` (S1) is the user who accepted the delivery, when known;
+    defaults to None (unset), never guessed -- it is separate from
+    `actor_id`/`actor_capability` above, which record who called this API
+    (often an importer or agent), not who physically accepted the goods."""
+    existing = db.execute(
+        select(DeliveryReceipt).where(DeliveryReceipt.receipt_key == receipt_key)
+    ).scalar_one_or_none()
+    if existing is not None:
+        return existing, False
+    if quantity <= 0:
+        raise PayablesConflictError("quantity_must_be_positive", {"quantity": quantity})
+
+    line = db.get(PurchaseOrderLine, po_line_id)
+    if line is None:
+        raise PayablesNotFoundError(f"purchase order line {po_line_id} not found")
+    po = db.execute(
+        select(PurchaseOrder).where(PurchaseOrder.id == line.po_id).with_for_update()
+    ).scalar_one()
+
+    already = _delivered_qty(db, po_line_id)
+    if already + quantity > line.quantity:
+        raise PayablesConflictError(
+            "over_receipt",
+            {
+                "line_id": line.id,
+                "ordered_quantity": line.quantity,
+                "already_received": already,
+                "attempted": quantity,
+            },
+        )
+
+    receipt = DeliveryReceipt(
+        po_line_id=po_line_id,
+        quantity=quantity,
+        accepted_at=accepted_at,
+        available_at=available_at,
+        receipt_key=receipt_key,
+        source_refs=source_refs,
+        accepted_by=accepted_by,
+    )
+    db.add(receipt)
+    db.flush()
+    _event(
+        db,
+        stream=f"purchase_order:{po.id}",
+        event_type="delivery_receipt.recorded",
+        aggregate_id=receipt.id,
+        version=1,
+        actor_id=actor_id,
+        actor_capability=actor_capability,
+        payload={"po_line_id": po_line_id, "quantity": quantity, "receipt_key": receipt_key},
+    )
+    _recompute_delivery_shortfall(db, po, actor_id=actor_id)
+    return receipt, True
+
+
+# ---------------------------------------------------------------------------
+# Supplier deposits
+# ---------------------------------------------------------------------------
+
+
+def pay_supplier_deposit(
+    db: Session,
+    *,
+    supplier_id: str,
+    po_id: str | None,
+    amount_cents: int,
+    paid_business_date: date,
+    paid_at: datetime,
+    idempotency_key: str,
+    source_refs: list,
+    actor_id: str,
+    actor_capability: str,
+) -> tuple[SupplierDeposit, bool]:
+    """Draws `amount_cents` from the cash pool exactly once -- the unique
+    `idempotency_key` means a retried request returns the original deposit
+    untouched, same three-guard discipline `pay_invoice` already uses."""
+    prior = db.execute(
+        select(SupplierDeposit).where(SupplierDeposit.idempotency_key == idempotency_key)
+    ).scalar_one_or_none()
+    if prior is not None:
+        return prior, False
+    if amount_cents <= 0:
+        raise PayablesConflictError("amount_must_be_positive", {"amount_cents": amount_cents})
+
+    supplier = db.get(Supplier, supplier_id)
+    if supplier is None:
+        raise PayablesNotFoundError(f"supplier {supplier_id} not found")
+
+    pool = db.execute(
+        select(CashPool).where(CashPool.festival_id == supplier.festival_id).with_for_update()
+    ).scalar_one_or_none()
+    if pool is None or pool.available_cents < amount_cents:
+        raise PaymentRefusedError(
+            "insufficient_available_cash",
+            {"available_cents": None if pool is None else pool.available_cents},
+        )
+    pool.available_cents -= amount_cents
+    pool.version += 1
+
+    deposit_id = _new_id()
+    result = post_cumulative(
+        db,
+        festival_id=supplier.festival_id,
+        base_key=f"SUPPLIER_DEPOSIT:{deposit_id}",
+        business_date=paid_business_date,
+        kind="SUPPLIER_DEPOSIT",
+        lines=acct.supplier_deposit_paid(amount_cents),
+        source_refs=source_refs,
+        source_record_ids=[deposit_id, supplier_id] + ([po_id] if po_id else []),
+        note="Simulated supplier deposit. No real money moved.",
+        actor_id=actor_id,
+        actor_capability=actor_capability,
+    )
+    deposit = SupplierDeposit(
+        id=deposit_id,
+        festival_id=supplier.festival_id,
+        supplier_id=supplier_id,
+        po_id=po_id,
+        amount_cents=amount_cents,
+        paid_business_date=paid_business_date,
+        paid_at=paid_at,
+        idempotency_key=idempotency_key,
+        source_refs=source_refs,
+        journal_entry_id=result.entry.id if result.entry else None,
+    )
+    db.add(deposit)
+    db.flush()
+    _event(
+        db,
+        stream=f"supplier_deposit:{deposit.id}",
+        event_type="supplier_deposit.paid",
+        aggregate_id=deposit.id,
+        version=1,
+        actor_id=actor_id,
+        actor_capability=actor_capability,
+        payload={"amount_cents": amount_cents, "supplier_id": supplier_id},
+    )
+    return deposit, True
+
+
+def apply_deposit(
+    db: Session,
+    *,
+    deposit_id: str,
+    invoice_id: str,
+    amount_cents: int,
+    actor_id: str,
+    actor_capability: str,
+) -> tuple[SupplierDepositApplication, bool]:
+    """Locks the invoice, then the deposit (same lock order as every other
+    two-row command here: invoice first). No cash-pool access -- applying a
+    deposit never moves cash, only reclassifies it (domain.accounting.
+    supplier_deposit_applied: Dr 2300 / Cr 1300). UNIQUE(deposit_id,
+    invoice_id) makes a retried application a no-op at the database level."""
+    existing = db.execute(
+        select(SupplierDepositApplication).where(
+            SupplierDepositApplication.deposit_id == deposit_id,
+            SupplierDepositApplication.invoice_id == invoice_id,
+        )
+    ).scalar_one_or_none()
+    if existing is not None:
+        return existing, False
+    if amount_cents <= 0:
+        raise PayablesConflictError("amount_must_be_positive", {"amount_cents": amount_cents})
+
+    inv = _lock_invoice(db, invoice_id)
+    deposit = db.execute(
+        select(SupplierDeposit).where(SupplierDeposit.id == deposit_id).with_for_update()
+    ).scalar_one_or_none()
+    if deposit is None:
+        raise PayablesNotFoundError(f"supplier deposit {deposit_id} not found")
+
+    already_applied = int(
+        db.execute(
+            select(func.coalesce(func.sum(SupplierDepositApplication.amount_cents), 0)).where(
+                SupplierDepositApplication.deposit_id == deposit_id
+            )
+        ).scalar_one()
+    )
+    unapplied = deposit.amount_cents - already_applied
+    if amount_cents > unapplied:
+        raise PayablesConflictError(
+            "amount_exceeds_unapplied_deposit",
+            {"amount_cents": amount_cents, "unapplied_cents": unapplied},
+        )
+    if amount_cents > _balance(inv).outstanding_cents:
+        raise PayablesConflictError(
+            "amount_exceeds_outstanding",
+            {"amount_cents": amount_cents, "outstanding_cents": _balance(inv).outstanding_cents},
+        )
+
+    result = post_cumulative(
+        db,
+        festival_id=inv.festival_id,
+        base_key=f"DEPOSIT_APPLICATION:{deposit_id}:{invoice_id}",
+        business_date=inv.invoice_date,
+        kind="SUPPLIER_DEPOSIT_APPLICATION",
+        lines=acct.supplier_deposit_applied(amount_cents),
+        source_record_ids=[deposit_id, invoice_id],
+        note="Deposit applied against invoice; no cash movement.",
+        actor_id=actor_id,
+        actor_capability=actor_capability,
+    )
+    application = SupplierDepositApplication(
+        deposit_id=deposit_id,
+        invoice_id=invoice_id,
+        amount_cents=amount_cents,
+        journal_entry_id=result.entry.id if result.entry else None,
+    )
+    db.add(application)
+    db.flush()
+    inv.deposit_applied_cents += amount_cents
+    inv.version += 1
+    _refresh_status(inv)
+    _event(
+        db,
+        stream=f"supplier_invoice:{inv.id}",
+        event_type="supplier_invoice.deposit_applied",
+        aggregate_id=inv.id,
+        version=inv.version,
+        actor_id=actor_id,
+        actor_capability=actor_capability,
+        payload={"deposit_id": deposit_id, "amount_cents": amount_cents},
+    )
+    return application, True
+
+
+# ---------------------------------------------------------------------------
+# SLA potential credit (opened through the A08 _open_case path, not the A05
+# contract-term detector, so no approved policy can auto-resolve it)
+# ---------------------------------------------------------------------------
+
+
+def open_sla_potential_credit_case(
+    db: Session,
+    *,
+    invoice_id: str,
+    potential_credit_cents: int,
+    clause: str,
+    evidence_refs: list,
+    note: str,
+    actor_id: str,
+    actor_capability: str,
+) -> Case | None:
+    """Non-blocking, financial_impact_cents 0 -- the potential amount is
+    stated in `note` (proposed_resolution), not as the case's financial
+    impact, because a potential credit is not yet an approved monetary
+    effect (AGENT_HANDOFF.md: no automatic deduction). Idempotent: returns
+    None if an OPEN SLA_POTENTIAL_CREDIT case already exists for this
+    invoice, rather than opening a second one."""
+    inv = db.get(SupplierInvoice, invoice_id)
+    if inv is None:
+        raise PayablesNotFoundError(f"supplier invoice {invoice_id} not found")
+    if _non_blocking_invoice_cases(db, invoice_id, "SLA_POTENTIAL_CREDIT"):
+        return None
+    case = _open_case(
+        db,
+        reason_code="SLA_POTENTIAL_CREDIT",
+        invoice=inv,
+        evidence=evidence_refs,
+        impact=0,
+        proposed=note,
+        cap=CAPABILITY_MANAGE_PAYABLES,
+        blocking=False,
+    )
+    _event(
+        db,
+        stream=f"supplier_invoice:{inv.id}",
+        event_type="supplier_invoice.sla_potential_credit_opened",
+        aggregate_id=inv.id,
+        version=inv.version,
+        actor_id=actor_id,
+        actor_capability=actor_capability,
+        payload={
+            "case_id": case.id,
+            "potential_credit_cents": potential_credit_cents,
+            "clause": clause,
+        },
+    )
+    return case
+
+
 # ---------------------------------------------------------------------------
 # Invoices / credit notes
 # ---------------------------------------------------------------------------
@@ -315,14 +799,25 @@ def record_invoice(
         if po is None or po.supplier_id != supplier_id:
             raise PayablesNotFoundError(f"purchase order {po_id} not found for this supplier")
 
+    # Normalized (case/whitespace-insensitive) match, per domain.payables.
+    # normalize_invoice_number -- " b-001 " and "B-001" must collide here.
+    # A normalized match that ISN'T also an exact raw/source_refs/gross
+    # match is a real duplicate (below), not a harmless resend: without
+    # this, a resubmission under different casing/whitespace would land in
+    # the harmless-resend branch and open no case.
+    normalized = rules.normalize_invoice_number(invoice_number)
     existing = db.execute(
         select(SupplierInvoice).where(
             SupplierInvoice.supplier_id == supplier_id,
-            SupplierInvoice.invoice_number == invoice_number,
+            func.lower(func.btrim(SupplierInvoice.invoice_number, " \t\r\n")) == normalized,
         )
     ).scalar_one_or_none()
     if existing is not None:
-        if existing.source_refs == source_refs and existing.gross_cents == gross_cents:
+        if (
+            existing.invoice_number == invoice_number
+            and existing.source_refs == source_refs
+            and existing.gross_cents == gross_cents
+        ):
             return existing, False, []
         case = _open_case(
             db,
@@ -395,6 +890,43 @@ def record_invoice(
                 cap=CAPABILITY_RESOLVE_CASE,
             )
         )
+    else:
+        # S6 DUPLICATE_SUSPECTED: same supplier + same total within
+        # DUPLICATE_SUSPECTED_WINDOW_DAYS, on a DIFFERENT date (the
+        # same-date case above already caught it as the stronger,
+        # blocking POSSIBLE_DUPLICATE_SUPPLIER_INVOICE -- this is only
+        # reached when that one did NOT fire). Non-blocking: visible to a
+        # human, never itself stops payment, never auto-rejected.
+        window_start = invoice_date - timedelta(days=DUPLICATE_SUSPECTED_WINDOW_DAYS)
+        window_end = invoice_date + timedelta(days=DUPLICATE_SUSPECTED_WINDOW_DAYS)
+        suspected = db.execute(
+            select(SupplierInvoice.id).where(
+                SupplierInvoice.supplier_id == supplier_id,
+                SupplierInvoice.kind == "INVOICE",
+                SupplierInvoice.id != inv.id,
+                SupplierInvoice.gross_cents == gross_cents,
+                SupplierInvoice.invoice_date != invoice_date,
+                SupplierInvoice.invoice_date >= window_start,
+                SupplierInvoice.invoice_date <= window_end,
+            )
+        ).first()
+        if suspected is not None:
+            cases.append(
+                _open_case(
+                    db,
+                    reason_code="DUPLICATE_SUSPECTED",
+                    invoice=inv,
+                    evidence=[_invoice_ref(suspected[0])],
+                    impact=gross_cents,
+                    proposed=(
+                        "Same supplier and total as another invoice within "
+                        f"{DUPLICATE_SUSPECTED_WINDOW_DAYS} days, different invoice date: "
+                        "not blocked, a human confirms whether this is a genuine duplicate."
+                    ),
+                    cap=CAPABILITY_RESOLVE_CASE,
+                    blocking=False,
+                )
+            )
 
     if po is not None:
         _recompute_po(db, po, actor_id=actor_id)
@@ -471,7 +1003,14 @@ def record_credit_note(
     source_refs: list,
     actor_id: str,
     actor_capability: str,
+    resolves_case_id: str | None = None,
 ) -> tuple[SupplierInvoice, bool]:
+    """`resolves_case_id`, when given, resolves that case as ISSUED_CREDIT_NOTE
+    in this SAME transaction (no separate commit) -- the only route from a
+    potential SLA credit to actual money. Called only by a human via
+    POST /invoices/{id}/credit-notes (no import/scheduler/agent module may
+    call this function with `resolves_case_id` set -- see
+    scripts/verify_payables_v2.py's static check)."""
     original = _lock_invoice(db, applies_to_invoice_id)
     if original.kind != "INVOICE":
         raise PayablesConflictError("credit_note_must_apply_to_an_invoice")
@@ -544,6 +1083,25 @@ def record_credit_note(
         actor_capability=actor_capability,
         payload={"credit_note_id": cn.id, "gross_cents": gross_cents},
     )
+    if resolves_case_id is not None:
+        case = db.get(Case, resolves_case_id)
+        if case is None:
+            raise PayablesNotFoundError(f"case {resolves_case_id} not found")
+        if case.reason_code != "SLA_POTENTIAL_CREDIT":
+            raise PayablesConflictError(
+                "resolves_case_id_wrong_reason_code",
+                {"case_id": case.id, "reason_code": case.reason_code},
+            )
+        if case.status != "OPEN":
+            raise PayablesConflictError(
+                "case_not_open", {"case_id": case.id, "status": case.status}
+            )
+        case.status = "RESOLVED"
+        case.resolution_decision = "ISSUED_CREDIT_NOTE"
+        case.resolution_note = f"Credit note {cn.id} ({gross_cents} cents) issued."
+        case.resolved_by = actor_id
+        case.resolved_capability = actor_capability
+        case.resolved_at = datetime.now(UTC)
     return cn, True
 
 
@@ -610,6 +1168,24 @@ def pay_invoice(
             )
         return prior, False
 
+    # Computed under the invoice lock already held above, AFTER the
+    # idempotency lookup (so a retry still returns the original payment
+    # rather than re-deriving the limit) -- never locks the PO here; the
+    # only PO lock in this module is record_delivery_receipt's, and the
+    # lock order everywhere else is PO-then-invoice, so pay_invoice must
+    # not also take the PO lock or the two could deadlock against each
+    # other under concurrency.
+    delivery_supported = None
+    partial_payment_allowed = True
+    if inv.po_refs:
+        delivery_supported = delivery_supported_cents_for_po(db, inv.po_refs[0])
+        # Unlocked read, same rationale as delivery_supported_cents_for_po
+        # above: pay_invoice never takes the PO lock (see lock-order note
+        # above), and this flag is set once at PO creation, not something
+        # that races meaningfully under concurrent payment attempts.
+        po = db.get(PurchaseOrder, inv.po_refs[0])
+        if po is not None:
+            partial_payment_allowed = po.partial_payment_allowed
     try:
         rules.check_payment(
             _balance(inv),
@@ -617,9 +1193,17 @@ def pay_invoice(
             po_excess_cents=inv.po_excess_cents,
             variance_approved=inv.variance_approved_at is not None,
             is_credit_note=inv.kind == "CREDIT_NOTE",
+            delivery_supported_cents=delivery_supported,
+            partial_payment_allowed=partial_payment_allowed,
         )
     except rules.PaymentRefused as exc:
-        raise PaymentRefusedError(exc.reason_code, exc.details) from exc
+        details = dict(exc.details)
+        if exc.reason_code == "amount_exceeds_delivery_supported" and inv.po_refs:
+            lines = _po_lines(db, inv.po_refs[0])
+            if len(lines) == 1:
+                details["accepted_qty"] = min(_delivered_qty(db, lines[0].id), lines[0].quantity)
+                details["unit_price_cents"] = lines[0].unit_price_cents
+        raise PaymentRefusedError(exc.reason_code, details) from exc
     blocking = _blocking_cases(db, inv.id)
     if blocking:
         raise PaymentRefusedError("open_blocking_case", {"case_ids": [c.id for c in blocking]})

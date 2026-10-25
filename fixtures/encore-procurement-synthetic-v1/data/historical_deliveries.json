@@ -1,0 +1,24 @@
+[
+  {
+    "completed_at": "2025-10-16T11:30:00-07:00",
+    "contract_id": "hist_a_2025",
+    "deadline": "2025-10-16T12:00:00-07:00",
+    "id": "hist_a_2025_delivery",
+    "qty_ordered": 6,
+    "qty_received": 6,
+    "scheduled_delivery_count": 1,
+    "source_document_id": "hist_a_2025_receipt",
+    "supplier_id": "sup_a"
+  },
+  {
+    "completed_at": "2025-10-16T14:00:00-07:00",
+    "contract_id": "hist_c_2025",
+    "deadline": "2025-10-16T12:00:00-07:00",
+    "id": "hist_c_2025_delivery",
+    "qty_ordered": 6,
+    "qty_received": 6,
+    "scheduled_delivery_count": 1,
+    "source_document_id": "hist_c_2025_receipt",
+    "supplier_id": "sup_c"
+  }
+]

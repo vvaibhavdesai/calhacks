@@ -24,9 +24,11 @@ from datetime import date, datetime
 
 from sqlalchemy import (
     BigInteger,
+    Boolean,
     Date,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -133,6 +135,12 @@ class PurchaseOrder(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+    # --- S3 additive column (migration 0018) --- True (default, every PO
+    # before this) holds only the disputed portion of an invoice against
+    # this PO -- today's verified delivery-supported-payment-limit
+    # behavior. False holds the WHOLE invoice until fully delivered; see
+    # domain.payables.check_payment's partial_payment_allowed guard.
+    partial_payment_allowed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
 
 class SupplierPayment(Base):
@@ -165,6 +173,156 @@ class SupplierPayment(Base):
     )
     approved_capability: Mapped[str] = mapped_column(String(100), nullable=False)
     journal_entry_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+# ---------------------------------------------------------------------------
+# X0.3 (prevention extension): contract obligations and links
+# ---------------------------------------------------------------------------
+
+
+class ContractObligation(Base):
+    """One deposit/milestone/final payment commitment under a contract
+    (TICKET_SPEC.md X0.3). `amount_cents` is set once, at creation, and
+    NEVER mutated afterward by anything in this ticket -- the hard
+    requirement "it must never total $40,000" (i.e. a $20,000 commitment
+    must always read back as $20,000, no matter what gets linked to it) is
+    enforced by this column simply never being written to a second time,
+    not by a runtime guard. Only `status`/`version`/`updated_at` are ever
+    updated in place (status transitions, see
+    packages/domain/domain/contract_obligations.py's explicit transition
+    table); nothing here is append-only the way `obligation_link` below is.
+
+    `contract_id` and the inlined SourceRef (`source_document_id`/
+    `source_version`/`content_hash`/`locator_kind`/`locator`/
+    `quoted_excerpt`) are deliberately two separate things, per
+    TICKET_SPEC.md listing them as two separate bullets ("contract_id, ...,
+    source document + clause"): `contract_id` is the stable identity of the
+    overall contract this obligation belongs to (a `source_documents.id`
+    with `document_kind="CONTRACT"`, by convention -- not DB-enforced, same
+    "enforced in application code, not a constraint" precedent as every
+    other loosely-typed kind column in this schema); the inlined SourceRef
+    is the precise citation of exactly where THIS obligation's amount/date/
+    condition is stated, which is USUALLY the same document but need not be
+    -- e.g. a later amendment document that changes a milestone amount would
+    cite itself here while `contract_id` keeps pointing at the original
+    contract's identity. `counterparty_id` is deliberately NOT a foreign
+    key (it points at `vendors.id` when `counterparty_type="vendor"` or
+    `suppliers.id` when `counterparty_type="supplier"` -- no single FK
+    target can express that), same "loose, validated-in-code pair"
+    convention as `Case.subject_type`/`subject_id` (X0.1) and
+    `Approval.subject_type`/`subject_id` (X0.1).
+    """
+
+    __tablename__ = "contract_obligations"
+    __table_args__ = (
+        Index("ix_contract_obligations_counterparty", "counterparty_type", "counterparty_id"),
+    )
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_new_id)
+    festival_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    contract_id: Mapped[str] = mapped_column(
+        String(32),
+        ForeignKey("source_documents.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
+    # "vendor" | "supplier" -- packages/domain/domain/contract_obligations.
+    # COUNTERPARTY_TYPES is the single source of truth for this vocabulary.
+    counterparty_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    counterparty_id: Mapped[str] = mapped_column(String(32), nullable=False)
+    # "deposit" | "milestone" | "final" -- domain.contract_obligations.
+    # OBLIGATION_KINDS.
+    kind: Mapped[str] = mapped_column(String(20), nullable=False)
+    amount_cents: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    condition: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # "proposed" | "approved" | "committed" | "invoiced" | "paid" |
+    # "cancelled" -- domain.contract_obligations.STATUSES. Every write to
+    # this column goes through app/contract_obligations.py's
+    # `transition_obligation`, which calls domain.contract_obligations.
+    # validate_transition first; nothing else in this codebase writes it
+    # directly.
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="proposed")
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+
+    # SourceRef, inlined -- same shape as Order/Payment in app/
+    # models_ledger.py (C01: "source drill-down is a simple indexed join,
+    # not a JSON reach-in"). See class docstring for how this differs from
+    # `contract_id` above.
+    source_document_id: Mapped[str] = mapped_column(
+        String(32), ForeignKey("source_documents.id", ondelete="RESTRICT"), nullable=False
+    )
+    source_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    locator_kind: Mapped[str] = mapped_column(String(20), nullable=False)
+    locator: Mapped[str] = mapped_column(String(300), nullable=False)
+    quoted_excerpt: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    proposed_by: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+
+class ObligationLink(Base):
+    """One link from a `ContractObligation` to a PO/invoice/payment/credit
+    note (TICKET_SPEC.md X0.3). Append-only, like `supplier_payments`/
+    `approvals` -- a mistaken link is never edited or deleted, only
+    superseded by recording the correction as its own new fact elsewhere
+    (same "a changed mind is a new row" discipline as everywhere else in
+    this codebase that records a financial fact); migration 0012 REVOKEs
+    UPDATE/DELETE on this table for `encore_app`.
+
+    `subject_type`/`subject_id` is deliberately NOT a foreign key (it
+    points at `purchase_orders.id`, `supplier_invoices.id` -- for BOTH
+    "invoice" and "credit_note", since a credit note is a `SupplierInvoice`
+    row with `kind="CREDIT_NOTE"` -- or `supplier_payments.id`/
+    `payouts.id` for "payment", depending on whether the obligation's
+    counterparty is a supplier or a vendor; no single FK target can express
+    that). Same loose, validated-in-application-code pair convention as
+    `Case.subject_type`/`subject_id` and `Approval.subject_type`/
+    `subject_id` (X0.1) -- see packages/domain/domain.contract_obligations.
+    LINK_SUBJECT_TYPES for the exact vocabulary and app/
+    contract_obligations.py's `link_obligation` for the one place that
+    validates it.
+
+    `amount_cents` here is the PORTION of the linked subject attributed to
+    this specific obligation -- not necessarily the subject's own full
+    amount (TICKET_SPEC.md's derived-values formula sums these, grouped by
+    subject_type, to get invoiced/paid/credited; see
+    domain.contract_obligations.compute_obligation_totals).
+    """
+
+    __tablename__ = "obligation_links"
+    __table_args__ = (
+        Index("ix_obligation_links_obligation_id", "obligation_id"),
+        Index("ix_obligation_links_subject_type_subject_id", "subject_type", "subject_id"),
+    )
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_new_id)
+    obligation_id: Mapped[str] = mapped_column(
+        String(32),
+        ForeignKey("contract_obligations.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    # "po" | "invoice" | "payment" | "credit_note" -- domain.
+    # contract_obligations.LINK_SUBJECT_TYPES.
+    subject_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    subject_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    amount_cents: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    actor_id: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    actor_capability: Mapped[str] = mapped_column(String(100), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -334,3 +492,147 @@ class DailyClose(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+
+
+# ---------------------------------------------------------------------------
+# PO lines, delivery receipts, supplier deposits, supplier quotes (migration
+# 0017). No parallel schema: these extend the existing purchase_orders/
+# supplier_invoices tables, not a second contract/obligation concept.
+# ---------------------------------------------------------------------------
+
+
+class PurchaseOrderLine(Base):
+    """A PO's line items. Optional: a PO created with no `lines` argument
+    (every PO before this) has none, and `create_purchase_order`/
+    `record_invoice` behave exactly as before for it -- the delivery-
+    supported payment limit in app/payables.py only applies when a PO
+    actually has lines."""
+
+    __tablename__ = "purchase_order_lines"
+    __table_args__ = (UniqueConstraint("po_id", "line_no", name="uq_po_line_no"),)
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_new_id)
+    po_id: Mapped[str] = mapped_column(
+        String(32), ForeignKey("purchase_orders.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    line_no: Mapped[int] = mapped_column(Integer, nullable=False)
+    item_code: Mapped[str] = mapped_column(String(100), nullable=False)
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False)
+    unit_price_cents: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    line_cents: Mapped[int] = mapped_column(BigInteger, nullable=False)
+
+
+class DeliveryReceipt(Base):
+    """One accepted-delivery fact against a PO line. Append-only (REVOKE
+    UPDATE/DELETE, migration 0017): a mistaken receipt is never edited,
+    only superseded by a new fact elsewhere. `receipt_key` is the fixture's
+    stable id (e.g. "late_supplier_r1"), unique, so re-importing the same
+    receipt is a no-op, not a duplicate row."""
+
+    __tablename__ = "delivery_receipts"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_new_id)
+    po_line_id: Mapped[str] = mapped_column(
+        String(32),
+        ForeignKey("purchase_order_lines.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False)
+    accepted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    available_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    receipt_key: Mapped[str] = mapped_column(String(128), nullable=False, unique=True)
+    source_refs: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    recorded_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    # --- S1 additive column (migration 0018): who accepted this delivery,
+    # when known. Nullable: every receipt recorded before this column
+    # existed, and any receipt imported from a source with no named
+    # acceptor, leaves it unset rather than guessing. ---
+    accepted_by: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+
+
+class SupplierDeposit(Base):
+    """A paid simulated deposit, drawn from the cash pool exactly once
+    (`idempotency_key` unique). Append-only."""
+
+    __tablename__ = "supplier_deposits"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_new_id)
+    festival_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    supplier_id: Mapped[str] = mapped_column(
+        String(32), ForeignKey("suppliers.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
+    po_id: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("purchase_orders.id", ondelete="RESTRICT"), nullable=True
+    )
+    amount_cents: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    paid_business_date: Mapped[date] = mapped_column(Date, nullable=False)
+    paid_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    idempotency_key: Mapped[str] = mapped_column(String(128), nullable=False, unique=True)
+    source_refs: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    journal_entry_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+
+
+class SupplierDepositApplication(Base):
+    """One (partial) application of a deposit against an invoice. Append-
+    only; UNIQUE(deposit_id, invoice_id) so applying the same deposit to
+    the same invoice twice is a no-op at the database level, not just by
+    convention."""
+
+    __tablename__ = "supplier_deposit_applications"
+    __table_args__ = (UniqueConstraint("deposit_id", "invoice_id", name="uq_deposit_application"),)
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_new_id)
+    deposit_id: Mapped[str] = mapped_column(
+        String(32),
+        ForeignKey("supplier_deposits.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
+    invoice_id: Mapped[str] = mapped_column(
+        String(32),
+        ForeignKey("supplier_invoices.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
+    amount_cents: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    journal_entry_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class SupplierQuote(Base):
+    """A versioned competing-supplier quote. An unknown price/term stays
+    NULL -- never 0 (TICKET: "An unknown price stays NULL; it is never
+    0"). Append-only: a revision is a new row with `supersedes_id` set,
+    never an edit of the old version."""
+
+    __tablename__ = "supplier_quotes"
+    __table_args__ = (
+        UniqueConstraint("supplier_id", "request_key", "version", name="uq_supplier_quote_version"),
+    )
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_new_id)
+    supplier_id: Mapped[str] = mapped_column(
+        String(32), ForeignKey("suppliers.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
+    request_key: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    version: Mapped[int] = mapped_column(Integer, nullable=False)
+    supersedes_id: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("supplier_quotes.id", ondelete="SET NULL"), nullable=True
+    )
+    available_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    base_cents: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    delivery_cents: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    tax_cents: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    deposit_cents: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    deposit_due: Mapped[date | None] = mapped_column(Date, nullable=True)
+    balance_due: Mapped[date | None] = mapped_column(Date, nullable=True)
+    insurance_evidence: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    citations: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    source_refs: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)

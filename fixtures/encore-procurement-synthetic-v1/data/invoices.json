@@ -1,0 +1,30 @@
+[
+  {
+    "available_at": "2026-10-15T12:15:00-07:00",
+    "balance_requested_cents": 1450000,
+    "contract_id": "contract_b_demo",
+    "deposit_applied_cents": 800000,
+    "id": "inv_b_001",
+    "invoice_number": "B-001",
+    "lines": [
+      {
+        "po_line_id": "po_gen_b_1",
+        "qty": 6,
+        "unit_cents": 375000
+      }
+    ],
+    "po_id": "po_gen_b",
+    "source_document_id": "invoice_b_001",
+    "supplier_id": "sup_b",
+    "total_cents": 2250000
+  },
+  {
+    "duplicate_submission_of": "inv_b_001",
+    "id": "inv_b_001_retry",
+    "invoice_number": " b-001 ",
+    "po_id": "po_gen_b",
+    "source_document_id": "invoice_b_001",
+    "supplier_id": "sup_b",
+    "total_cents": 2250000
+  }
+]

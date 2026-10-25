@@ -1,0 +1,42 @@
+[
+  {
+    "actual_revenue_cents": null,
+    "approved_scope_changes_cents": 300000,
+    "cash_paid_cents": 2600000,
+    "credits_cents": 100000,
+    "final_invoiced_cents": 2700000,
+    "final_net_cost_cents": 2600000,
+    "id": "hist_a_2025",
+    "original_budget_cents": 2000000,
+    "period": "2025",
+    "projected_revenue_cents": null,
+    "scope": {
+      "item_code": "GEN100",
+      "quantity": 6,
+      "rental_days": 5
+    },
+    "source_document_id": "hist_a_2025",
+    "status": "final",
+    "supplier_id": "sup_a"
+  },
+  {
+    "actual_revenue_cents": null,
+    "approved_scope_changes_cents": 50000,
+    "cash_paid_cents": 1950000,
+    "credits_cents": 0,
+    "final_invoiced_cents": 1950000,
+    "final_net_cost_cents": 1950000,
+    "id": "hist_c_2025",
+    "original_budget_cents": 1900000,
+    "period": "2025",
+    "projected_revenue_cents": null,
+    "scope": {
+      "item_code": "GEN100",
+      "quantity": 6,
+      "rental_days": 5
+    },
+    "source_document_id": "hist_c_2025",
+    "status": "final",
+    "supplier_id": "sup_c"
+  }
+]

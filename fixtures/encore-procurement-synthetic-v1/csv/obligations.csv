@@ -1,0 +1,3 @@
+amount_cents,condition,contract_id,due_date,id,kind,source_clause
+800000,simulated signed contract,contract_b_demo,2026-10-07,ob_b_deposit,deposit,A1
+1450000,"accepted delivery, subject to approved adjustments",contract_b_demo,2026-10-20,ob_b_balance,final,A1

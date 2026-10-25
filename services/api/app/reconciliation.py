@@ -60,7 +60,7 @@ from datetime import UTC, date, datetime
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import CAPABILITY_RESOLVE_CASE
+from app.models import CAPABILITY_RESOLVE_CASE, _new_id
 from app.models_ledger import Case, Order, Payment, Run, Vendor
 from app.models_reconciliation import BankEntry, CashCount, MatchGroup, MatchGroupMember
 from app.uow import UnitOfWork
@@ -326,7 +326,16 @@ def _open_case(
     actor_id: str,
     actor_capability: str,
 ) -> Case:
+    # X0.1: generalized subject -- same "vendor_run" vocabulary as A05's
+    # contract-conflict cases (see packages/domain/domain/case_routing.py).
+    # A festival-level bank-deposit case has no single vendor (vendor_id is
+    # None) -- its subject_id falls back to the case's own id (generated
+    # up front so it's available immediately, same convention as
+    # app/payables.py's payment_id pre-generation), same documented
+    # fallback the X0.1 migration's backfill uses for the same situation.
+    case_id = _new_id()
     case = Case(
+        id=case_id,
         run_id=run.id,
         vendor_id=vendor_id,
         reason_code=reason_code,
@@ -334,6 +343,8 @@ def _open_case(
         financial_impact_cents=financial_impact_cents,
         proposed_resolution=proposed_resolution,
         required_capability=CAPABILITY_RESOLVE_CASE,
+        subject_type="vendor_run",
+        subject_id=vendor_id if vendor_id is not None else case_id,
         status="OPEN",
     )
     db.add(case)

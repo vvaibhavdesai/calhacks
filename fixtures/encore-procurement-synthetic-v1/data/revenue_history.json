@@ -1,0 +1,15 @@
+[
+  {
+    "actual_attendance": 16000,
+    "actual_gross_cents": 16000000,
+    "cash_collected_cents": 2000000,
+    "category": "beverage_concession",
+    "counterparty_id": "partner_d",
+    "festival_share_bps": 1500,
+    "id": "hist_concession_2025",
+    "original_projected_gross_cents": 20000000,
+    "projected_attendance": 20000,
+    "source_document_id": "hist_concession_2025",
+    "status": "final"
+  }
+]
