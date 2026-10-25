@@ -1723,6 +1723,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/policies/{policy_version_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve Policy Version Endpoint
+         * @description Approve this exact DRAFT policy version so it may be applied.
+         *
+         *     Capability `approve_policy`, the C03 envelope and an `Idempotency-Key`
+         *     (app/commands.py): the same key with the same request replays the original
+         *     response and approves nothing twice; the same key with a different request
+         *     is 409 IDEMPOTENCY_KEY_REUSED.
+         */
+        post: operations["approve_policy_version_endpoint_api_v1_policies__policy_version_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/policies/{policy_version_id}/revise": {
         parameters: {
             query?: never;
@@ -2625,10 +2650,19 @@ export interface components {
          *     Separate from resolving the case, deliberately: a one-time resolution is
          *     never auto-promoted into a reusable rule. The scope is the case's own
          *     vendor and effect; only the validity window is chosen here.
+         *
+         *     Both shapes the real callers send: the verify suites post
+         *     {valid_from, valid_to} directly, and the case screen posts the same
+         *     fields inside the C03 envelope's `payload` (see
+         *     `EnvelopeTolerantRequest`). Before the flattening, the envelope form was
+         *     answered "valid_from: Field required" to a reviewer who had chosen a
+         *     window, so the control on the case screen could not be used at all.
          */
         ApprovePolicyRequest: {
             /** Action */
             action?: string | null;
+            /** Command Id */
+            command_id?: string | null;
             /** Evidence Hash */
             evidence_hash?: string | null;
             /** Expected Version */
@@ -2642,6 +2676,21 @@ export interface components {
             valid_from: string;
             /** Valid To */
             valid_to?: string | null;
+        };
+        /**
+         * ApprovePolicyVersionResult
+         * @description C03 command result: the authoritative state, plus the whole record.
+         */
+        ApprovePolicyVersionResult: {
+            /** Aggregate Id */
+            aggregate_id: string;
+            /** Command Id */
+            command_id: string;
+            resource: components["schemas"]["PolicyOut"];
+            /** Status */
+            status: string;
+            /** Version */
+            version: number;
         };
         /** ApproveRequest */
         ApproveRequest: {
@@ -3539,6 +3588,8 @@ export interface components {
             approver_ref: string | null;
             /** Effect */
             effect: Record<string, never>;
+            /** Evidence Hash */
+            evidence_hash: string | null;
             /** Evidence Refs */
             evidence_refs: unknown[];
             /** Id */
@@ -3549,6 +3600,8 @@ export interface components {
             policy_id: string;
             /** Predicates */
             predicates: Record<string, never>;
+            /** Required Capability */
+            required_capability: string;
             /** Scope */
             scope: Record<string, never>;
             /** Source Case Id */
@@ -3751,6 +3804,8 @@ export interface components {
         ResolveCaseRequest: {
             /** Action */
             action?: string | null;
+            /** Command Id */
+            command_id?: string | null;
             /** Commission Bps */
             commission_bps?: number | null;
             /** Decision */
@@ -7913,6 +7968,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["app__routers__cases__CaseOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_policy_version_endpoint_api_v1_policies__policy_version_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                policy_version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommandEnvelope"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovePolicyVersionResult"];
                 };
             };
             /** @description Validation Error */

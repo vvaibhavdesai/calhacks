@@ -152,7 +152,8 @@ describe('commands: envelope, Idempotency-Key and 202 jobs', () => {
       client,
       'approvePayout',
       prepareCommand({ expectedVersion: 1, payload: { amount_cents: '500000' }, idGenerator: ids }),
-      { id: 'p1' },
+      // Path arguments are the BACKEND's own parameter names (src/api/operations.ts).
+      { payout_id: 'p1' },
     );
     const [a, b] = [sub.submit(), sub.submit()];
     expect(a).toBe(b);
@@ -174,7 +175,7 @@ describe('commands: envelope, Idempotency-Key and 202 jobs', () => {
       jsonResponse(409, errBody('VERSION_MISMATCH', { current_version: 5 })),
     );
     const client = new ApiClient({ transport });
-    const sub = new CommandSubmission(client, 'approvePolicy', prepareCommand({ expectedVersion: 4, payload: {}, idGenerator: ids }), { id: 'pol_1' });
+    const sub = new CommandSubmission(client, 'approvePolicy', prepareCommand({ expectedVersion: 4, payload: {}, idGenerator: ids }), { policy_version_id: 'pol_1' });
     await expect(sub.submit()).rejects.toMatchObject({ kind: 'conflict', currentVersion: 5 });
     await expect(sub.submit()).rejects.toMatchObject({ kind: 'conflict' });
     expect(sub.sendCount).toBe(1); // must re-prepare (new key) after refetching

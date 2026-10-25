@@ -344,6 +344,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/cases/{id}/approve-policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description payload is ApproveCasePolicyPayload. How a reusable rule is BORN: a second, separate human decision that makes an already-resolved case's resolution reusable, creating the policy version. Addressed by the case because no policy exists yet. Approving an existing version that is still waiting for a human is POST /policies/{id}/approve instead. */
+        post: operations["approveCasePolicy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/policies": {
         parameters: {
             query?: never;
@@ -386,6 +403,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @description payload is ApprovePolicyPayload. Approves ONE exact policy version that is waiting for a human (status DRAFT), from the policy itself, and binds the decision to the version, evidence hash and scope the approver had on screen. It never changes what the rule says and never creates one: a rule is born on the deciding case (POST /cases/{id}/approve-policy). A version that is already ACTIVE, SUSPENDED by an open challenge or SUPERSEDED is refused -- reviving a challenged rule is the correction flow's decision, not an approval's. */
         post: operations["approvePolicy"];
         delete?: never;
         options?: never;
@@ -1499,6 +1517,15 @@ export interface components {
             evidence_hash: string;
             scope: components["schemas"]["PolicyScope"];
             source_case_id?: string | null;
+            note?: string;
+        };
+        /** @description payload of POST /cases/{id}/approve-policy. Approves REUSE of the decision an already RESOLVED case made, which is what creates the policy version. The rule's scope, predicates and effect are the case's own and are never supplied here; only the validity window is chosen. `evidence_hash` is echoed from the case whenever the server served one, and the server refuses the approval if it no longer matches. */
+        ApproveCasePolicyPayload: {
+            /** @constant */
+            action: "APPROVE_REUSABLE_POLICY";
+            valid_from: components["schemas"]["BusinessDate"];
+            valid_to?: components["schemas"]["BusinessDate"] | null;
+            evidence_hash?: string;
             note?: string;
         };
         Approval: {
@@ -3042,6 +3069,46 @@ export interface operations {
         };
     };
     resolveCase: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Required for effectful commands; scoped by workspace/action. Same key + same canonical payload returns the original result; same key + different payload returns 409. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                id: components["parameters"]["PathId"];
+            };
+            cookie?: never;
+        };
+        requestBody: components["requestBodies"]["Command"];
+        responses: {
+            /** @description Short accepted command; authoritative state/version. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommandResult"];
+                };
+            };
+            /** @description Long job accepted. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobAccepted"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Invalid"];
+            429: components["responses"]["RateLimited"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    approveCasePolicy: {
         parameters: {
             query?: never;
             header: {

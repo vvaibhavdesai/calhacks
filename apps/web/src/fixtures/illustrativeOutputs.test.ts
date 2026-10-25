@@ -185,8 +185,8 @@ describe('fixture transport with illustrative outputs', () => {
     const p = await client.get('getPolicyVersion', { path: { policy_version_id: 'illus_pv_taco_rate_v1' } });
     const base = { action: 'APPROVE_REUSABLE_POLICY', policy_id: p.policy_id, policy_version: p.version, evidence_hash: p.evidence_hash, scope: p.scope };
     const widened = prepareCommand({ expectedVersion: 1, payload: { ...base, scope: { ...p.scope, vendor_ids: [] } } });
-    await expect(client.command('approvePolicy', widened, { path: { case_id: p.id } })).rejects.toMatchObject({ code: 'SCOPE_MISMATCH' });
-    const ok = await client.command('approvePolicy', prepareCommand({ expectedVersion: 1, payload: base }), { path: { case_id: p.id } });
+    await expect(client.command('approvePolicy', widened, { path: { policy_version_id: p.id } })).rejects.toMatchObject({ code: 'SCOPE_MISMATCH' });
+    const ok = await client.command('approvePolicy', prepareCommand({ expectedVersion: 1, payload: base }), { path: { policy_version_id: p.id } });
     expect(ok).toMatchObject({ kind: 'completed', result: { status: 'ACTIVE', version: 2 } });
     // Approving reuse does not touch the case.
     expect((await client.get('getCase', { path: { case_id: 'illus_case_taco_rate' } })).status).toBe('OPEN');

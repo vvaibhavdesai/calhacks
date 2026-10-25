@@ -20,7 +20,8 @@
         "type": "object"
       },
       "ApprovePolicyRequest": {
-        "description": "Approve REUSE of the decision this case already made.\n\nSeparate from resolving the case, deliberately: a one-time resolution is\nnever auto-promoted into a reusable rule. The scope is the case's own\nvendor and effect; only the validity window is chosen here.",
+        "additionalProperties": false,
+        "description": "Approve REUSE of the decision this case already made.\n\nSeparate from resolving the case, deliberately: a one-time resolution is\nnever auto-promoted into a reusable rule. The scope is the case's own\nvendor and effect; only the validity window is chosen here.\n\nBoth shapes the real callers send: the verify suites post\n{valid_from, valid_to} directly, and the case screen posts the same\nfields inside the C03 envelope's `payload` (see\n`EnvelopeTolerantRequest`). Before the flattening, the envelope form was\nanswered \"valid_from: Field required\" to a reviewer who had chosen a\nwindow, so the control on the case screen could not be used at all.",
         "properties": {
           "action": {
             "anyOf": [
@@ -32,6 +33,17 @@
               }
             ],
             "title": "Action"
+          },
+          "command_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Command Id"
           },
           "evidence_hash": {
             "anyOf": [
@@ -88,6 +100,39 @@
           "valid_from"
         ],
         "title": "ApprovePolicyRequest",
+        "type": "object"
+      },
+      "ApprovePolicyVersionResult": {
+        "description": "C03 command result: the authoritative state, plus the whole record.",
+        "properties": {
+          "aggregate_id": {
+            "title": "Aggregate Id",
+            "type": "string"
+          },
+          "command_id": {
+            "title": "Command Id",
+            "type": "string"
+          },
+          "resource": {
+            "$ref": "#/components/schemas/PolicyOut"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "command_id",
+          "aggregate_id",
+          "version",
+          "status",
+          "resource"
+        ],
+        "title": "ApprovePolicyVersionResult",
         "type": "object"
       },
       "ApproveRequest": {
@@ -2634,6 +2679,17 @@
             "title": "Effect",
             "type": "object"
           },
+          "evidence_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Hash"
+          },
           "evidence_refs": {
             "items": {},
             "title": "Evidence Refs",
@@ -2661,6 +2717,10 @@
           "predicates": {
             "title": "Predicates",
             "type": "object"
+          },
+          "required_capability": {
+            "title": "Required Capability",
+            "type": "string"
           },
           "scope": {
             "title": "Scope",
@@ -2735,7 +2795,9 @@
           "status",
           "supersedes_version",
           "source_case_id",
-          "origin_case_id"
+          "origin_case_id",
+          "evidence_hash",
+          "required_capability"
         ],
         "title": "PolicyOut",
         "type": "object"
@@ -3190,6 +3252,7 @@
         "type": "object"
       },
       "ResolveCaseRequest": {
+        "additionalProperties": false,
         "description": "Two accepted shapes for one command.\n\nThe original shape states the rate directly: `decision` of\napprove/edit/reject plus `commission_bps`. Scripts and the verify suites\nuse it and it is unchanged.\n\nThe reviewer-facing shape names the option instead:\n`decision: \"ACCEPT_OPTION\" | \"REJECT\"` with `option_id`, and binds the\ndecision to what the reviewer actually saw via `evidence_hash` and\n`expected_version`. The rate then comes from the case's own evidence, so\nthe client never supplies the number that decides money.",
         "properties": {
           "action": {
@@ -3202,6 +3265,17 @@
               }
             ],
             "title": "Action"
+          },
+          "command_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Command Id"
           },
           "commission_bps": {
             "anyOf": [
@@ -11986,6 +12060,80 @@
           }
         ],
         "summary": "Get Policy Applications",
+        "tags": [
+          "policies"
+        ]
+      }
+    },
+    "/api/v1/policies/{policy_version_id}/approve": {
+      "post": {
+        "description": "Approve this exact DRAFT policy version so it may be applied.\n\nCapability `approve_policy`, the C03 envelope and an `Idempotency-Key`\n(app/commands.py): the same key with the same request replays the original\nresponse and approves nothing twice; the same key with a different request\nis 409 IDEMPOTENCY_KEY_REUSED.",
+        "operationId": "approve_policy_version_endpoint_api_v1_policies__policy_version_id__approve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "policy_version_id",
+            "required": true,
+            "schema": {
+              "title": "Policy Version Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommandEnvelope"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovePolicyVersionResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Approve Policy Version Endpoint",
         "tags": [
           "policies"
         ]

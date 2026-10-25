@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useId, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useApp } from '../app/AppContext';
-import type { PolicyScope, PolicyStatus, PolicyVersion, SourceRef } from '../api/types';
+import { hasCapability } from '../api/capabilities';
+import type { ApprovePolicyPayload, PolicyScope, PolicyStatus, PolicyVersion, SourceRef } from '../api/types';
+import { CommandStatus } from '../components/CommandStatus';
 import { DataTable, type Column } from '../components/DataTable';
 import { EvidenceButton } from '../components/EvidenceButton';
 import { EvidenceDrawer } from '../components/EvidenceDrawer';
@@ -15,6 +17,7 @@ import { EmptyState, ErrorState, Loading } from '../components/QueryState';
 import { StatusBadge } from '../components/StatusBadge';
 import { formatBasisPoints } from '../lib/money';
 import { useApiQuery } from '../hooks/useApiQuery';
+import { useCommand } from '../hooks/useCommand';
 import { useListParams } from '../hooks/useListParams';
 import { useLookups, type Lookups } from '../hooks/useLookups';
 
@@ -77,8 +80,26 @@ function PolicyScopeView({ scope, lookups }: { scope: PolicyScope; lookups: Look
           )}
         </dd>
       </div>
+      {/* Part of the scope the server pins, and the one part that was not
+          shown: a rule approved for one kind of exception must never
+          auto-resolve a different kind. An approval echoes the scope back
+          whole, so the reader has to be able to see all of it. */}
+      {scopeReasonCode(scope) ? (
+        <div>
+          <dt>Exception kind</dt>
+          <dd>
+            <Code>{scopeReasonCode(scope) as string}</Code>
+          </dd>
+        </div>
+      ) : null}
     </dl>
   );
+}
+
+/** The server pins `reason_code` into a policy's scope; the draft did not model it. */
+function scopeReasonCode(scope: PolicyScope): string | null {
+  const value = (scope as unknown as { reason_code?: unknown }).reason_code;
+  return typeof value === 'string' ? value : null;
 }
 
 export function PolicyRuleView({ p }: { p: PolicyVersion }) {
@@ -105,13 +126,15 @@ export function PolicyRuleView({ p }: { p: PolicyVersion }) {
         {typeof p.effect.commission_bps === 'number' ? <> (commission {formatBasisPoints(p.effect.commission_bps)})</> : null}
       </p>
       <h3 className="panel-subtitle">Validity</h3>
-      <p>
-        {/* A policy's window is a range of festival DATES (`valid_from`/
-            `valid_to` are date columns), not instants. Rendering them with
-            Instant printed "Invalid time", because a bare date is not an
-            instant and lib/time.ts refuses to guess a time of day for it.
-            Laid out as labelled facts like every other record on this page,
-            rather than a sentence: a reader scans for the dates. */}
+      {/* A policy's window is a range of festival DATES (`valid_from`/
+          `valid_to` are date columns), not instants. Rendering them with
+          Instant printed "Invalid time", because a bare date is not an
+          instant and lib/time.ts refuses to guess a time of day for it.
+          Laid out as labelled facts like every other record on this page,
+          rather than a sentence: a reader scans for the dates. The <dl> is
+          NOT wrapped in a <p>, which React rejects as invalid nesting and
+          logged on every render of this screen. */}
+      <div>
         <dl className="facts" aria-label="Validity window">
           <dt>From</dt>
           <dd>
@@ -126,18 +149,242 @@ export function PolicyRuleView({ p }: { p: PolicyVersion }) {
             )}
           </dd>
         </dl>
-      </p>
+      </div>
     </>
   );
 }
 
 /**
+ * Approve ONE exact policy version, from the policy itself
+ * (C03 `POST /policies/{id}/approve`).
+ *
+ * A version waiting for a human (status DRAFT) is inert: the server never
+ * applies it to anyone's money until somebody approves it, and before this
+ * control the only approval in the product was addressed by a case -- which a
+ * reader looking at a policy does not have. Approving a rule from the case
+ * that decided it is a different decision (ApproveReuse in Cases.tsx): that
+ * one CREATES the rule; this one lets an existing version be applied, and
+ * changes nothing about what it says.
+ *
+ * The decision is bound to what is on screen: the version, its evidence hash
+ * and the scope shown below, all echoed back from the server's own response.
+ * If any of them moved while the reviewer was reading, the prepared command is
+ * discarded and they are told to look again -- and the server refuses it even
+ * if they are not.
+ */
+export function PolicyApprovalPanel({
+  p,
+  onServerChange,
+  headingLevel = 2,
+}: {
+  p: PolicyVersion;
+  onServerChange: () => void;
+  headingLevel?: 2 | 3;
+}) {
+  const { capabilities } = useApp();
+  const { lookups } = useLookups();
+  const cmd = useCommand('approvePolicy', { policy_version_id: p.id }, { onServerChange });
+  const [acknowledged, setAcknowledged] = useState(false);
+  const [staleAt, setStaleAt] = useState<number | null>(null);
+  const headingId = useId();
+  const ackId = useId();
+  const H = headingLevel === 2 ? 'h2' : 'h3';
+  const { prepared, state, discard } = cmd;
+  // Which number binds a policy approval differs by contract, and both are
+  // real: the draft gives a policy row a `record_version` (its revision,
+  // distinct from WHICH version it is), while the live backend has only
+  // `version` and binds to that -- a row there is immutable apart from its
+  // status, so the version plus the status, evidence hash and scope checks
+  // below bind every word of the rule. Same reasoning as the challenge form
+  // in Corrections.tsx, which hit this first.
+  const bindingVersion = p.record_version ?? p.version ?? null;
+
+  // A changed record (revision or evidence) invalidates a prepared approval: review again.
+  useEffect(() => {
+    if (!prepared || state.phase === 'pending' || state.phase === 'confirmed') return;
+    const payload = prepared.envelope.payload as unknown as ApprovePolicyPayload;
+    if (prepared.expectedVersion !== bindingVersion || payload.evidence_hash !== p.evidence_hash) {
+      discard();
+      setAcknowledged(false);
+      setStaleAt(bindingVersion);
+    }
+  }, [bindingVersion, p.evidence_hash, prepared, state.phase, discard]);
+
+  const header = (
+    <H id={headingId} className={headingLevel === 2 ? 'panel-title' : 'panel-subtitle'}>
+      Reusable policy (separate approval)
+    </H>
+  );
+  const wrap = (body: ReactNode) => (
+    <section className="panel decision decision-policy" aria-labelledby={headingId}>
+      {header}
+      <p className="decision-explainer">
+        Approving lets Encore handle <strong>future</strong> cases that match these conditions automatically, within this
+        scope only, citing this approval. It does <strong>not</strong> resolve any open case. New facts, expiry or a scope
+        change send cases back to a human.
+      </p>
+      {body}
+    </section>
+  );
+
+  if (state.phase === 'confirmed' || state.phase === 'job_succeeded') {
+    return wrap(<CommandStatus state={state} onRetry={() => void cmd.submit()} subject="policy version" />);
+  }
+  // Every other state the server can serve, said plainly rather than offering
+  // a button that would be refused. SUSPENDED is the one a reader is most
+  // likely to meet: a challenge paused the rule, and bringing it back is the
+  // correction flow's decision, not an approval's.
+  if (p.status !== 'DRAFT') {
+    return wrap(
+      <p className="muted">
+        This policy version is <StatusBadge status={p.status} />; only a DRAFT version can be approved for reuse -- one
+        still waiting for a human.{' '}
+        {p.status === 'SUSPENDED'
+          ? 'A challenge paused this rule: withdraw the challenge to restore it, or approve the correction that supersedes it.'
+          : null}
+        {p.status === 'ACTIVE' ? 'It is already approved and in force.' : null}
+        {p.status === 'SUPERSEDED' ? 'A later version of this policy is the one in force.' : null}
+      </p>,
+    );
+  }
+  if (capabilities.status === 'loading') return wrap(<p className="muted">Checking your permissions…</p>);
+  if (!p.required_capability || !hasCapability(capabilities, p.required_capability)) {
+    return wrap(
+      <p className="capability-note">
+        Your session does not include the{' '}
+        <Code>{p.required_capability ?? 'required (not stated by the server)'}</Code> capability needed to approve reusable
+        policies. The server decides who can act; ask a finance lead.
+      </p>,
+    );
+  }
+  if (typeof bindingVersion !== 'number' || !p.evidence_hash) {
+    return wrap(
+      <p className="capability-note">
+        Approval unavailable: the server did not provide the version and evidence hash to bind an approval to.
+      </p>,
+    );
+  }
+
+  const pending = state.phase === 'pending';
+  return wrap(
+    <>
+      {staleAt !== null ? (
+        <p className="command-status is-error" role="alert">
+          This policy version changed while you were reviewing it (now revision {staleAt}). The latest version is shown;
+          review it again.
+        </p>
+      ) : null}
+      {!prepared ? (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!acknowledged) return;
+            setStaleAt(null);
+            const payload: ApprovePolicyPayload = {
+              action: 'APPROVE_REUSABLE_POLICY',
+              policy_id: p.policy_id,
+              policy_version: p.version,
+              evidence_hash: p.evidence_hash as string,
+              scope: p.scope,
+              source_case_id: p.origin_case_id ?? null,
+            };
+            cmd.prepare({ expectedVersion: bindingVersion, payload: payload as unknown as Record<string, unknown> });
+          }}
+        >
+          <PolicyScopeView scope={p.scope} lookups={lookups} />
+          <div className="checkbox-field">
+            <input id={ackId} type="checkbox" checked={acknowledged} onChange={(e) => setAcknowledged(e.target.checked)} />
+            <label htmlFor={ackId}>I approve reuse of policy version {p.version} within exactly this scope.</label>
+          </div>
+          <button type="submit" className="button" disabled={!acknowledged}>
+            Review policy approval
+          </button>
+        </form>
+      ) : (
+        <div className="review-box" aria-label="Review policy approval">
+          <h4 className="review-title">Confirm exactly what will be sent</h4>
+          <dl className="facts">
+            <div>
+              <dt>Action</dt>
+              <dd>
+                Approve reusable policy <Code>{`POST /policies/${p.id}/approve`}</Code>
+              </dd>
+            </div>
+            <div>
+              <dt>Policy version</dt>
+              <dd>
+                <Code>{p.policy_id}</Code> v{p.version}
+              </dd>
+            </div>
+            <div>
+              <dt>Bound to record revision</dt>
+              <dd>{prepared.expectedVersion}</dd>
+            </div>
+            <div>
+              <dt>Evidence hash</dt>
+              <dd>
+                <code className="code code-wrap">{p.evidence_hash}</code>
+              </dd>
+            </div>
+            <div>
+              <dt>Scope</dt>
+              <dd>{p.scope.description ?? scopeSummary(p.scope, lookups)}</dd>
+            </div>
+            {/* What a matching case will get, from the server's own effect --
+                never recomputed here. */}
+            <div>
+              <dt>What it will do</dt>
+              <dd>
+                {p.effect.description ?? p.effect.kind}
+                {typeof p.effect.commission_bps === 'number' ? <> (commission {formatBasisPoints(p.effect.commission_bps)})</> : null}
+              </dd>
+            </div>
+            <div>
+              <dt>In force</dt>
+              <dd>
+                <BusinessDate value={p.valid_from} />
+                {' – '}
+                {p.valid_to ? <BusinessDate value={p.valid_to} /> : 'no end date'}
+              </dd>
+            </div>
+          </dl>
+          <div className="review-actions">
+            <button type="button" className="button" onClick={() => void cmd.submit()} disabled={pending} aria-busy={pending || undefined}>
+              {pending ? 'Approving…' : 'Confirm policy approval'}
+            </button>
+            <button
+              type="button"
+              className="button button-quiet"
+              onClick={() => {
+                discard();
+                setAcknowledged(false);
+              }}
+              disabled={pending}
+            >
+              Back
+            </button>
+          </div>
+        </div>
+      )}
+      <CommandStatus state={state} onRetry={() => void cmd.submit()} subject="policy version" />
+    </>,
+  );
+}
+
+/** One line naming the scope, for a server that sends no `description`. */
+function scopeSummary(scope: PolicyScope, lookups: Lookups): string {
+  const vendors = scopeVendorIds(scope);
+  const who = vendors.length === 0 ? 'Every vendor in the festival' : vendors.map((v) => lookups.vendorName(v)).join(', ');
+  const kind = scopeReasonCode(scope);
+  return kind ? `${who} · ${kind}` : who;
+}
+
+/**
  * Where this rule came from.
  *
- * There is no "approve this policy" action: a policy does not exist before it
- * is approved, so reuse is approved on the CASE that decided it (see
- * ApproveReuse in Cases.tsx). This states the provenance instead of offering
- * a command that cannot be issued here.
+ * A rule is born on the case that decided it (the separate approval in
+ * Cases.tsx), so this states that provenance -- the approval control above
+ * acts on this version, and never invents a rule.
  */
 export function PolicyProvenance({ p }: { p: PolicyVersion }) {
   const originCaseId = (p as unknown as { origin_case_id?: string | null }).origin_case_id;
@@ -334,6 +581,7 @@ export function PolicyDetail() {
             </p>
             <PolicyChallenges p={p} />
           </section>
+          <PolicyApprovalPanel p={p} onServerChange={result.refetch} />
           <PolicyProvenance p={p} />
           <section className="panel" aria-labelledby="hist-heading">
             <h2 id="hist-heading" className="panel-title">
