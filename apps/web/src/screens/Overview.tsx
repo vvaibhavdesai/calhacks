@@ -87,6 +87,12 @@ function LatestRun() {
   const items = runs.status === 'success' ? runs.data.items : [];
   const wanted = search.get('run');
   const run = items.find((r) => r.id === wanted) ?? items.find((r) => r.status !== 'QUEUED') ?? items[0];
+  // No close run has ever been started for this festival: drop the panel
+  // rather than put an empty one on the landing screen. Deliberately narrow
+  // -- only when the server SUCCEEDED and returned nothing. Loading and
+  // error states still render, so a failing request is never hidden, and the
+  // panel comes back on its own as soon as a run exists.
+  if (runs.status === 'success' && items.length === 0) return null;
   return (
     <section className="panel" aria-labelledby="pipeline-heading">
       <h2 id="pipeline-heading" className="panel-title">

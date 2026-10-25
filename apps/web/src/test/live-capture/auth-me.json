@@ -1,0 +1,1 @@
+{"id":"e305947ee6fe473a8659f40130996c65","email":"admin@example.com","display_name":"Initial Admin","capabilities":["admin","approve_correction","approve_payout","approve_policy","calculate_settlement","challenge_result","close_books","finance_lead","import_source","manage_payables","resolve_case","run_agents","run_reconciliation","run_replay","run_what_if"]}

@@ -307,8 +307,18 @@ def main() -> int:  # noqa: C901 -- a long, linear acceptance walkthrough; not m
     print(f"  approved policy: {taco_policy}")
     check("policy status == ACTIVE", taco_policy["status"] == "ACTIVE", str(taco_policy))
     check(
-        "policy scope == {'vendor_id': taco_id, 'festival_id': festival_id} (vendor-scoped)",
-        taco_policy["scope"] == {"vendor_id": taco_id, "festival_id": fixtures.FESTIVAL_ID},
+        "policy scope is vendor + festival + reason_code (scoped at approval, not widened)",
+        taco_policy["scope"]
+        == {
+            "vendor_id": taco_id,
+            "festival_id": fixtures.FESTIVAL_ID,
+            # Pinned since the terms work added a second policy-driven case
+            # kind: domain.policy.policy_applies only constrains the scope
+            # keys a policy actually sets, so without this a ruling about
+            # one kind of exception could auto-resolve another kind for the
+            # same vendor whenever their predicates happened to coincide.
+            "reason_code": "vendor_contract_term_conflict",
+        },
         str(taco_policy),
     )
     check(

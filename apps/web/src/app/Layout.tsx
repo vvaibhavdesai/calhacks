@@ -5,7 +5,7 @@ import { FixtureBanner } from '../components/FixtureBanner';
 import { SignIn } from '../components/SignIn';
 import type { StreamStatus } from '../api/sse';
 import { useApp } from './AppContext';
-import { NAV } from './navigation';
+import { VISIBLE_NAV } from './navigation';
 
 function streamLabel(s: StreamStatus, fixture: boolean): string {
   if (fixture) return 'Live updates off (fixture mode)';
@@ -75,7 +75,7 @@ export function Layout() {
             </button>
           </div>
           <nav id="primary-nav" aria-label="Primary" className={`nav${menuOpen ? ' is-open' : ''}`}>
-            {NAV.map((group) => (
+            {VISIBLE_NAV.map((group) => (
               <div className="nav-group" key={group.label}>
                 <p className="nav-group-label" id={`nav-${group.label}`}>
                   {group.label}
