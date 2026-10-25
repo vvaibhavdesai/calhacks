@@ -18,9 +18,17 @@ function toDraft(fields: FilterField[], values: Record<string, string>): Record<
   return draft;
 }
 
+/** What sits under a field's control. Empty for a field with nothing to add. */
+function hintFor(f: FilterField): string {
+  if (f.type === 'date') return 'Festival business date (Pacific)';
+  if (f.type === 'datetime') return 'Festival time (Pacific), sent as UTC';
+  if (f.type === 'text' && f.hint) return f.hint;
+  return '';
+}
+
 /**
- * GET-style filter form: changes apply on submit (one history entry per
- * applied filter set), so back/forward steps through filter states.
+ * GET-style filter form. Changes apply on submit, with one history entry per
+ * applied filter set, so back and forward step through filter states.
  */
 export function FilterBar({
   fields,
@@ -82,26 +90,21 @@ export function FilterBar({
                 aria-errormessage={errors[f.key] ? `${id}-error` : undefined}
               />
             )}
-            {f.type === 'date' ? (
-              <span id={`${id}-hint`} className="field-hint">
-                Festival business date (Pacific)
-              </span>
-            ) : null}
-            {f.type === 'datetime' ? (
-              <span id={`${id}-hint`} className="field-hint">
-                Festival time (Pacific); sent as UTC
-              </span>
-            ) : null}
-            {f.type === 'text' && f.hint ? (
-              <span id={`${id}-hint`} className="field-hint">
-                {f.hint}
-              </span>
-            ) : null}
+            {/*
+              Exactly one element below the control, always, even when there is
+              nothing to say. The bar lays its fields out by row (see
+              .filter-bar), and a field that contributed two children where its
+              neighbours contributed three pushed every later field down a row.
+             */}
             {errors[f.key] ? (
               <span id={`${id}-error`} className="field-error" role="alert">
                 {errors[f.key]}
               </span>
-            ) : null}
+            ) : (
+              <span id={`${id}-hint`} className="field-hint">
+                {hintFor(f)}
+              </span>
+            )}
           </div>
         );
       })}
