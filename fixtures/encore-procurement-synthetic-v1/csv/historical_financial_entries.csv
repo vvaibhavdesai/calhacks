@@ -1,0 +1,6 @@
+amount_cents,clause,contract_id,id,kind,source_document_id
+2700000,H3,hist_a_2025,hist_a_2025_inv,invoice,hist_a_2025
+2600000,H3,hist_a_2025,hist_a_2025_pay,payment,hist_a_2025
+100000,H3,hist_a_2025,hist_a_2025_credit,credit,hist_a_2025
+1950000,H3,hist_c_2025,hist_c_2025_inv,invoice,hist_c_2025
+1950000,H3,hist_c_2025,hist_c_2025_pay,payment,hist_c_2025

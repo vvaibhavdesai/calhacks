@@ -1,0 +1,45 @@
+[
+  {
+    "category": "generator_rental",
+    "currency": "USD",
+    "delivery_deadline": "2026-10-15T12:00:00-07:00",
+    "festival_id": "fest_demo_2026",
+    "id": "req_gen_2026",
+    "installation_deadline": "2026-10-16T10:00:00-07:00",
+    "item_code": "GEN100",
+    "quantity": 6,
+    "rental_end": "2026-10-19",
+    "rental_start": "2026-10-15",
+    "requirements": [
+      {
+        "code": "QTY_SPEC",
+        "description": "Six generators at the stated specification",
+        "mandatory": true
+      },
+      {
+        "code": "DELIVERY",
+        "description": "Delivery and collection pricing stated",
+        "mandatory": true
+      },
+      {
+        "code": "INSTALL",
+        "description": "Installation and load testing included",
+        "mandatory": true
+      },
+      {
+        "code": "SUPPORT",
+        "description": "On-call support during event hours",
+        "mandatory": true
+      },
+      {
+        "code": "INSURANCE",
+        "description": "Insurance certificate supplied before commitment",
+        "mandatory": true
+      }
+    ],
+    "service_location": "Fictional Meadow Park site",
+    "source_document_id": "req_gen_2026",
+    "specification": "100 kVA diesel generator, 120/208 V three-phase; six equivalent units",
+    "tax_policy": "Synthetic 0% for this fixture only; not a claim about California tax law."
+  }
+]

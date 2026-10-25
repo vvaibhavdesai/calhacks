@@ -11,6 +11,7 @@ from app.config import get_settings
 from app.logging_config import configure_logging, log_with_fields
 from app.routers import (
     agents,
+    approvals,
     auth,
     cases,
     cash_office,
@@ -24,6 +25,7 @@ from app.routers import (
     ops,
     orchestration,
     payouts,
+    readiness,
     reconciliation,
     recorder,
     records,
@@ -96,6 +98,8 @@ app.include_router(festivals.current_router)
 app.include_router(vendors.router)
 app.include_router(records.router)
 app.include_router(dashboard.router)
+app.include_router(approvals.router)
+app.include_router(readiness.router)
 
 
 @app.get("/")

@@ -133,6 +133,41 @@ CAPABILITY_APPROVE_CORRECTION = "approve_correction"
 CAPABILITY_WHAT_IF = "run_what_if"
 CAPABILITY_REPLAY = "run_replay"
 
+# X0.1 (prevention extension): the five new capabilities TICKET_SPEC.md's
+# X0.1 section lists by name, gating the new generic Approval mechanism's
+# `action`s (see packages/domain/domain/approvals.py). Each is separate
+# from CAPABILITY_ADMIN/CAPABILITY_FINANCE_LEAD for the same reason every
+# earlier capability above is split out -- so a later deployment can grant
+# one narrow approval authority without granting the others.
+# R2: approve a scoped "internal interpretation" rule for a readiness
+# conflict. Distinct from CAPABILITY_RECORD_AMENDMENT -- "signed amendment
+# != approved interpretation" (TICKET_SPEC.md rule) extends to who may
+# grant each, not just how they're stored/displayed.
+CAPABILITY_APPROVE_INTERPRETATION = "approve_interpretation"
+# R2: record that a signed amendment document resolves a readiness
+# conflict (requires a document upload per R2's "Done when").
+CAPABILITY_RECORD_AMENDMENT = "record_amendment"
+# S4: accept/dispute/credit a supplier-invoice matching exception.
+# Distinct from CAPABILITY_MANAGE_PAYABLES (A08) so invoice-exception
+# authority can be split from ordinary PO/invoice recording later.
+CAPABILITY_APPROVE_INVOICE_EXCEPTION = "approve_invoice_exception"
+# S4: the separate payment-release step after an exception is accepted.
+# Every supplier payment release needs this -- TICKET_SPEC.md's default:
+# "there is no automatic limit."
+CAPABILITY_RELEASE_SUPPLIER_PAYMENT = "release_supplier_payment"
+# F5: acknowledge a cash-forecast shortfall case.
+CAPABILITY_ACKNOWLEDGE_FORECAST = "acknowledge_forecast"
+
+# R1 (prevention extension): trigger the deterministic readiness-check
+# engine (POST /api/v1/readiness/recompute). Not one of X0.1's five named
+# capabilities (those gate the generic Approval mechanism's decision
+# actions) -- this follows the SAME precedent as every other "trigger a
+# deterministic engine" endpoint already has its own dedicated capability
+# (CAPABILITY_IMPORT_SOURCE, CAPABILITY_RUN_RECONCILIATION,
+# CAPABILITY_CALCULATE_SETTLEMENT): a judgment call, documented here and in
+# docs/progress/R1-handoff.md/PROGRESS.md's Deviations, not silently added.
+CAPABILITY_RUN_READINESS = "run_readiness"
+
 ALL_CAPABILITY_CODES = (
     CAPABILITY_ADMIN,
     CAPABILITY_RESOLVE_CASE,
@@ -149,4 +184,10 @@ ALL_CAPABILITY_CODES = (
     CAPABILITY_APPROVE_CORRECTION,
     CAPABILITY_WHAT_IF,
     CAPABILITY_REPLAY,
+    CAPABILITY_APPROVE_INTERPRETATION,
+    CAPABILITY_RECORD_AMENDMENT,
+    CAPABILITY_APPROVE_INVOICE_EXCEPTION,
+    CAPABILITY_RELEASE_SUPPLIER_PAYMENT,
+    CAPABILITY_ACKNOWLEDGE_FORECAST,
+    CAPABILITY_RUN_READINESS,
 )

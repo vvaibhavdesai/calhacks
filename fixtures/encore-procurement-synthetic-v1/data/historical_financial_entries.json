@@ -1,0 +1,42 @@
+[
+  {
+    "amount_cents": 2700000,
+    "clause": "H3",
+    "contract_id": "hist_a_2025",
+    "id": "hist_a_2025_inv",
+    "kind": "invoice",
+    "source_document_id": "hist_a_2025"
+  },
+  {
+    "amount_cents": 2600000,
+    "clause": "H3",
+    "contract_id": "hist_a_2025",
+    "id": "hist_a_2025_pay",
+    "kind": "payment",
+    "source_document_id": "hist_a_2025"
+  },
+  {
+    "amount_cents": 100000,
+    "clause": "H3",
+    "contract_id": "hist_a_2025",
+    "id": "hist_a_2025_credit",
+    "kind": "credit",
+    "source_document_id": "hist_a_2025"
+  },
+  {
+    "amount_cents": 1950000,
+    "clause": "H3",
+    "contract_id": "hist_c_2025",
+    "id": "hist_c_2025_inv",
+    "kind": "invoice",
+    "source_document_id": "hist_c_2025"
+  },
+  {
+    "amount_cents": 1950000,
+    "clause": "H3",
+    "contract_id": "hist_c_2025",
+    "id": "hist_c_2025_pay",
+    "kind": "payment",
+    "source_document_id": "hist_c_2025"
+  }
+]

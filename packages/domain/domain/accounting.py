@@ -35,6 +35,7 @@ ACCOUNTS: dict[str, tuple[str, str, str]] = {
     "1050": ("CASH_OFFICE", "Cash on hand - organizer cash office", "ASSET"),
     "1100": ("PROCESSOR_CLEARING", "Processor clearing (card + wristband)", "ASSET"),
     "1200": ("VENDOR_RECEIVABLE", "Vendor commission receivable / unpaid balance", "ASSET"),
+    "1300": ("SUPPLIER_DEPOSITS", "Supplier deposits paid, unapplied", "ASSET"),
     "1999": ("SUSPENSE", "Unclassified bank activity (suspense)", "ASSET"),
     "2000": ("VENDOR_FUNDS_PAYABLE", "Vendor funds payable", "LIABILITY"),
     "2100": ("SALES_TAX_LIABILITY", "Sales tax liability/control (DRAFT, not filed)", "LIABILITY"),
@@ -247,6 +248,16 @@ def supplier_credit_note(gross_cents: int) -> list[Line]:
 
 def supplier_payment(amount_cents: int) -> list[Line]:
     return build([("2300", amount_cents, 0), ("1000", 0, amount_cents)])
+
+
+def supplier_deposit_paid(amount_cents: int) -> list[Line]:
+    return build([("1300", amount_cents, 0), ("1000", 0, amount_cents)])
+
+
+def supplier_deposit_applied(amount_cents: int) -> list[Line]:
+    """No cash movement -- the deposit asset is reclassified against the
+    AP liability it's now offsetting."""
+    return build([("2300", amount_cents, 0), ("1300", 0, amount_cents)])
 
 
 def operating_expense(amount_cents: int) -> list[Line]:

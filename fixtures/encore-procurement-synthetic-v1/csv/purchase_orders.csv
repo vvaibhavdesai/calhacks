@@ -1,0 +1,2 @@
+contract_id,id,lines
+contract_b_demo,po_gen_b,"[{""id"": ""po_gen_b_1"", ""item_code"": ""GEN100"", ""line_cents"": 2250000, ""qty"": 6, ""unit_cents"": 375000}]"

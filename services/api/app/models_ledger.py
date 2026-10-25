@@ -44,6 +44,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Identity,
+    Index,
     Integer,
     String,
     Text,
@@ -194,6 +195,26 @@ class VendorContractTerm(Base):
     effective_from: Mapped[date] = mapped_column(Date, nullable=False)
     effective_to: Mapped[date | None] = mapped_column(Date, nullable=True)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="draft")
+
+    # --- X0.2 additive column (migration 0011; 0001-0010 never edited in
+    # place). `effective_from`/`effective_to` above already existed before
+    # X0.2 -- this is the only genuinely new column X0.2 needs.
+    #
+    # One of "contract" | "signed_amendment" | "approved_interpretation" |
+    # "default" -- see packages/domain/domain/term_precedence.py for the
+    # single source of truth on this vocabulary and its precedence order,
+    # and services/api/app/term_provenance.py for the only two sanctioned
+    # ways to create a "signed_amendment" or "approved_interpretation" row
+    # (each structurally requires a different kind of evidence -- a real
+    # document citation for an amendment, a real Case citation for an
+    # interpretation -- so one can never be silently recorded as the other,
+    # per TICKET_SPEC.md/CONTEXT.md's explicit "signed amendment != approved
+    # interpretation" rule). Every row created before X0.2 (and every row
+    # app/policy.py's `resolve_case` creates going forward -- deliberately
+    # left untouched this ticket) defaults to "contract": see migration
+    # 0011's docstring for why that is the correct, honest backfill value.
+    source_kind: Mapped[str] = mapped_column(String(30), nullable=False, default="contract")
+
     source_refs: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
     approved_by: Mapped[str | None] = mapped_column(
         String(32), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
@@ -350,6 +371,7 @@ class Run(Base):
 
 class Case(Base):
     __tablename__ = "cases"
+    __table_args__ = (Index("ix_cases_subject_type_subject_id", "subject_type", "subject_id"),)
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_new_id)
     run_id: Mapped[str | None] = mapped_column(
@@ -460,7 +482,7 @@ class Case(Base):
     challenged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     challenge_note: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    # --- A06 stage 2 additive column (migration 0013) ---
+    # --- A06 stage 2 additive column (migration 0013_terms_resolution) ---
     # Whether an OPEN case withholds this vendor's money. Every case kind
     # before A06 stage 2 did (A07 `release_payout`, the nightly close's
     # `check_controls`), so this defaults to true and existing rows are
@@ -469,6 +491,21 @@ class Case(Base):
     # per night. The signed contract stands, a human still sees the
     # question, and nothing is held while they look at it.
     blocking: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+    # --- X0.1 additive columns (migration 0010_x01_cases_approvals; 0001-0009
+    # never edited in place). Generalizes "what is this case ABOUT" beyond the
+    # implicit "every case is about one vendor's night" assumption A02-A05
+    # baked in (vendor_id/run_id/business_date above). See
+    # packages/domain/domain/case_routing.py for the exact subject_type
+    # vocabulary and docs/progress/X0.1-handoff.md for how existing rows
+    # were backfilled. Deliberately a loose string pair, NOT a foreign key
+    # to any one table -- `subject_type="forecast_snapshot"` must be usable
+    # before F1 creates that table at all (TICKET_SPEC.md X0.1 "Done when":
+    # "A case can reference an invoice and a forecast snapshot"). A later
+    # ticket (F1) may add a real FK for forecast_snapshot specifically once
+    # that table exists; nothing here blocks that. ---
+    subject_type: Mapped[str | None] = mapped_column(String(40), nullable=True, index=False)
+    subject_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=False)
 
 
 class PolicyVersion(Base):
@@ -514,6 +551,72 @@ class PolicyVersion(Base):
     # "DRAFT" status). Set once, at the moment a human capability-gated
     # approval creates/activates this version.
     approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class Approval(Base):
+    """X0.1: the generic Approval mechanism. One row = one already-granted
+    decision (append-only, like `supplier_payments`/`policy_versions` --
+    never edited after creation; a changed mind is a NEW row, same as
+    everything else in this codebase that records a human decision).
+
+    This is deliberately a NEW, PARALLEL mechanism, not a replacement for
+    the three existing hand-rolled approval call-sites (A05's
+    `Case.resolution_*`/`resolved_by`, A08's `SupplierInvoice.
+    variance_approved_by/at`, A07/A08's `SupplierPayment.approved_by/
+    approved_capability`) -- those keep working exactly as before. New
+    subject types (R2's readiness decisions, S4's invoice exception/
+    payment-release, F5's forecast acknowledgement) record through this
+    table instead of inventing a fourth hand-rolled pattern.
+
+    `action` is one of `domain.approvals.KNOWN_ACTIONS` -- it deterministically
+    implies `required_capability` (see `domain.approvals.
+    required_capability_for_action`); the stored `required_capability` value
+    is NOT user-supplied, it is the code-computed capability the actor
+    actually held at approval time (same discipline as `Case.
+    resolved_capability`/`SupplierPayment.approved_capability` elsewhere:
+    "record the actual person/capability, never fabricate distinct
+    approvers").
+
+    `case_id` is nullable: most approvals will cite the case they resolve
+    (R2's readiness decisions, S4's exception acceptance), but S4's
+    *separate* payment-release step is its own action against the same
+    subject (`supplier_invoice`) and need not reference a specific case
+    row. When `case_id` IS given, the service layer (app/approvals.py)
+    checks it refers to a case with the SAME subject_type/subject_id --
+    an approval can never silently apply to a different subject than the
+    case it claims to resolve.
+    """
+
+    __tablename__ = "approvals"
+    __table_args__ = (Index("ix_approvals_subject_type_subject_id", "subject_type", "subject_id"),)
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_new_id)
+    subject_type: Mapped[str] = mapped_column(String(40), nullable=False)
+    subject_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    case_id: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("cases.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    # One of domain.approvals.KNOWN_ACTIONS, e.g. "release_supplier_payment".
+    action: Mapped[str] = mapped_column(String(60), nullable=False)
+    # The capability this action required -- code-computed from `action`
+    # via domain.approvals.required_capability_for_action, never supplied
+    # by the caller.
+    required_capability: Mapped[str] = mapped_column(String(100), nullable=False)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Action-specific detail (e.g. {"interpretation_rule_id": ...},
+    # {"change_order_id": ...}) -- kept as an opaque JSONB payload here;
+    # each later ticket defines its own shape, same convention as
+    # Case.resolution_effect.
+    payload: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    # The REAL authenticated user who recorded this approval -- never
+    # fabricated, same discipline as Case.resolved_by.
+    actor_id: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    actor_capability: Mapped[str] = mapped_column(String(100), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -669,6 +772,13 @@ class SupplierInvoice(Base):
     )
     journal_entry_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+
+    # --- migration 0017 additive column ---
+    # Part of `outstanding_cents` already satisfied by an applied supplier
+    # deposit (domain.payables.InvoiceBalance.deposit_applied_cents).
+    # Defaults to 0 for every existing row -- unaffected unless a deposit is
+    # actually applied via app/payables.py's `apply_deposit`.
+    deposit_applied_cents: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
 
 
 # ---------------------------------------------------------------------------

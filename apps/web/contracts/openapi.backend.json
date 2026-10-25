@@ -1,6 +1,24 @@
 {
   "components": {
     "schemas": {
+      "ApplyDepositIn": {
+        "properties": {
+          "amount_cents": {
+            "title": "Amount Cents",
+            "type": "integer"
+          },
+          "deposit_id": {
+            "title": "Deposit Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "deposit_id",
+          "amount_cents"
+        ],
+        "title": "ApplyDepositIn",
+        "type": "object"
+      },
       "ApprovePolicyRequest": {
         "description": "Approve REUSE of the decision this case already made.\n\nSeparate from resolving the case, deliberately: a one-time resolution is\nnever auto-promoted into a reusable rule. The scope is the case's own\nvendor and effect; only the validity window is chosen here.",
         "properties": {
@@ -960,6 +978,17 @@
             ],
             "title": "Received At"
           },
+          "resolves_case_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolves Case Id"
+          },
           "source_refs": {
             "items": {},
             "title": "Source Refs",
@@ -1094,6 +1123,51 @@
           "decision"
         ],
         "title": "DecisionIn",
+        "type": "object"
+      },
+      "DeliveryReceiptIn": {
+        "properties": {
+          "accepted_at": {
+            "format": "date-time",
+            "title": "Accepted At",
+            "type": "string"
+          },
+          "available_at": {
+            "format": "date-time",
+            "title": "Available At",
+            "type": "string"
+          },
+          "line_no": {
+            "title": "Line No",
+            "type": "integer"
+          },
+          "po_id": {
+            "title": "Po Id",
+            "type": "string"
+          },
+          "quantity": {
+            "title": "Quantity",
+            "type": "integer"
+          },
+          "receipt_key": {
+            "title": "Receipt Key",
+            "type": "string"
+          },
+          "source_refs": {
+            "items": {},
+            "title": "Source Refs",
+            "type": "array"
+          }
+        },
+        "required": [
+          "po_id",
+          "line_no",
+          "quantity",
+          "accepted_at",
+          "available_at",
+          "receipt_key"
+        ],
+        "title": "DeliveryReceiptIn",
         "type": "object"
       },
       "DetectConflictsRequest": {
@@ -2720,6 +2794,20 @@
             ],
             "title": "Description"
           },
+          "lines": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/PurchaseOrderLineIn"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lines"
+          },
           "po_date": {
             "format": "date",
             "title": "Po Date",
@@ -2751,6 +2839,34 @@
           "amount_cents"
         ],
         "title": "PurchaseOrderIn",
+        "type": "object"
+      },
+      "PurchaseOrderLineIn": {
+        "properties": {
+          "item_code": {
+            "title": "Item Code",
+            "type": "string"
+          },
+          "line_no": {
+            "title": "Line No",
+            "type": "integer"
+          },
+          "quantity": {
+            "title": "Quantity",
+            "type": "integer"
+          },
+          "unit_price_cents": {
+            "title": "Unit Price Cents",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "line_no",
+          "item_code",
+          "quantity",
+          "unit_price_cents"
+        ],
+        "title": "PurchaseOrderLineIn",
         "type": "object"
       },
       "ReasonOut": {
@@ -3665,6 +3781,34 @@
         "title": "SettlementOut",
         "type": "object"
       },
+      "SlaPotentialCreditIn": {
+        "properties": {
+          "clause": {
+            "title": "Clause",
+            "type": "string"
+          },
+          "evidence_refs": {
+            "items": {},
+            "title": "Evidence Refs",
+            "type": "array"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "potential_credit_cents": {
+            "title": "Potential Credit Cents",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "potential_credit_cents",
+          "clause",
+          "note"
+        ],
+        "title": "SlaPotentialCreditIn",
+        "type": "object"
+      },
       "SlipIn": {
         "properties": {
           "bags": {
@@ -4143,6 +4287,52 @@
         "title": "StatementIn",
         "type": "object"
       },
+      "SupplierDepositIn": {
+        "properties": {
+          "amount_cents": {
+            "title": "Amount Cents",
+            "type": "integer"
+          },
+          "idempotency_key": {
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "paid_at": {
+            "format": "date-time",
+            "title": "Paid At",
+            "type": "string"
+          },
+          "paid_business_date": {
+            "format": "date",
+            "title": "Paid Business Date",
+            "type": "string"
+          },
+          "po_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Po Id"
+          },
+          "source_refs": {
+            "items": {},
+            "title": "Source Refs",
+            "type": "array"
+          }
+        },
+        "required": [
+          "amount_cents",
+          "paid_business_date",
+          "paid_at",
+          "idempotency_key"
+        ],
+        "title": "SupplierDepositIn",
+        "type": "object"
+      },
       "SupplierIn": {
         "properties": {
           "category": {
@@ -4279,6 +4469,129 @@
           "created_at"
         ],
         "title": "SupplierPaymentOut",
+        "type": "object"
+      },
+      "SupplierQuoteIn": {
+        "properties": {
+          "available_at": {
+            "format": "date-time",
+            "title": "Available At",
+            "type": "string"
+          },
+          "balance_due": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Balance Due"
+          },
+          "base_cents": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Cents"
+          },
+          "citations": {
+            "title": "Citations",
+            "type": "object"
+          },
+          "delivery_cents": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delivery Cents"
+          },
+          "deposit_cents": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deposit Cents"
+          },
+          "deposit_due": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deposit Due"
+          },
+          "insurance_evidence": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Insurance Evidence"
+          },
+          "request_key": {
+            "title": "Request Key",
+            "type": "string"
+          },
+          "source_refs": {
+            "items": {},
+            "title": "Source Refs",
+            "type": "array"
+          },
+          "supersedes_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supersedes Id"
+          },
+          "tax_cents": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tax Cents"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "request_key",
+          "version",
+          "available_at"
+        ],
+        "title": "SupplierQuoteIn",
         "type": "object"
       },
       "SuspendPolicyRequest": {
@@ -7398,6 +7711,53 @@
         ]
       }
     },
+    "/api/v1/deliveries": {
+      "post": {
+        "operationId": "record_delivery_api_v1_deliveries_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeliveryReceiptIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Record Delivery Api V1 Deliveries Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Record Delivery",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
     "/api/v1/events": {
       "get": {
         "operationId": "list_events_api_v1_events_get",
@@ -9334,6 +9694,64 @@
         ]
       }
     },
+    "/api/v1/invoices/{invoice_id}/apply-deposit": {
+      "post": {
+        "operationId": "apply_deposit_api_v1_invoices__invoice_id__apply_deposit_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "invoice_id",
+            "required": true,
+            "schema": {
+              "title": "Invoice Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyDepositIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Apply Deposit Api V1 Invoices  Invoice Id  Apply Deposit Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Apply Deposit",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
     "/api/v1/invoices/{invoice_id}/approve-variance": {
       "post": {
         "operationId": "approve_variance_api_v1_invoices__invoice_id__approve_variance_post",
@@ -9514,6 +9932,130 @@
           }
         ],
         "summary": "Pay Invoice",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/v1/invoices/{invoice_id}/payability": {
+      "get": {
+        "description": "As-of view (TICKET section 5): the agreed/invoiced/deposit/accepted-\nunits/max-payable/pending picture for one invoice. `as_of` filters\nwhich delivery receipts count -- defaults to now if omitted, but a\ncaller building a reproducible demo screen should always pass it\nexplicitly.",
+        "operationId": "invoice_payability_api_v1_invoices__invoice_id__payability_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "invoice_id",
+            "required": true,
+            "schema": {
+              "title": "Invoice Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "as_of",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "As Of"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Invoice Payability Api V1 Invoices  Invoice Id  Payability Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Invoice Payability",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/v1/invoices/{invoice_id}/sla-potential-credit": {
+      "post": {
+        "operationId": "post_sla_potential_credit_api_v1_invoices__invoice_id__sla_potential_credit_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "invoice_id",
+            "required": true,
+            "schema": {
+              "title": "Invoice Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SlaPotentialCreditIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Post Sla Potential Credit Api V1 Invoices  Invoice Id  Sla Potential Credit Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Post Sla Potential Credit",
         "tags": [
           "finance"
         ]
@@ -13696,6 +14238,65 @@
         ]
       }
     },
+    "/api/v1/supplier-comparison": {
+      "get": {
+        "description": "TICKET section 7. Quote amounts come from the imported `supplier_quotes`\nrows (demo-clock-gated by `available_at <= as_of`); the cash-impact\nbaseline and supplier history are read directly from the fixture's\ncash_inputs.json/historical_contracts.json -- a labelled synthetic\ncomparison, never written to cash_pools/opening_balances/the journal.\nSelection stays undecided here: no winner field, no aggregate score.\n\n`as_of` is a full timezone-aware instant (not a bare date): a quote\navailable at 09:00 on its release day must not leak into a comparison\nmade at, say, 08:00 that same day.",
+        "operationId": "supplier_comparison_api_v1_supplier_comparison_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "request_key",
+            "required": true,
+            "schema": {
+              "title": "Request Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "as_of",
+            "required": true,
+            "schema": {
+              "format": "date-time",
+              "title": "As Of",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Supplier Comparison Api V1 Supplier Comparison Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Supplier Comparison",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
     "/api/v1/supplier-payments": {
       "get": {
         "operationId": "list_supplier_payments_api_v1_supplier_payments_get",
@@ -13810,6 +14411,78 @@
         ]
       }
     },
+    "/api/v1/supplier-quotes": {
+      "get": {
+        "operationId": "list_supplier_quotes_api_v1_supplier_quotes_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "supplier_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Supplier Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "as_of",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "As Of"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response List Supplier Quotes Api V1 Supplier Quotes Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Supplier Quotes",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
     "/api/v1/suppliers": {
       "get": {
         "operationId": "list_suppliers_api_v1_suppliers_get",
@@ -13898,6 +14571,122 @@
           }
         ],
         "summary": "Create Supplier",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/v1/suppliers/{supplier_id}/deposits": {
+      "post": {
+        "operationId": "pay_supplier_deposit_api_v1_suppliers__supplier_id__deposits_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "supplier_id",
+            "required": true,
+            "schema": {
+              "title": "Supplier Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupplierDepositIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Pay Supplier Deposit Api V1 Suppliers  Supplier Id  Deposits Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Pay Supplier Deposit",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/v1/suppliers/{supplier_id}/quotes": {
+      "post": {
+        "operationId": "post_supplier_quote_api_v1_suppliers__supplier_id__quotes_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "supplier_id",
+            "required": true,
+            "schema": {
+              "title": "Supplier Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupplierQuoteIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Post Supplier Quote Api V1 Suppliers  Supplier Id  Quotes Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Post Supplier Quote",
         "tags": [
           "finance"
         ]

@@ -1,0 +1,126 @@
+{
+  "guards": [
+    "Use one exclusive SLA path per run.",
+    "Only approved and issued credits reduce obligations.",
+    "Agent cannot read evaluation/answer_key.json.",
+    "Do not use future quotes, receipts or actuals before available_at.",
+    "Do not add alternative quote scenarios together.",
+    "One scheduled delivery is denominator 1, not denominator 6 units.",
+    "Before approved credits, obligation remaining is 1450000 cents."
+  ],
+  "history": {
+    "hist_a_2025": {
+      "approved_changes_cents": 300000,
+      "net_cost_cents": 2600000,
+      "otif_denominator": 1,
+      "otif_numerator": 1,
+      "variance_bps": 3000,
+      "variance_vs_original_cents": 600000,
+      "variance_vs_revised_cents": 300000
+    },
+    "hist_c_2025": {
+      "approved_changes_cents": 50000,
+      "net_cost_cents": 1950000,
+      "otif_denominator": 1,
+      "otif_numerator": 0,
+      "variance_bps": 263,
+      "variance_vs_original_cents": 50000,
+      "variance_vs_revised_cents": 0
+    },
+    "sup_b": {
+      "history_count": 0,
+      "otif_rate": null
+    }
+  },
+  "not_runtime_evidence": true,
+  "procurement_as_of_2026_10_02": {
+    "decision": "B is lowest complete total, but has a buffer breach and no history. A avoids a breach but has a historical overrun. C needs clarification. No uniquely correct supplier choice without human priorities.",
+    "q_a_v1": {
+      "comparable_total_cents": 2300000,
+      "complete": true,
+      "first_buffer_breach_date": null,
+      "minimum_closing_cents_before_receipt": 5000000
+    },
+    "q_b_v1": {
+      "buffer_gap_cents": 700000,
+      "comparable_total_cents": 2100000,
+      "complete": true,
+      "first_buffer_breach_date": "2026-10-05",
+      "minimum_closing_cents_before_receipt": 4300000
+    },
+    "q_b_v2": {
+      "reason": "not available until October 6",
+      "visible": false
+    },
+    "q_c_v1": {
+      "blocking_unknowns": [
+        "delivery cost",
+        "insurance evidence"
+      ],
+      "comparable_total_cents": null,
+      "complete": false,
+      "rank_as_cheapest": false
+    }
+  },
+  "proposed_mitigation_not_signed_term": "Ask B for staged payments; do not rewrite its quote until documented and approved.",
+  "quote_revision": {
+    "invalidates_comparison_using": "q_b_v1",
+    "q_b_v2_total_cents": 2250000,
+    "requires_reapproval": true,
+    "selection_creates_commitment": false
+  },
+  "revenue": {
+    "actual_festival_share_cents": 2400000,
+    "collected_cents": 2000000,
+    "projected_festival_share_cents": 3000000,
+    "receivable_cents": 400000,
+    "supplier_causation_established": false,
+    "variance_bps": -2000,
+    "variance_cents": -600000
+  },
+  "sla": {
+    "all_paths_incident": {
+      "ack_minutes": 18,
+      "ack_result": "breached",
+      "monetary_credit_cents": 0,
+      "restoration_minutes": 50,
+      "restoration_result": "met"
+    },
+    "excused_access": {
+      "accountable_result": "excused",
+      "observed_delivery": "late",
+      "potential_credit_cents": 0
+    },
+    "installation": "met",
+    "late_notice": {
+      "notice_in_time": false,
+      "observed_delivery": "breached",
+      "potential_credit_cents": 0,
+      "requires_review": "Notice condition missed; do not auto-deduct."
+    },
+    "late_supplier": {
+      "approved_credit_cents": 0,
+      "delay_minutes": 120,
+      "notice_in_time": true,
+      "observed_delivery": "breached",
+      "potential_credit_cents": 100000
+    },
+    "missing_receipt": {
+      "automatic_payment_allowed": false,
+      "observed_delivery": "unknown",
+      "potential_credit_cents": null
+    }
+  },
+  "supplier_invoice_at_2026_10_15_1230": {
+    "accepted_qty": 4,
+    "disputed_gross_cents": 750000,
+    "duplicate_submission_additional_payment_cents": 0,
+    "eligible_gross_cents": 1500000,
+    "full_remaining_obligation_cents": 1450000,
+    "later_receipt_must_not_be_used": true,
+    "maximum_additional_undisputed_payment_cents": 700000,
+    "prior_deposit_cents": 800000,
+    "scenario": "late_supplier"
+  },
+  "synthetic": true
+}

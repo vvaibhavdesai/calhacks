@@ -411,6 +411,11 @@ paths:
           in: query
           required: false
           schema: { $ref: '#/components/schemas/CaseStatus' }
+        - name: reason_code
+          in: query
+          required: false
+          description: Exact match, e.g. SLA_POTENTIAL_CREDIT, DELIVERY_SHORTFALL.
+          schema: { type: string }
       responses:
         '200':
           description: Cases.
@@ -676,6 +681,30 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/SupplierInvoice' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /invoices/{id}/payability:
+    get:
+      tags: [proposals]
+      summary: >-
+        As-of view of what can be paid now without dispute: agreed/invoiced
+        amounts, deposit applied, accepted-vs-total delivered units, and the
+        most payable now given delivery evidence as of `as_of`.
+      operationId: getInvoicePayability
+      parameters:
+        - $ref: '#/components/parameters/PathId'
+        - name: as_of
+          in: query
+          required: false
+          description: Timezone-aware instant; defaults to now if omitted.
+          schema: { type: string, format: date-time }
+      responses:
+        '200':
+          description: Invoice payability as of the given instant.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InvoicePayability' }
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -2194,6 +2223,44 @@ components:
         duplicate_reason: { type: [string, 'null'], x-encore-proposal: Q41 }
         payment_ids: { type: array, items: { type: string }, x-encore-proposal: Q41 }
         journal_entry_ids: { type: array, items: { type: string }, x-encore-proposal: Q41 }
+    InvoicePayability:
+      type: object
+      description: >-
+        The agreed/invoiced/deposit/accepted-units/max-payable/pending picture
+        for one invoice as of a given instant. `total_units`/`unit_price_cents`/
+        `delivery_supported_cents` are null when the invoice's PO has no line
+        items (no delivery-based limit applies); `has_delivery_limit` says
+        which case this is, so the UI never has to infer it from nulls.
+      required:
+        - invoice_id
+        - as_of
+        - agreed_cents
+        - invoiced_cents
+        - deposit_applied_cents
+        - paid_cents
+        - accepted_units
+        - total_units
+        - unit_price_cents
+        - delivery_supported_cents
+        - max_payable_now_cents
+        - pending_evidence_cents
+        - outstanding_cents
+        - has_delivery_limit
+      properties:
+        invoice_id: { type: string }
+        as_of: { type: string, format: date-time }
+        agreed_cents: { $ref: '#/components/schemas/MoneyCents' }
+        invoiced_cents: { $ref: '#/components/schemas/MoneyCents' }
+        deposit_applied_cents: { $ref: '#/components/schemas/MoneyCents' }
+        paid_cents: { $ref: '#/components/schemas/MoneyCents' }
+        accepted_units: { type: integer, minimum: 0 }
+        total_units: { type: [integer, 'null'], minimum: 0 }
+        unit_price_cents: { anyOf: [{ $ref: '#/components/schemas/MoneyCents' }, { type: 'null' }] }
+        delivery_supported_cents: { anyOf: [{ $ref: '#/components/schemas/MoneyCents' }, { type: 'null' }] }
+        max_payable_now_cents: { $ref: '#/components/schemas/MoneyCents' }
+        pending_evidence_cents: { $ref: '#/components/schemas/MoneyCents' }
+        outstanding_cents: { $ref: '#/components/schemas/MoneyCents' }
+        has_delivery_limit: { type: boolean }
     SupplierPayment:
       type: object
       x-encore-proposal: Q41

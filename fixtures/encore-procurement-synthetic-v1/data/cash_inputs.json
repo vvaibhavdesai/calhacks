@@ -1,0 +1,30 @@
+{
+  "as_of": "2026-10-02",
+  "buffer_cents": 5000000,
+  "expected_receipts": [
+    {
+      "amount_cents": 4000000,
+      "date": "2026-10-08",
+      "id": "sponsor_expected"
+    }
+  ],
+  "future_actual_receipts": [
+    {
+      "amount_cents": 4000000,
+      "available_at": "2026-10-09T12:00:00-07:00",
+      "date": "2026-10-09",
+      "id": "sponsor_actual",
+      "matches_expected_id": "sponsor_expected"
+    }
+  ],
+  "inflight_cents": 0,
+  "opening_posted_cents": 6000000,
+  "scheduled_outflows": [
+    {
+      "amount_cents": 500000,
+      "date": "2026-10-04",
+      "id": "site_balance"
+    }
+  ],
+  "source_document_id": "cash_baseline"
+}

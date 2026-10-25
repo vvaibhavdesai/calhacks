@@ -1,0 +1,2 @@
+amount_cents,contract_id,id,obligation_id,posted_at,state
+800000,contract_b_demo,pay_deposit_b,ob_b_deposit,2026-10-07T12:30:00-07:00,simulated_settled

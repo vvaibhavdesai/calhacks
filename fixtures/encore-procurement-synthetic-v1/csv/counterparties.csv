@@ -1,0 +1,5 @@
+category,id,name,note,relationship,revenue_applicable
+generator_rental,sup_a,Copperline Power (fictional),,returning,False
+generator_rental,sup_b,ClearPeak Energy (fictional),,new,False
+generator_rental,sup_c,Harbor Current (fictional),,returning,False
+beverage_concession,partner_d,Meadow Refreshments (fictional),"Separate revenue-generating partner example, never ranked against generator suppliers.",returning,True

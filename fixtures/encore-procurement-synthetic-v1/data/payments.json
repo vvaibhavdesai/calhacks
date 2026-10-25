@@ -1,0 +1,10 @@
+[
+  {
+    "amount_cents": 800000,
+    "contract_id": "contract_b_demo",
+    "id": "pay_deposit_b",
+    "obligation_id": "ob_b_deposit",
+    "posted_at": "2026-10-07T12:30:00-07:00",
+    "state": "simulated_settled"
+  }
+]
