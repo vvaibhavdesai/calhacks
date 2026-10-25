@@ -30,8 +30,106 @@
         "title": "AlertOut",
         "type": "object"
       },
+      "ApplyDepositIn": {
+        "properties": {
+          "amount_cents": {
+            "title": "Amount Cents",
+            "type": "integer"
+          },
+          "deposit_id": {
+            "title": "Deposit Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "deposit_id",
+          "amount_cents"
+        ],
+        "title": "ApplyDepositIn",
+        "type": "object"
+      },
+      "ApprovalOut": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "actor_capability": {
+            "title": "Actor Capability",
+            "type": "string"
+          },
+          "actor_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Id"
+          },
+          "case_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Case Id"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "payload": {
+            "title": "Payload",
+            "type": "object"
+          },
+          "required_capability": {
+            "title": "Required Capability",
+            "type": "string"
+          },
+          "subject_id": {
+            "title": "Subject Id",
+            "type": "string"
+          },
+          "subject_type": {
+            "title": "Subject Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "subject_type",
+          "subject_id",
+          "case_id",
+          "action",
+          "required_capability",
+          "note",
+          "payload",
+          "actor_id",
+          "actor_capability"
+        ],
+        "title": "ApprovalOut",
+        "type": "object"
+      },
       "ApprovePolicyRequest": {
-        "description": "Approve REUSE of the decision this case already made.\n\nSeparate from resolving the case, deliberately: a one-time resolution is\nnever auto-promoted into a reusable rule. The scope is the case's own\nvendor and effect; only the validity window is chosen here.",
+        "additionalProperties": false,
+        "description": "Approve REUSE of the decision this case already made.\n\nSeparate from resolving the case, deliberately: a one-time resolution is\nnever auto-promoted into a reusable rule. The scope is the case's own\nvendor and effect; only the validity window is chosen here.\n\nBoth shapes the real callers send: the verify suites post\n{valid_from, valid_to} directly, and the case screen posts the same\nfields inside the C03 envelope's `payload` (see\n`EnvelopeTolerantRequest`). Before the flattening, the envelope form was\nanswered \"valid_from: Field required\" to a reviewer who had chosen a\nwindow, so the control on the case screen could not be used at all.",
         "properties": {
           "action": {
             "anyOf": [
@@ -43,6 +141,17 @@
               }
             ],
             "title": "Action"
+          },
+          "command_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Command Id"
           },
           "evidence_hash": {
             "anyOf": [
@@ -101,8 +210,55 @@
         "title": "ApprovePolicyRequest",
         "type": "object"
       },
-      "ApproveRequest": {
+      "ApprovePolicyVersionResult": {
+        "description": "C03 command result: the authoritative state, plus the whole record.",
         "properties": {
+          "aggregate_id": {
+            "title": "Aggregate Id",
+            "type": "string"
+          },
+          "command_id": {
+            "title": "Command Id",
+            "type": "string"
+          },
+          "resource": {
+            "$ref": "#/components/schemas/PolicyOut"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "command_id",
+          "aggregate_id",
+          "version",
+          "status",
+          "resource"
+        ],
+        "title": "ApprovePolicyVersionResult",
+        "type": "object"
+      },
+      "ApproveRequest": {
+        "additionalProperties": false,
+        "description": "Both shapes the real callers send (see `EnvelopeTolerantRequest`).\n\nThe last four fields are lane B's `ApprovePayoutPayload` (draft Q39),\nwhich is what the approval screen puts inside the envelope's `payload`.\nThey are echoes of what the approver was shown, so the server refuses\nan approval that no longer matches any of them -- and because extras\nare forbidden, a field the UI starts sending that the server does not\nknow is a loud 422 rather than a silently discarded consent echo.",
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "const": "APPROVE_PAYOUT_ABOVE_LIMIT",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action"
+          },
           "amount_cents": {
             "anyOf": [
               {
@@ -125,6 +281,29 @@
             ],
             "title": "Beneficiary Version"
           },
+          "business_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Business Date"
+          },
+          "command_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Command Id"
+          },
           "expected_version": {
             "anyOf": [
               {
@@ -136,6 +315,17 @@
             ],
             "title": "Expected Version"
           },
+          "logical_obligation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logical Obligation Id"
+          },
           "note": {
             "anyOf": [
               {
@@ -146,6 +336,17 @@
               }
             ],
             "title": "Note"
+          },
+          "vendor_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vendor Id"
           }
         },
         "title": "ApproveRequest",
@@ -3476,6 +3677,62 @@
         "title": "CorrectionOut",
         "type": "object"
       },
+      "CreateApprovalRequest": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "case_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Case Id"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "payload": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payload"
+          },
+          "subject_id": {
+            "title": "Subject Id",
+            "type": "string"
+          },
+          "subject_type": {
+            "title": "Subject Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "subject_type",
+          "subject_id",
+          "action"
+        ],
+        "title": "CreateApprovalRequest",
+        "type": "object"
+      },
       "CreatePayoutRequest": {
         "properties": {
           "settlement_id": {
@@ -3592,6 +3849,17 @@
               }
             ],
             "title": "Received At"
+          },
+          "resolves_case_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolves Case Id"
           },
           "source_refs": {
             "items": {},
@@ -3848,6 +4116,62 @@
           "basis"
         ],
         "title": "DefaultTermsOut",
+        "type": "object"
+      },
+      "DeliveryReceiptIn": {
+        "properties": {
+          "accepted_at": {
+            "format": "date-time",
+            "title": "Accepted At",
+            "type": "string"
+          },
+          "accepted_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accepted By"
+          },
+          "available_at": {
+            "format": "date-time",
+            "title": "Available At",
+            "type": "string"
+          },
+          "line_no": {
+            "title": "Line No",
+            "type": "integer"
+          },
+          "po_id": {
+            "title": "Po Id",
+            "type": "string"
+          },
+          "quantity": {
+            "title": "Quantity",
+            "type": "integer"
+          },
+          "receipt_key": {
+            "title": "Receipt Key",
+            "type": "string"
+          },
+          "source_refs": {
+            "items": {},
+            "title": "Source Refs",
+            "type": "array"
+          }
+        },
+        "required": [
+          "po_id",
+          "line_no",
+          "quantity",
+          "accepted_at",
+          "available_at",
+          "receipt_key"
+        ],
+        "title": "DeliveryReceiptIn",
         "type": "object"
       },
       "DetectConflictsRequest": {
@@ -7575,6 +7899,17 @@
             "title": "Effect",
             "type": "object"
           },
+          "evidence_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Hash"
+          },
           "evidence_refs": {
             "items": {},
             "title": "Evidence Refs",
@@ -7602,6 +7937,10 @@
           "predicates": {
             "title": "Predicates",
             "type": "object"
+          },
+          "required_capability": {
+            "title": "Required Capability",
+            "type": "string"
           },
           "scope": {
             "title": "Scope",
@@ -7676,7 +8015,9 @@
           "status",
           "supersedes_version",
           "source_case_id",
-          "origin_case_id"
+          "origin_case_id",
+          "evidence_hash",
+          "required_capability"
         ],
         "title": "PolicyOut",
         "type": "object"
@@ -7958,6 +8299,25 @@
             ],
             "title": "Description"
           },
+          "lines": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/PurchaseOrderLineIn"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lines"
+          },
+          "partial_payment_allowed": {
+            "default": true,
+            "title": "Partial Payment Allowed",
+            "type": "boolean"
+          },
           "po_date": {
             "format": "date",
             "title": "Po Date",
@@ -7989,6 +8349,34 @@
           "amount_cents"
         ],
         "title": "PurchaseOrderIn",
+        "type": "object"
+      },
+      "PurchaseOrderLineIn": {
+        "properties": {
+          "item_code": {
+            "title": "Item Code",
+            "type": "string"
+          },
+          "line_no": {
+            "title": "Line No",
+            "type": "integer"
+          },
+          "quantity": {
+            "title": "Quantity",
+            "type": "integer"
+          },
+          "unit_price_cents": {
+            "title": "Unit Price Cents",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "line_no",
+          "item_code",
+          "quantity",
+          "unit_price_cents"
+        ],
+        "title": "PurchaseOrderLineIn",
         "type": "object"
       },
       "PurchaseOrderListOut": {
@@ -8139,6 +8527,47 @@
           "created"
         ],
         "title": "RecognizeTicketsOut",
+        "type": "object"
+      },
+      "RecomputeIn": {
+        "properties": {
+          "counterparty_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Counterparty Id"
+          },
+          "counterparty_type": {
+            "default": "vendor",
+            "title": "Counterparty Type",
+            "type": "string"
+          },
+          "festival_end": {
+            "format": "date",
+            "title": "Festival End",
+            "type": "string"
+          },
+          "festival_id": {
+            "title": "Festival Id",
+            "type": "string"
+          },
+          "festival_start": {
+            "format": "date",
+            "title": "Festival Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "festival_id",
+          "festival_start",
+          "festival_end"
+        ],
+        "title": "RecomputeIn",
         "type": "object"
       },
       "ReconcileOut": {
@@ -8831,7 +9260,20 @@
         "type": "object"
       },
       "ReleaseRequest": {
+        "additionalProperties": false,
+        "description": "Release takes the same shape, although no UI screen calls it yet\n(there is no `release` operation in apps/web's client): a caller that\nretries a release through the command client must not have its\n`expected_version` quietly dropped either.",
         "properties": {
+          "command_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Command Id"
+          },
           "expected_version": {
             "anyOf": [
               {
@@ -9285,6 +9727,132 @@
           "effect_summary"
         ],
         "title": "ResolutionOptionOut",
+        "type": "object"
+      },
+      "ResolveCaseRequest": {
+        "additionalProperties": false,
+        "description": "Two accepted shapes for one command.\n\nThe original shape states the rate directly: `decision` of\napprove/edit/reject plus `commission_bps`. Scripts and the verify suites\nuse it and it is unchanged.\n\nThe reviewer-facing shape names the option instead:\n`decision: \"ACCEPT_OPTION\" | \"REJECT\"` with `option_id`, and binds the\ndecision to what the reviewer actually saw via `evidence_hash` and\n`expected_version`. The rate then comes from the case's own evidence, so\nthe client never supplies the number that decides money.",
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action"
+          },
+          "command_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Command Id"
+          },
+          "commission_bps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Commission Bps"
+          },
+          "decision": {
+            "title": "Decision",
+            "type": "string"
+          },
+          "effective_to": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective To"
+          },
+          "evidence_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Hash"
+          },
+          "expected_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Version"
+          },
+          "minimum_fee_cents": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minimum Fee Cents"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "option_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Option Id"
+          },
+          "resolution_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution Note"
+          }
+        },
+        "required": [
+          "decision"
+        ],
+        "title": "ResolveCaseRequest",
         "type": "object"
       },
       "ResolveTermsOut": {
@@ -10536,6 +11104,34 @@
         "title": "SettlementOut",
         "type": "object"
       },
+      "SlaPotentialCreditIn": {
+        "properties": {
+          "clause": {
+            "title": "Clause",
+            "type": "string"
+          },
+          "evidence_refs": {
+            "items": {},
+            "title": "Evidence Refs",
+            "type": "array"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "potential_credit_cents": {
+            "title": "Potential Credit Cents",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "potential_credit_cents",
+          "clause",
+          "note"
+        ],
+        "title": "SlaPotentialCreditIn",
+        "type": "object"
+      },
       "SlipBagOut": {
         "properties": {
           "amount_cents": {
@@ -11643,6 +12239,52 @@
         "title": "StatementOut",
         "type": "object"
       },
+      "SupplierDepositIn": {
+        "properties": {
+          "amount_cents": {
+            "title": "Amount Cents",
+            "type": "integer"
+          },
+          "idempotency_key": {
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "paid_at": {
+            "format": "date-time",
+            "title": "Paid At",
+            "type": "string"
+          },
+          "paid_business_date": {
+            "format": "date",
+            "title": "Paid Business Date",
+            "type": "string"
+          },
+          "po_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Po Id"
+          },
+          "source_refs": {
+            "items": {},
+            "title": "Source Refs",
+            "type": "array"
+          }
+        },
+        "required": [
+          "amount_cents",
+          "paid_business_date",
+          "paid_at",
+          "idempotency_key"
+        ],
+        "title": "SupplierDepositIn",
+        "type": "object"
+      },
       "SupplierIn": {
         "properties": {
           "category": {
@@ -11837,6 +12479,129 @@
           "created_at"
         ],
         "title": "SupplierPaymentOut",
+        "type": "object"
+      },
+      "SupplierQuoteIn": {
+        "properties": {
+          "available_at": {
+            "format": "date-time",
+            "title": "Available At",
+            "type": "string"
+          },
+          "balance_due": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Balance Due"
+          },
+          "base_cents": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Cents"
+          },
+          "citations": {
+            "title": "Citations",
+            "type": "object"
+          },
+          "delivery_cents": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delivery Cents"
+          },
+          "deposit_cents": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deposit Cents"
+          },
+          "deposit_due": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deposit Due"
+          },
+          "insurance_evidence": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Insurance Evidence"
+          },
+          "request_key": {
+            "title": "Request Key",
+            "type": "string"
+          },
+          "source_refs": {
+            "items": {},
+            "title": "Source Refs",
+            "type": "array"
+          },
+          "supersedes_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supersedes Id"
+          },
+          "tax_cents": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tax Cents"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "request_key",
+          "version",
+          "available_at"
+        ],
+        "title": "SupplierQuoteIn",
         "type": "object"
       },
       "SuspendPolicyRequest": {
@@ -13840,6 +14605,28 @@
             "title": "Status",
             "type": "string"
           },
+          "subject_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject Id"
+          },
+          "subject_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject Type"
+          },
           "updated_at": {
             "anyOf": [
               {
@@ -13895,7 +14682,9 @@
           "updated_at",
           "resolved_at",
           "resolution_options",
-          "evidence_hash"
+          "evidence_hash",
+          "subject_type",
+          "subject_id"
         ],
         "title": "CaseOut",
         "type": "object"
@@ -14194,6 +14983,187 @@
         "summary": "List Extractions",
         "tags": [
           "agents"
+        ]
+      }
+    },
+    "/api/v1/approvals": {
+      "get": {
+        "operationId": "list_approvals_api_v1_approvals_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "subject_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Subject Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "subject_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Subject Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "case_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ApprovalOut"
+                  },
+                  "title": "Response List Approvals Api V1 Approvals Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Approvals",
+        "tags": [
+          "approvals"
+        ]
+      },
+      "post": {
+        "operationId": "create_approval_api_v1_approvals_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateApprovalRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Create Approval",
+        "tags": [
+          "approvals"
+        ]
+      }
+    },
+    "/api/v1/approvals/{approval_id}": {
+      "get": {
+        "operationId": "get_approval_api_v1_approvals__approval_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "approval_id",
+            "required": true,
+            "schema": {
+              "title": "Approval Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get Approval",
+        "tags": [
+          "approvals"
         ]
       }
     },
@@ -14922,8 +15892,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "title": "Raw",
-                "type": "object"
+                "$ref": "#/components/schemas/ResolveCaseRequest"
               }
             }
           },
@@ -16044,6 +17013,53 @@
         "summary": "Get Dashboard",
         "tags": [
           "dashboard"
+        ]
+      }
+    },
+    "/api/v1/deliveries": {
+      "post": {
+        "operationId": "record_delivery_api_v1_deliveries_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeliveryReceiptIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Record Delivery Api V1 Deliveries Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Record Delivery",
+        "tags": [
+          "finance"
         ]
       }
     },
@@ -17956,6 +18972,64 @@
         ]
       }
     },
+    "/api/v1/invoices/{invoice_id}/apply-deposit": {
+      "post": {
+        "operationId": "apply_deposit_api_v1_invoices__invoice_id__apply_deposit_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "invoice_id",
+            "required": true,
+            "schema": {
+              "title": "Invoice Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyDepositIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Apply Deposit Api V1 Invoices  Invoice Id  Apply Deposit Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Apply Deposit",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
     "/api/v1/invoices/{invoice_id}/approve-variance": {
       "post": {
         "operationId": "approve_variance_api_v1_invoices__invoice_id__approve_variance_post",
@@ -18133,6 +19207,130 @@
           }
         ],
         "summary": "Pay Invoice",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/v1/invoices/{invoice_id}/payability": {
+      "get": {
+        "description": "As-of view (TICKET section 5): the agreed/invoiced/deposit/accepted-\nunits/max-payable/pending picture for one invoice. `as_of` filters\nwhich delivery receipts count -- defaults to now if omitted, but a\ncaller building a reproducible demo screen should always pass it\nexplicitly.",
+        "operationId": "invoice_payability_api_v1_invoices__invoice_id__payability_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "invoice_id",
+            "required": true,
+            "schema": {
+              "title": "Invoice Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "as_of",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "As Of"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Invoice Payability Api V1 Invoices  Invoice Id  Payability Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Invoice Payability",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/v1/invoices/{invoice_id}/sla-potential-credit": {
+      "post": {
+        "operationId": "post_sla_potential_credit_api_v1_invoices__invoice_id__sla_potential_credit_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "invoice_id",
+            "required": true,
+            "schema": {
+              "title": "Invoice Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SlaPotentialCreditIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Post Sla Potential Credit Api V1 Invoices  Invoice Id  Sla Potential Credit Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Post Sla Potential Credit",
         "tags": [
           "finance"
         ]
@@ -19504,6 +20702,22 @@
               "title": "Payout Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
           }
         ],
         "requestBody": {
@@ -19826,6 +21040,22 @@
               "title": "Payout Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
           }
         ],
         "requestBody": {
@@ -20060,6 +21290,80 @@
         ]
       }
     },
+    "/api/v1/policies/{policy_version_id}/approve": {
+      "post": {
+        "description": "Approve this exact DRAFT policy version so it may be applied.\n\nCapability `approve_policy`, the C03 envelope and an `Idempotency-Key`\n(app/commands.py): the same key with the same request replays the original\nresponse and approves nothing twice; the same key with a different request\nis 409 IDEMPOTENCY_KEY_REUSED.",
+        "operationId": "approve_policy_version_endpoint_api_v1_policies__policy_version_id__approve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "policy_version_id",
+            "required": true,
+            "schema": {
+              "title": "Policy Version Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommandEnvelope"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovePolicyVersionResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Approve Policy Version Endpoint",
+        "tags": [
+          "policies"
+        ]
+      }
+    },
     "/api/v1/policies/{policy_version_id}/revise": {
       "post": {
         "operationId": "revise_policy_endpoint_api_v1_policies__policy_version_id__revise_post",
@@ -20262,6 +21566,149 @@
         "summary": "Create Purchase Order",
         "tags": [
           "finance"
+        ]
+      }
+    },
+    "/api/v1/readiness": {
+      "get": {
+        "operationId": "list_readiness_api_v1_readiness_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "festival_id",
+            "required": true,
+            "schema": {
+              "title": "Festival Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response List Readiness Api V1 Readiness Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Readiness",
+        "tags": [
+          "readiness"
+        ]
+      }
+    },
+    "/api/v1/readiness/recompute": {
+      "post": {
+        "operationId": "recompute_readiness_api_v1_readiness_recompute_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecomputeIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Recompute Readiness Api V1 Readiness Recompute Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Recompute Readiness",
+        "tags": [
+          "readiness"
+        ]
+      }
+    },
+    "/api/v1/readiness/{readiness_check_id}": {
+      "get": {
+        "operationId": "get_readiness_api_v1_readiness__readiness_check_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "readiness_check_id",
+            "required": true,
+            "schema": {
+              "title": "Readiness Check Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Readiness Api V1 Readiness  Readiness Check Id  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get Readiness",
+        "tags": [
+          "readiness"
         ]
       }
     },
@@ -22305,6 +23752,65 @@
         ]
       }
     },
+    "/api/v1/supplier-comparison": {
+      "get": {
+        "description": "TICKET section 7. Quote amounts come from the imported `supplier_quotes`\nrows (demo-clock-gated by `available_at <= as_of`); the cash-impact\nbaseline and supplier history are read directly from the fixture's\ncash_inputs.json/historical_contracts.json -- a labelled synthetic\ncomparison, never written to cash_pools/opening_balances/the journal.\nSelection stays undecided here: no winner field, no aggregate score.\n\n`as_of` is a full timezone-aware instant (not a bare date): a quote\navailable at 09:00 on its release day must not leak into a comparison\nmade at, say, 08:00 that same day.",
+        "operationId": "supplier_comparison_api_v1_supplier_comparison_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "request_key",
+            "required": true,
+            "schema": {
+              "title": "Request Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "as_of",
+            "required": true,
+            "schema": {
+              "format": "date-time",
+              "title": "As Of",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Supplier Comparison Api V1 Supplier Comparison Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Supplier Comparison",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
     "/api/v1/supplier-payments": {
       "get": {
         "operationId": "list_supplier_payments_api_v1_supplier_payments_get",
@@ -22419,6 +23925,78 @@
         ]
       }
     },
+    "/api/v1/supplier-quotes": {
+      "get": {
+        "operationId": "list_supplier_quotes_api_v1_supplier_quotes_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "supplier_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Supplier Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "as_of",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "As Of"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response List Supplier Quotes Api V1 Supplier Quotes Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Supplier Quotes",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
     "/api/v1/suppliers": {
       "get": {
         "operationId": "list_suppliers_api_v1_suppliers_get",
@@ -22505,6 +24083,122 @@
           }
         ],
         "summary": "Create Supplier",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/v1/suppliers/{supplier_id}/deposits": {
+      "post": {
+        "operationId": "pay_supplier_deposit_api_v1_suppliers__supplier_id__deposits_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "supplier_id",
+            "required": true,
+            "schema": {
+              "title": "Supplier Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupplierDepositIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Pay Supplier Deposit Api V1 Suppliers  Supplier Id  Deposits Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Pay Supplier Deposit",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/v1/suppliers/{supplier_id}/quotes": {
+      "post": {
+        "operationId": "post_supplier_quote_api_v1_suppliers__supplier_id__quotes_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "supplier_id",
+            "required": true,
+            "schema": {
+              "title": "Supplier Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupplierQuoteIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Post Supplier Quote Api V1 Suppliers  Supplier Id  Quotes Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Post Supplier Quote",
         "tags": [
           "finance"
         ]

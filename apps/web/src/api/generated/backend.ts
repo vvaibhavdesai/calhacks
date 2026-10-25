@@ -72,6 +72,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/approvals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Approvals */
+        get: operations["list_approvals_api_v1_approvals_get"];
+        put?: never;
+        /** Create Approval */
+        post: operations["create_approval_api_v1_approvals_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/approvals/{approval_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Approval */
+        get: operations["get_approval_api_v1_approvals__approval_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -548,6 +583,23 @@ export interface paths {
         get: operations["get_dashboard_api_v1_dashboard_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/deliveries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record Delivery */
+        post: operations["record_delivery_api_v1_deliveries_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1069,6 +1121,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/invoices/{invoice_id}/apply-deposit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apply Deposit */
+        post: operations["apply_deposit_api_v1_invoices__invoice_id__apply_deposit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/invoices/{invoice_id}/approve-variance": {
         parameters: {
             query?: never;
@@ -1114,6 +1183,47 @@ export interface paths {
         put?: never;
         /** Pay Invoice */
         post: operations["pay_invoice_api_v1_invoices__invoice_id__pay_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{invoice_id}/payability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Invoice Payability
+         * @description As-of view (TICKET section 5): the agreed/invoiced/deposit/accepted-
+         *     units/max-payable/pending picture for one invoice. `as_of` filters
+         *     which delivery receipts count -- defaults to now if omitted, but a
+         *     caller building a reproducible demo screen should always pass it
+         *     explicitly.
+         */
+        get: operations["invoice_payability_api_v1_invoices__invoice_id__payability_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{invoice_id}/sla-potential-credit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Sla Potential Credit */
+        post: operations["post_sla_potential_credit_api_v1_invoices__invoice_id__sla_potential_credit_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1648,6 +1758,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/policies/{policy_version_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve Policy Version Endpoint
+         * @description Approve this exact DRAFT policy version so it may be applied.
+         *
+         *     Capability `approve_policy`, the C03 envelope and an `Idempotency-Key`
+         *     (app/commands.py): the same key with the same request replays the original
+         *     response and approves nothing twice; the same key with a different request
+         *     is 409 IDEMPOTENCY_KEY_REUSED.
+         */
+        post: operations["approve_policy_version_endpoint_api_v1_policies__policy_version_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/policies/{policy_version_id}/revise": {
         parameters: {
             query?: never;
@@ -1694,6 +1829,57 @@ export interface paths {
         put?: never;
         /** Create Purchase Order */
         post: operations["create_purchase_order_api_v1_purchase_orders_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/readiness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Readiness */
+        get: operations["list_readiness_api_v1_readiness_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/readiness/recompute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Recompute Readiness */
+        post: operations["recompute_readiness_api_v1_readiness_recompute_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/readiness/{readiness_check_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Readiness */
+        get: operations["get_readiness_api_v1_readiness__readiness_check_id__get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2244,6 +2430,35 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/supplier-comparison": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Supplier Comparison
+         * @description TICKET section 7. Quote amounts come from the imported `supplier_quotes`
+         *     rows (demo-clock-gated by `available_at <= as_of`); the cash-impact
+         *     baseline and supplier history are read directly from the fixture's
+         *     cash_inputs.json/historical_contracts.json -- a labelled synthetic
+         *     comparison, never written to cash_pools/opening_balances/the journal.
+         *     Selection stays undecided here: no winner field, no aggregate score.
+         *
+         *     `as_of` is a full timezone-aware instant (not a bare date): a quote
+         *     available at 09:00 on its release day must not leak into a comparison
+         *     made at, say, 08:00 that same day.
+         */
+        get: operations["supplier_comparison_api_v1_supplier_comparison_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/supplier-payments": {
         parameters: {
             query?: never;
@@ -2253,6 +2468,23 @@ export interface paths {
         };
         /** List Supplier Payments */
         get: operations["list_supplier_payments_api_v1_supplier_payments_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/supplier-quotes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Supplier Quotes */
+        get: operations["list_supplier_quotes_api_v1_supplier_quotes_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2273,6 +2505,40 @@ export interface paths {
         put?: never;
         /** Create Supplier */
         post: operations["create_supplier_api_v1_suppliers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/suppliers/{supplier_id}/deposits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pay Supplier Deposit */
+        post: operations["pay_supplier_deposit_api_v1_suppliers__supplier_id__deposits_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/suppliers/{supplier_id}/quotes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Supplier Quote */
+        post: operations["post_supplier_quote_api_v1_suppliers__supplier_id__quotes_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2470,6 +2736,36 @@ export interface components {
             /** Severity */
             severity: string;
         };
+        /** ApplyDepositIn */
+        ApplyDepositIn: {
+            /** Amount Cents */
+            amount_cents: number;
+            /** Deposit Id */
+            deposit_id: string;
+        };
+        /** ApprovalOut */
+        ApprovalOut: {
+            /** Action */
+            action: string;
+            /** Actor Capability */
+            actor_capability: string;
+            /** Actor Id */
+            actor_id: string | null;
+            /** Case Id */
+            case_id: string | null;
+            /** Id */
+            id: string;
+            /** Note */
+            note: string | null;
+            /** Payload */
+            payload: Record<string, never>;
+            /** Required Capability */
+            required_capability: string;
+            /** Subject Id */
+            subject_id: string;
+            /** Subject Type */
+            subject_type: string;
+        };
         /**
          * ApprovePolicyRequest
          * @description Approve REUSE of the decision this case already made.
@@ -2477,10 +2773,19 @@ export interface components {
          *     Separate from resolving the case, deliberately: a one-time resolution is
          *     never auto-promoted into a reusable rule. The scope is the case's own
          *     vendor and effect; only the validity window is chosen here.
+         *
+         *     Both shapes the real callers send: the verify suites post
+         *     {valid_from, valid_to} directly, and the case screen posts the same
+         *     fields inside the C03 envelope's `payload` (see
+         *     `EnvelopeTolerantRequest`). Before the flattening, the envelope form was
+         *     answered "valid_from: Field required" to a reviewer who had chosen a
+         *     window, so the control on the case screen could not be used at all.
          */
         ApprovePolicyRequest: {
             /** Action */
             action?: string | null;
+            /** Command Id */
+            command_id?: string | null;
             /** Evidence Hash */
             evidence_hash?: string | null;
             /** Expected Version */
@@ -2495,16 +2800,51 @@ export interface components {
             /** Valid To */
             valid_to?: string | null;
         };
-        /** ApproveRequest */
+        /**
+         * ApprovePolicyVersionResult
+         * @description C03 command result: the authoritative state, plus the whole record.
+         */
+        ApprovePolicyVersionResult: {
+            /** Aggregate Id */
+            aggregate_id: string;
+            /** Command Id */
+            command_id: string;
+            resource: components["schemas"]["PolicyOut"];
+            /** Status */
+            status: string;
+            /** Version */
+            version: number;
+        };
+        /**
+         * ApproveRequest
+         * @description Both shapes the real callers send (see `EnvelopeTolerantRequest`).
+         *
+         *     The last four fields are lane B's `ApprovePayoutPayload` (draft Q39),
+         *     which is what the approval screen puts inside the envelope's `payload`.
+         *     They are echoes of what the approver was shown, so the server refuses
+         *     an approval that no longer matches any of them -- and because extras
+         *     are forbidden, a field the UI starts sending that the server does not
+         *     know is a loud 422 rather than a silently discarded consent echo.
+         */
         ApproveRequest: {
+            /** Action */
+            action?: "APPROVE_PAYOUT_ABOVE_LIMIT" | null;
             /** Amount Cents */
             amount_cents?: number | null;
             /** Beneficiary Version */
             beneficiary_version?: number | null;
+            /** Business Date */
+            business_date?: string | null;
+            /** Command Id */
+            command_id?: string | null;
             /** Expected Version */
             expected_version?: number | null;
+            /** Logical Obligation Id */
+            logical_obligation_id?: string | null;
             /** Note */
             note?: string | null;
+            /** Vendor Id */
+            vendor_id?: string | null;
         };
         /** AuditChainOut */
         AuditChainOut: {
@@ -3565,6 +3905,21 @@ export interface components {
             /** Version */
             version: number;
         };
+        /** CreateApprovalRequest */
+        CreateApprovalRequest: {
+            /** Action */
+            action: string;
+            /** Case Id */
+            case_id?: string | null;
+            /** Note */
+            note?: string | null;
+            /** Payload */
+            payload?: Record<string, never> | null;
+            /** Subject Id */
+            subject_id: string;
+            /** Subject Type */
+            subject_type: string;
+        };
         /** CreatePayoutRequest */
         CreatePayoutRequest: {
             /** Settlement Id */
@@ -3613,6 +3968,8 @@ export interface components {
             net_cents: number;
             /** Received At */
             received_at?: string | null;
+            /** Resolves Case Id */
+            resolves_case_id?: string | null;
             /** Source Refs */
             source_refs?: unknown[];
             /**
@@ -3702,6 +4059,31 @@ export interface components {
             commission_bps: number;
             /** Festival Minimum Cents */
             festival_minimum_cents: number;
+        };
+        /** DeliveryReceiptIn */
+        DeliveryReceiptIn: {
+            /**
+             * Accepted At
+             * Format: date-time
+             */
+            accepted_at: string;
+            /** Accepted By */
+            accepted_by?: string | null;
+            /**
+             * Available At
+             * Format: date-time
+             */
+            available_at: string;
+            /** Line No */
+            line_no: number;
+            /** Po Id */
+            po_id: string;
+            /** Quantity */
+            quantity: number;
+            /** Receipt Key */
+            receipt_key: string;
+            /** Source Refs */
+            source_refs?: unknown[];
         };
         /** DetectConflictsRequest */
         DetectConflictsRequest: {
@@ -4933,6 +5315,8 @@ export interface components {
             approver_ref: string | null;
             /** Effect */
             effect: Record<string, never>;
+            /** Evidence Hash */
+            evidence_hash: string | null;
             /** Evidence Refs */
             evidence_refs: unknown[];
             /** Id */
@@ -4943,6 +5327,8 @@ export interface components {
             policy_id: string;
             /** Predicates */
             predicates: Record<string, never>;
+            /** Required Capability */
+            required_capability: string;
             /** Scope */
             scope: Record<string, never>;
             /** Source Case Id */
@@ -5066,6 +5452,13 @@ export interface components {
             amount_cents: number;
             /** Description */
             description?: string | null;
+            /** Lines */
+            lines?: components["schemas"]["PurchaseOrderLineIn"][] | null;
+            /**
+             * Partial Payment Allowed
+             * @default true
+             */
+            partial_payment_allowed: boolean;
             /**
              * Po Date
              * Format: date
@@ -5079,6 +5472,17 @@ export interface components {
             source_refs?: unknown[];
             /** Supplier Id */
             supplier_id: string;
+        };
+        /** PurchaseOrderLineIn */
+        PurchaseOrderLineIn: {
+            /** Item Code */
+            item_code: string;
+            /** Line No */
+            line_no: number;
+            /** Quantity */
+            quantity: number;
+            /** Unit Price Cents */
+            unit_price_cents: number;
         };
         /** PurchaseOrderListOut */
         PurchaseOrderListOut: {
@@ -5133,6 +5537,28 @@ export interface components {
             created: boolean;
             /** Entry Key */
             entry_key: string | null;
+        };
+        /** RecomputeIn */
+        RecomputeIn: {
+            /** Counterparty Id */
+            counterparty_id?: string | null;
+            /**
+             * Counterparty Type
+             * @default vendor
+             */
+            counterparty_type: string;
+            /**
+             * Festival End
+             * Format: date
+             */
+            festival_end: string;
+            /** Festival Id */
+            festival_id: string;
+            /**
+             * Festival Start
+             * Format: date
+             */
+            festival_start: string;
         };
         /** ReconcileOut */
         ReconcileOut: {
@@ -5339,8 +5765,16 @@ export interface components {
             /** Reserved Cents */
             reserved_cents: number;
         };
-        /** ReleaseRequest */
+        /**
+         * ReleaseRequest
+         * @description Release takes the same shape, although no UI screen calls it yet
+         *     (there is no `release` operation in apps/web's client): a caller that
+         *     retries a release through the command client must not have its
+         *     `expected_version` quietly dropped either.
+         */
         ReleaseRequest: {
+            /** Command Id */
+            command_id?: string | null;
             /** Expected Version */
             expected_version?: number | null;
         };
@@ -5487,6 +5921,44 @@ export interface components {
             role?: string | null;
             /** Term Id */
             term_id?: string | null;
+        };
+        /**
+         * ResolveCaseRequest
+         * @description Two accepted shapes for one command.
+         *
+         *     The original shape states the rate directly: `decision` of
+         *     approve/edit/reject plus `commission_bps`. Scripts and the verify suites
+         *     use it and it is unchanged.
+         *
+         *     The reviewer-facing shape names the option instead:
+         *     `decision: "ACCEPT_OPTION" | "REJECT"` with `option_id`, and binds the
+         *     decision to what the reviewer actually saw via `evidence_hash` and
+         *     `expected_version`. The rate then comes from the case's own evidence, so
+         *     the client never supplies the number that decides money.
+         */
+        ResolveCaseRequest: {
+            /** Action */
+            action?: string | null;
+            /** Command Id */
+            command_id?: string | null;
+            /** Commission Bps */
+            commission_bps?: number | null;
+            /** Decision */
+            decision: string;
+            /** Effective To */
+            effective_to?: string | null;
+            /** Evidence Hash */
+            evidence_hash?: string | null;
+            /** Expected Version */
+            expected_version?: number | null;
+            /** Minimum Fee Cents */
+            minimum_fee_cents?: number | null;
+            /** Note */
+            note?: string | null;
+            /** Option Id */
+            option_id?: string | null;
+            /** Resolution Note */
+            resolution_note?: string | null;
         };
         /** ResolveTermsOut */
         ResolveTermsOut: {
@@ -5878,6 +6350,17 @@ export interface components {
             /** Version */
             version: number;
         };
+        /** SlaPotentialCreditIn */
+        SlaPotentialCreditIn: {
+            /** Clause */
+            clause: string;
+            /** Evidence Refs */
+            evidence_refs?: unknown[];
+            /** Note */
+            note: string;
+            /** Potential Credit Cents */
+            potential_credit_cents: number;
+        };
         /** SlipBagOut */
         SlipBagOut: {
             /** Amount Cents */
@@ -6221,6 +6704,27 @@ export interface components {
             /** Vendor Id */
             vendor_id: string;
         };
+        /** SupplierDepositIn */
+        SupplierDepositIn: {
+            /** Amount Cents */
+            amount_cents: number;
+            /** Idempotency Key */
+            idempotency_key: string;
+            /**
+             * Paid At
+             * Format: date-time
+             */
+            paid_at: string;
+            /**
+             * Paid Business Date
+             * Format: date
+             */
+            paid_business_date: string;
+            /** Po Id */
+            po_id?: string | null;
+            /** Source Refs */
+            source_refs?: unknown[];
+        };
         /** SupplierIn */
         SupplierIn: {
             /** Category */
@@ -6285,6 +6789,38 @@ export interface components {
             state: string;
             /** Supplier Id */
             supplier_id: string;
+        };
+        /** SupplierQuoteIn */
+        SupplierQuoteIn: {
+            /**
+             * Available At
+             * Format: date-time
+             */
+            available_at: string;
+            /** Balance Due */
+            balance_due?: string | null;
+            /** Base Cents */
+            base_cents?: number | null;
+            /** Citations */
+            citations?: Record<string, never>;
+            /** Delivery Cents */
+            delivery_cents?: number | null;
+            /** Deposit Cents */
+            deposit_cents?: number | null;
+            /** Deposit Due */
+            deposit_due?: string | null;
+            /** Insurance Evidence */
+            insurance_evidence?: boolean | null;
+            /** Request Key */
+            request_key: string;
+            /** Source Refs */
+            source_refs?: unknown[];
+            /** Supersedes Id */
+            supersedes_id?: string | null;
+            /** Tax Cents */
+            tax_cents?: number | null;
+            /** Version */
+            version: number;
         };
         /** SuspendPolicyRequest */
         SuspendPolicyRequest: {
@@ -6913,6 +7449,10 @@ export interface components {
             run_id: string | null;
             /** Status */
             status: string;
+            /** Subject Id */
+            subject_id: string | null;
+            /** Subject Type */
+            subject_type: string | null;
             /** Updated At */
             updated_at: string | null;
             /** Vendor Id */
@@ -7053,6 +7593,103 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ExtractionListOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_approvals_api_v1_approvals_get: {
+        parameters: {
+            query?: {
+                subject_type?: string | null;
+                subject_id?: string | null;
+                case_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_approval_api_v1_approvals_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateApprovalRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_approval_api_v1_approvals__approval_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                approval_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalOut"];
                 };
             };
             /** @description Validation Error */
@@ -7461,7 +8098,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": Record<string, never>;
+                "application/json": components["schemas"]["ResolveCaseRequest"];
             };
         };
         responses: {
@@ -8048,6 +8685,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DashboardOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    record_delivery_api_v1_deliveries_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeliveryReceiptIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
                 };
             };
             /** @description Validation Error */
@@ -9122,6 +9792,41 @@ export interface operations {
             };
         };
     };
+    apply_deposit_api_v1_invoices__invoice_id__apply_deposit_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invoice_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplyDepositIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     approve_variance_api_v1_invoices__invoice_id__approve_variance_post: {
         parameters: {
             query?: never;
@@ -9216,6 +9921,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PayInvoiceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    invoice_payability_api_v1_invoices__invoice_id__payability_get: {
+        parameters: {
+            query?: {
+                as_of?: string | null;
+            };
+            header?: never;
+            path: {
+                invoice_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_sla_potential_credit_api_v1_invoices__invoice_id__sla_potential_credit_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invoice_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SlaPotentialCreditIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
                 };
             };
             /** @description Validation Error */
@@ -9911,7 +10684,9 @@ export interface operations {
     approve_api_v1_payouts__payout_id__approve_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
             path: {
                 payout_id: string;
             };
@@ -10113,7 +10888,9 @@ export interface operations {
     release_api_v1_payouts__payout_id__release_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
             path: {
                 payout_id: string;
             };
@@ -10227,6 +11004,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["app__routers__cases__CaseOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_policy_version_endpoint_api_v1_policies__policy_version_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                policy_version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommandEnvelope"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovePolicyVersionResult"];
                 };
             };
             /** @description Validation Error */
@@ -10361,6 +11175,101 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CreatePurchaseOrderOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_readiness_api_v1_readiness_get: {
+        parameters: {
+            query: {
+                festival_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    recompute_readiness_api_v1_readiness_recompute_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecomputeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_readiness_api_v1_readiness__readiness_check_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                readiness_check_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
                 };
             };
             /** @description Validation Error */
@@ -11387,6 +12296,38 @@ export interface operations {
             };
         };
     };
+    supplier_comparison_api_v1_supplier_comparison_get: {
+        parameters: {
+            query: {
+                request_key: string;
+                as_of: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_supplier_payments_api_v1_supplier_payments_get: {
         parameters: {
             query?: {
@@ -11409,6 +12350,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SupplierPaymentListOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_supplier_quotes_api_v1_supplier_quotes_get: {
+        parameters: {
+            query?: {
+                supplier_id?: string | null;
+                as_of?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
                 };
             };
             /** @description Validation Error */
@@ -11473,6 +12446,76 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CreateSupplierOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pay_supplier_deposit_api_v1_suppliers__supplier_id__deposits_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                supplier_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupplierDepositIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_supplier_quote_api_v1_suppliers__supplier_id__quotes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                supplier_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupplierQuoteIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
                 };
             };
             /** @description Validation Error */
