@@ -1,8 +1,15 @@
 """X0.1 (prevention extension): generalize cases and approvals.
 
 Revision ID: 0010_x01_cases_approvals
-Revises: 0009_agent_extractions
+Revises: 0017_payables_v2
 Create Date: 2026-10-24
+
+Re-pointed onto 0017_payables_v2 when the analyst-assistant and
+prevention-extension branches were consolidated: this chain and A08's
+payables-v2 chain both originally branched off 0009, each independently
+numbering their own migrations 0010-0013. Linearized here rather than left
+as two Alembic heads, following the same precedent as commit 9ad68a0
+("Linearize the new migrations into one chain").
 
 Two things, additive on top of 0009 (0001-0009 are never edited here):
 
@@ -70,7 +77,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision: str = "0010_x01_cases_approvals"
-down_revision: str | None = "0009_agent_extractions"
+down_revision: str | None = "0017_payables_v2"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
