@@ -158,6 +158,37 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/business-config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Business Config
+         * @description The C05 business configuration: how this festival charges and pays.
+         *
+         *     The finance posting config carries the versioned, stored part (timezone,
+         *     the 9 AM / 10 AM times, the forecast horizon, the tax configuration). The
+         *     rest -- the default terms a vendor falls back to and the payout controls --
+         *     lives in the domain package as the constants the engines actually apply, so
+         *     it is read from there rather than restated. If a value here disagreed with
+         *     what settlement and release use, this endpoint would be the thing that is
+         *     wrong.
+         *
+         *     `currency` is C01's fixed USD for v1. `draft_notice` carries the config's
+         *     own label, so nobody reads these as approved business facts.
+         */
+        get: operations["get_business_config_api_v1_business_config_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cases": {
         parameters: {
             query?: never;
@@ -4340,6 +4371,37 @@ export interface operations {
             path: {
                 branch_id: string;
             };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_business_config_api_v1_business_config_get: {
+        parameters: {
+            query: {
+                festival_id: string;
+            };
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;

@@ -13,6 +13,8 @@ from __future__ import annotations
 
 from datetime import UTC, date, datetime
 
+import domain.payout_dispatch as domain_payout_dispatch
+import domain.settlement as domain_settlement
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import select
@@ -504,6 +506,50 @@ def _config_out(cfg) -> dict:
         "forecast_horizon_days": cfg.forecast_horizon_days,
         "tax": cfg.tax,
         "label": "DEMO configuration - not an approved business or tax fact",
+    }
+
+
+@router.get("/business-config")
+def get_business_config(
+    festival_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)
+) -> dict:
+    """The C05 business configuration: how this festival charges and pays.
+
+    The finance posting config carries the versioned, stored part (timezone,
+    the 9 AM / 10 AM times, the forecast horizon, the tax configuration). The
+    rest -- the default terms a vendor falls back to and the payout controls --
+    lives in the domain package as the constants the engines actually apply, so
+    it is read from there rather than restated. If a value here disagreed with
+    what settlement and release use, this endpoint would be the thing that is
+    wrong.
+
+    `currency` is C01's fixed USD for v1. `draft_notice` carries the config's
+    own label, so nobody reads these as approved business facts.
+    """
+    cfg = records.get_or_default_config(db, festival_id)
+    db.commit()
+    out = _config_out(cfg)
+    return {
+        **out,
+        "currency": "USD",
+        "draft_notice": out.get("label"),
+        "default_terms": {
+            # Applied when a vendor's active term leaves these null -- "null
+            # means use the festival default, never zero".
+            "commission_bps": domain_settlement.DEFAULT_COMMISSION_BPS,
+            "festival_minimum_cents": domain_settlement.DEFAULT_MINIMUM_FEE_CENTS,
+            "basis": "Applies only where a vendor's own contract terms do not state a rate.",
+        },
+        "payout_controls": {
+            "auto_limit_cents_per_vendor_day": domain_payout_dispatch.AUTOMATIC_RELEASE_LIMIT_CENTS,
+            # No real rail is reachable from this system; every payout is
+            # executed against the simulator, which is stated rather than
+            # implied so a reader never takes a CONFIRMED payout for a
+            # real transfer.
+            "payment_mode": "SIMULATED",
+            "statement_local_time": out.get("statement_local_time"),
+            "payout_local_time": out.get("payout_local_time"),
+        },
     }
 
 

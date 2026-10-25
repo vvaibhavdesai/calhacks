@@ -5632,6 +5632,55 @@
         ]
       }
     },
+    "/api/v1/business-config": {
+      "get": {
+        "description": "The C05 business configuration: how this festival charges and pays.\n\nThe finance posting config carries the versioned, stored part (timezone,\nthe 9 AM / 10 AM times, the forecast horizon, the tax configuration). The\nrest -- the default terms a vendor falls back to and the payout controls --\nlives in the domain package as the constants the engines actually apply, so\nit is read from there rather than restated. If a value here disagreed with\nwhat settlement and release use, this endpoint would be the thing that is\nwrong.\n\n`currency` is C01's fixed USD for v1. `draft_notice` carries the config's\nown label, so nobody reads these as approved business facts.",
+        "operationId": "get_business_config_api_v1_business_config_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "festival_id",
+            "required": true,
+            "schema": {
+              "title": "Festival Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Business Config Api V1 Business Config Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get Business Config",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
     "/api/v1/cases": {
       "get": {
         "operationId": "list_cases_api_v1_cases_get",

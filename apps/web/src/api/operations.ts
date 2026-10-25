@@ -67,13 +67,7 @@ export const OPERATIONS = {
 
   // --------------------------------------------- festival and configuration
   getFestival: { method: 'GET', path: '/festival', backend: 'live' },
-  getBusinessConfig: {
-    method: 'GET',
-    path: '/business-config',
-    backend: 'shape',
-    route: '/finance/config',
-    gap: 'GET /api/v1/finance/config?festival_id= returns the finance posting config only (no id/version/status/currency/timezone, no default terms or payout controls). The UI needs the C05 business configuration record.',
-  },
+  getBusinessConfig: { method: 'GET', path: '/business-config', backend: 'live' },
 
   // ------------------------------------------------------- C02 input reads
   listOrders: { method: 'GET', path: '/orders', backend: 'live', query: { sort: null } },
