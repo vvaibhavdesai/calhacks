@@ -63,7 +63,7 @@ gaps remain; these are the ones the gate language names.
 
 | # | Task | Status | Notes |
 |---|---|---|---|
-| V1-16 | Independent oracle score | **in progress — first real score** (`wt/oracle` `855962b`, `601bf20`) | No longer the great unknown. `scripts/export_candidate_from_db.py` (`1441b22`) closed the empty-export hole; the money has now been graded against an answer key this system never saw. **76/240 vendor-nights exact → 188/240**; `settlement_errors` 166 → 54; `errors_total` 485 → 365; fees −2.71% → +0.64%; payouts −3.92% → **−0.03%** ($631,588.72 vs $631,783.33). The eligible-sales rule was proved from the fixture independently of both systems and reproduces the oracle exactly on 235 of 242 nights, so the base was never in dispute — lane A was wrong three ways: all 174 standalone refund orders were dropped (commission assessed on refunded money), centrally-collected cash was held forever because cash never has a `bank_entry_id`, and `classify_bank_deposit` expected a processor batch gross when it arrives net of refunds. Remaining: 242 `payout_errors` (this database has no payout rows at all), 43 of the 54 settlement errors from one cause — `payments` has no `processor_fee_cents`, so the stated per-payment fee is never persisted — plus empty `cash_counts`, and a genuine `repeated_questions` defect the export surfaced. The 3 Taco Libre rows are a different human decision, not a defect. |
+| V1-16 | Independent oracle score | **run, and re-verified on the merged branch** (`integration-demo-r4`) | No longer the great unknown. `errors_total` **485 → 50**; **232 of 240 vendor-nights exact** (was 76); payouts **229 of 242 exact**, total transfer error $2,434.28 on $631,783.33 (**-0.09%**); fees +0.64%, which is the 3 Taco Libre rows' human rate decision and nothing else. `unsafe_releases 0`, `false_holds 0`, `duplicate_provider_payments 0`, `idempotency_key_changed 0`, `cash_overspend_windows 0`, `repeated_questions 0`, citations all valid. Measured by the coordinator on the merged code against `encore_oracle_wt2`, not taken on report. Six real defects were found and fixed on the way, each described in its own commit: all 174 standalone refund orders were dropped (commission charged on refunded money); centrally-collected cash was held for ever because cash never carries a `bank_entry_id`; processor batches arrive net of refunds and were read as gross; `payments` never persisted the stated per-payment processor fee; a rail that refused a payment left the next night free to pay the same dead account again (3 `unsafe_releases`); and 693 blocking cases were stranded on superseded classifications across 59 of 80 vendors, each one withholding a vendor's money for ever. |
 | V1-17 | Automated coverage for A03–A08 | **unstarted** | Those areas are covered only by hand-run `scripts/verify_a0N_*.py`. `pytest` is 60 tests and does not touch them. Section 6 requires API integration tests against real PostgreSQL in routine CI. |
 | V1-18 | Held-out extraction evaluation | **unstarted** | 480/480 was measured on the validation split the prompt was developed against, and the verifier has since been substantially tightened. The held-out fixture and answer key both already exist; ~$1 of Claude credit. |
 | V1-19 | A03/A04 performance at 40,000 orders | **merged** (`wt/oracle` `855962b`) | Measured and fixed. The N+1 this document points at was already gone (`69ce010` batched `_load_day_rows`); the live one was `reconcile_vendor_day`, issuing **three** queries per order. On one real night, 12,145 orders, same warm database: **36,675 queries / 11.19 s → 468 queries / 2.45 s**. Figures did not move — the 40,207 current match groups dump byte-identical (same md5) both ways and `settlements.json` is byte-identical. |
@@ -138,14 +138,20 @@ V1-16 has run. The money has been graded against an independent answer key this
 system never saw: **188 of 240 vendor-nights exact**, payouts within **0.03%**
 of the oracle's $631,783.33. That is a real external result, not self-agreement.
 
-It is not yet "the money is correct". 54 settlement rows still differ, 43 of
-them from one unfixed cause (`payments` has no `processor_fee_cents`), and all
-242 payouts are unscored because no payout rows exist in the graded database.
-The defensible claim today is: *the settlement engine agrees with an independent
-implementation on 188 of 240 vendor-nights and on the total payout to within
-0.03%, with the remaining differences individually identified.* Three of them
-are a different human decision, not a defect, and two are a documented
-date-attribution choice.
+It is not yet "the money is correct", and 50 errors remain. But every one now
+has a named cause rather than a shrug, and the largest are **absent
+capabilities, not wrong arithmetic**: lane A never transfers tips at all (6
+payout errors, and the $5,000/day cap is applied to the payout where lane B
+applies it to the transfer); the cash-office custody capability is unbuilt (6
+reviews, 3 unexplained variances, 2 false variance cases); settlements and
+payouts are still not posted to the ledger (9 journal roles). Three settlement
+rows are a different human decision and two a documented date-attribution
+choice -- five of the eight are not defects.
+
+The defensible claim today is: *the settlement engine agrees with an
+independent implementation on 232 of 240 vendor-nights, pays 229 of 242
+payouts to the cent, and matches the total transfer to within 0.09%, with
+every remaining difference individually identified and attributed.*
 
 ## Honest summary
 
