@@ -67,6 +67,36 @@ def _validate_structure(mime_type: str, content_bytes: bytes) -> str | None:
     return None
 
 
+# What a document IS, as stated by whoever handed it over. Nothing here
+# guesses: a filename containing "contract" is not evidence, and a kind
+# decides which extraction prompt reads the document and whether A06 treats
+# what it says as signed terms or as somebody's assertion.
+#
+# CONTRACT / AMENDMENT / EMAIL are app/agents/runner.py's EXTRACTABLE_KINDS.
+# The rest are storable and auditable but nothing extracts them, which is
+# the honest state for a document whose kind nobody has established.
+DOCUMENT_KINDS = ("CONTRACT", "AMENDMENT", "EMAIL", "STATEMENT", "INVOICE", "OTHER")
+
+
+class DocumentKindConflictError(ValueError):
+    """An import stated a different kind than the document already has.
+
+    Reclassifying is not an import-time side effect: the kind chose the
+    extraction prompt that produced this document's existing claims, and
+    those claims are what A06 resolved terms from. Changing it quietly
+    would leave claims attributed to a reading of the document that nobody
+    would make again.
+    """
+
+    def __init__(self, current: str, stated: str) -> None:
+        super().__init__(
+            f"document is recorded as {current}; this import states {stated}. "
+            "Correct the document record explicitly rather than at import."
+        )
+        self.current = current
+        self.stated = stated
+
+
 def import_source(
     db: Session,
     storage: DocumentStorage,
@@ -79,13 +109,31 @@ def import_source(
     actor_capability: str,
     received_at: datetime | None = None,
     parser_version: str | None = None,
+    document_kind: str | None = None,
+    vendor_id: str | None = None,
 ) -> ImportResult:
     """Import one source payload. Does NOT call db.commit() -- the caller
     (e.g. the /api/v1/imports router) commits exactly once after this
     returns, so that the domain write (SourceVersion row), the audit event,
-    and the outbox intent are one atomic Postgres transaction per C06."""
+    and the outbox intent are one atomic Postgres transaction per C06.
+
+    `document_kind` and `vendor_id` are the intake metadata A06 needs and
+    could not previously be given here at all: extraction only reads
+    documents whose kind is one of EXTRACTABLE_KINDS, so a document
+    imported without one is never extracted, produces no claims, and
+    leaves its vendor with no evidenced terms. Only the fixture scripts set
+    it, which is why documents imported through this path never produced
+    terms. Both are stated by the caller or left unset -- never inferred
+    from a filename -- and both are recorded in the audit event.
+    """
     if received_at is None:
         received_at = datetime.now(UTC)
+    if document_kind is not None and document_kind not in DOCUMENT_KINDS:
+        # Loud, not NULL: a typo'd kind that silently stored as "unknown"
+        # would make the document quietly unextractable.
+        raise ValueError(
+            f"unknown document_kind {document_kind!r}; expected one of {DOCUMENT_KINDS}"
+        )
 
     content_hash = hashlib.sha256(content_bytes).hexdigest()
 
@@ -96,8 +144,27 @@ def import_source(
         )
     ).scalar_one_or_none()
     if document is None:
-        document = SourceDocument(source_system=source_system, source_native_id=source_native_id)
+        document = SourceDocument(
+            source_system=source_system,
+            source_native_id=source_native_id,
+            document_kind=document_kind,
+            vendor_id=vendor_id,
+        )
         db.add(document)
+        db.flush()
+    else:
+        if (
+            document_kind is not None
+            and document.document_kind is not None
+            and document.document_kind != document_kind
+        ):
+            raise DocumentKindConflictError(document.document_kind, document_kind)
+        # Filling in metadata a previous import did not carry is additive;
+        # contradicting it is the error above.
+        if document_kind is not None and document.document_kind is None:
+            document.document_kind = document_kind
+        if vendor_id is not None and document.vendor_id is None:
+            document.vendor_id = vendor_id
         db.flush()
 
     existing_version = db.execute(
@@ -173,6 +240,11 @@ def import_source(
             "byte_size": len(content_bytes),
             "storage_locator": storage_locator,
             "quarantine_reason": quarantine_reason,
+            # What this document is and whose it is, as stated at intake.
+            # Null means nobody said -- which is also why nothing extracted
+            # it (app/agents/runner.py EXTRACTABLE_KINDS).
+            "document_kind": document.document_kind,
+            "vendor_id": document.vendor_id,
         },
         lineage_refs=[
             {

@@ -26,7 +26,13 @@ path.
 
 One further deliberate simplification: the "$5,000/day cumulative limit"
 concurrency scenario needs TWO INDEPENDENT payout obligations for the SAME
-vendor/business_date. A04's real settlement engine only ever produces ONE
+vendor/business_date, and since the overpayment fix it needs
+`make_approved_payout` below to build the second one directly -- the API now
+refuses to issue a second obligation while another is outstanding for the
+same vendor/night, because a night with duplicate unlinked settlement rows
+would otherwise get one obligation per copy. The refusal is correct and the
+scenario still has a subject: `release_payout`'s atomic aggregate check,
+under two genuinely concurrent releases. A04's real settlement engine only ever produces ONE
 FINAL settlement per vendor/business_date (a second calculation for the
 same day either is a no-op-shaped repeat or routes through the correction
 path -- see docs/progress/A04-handoff.md). This script constructs two
@@ -54,7 +60,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "services", "ap
 
 from app import models_payout_dispatch  # noqa: E402,F401 -- registers tables on Base
 from app.db import get_session_factory, make_engine  # noqa: E402
-from app.models_ledger import Case, Vendor  # noqa: E402
+from app.models import CAPABILITY_APPROVE_PAYOUT  # noqa: E402
+from app.models_ledger import Case, Payout, Vendor  # noqa: E402
+from app.models_payout_dispatch import PayoutApproval  # noqa: E402
 from app.models_settlement import Settlement  # noqa: E402
 from sqlalchemy import select  # noqa: E402
 from sqlalchemy.orm import Session  # noqa: E402
@@ -134,6 +142,53 @@ def make_settlement(
     db.add(settlement)
     db.flush()
     return settlement
+
+
+def make_approved_payout(db: Session, *, settlement: Settlement, actor_id: str) -> Payout:
+    """An APPROVED obligation for `settlement`, built directly.
+
+    Mirrors `app.payout_dispatch.create_payout_obligation` exactly in the
+    fields release depends on -- the deterministic
+    `logical_obligation_id`/`idempotency_key`, the amount, the beneficiary
+    version it was approved against -- plus the ordinary `PayoutApproval`
+    row an approval leaves behind.
+
+    Only for the cumulative-limit concurrency scenario, and only for the
+    SECOND obligation on a vendor/night: `POST /payouts` deliberately
+    refuses that one (`obligation_already_outstanding`) so a duplicated
+    settlement cannot produce two obligations. Every other scenario in
+    verify_a07 goes through the real endpoints. Safe to re-run: looked up
+    by the same deterministic key first.
+    """
+    key = f"payout-obligation:{settlement.id}"
+    existing = db.execute(select(Payout).where(Payout.idempotency_key == key)).scalar_one_or_none()
+    if existing is not None:
+        return existing
+    vendor = db.get(Vendor, settlement.vendor_id)
+    payout = Payout(
+        logical_obligation_id=key,
+        idempotency_key=key,
+        vendor_id=settlement.vendor_id,
+        business_date=settlement.business_date,
+        beneficiary_version=vendor.version,
+        amount_cents=settlement.payout_cents,
+        state="APPROVED",
+        settlement_id=settlement.id,
+    )
+    db.add(payout)
+    db.flush()
+    db.add(
+        PayoutApproval(
+            payout_id=payout.id,
+            actor_id=actor_id,
+            capability=CAPABILITY_APPROVE_PAYOUT,
+            decision="APPROVED",
+            amount_cents=payout.amount_cents,
+            note="dev fixture: second obligation for the cumulative-limit race",
+        )
+    )
+    db.flush()
+    return payout
 
 
 def get_or_create_open_case(db: Session, *, vendor: Vendor, reason_code: str) -> Case:

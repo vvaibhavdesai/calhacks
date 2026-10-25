@@ -44,13 +44,14 @@ from sqlalchemy import select, text, update
 from sqlalchemy.orm import Session
 
 import app.accounting as accounting
-from app.models import CAPABILITY_RUN_RECONCILIATION
+from app.models import CAPABILITY_RUN_AGENTS, CAPABILITY_RUN_RECONCILIATION
 from app.models_ledger import Case, Run, Vendor
 from app.models_orchestration import (
     OrchestrationCommand,
     OrchestrationRun,
     OrchestrationVendorRun,
 )
+from app.orchestration import document_extraction
 from app.orchestration.checkpoints import get_checkpointer
 from app.orchestration.reconcile_day import reconcile_bank_deposits_day
 from app.orchestration.recorder import (
@@ -391,6 +392,26 @@ def _release_lease(
 
 def _festival_steps(orch: OrchestrationRun) -> None:
     run_id, bd = orch.id, orch.business_date
+
+    # First, because the vendor threads' TERMS_RESOLVED milestone reads the
+    # claims this produces. Idempotent, budgeted against this run, and not
+    # fatal -- see app/orchestration/document_extraction.py.
+    def extract(db) -> dict:
+        return document_extraction.extract_for_run(db, run_id=run_id, festival_id=orch.festival_id)
+
+    extracted, _replayed = run_once(run_id, None, document_extraction.STEP, extract)
+    with session() as db:
+        record_event(
+            db,
+            run_id=run_id,
+            vendor_id=None,
+            event_type="orchestration.documents_extracted",
+            actor_id=orch.requested_by,
+            actor_capability=CAPABILITY_RUN_AGENTS,
+            payload=extracted,
+        )
+        db.commit()
+    crash_point("festival:after_extract")
 
     def bank(db) -> dict:
         return reconcile_bank_deposits_day(

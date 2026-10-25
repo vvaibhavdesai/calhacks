@@ -8,6 +8,7 @@ cloud accounts, DNS records or certificates. Those are listed under "Decisions
 the owner must make" below.
 
 Companion runbooks:
+- [runbooks/local-demo.md](runbooks/local-demo.md): running it locally without Docker, and the one process that pays
 - [runbooks/operations.md](runbooks/operations.md): health, alerts, metrics, Claude limits, logs
 - [runbooks/backup-restore.md](runbooks/backup-restore.md): backups and the tested restore drill
 - [runbooks/restart-recovery.md](runbooks/restart-recovery.md): what survives a restart and what needs a human

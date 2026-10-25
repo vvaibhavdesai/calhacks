@@ -272,3 +272,45 @@ def test_the_same_settlement_returns_the_same_obligation(db_session):
     assert created_first is True and created_second is False
     assert first.id == second.id
     assert second.amount_cents == 50_000
+
+
+@pytest.mark.parametrize("state", DRAFT_STATES)
+def test_a_superseded_settlements_unreleased_obligation_does_not_block_its_correction(
+    db_session, state
+):
+    """One outstanding obligation per vendor-night stops a duplicated night
+    getting one obligation per copy. It must not stop a CORRECTION: the
+    original's unreleased obligation can never be released once a correction
+    supersedes it (`release_payout` refuses with
+    settlement_superseded_by_correction), so counting it as outstanding
+    money left the correction unable to get an obligation at all -- a
+    deadlock, found by verify_a07 scenario M.
+    """
+    v = _vendor(db_session)
+    original = _settlement(db_session, v, payout_cents=200_000)
+    _payout(db_session, v, original, state=state, cents=200_000, key=f"orig-{state}")
+    correction = _settlement(db_session, v, payout_cents=180_000, correction_of=original.id)
+
+    payout, created = create_payout_obligation(
+        db_session, settlement_id=correction.id, actor_id=ACTOR, actor_capability=CAP
+    )
+    assert created is True
+    # Nothing is committed (a draft/approved payout is not money out), so the
+    # correction's obligation covers its whole figure.
+    assert payout.amount_cents == 180_000
+    assert payout.settlement_id == correction.id
+
+
+def test_a_live_draft_on_the_same_night_still_blocks_a_second_obligation(db_session):
+    """The guard the test above must not have weakened: with no correction
+    superseding it, an outstanding draft still blocks."""
+    v = _vendor(db_session)
+    a = _settlement(db_session, v, payout_cents=200_000)
+    b = _settlement(db_session, v, payout_cents=200_000)  # duplicate night, not a correction
+    _payout(db_session, v, a, state="APPROVED", cents=200_000, key="live-draft")
+
+    with pytest.raises(PayoutBlockedError) as exc:
+        create_payout_obligation(
+            db_session, settlement_id=b.id, actor_id=ACTOR, actor_capability=CAP
+        )
+    assert exc.value.reason_code == "obligation_already_outstanding"

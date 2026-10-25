@@ -15,11 +15,17 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 
 import anthropic
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 
-from app.agents.extraction import ExtractResult, extract_document
+from app.agents.extraction import (
+    PROMPT_VERSION,
+    ExtractResult,
+    configured_model,
+    extract_document,
+)
 from app.db import get_session_factory
-from app.models_ledger import SourceDocument, Vendor
+from app.models_agents import DocumentExtraction
+from app.models_ledger import SourceDocument, SourceVersion, Vendor
 from app.storage.base import DocumentStorage
 
 EXTRACTABLE_KINDS = ("CONTRACT", "AMENDMENT", "EMAIL")
@@ -52,6 +58,53 @@ def festival_documents(db, festival_id: str) -> list[str]:
         .order_by(SourceDocument.source_native_id)
     )
     return [r for (r,) in db.execute(q).all()]
+
+
+def pending_documents(db, document_ids: list[str], model: str | None = None) -> list[str]:
+    """Of `document_ids`, the ones whose CURRENT active version has no
+    successful extraction for (model, prompt version) yet -- i.e. the ones a
+    batch would actually pay for.
+
+    An optimisation, never the authority: `extract_document` takes the same
+    decision again under a lock, so if this filter and that check ever
+    disagree the cost is one wasted REUSED read, never a second paid call.
+    It exists so a nightly close with nothing new to read does not have to
+    build a model client at all.
+    """
+    if not document_ids:
+        return []
+    model = model or configured_model()
+    current = (
+        select(
+            SourceVersion.source_document_id.label("doc_id"),
+            func.max(SourceVersion.version).label("version"),
+        )
+        .where(
+            SourceVersion.source_document_id.in_(document_ids),
+            SourceVersion.status == "active",
+        )
+        .group_by(SourceVersion.source_document_id)
+        .subquery()
+    )
+    done = (
+        select(current.c.doc_id)
+        .join(
+            SourceVersion,
+            (SourceVersion.source_document_id == current.c.doc_id)
+            & (SourceVersion.version == current.c.version),
+        )
+        .join(
+            DocumentExtraction,
+            DocumentExtraction.source_version_id == SourceVersion.id,
+        )
+        .where(
+            DocumentExtraction.model_requested == model,
+            DocumentExtraction.prompt_version == PROMPT_VERSION,
+            DocumentExtraction.status == "SUCCEEDED",
+        )
+    )
+    extracted = {r for (r,) in db.execute(done).all()}
+    return [d for d in document_ids if d not in extracted]
 
 
 def run_batch(

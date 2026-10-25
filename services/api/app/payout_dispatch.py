@@ -450,16 +450,25 @@ def create_payout_obligation(
     # second obligation beside it would mean two drafts for one difference,
     # and approving both pays it twice. Scoped to the whole entitlement, so a
     # night calculated twice cannot carry one outstanding draft per copy.
+    entitlement_ids = entitlement_settlement_ids(db, settlement)
+    # An obligation against a settlement a correction has SUPERSEDED is a
+    # dead row, not outstanding money: `release_payout` refuses it with
+    # settlement_superseded_by_correction and always will. Counting it
+    # deadlocked the correction path -- the correction could never get an
+    # obligation of its own while its superseded original still carried an
+    # unreleased one (scripts/verify_a07_payouts.py scenario M).
+    superseded_ids = {
+        r[0]
+        for r in db.execute(
+            select(Settlement.correction_of).where(Settlement.correction_of.in_(entitlement_ids))
+        ).all()
+    }
     outstanding = [
         p
-        for p in db.execute(
-            select(Payout).where(
-                Payout.settlement_id.in_(entitlement_settlement_ids(db, settlement))
-            )
-        )
+        for p in db.execute(select(Payout).where(Payout.settlement_id.in_(entitlement_ids)))
         .scalars()
         .all()
-        if p.state in DRAFT_STATES
+        if p.state in DRAFT_STATES and p.settlement_id not in superseded_ids
     ]
     if outstanding:
         raise PayoutBlockedError(

@@ -79,6 +79,7 @@ from app.models import (  # noqa: E402
 )
 from app.models_ledger import Case, OutboxIntent, Vendor  # noqa: E402
 from app.models_payout_dispatch import RailSimulatorRecord  # noqa: E402
+from app.models_settlement import Settlement  # noqa: E402
 from sqlalchemy import func, select  # noqa: E402
 
 import dev_fixtures_a07 as fixtures  # noqa: E402
@@ -268,7 +269,22 @@ def scenario_a_limit_race(admin: Api, approver: Api) -> None:
     fest = festival("race")
     admin.fund(fest, 10_000_000)
     vendor_id, (s1, s2) = new_settlements(fest, "Race Vendor", 300_000, 300_000)
-    p1, p2 = approver.ready(s1), approver.ready(s2)
+    p1 = approver.ready(s1)
+
+    # The SECOND obligation is built directly (scripts/dev_fixtures_a07.py
+    # `make_approved_payout`), because POST /payouts now refuses it: one
+    # vendor/night carries one outstanding obligation, so a night with
+    # duplicate unlinked settlement rows cannot produce one obligation per
+    # copy. That refusal is itself checked below. What this scenario is
+    # about is `release_payout`'s atomic vendor/day aggregate under two
+    # genuinely concurrent releases, which still needs two of them.
+    r = approver.post("/api/v1/payouts", {"settlement_id": s2})
+    check(
+        "A: a second obligation for the same vendor/night is refused by the API",
+        r.status_code == 422 and code_of(r) == "obligation_already_outstanding",
+        r.text,
+    )
+    p2 = ready_many(approver, [s1, s2])[1]
     check("A: both $3,000 payouts ordinarily approvable", p1["state"] == p2["state"] == "APPROVED")
 
     apis = [Api(approver.headers), Api(approver.headers)]
@@ -313,6 +329,29 @@ def scenario_a_limit_race(admin: Api, approver: Api) -> None:
     check("A: aggregate now $6,000", admin.aggregate(vendor_id) == 600_000)
 
 
+def ready_many(approver: Api, sids: list[str], *, actor_email: str | None = None) -> list[dict]:
+    """APPROVED obligations for several settlements on ONE vendor/night.
+
+    The first goes through `POST /payouts`; the rest are built directly by
+    scripts/dev_fixtures_a07.py `make_approved_payout`, because the API
+    refuses a second outstanding obligation for the same vendor/night (see
+    scenario A, which checks that refusal explicitly). What the scenarios
+    below are about is the RELEASE-time cumulative re-check, which needs
+    several of them to exist however they got there.
+    """
+    out = [approver.ready(sids[0])]
+    with db() as s:
+        email = actor_email or f"a07-approver-{RUN}@example.com"
+        actor = s.execute(select(User).where(User.email == email)).scalar_one()
+        for sid in sids[1:]:
+            built = fixtures.make_approved_payout(
+                s, settlement=s.get(Settlement, sid), actor_id=actor.id
+            )
+            out.append({"id": built.id, "state": built.state})
+        s.commit()
+    return out
+
+
 def scenario_a2_splits(admin: Api, approver: Api) -> None:
     fest = festival("splits")
     admin.fund(fest, 10_000_000)
@@ -320,7 +359,7 @@ def scenario_a2_splits(admin: Api, approver: Api) -> None:
     # Approve all three first (each sees $0 committed, so ordinary approval
     # suffices), then release: the release-time cumulative re-check is what
     # must catch the split.
-    approved = [approver.ready(s) for s in sids]
+    approved = ready_many(approver, sids)
     results = [approver.release(p["id"]) for p in approved]
     check(
         "A2: $2,000 + $2,000 release; third $2,000 split blocked by cumulative limit",
@@ -769,8 +808,13 @@ def scenario_p_no_deadlock(admin: Api) -> None:
     statuses = []
     for i in range(10):
         _, (s_rel, s_can) = new_settlements(fest, f"Deadlock Vendor {i}", 10_000, 10_000)
-        to_release = admin.ready(s_rel)
-        to_cancel = admin.released(s_can)
+        # Two obligations on one vendor/night: the API issues the first and
+        # refuses the second (see scenario A), so the second is built --
+        # what is under test here is concurrent release+cancel, not issuance.
+        to_release, second = ready_many(admin, [s_rel, s_can], actor_email=ADMIN_EMAIL)
+        r = admin.release(second["id"])
+        assert r.status_code == 200, f"release second: {r.status_code} {r.text}"
+        to_cancel = r.json()["payout"]
         a1, a2 = Api(admin.headers), Api(admin.headers)
         r1, r2 = concurrently(
             [lambda: a1.release(to_release["id"]), lambda: a2.cancel(to_cancel["id"])]

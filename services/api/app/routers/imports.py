@@ -21,7 +21,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import require_capability
 from app.db import get_db
-from app.ingestion import import_source
+from app.ingestion import DocumentKindConflictError, ImportResult, import_source
 from app.models import CAPABILITY_IMPORT_SOURCE, User
 from app.models_ledger import SourceDocument, SourceVersion
 from app.storage.local_fs import get_document_storage
@@ -54,6 +54,12 @@ class ImportRequest(BaseModel):
     # content safely.
     content_base64: str
     parser_version: str | None = None
+    # Intake metadata A06 needs. Optional, because plenty of imports are
+    # POS/bank files that are nobody's contract -- but a contract imported
+    # without a kind is never extracted and its vendor ends up with no
+    # evidenced terms, so leaving it out has a consequence worth knowing.
+    document_kind: str | None = None
+    vendor_id: str | None = None
 
 
 class ImportResponse(BaseModel):
@@ -249,17 +255,22 @@ def create_import(
         ) from exc
 
     storage = get_document_storage()
-    result = import_source(
-        db,
-        storage,
-        source_system=body.source_system,
-        source_native_id=body.source_native_id,
-        content_bytes=content_bytes,
-        mime_type=body.mime_type,
-        actor_id=user.id,
-        actor_capability=CAPABILITY_IMPORT_SOURCE,
-        parser_version=body.parser_version,
-    )
+    try:
+        result = _import(db, storage, body, content_bytes, user)
+    except DocumentKindConflictError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "document_kind_conflict",
+                "message": str(exc),
+                "current": exc.current,
+                "stated": exc.stated,
+            },
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
     # Exactly one commit point: domain row(s), audit event and outbox intent
     # inserted inside import_source() all land -- or none do.
     db.commit()
@@ -271,6 +282,25 @@ def create_import(
         status=result.status,
         duplicate=result.duplicate,
         quarantine_reason=result.quarantine_reason,
+    )
+
+
+def _import(
+    db: Session, storage, body: ImportRequest, content_bytes: bytes, user: User
+) -> ImportResult:
+    """The call itself, so the route above stays a thin envelope/error map."""
+    return import_source(
+        db,
+        storage,
+        source_system=body.source_system,
+        source_native_id=body.source_native_id,
+        content_bytes=content_bytes,
+        mime_type=body.mime_type,
+        actor_id=user.id,
+        actor_capability=CAPABILITY_IMPORT_SOURCE,
+        parser_version=body.parser_version,
+        document_kind=body.document_kind,
+        vendor_id=body.vendor_id,
     )
 
 

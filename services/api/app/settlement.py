@@ -76,7 +76,31 @@ def resolve_vendor_terms(
     throughout). Per models_ledger.py's documented convention,
     `commission_bps`/`minimum_fee_cents` being NULL on an active term means
     "use the festival default" -- never zero -- so a null column and a
-    missing term row are handled identically here."""
+    missing term row are handled identically here.
+
+    Precedence, when several active terms cover `as_of`: a term written FOR
+    this night beats a standing rate that merely covers it, and only then
+    does the newer version win.
+
+    Two kinds of row compete here and they are not interchangeable. A06
+    writes the STANDING rate from the signed documents, open-ended, because
+    that is what a contract is. A05 writes a DECIDED night -- a human
+    resolving a conflict case, or a policy auto-resolving one -- bounded to
+    the nights actually decided, deliberately: see app/policy.py
+    `_activate_resolved_term` ("an open-ended term here would let every
+    remaining night of the festival bill at a rate no human decided for
+    it"). Ordering by version alone made whichever was written LAST win, so
+    a standing rate written after a decision -- a re-extraction reading the
+    contract slightly differently, a newly signed amendment -- silently
+    rebilled nights a human had already decided, at the rate the human
+    decided against, without reopening anything.
+
+    The window shape is the signal, not the provenance: it is the thing A05
+    controls on purpose, and it needs no guess about who wrote a row. A
+    narrower window is a more specific decision, so it is preferred;
+    between two windows of the same width (two decisions for one night, or
+    two standing rates) the newer version stands.
+    """
     term = db.execute(
         select(VendorContractTerm)
         .where(
@@ -87,7 +111,15 @@ def resolve_vendor_terms(
         .where(
             (VendorContractTerm.effective_to.is_(None)) | (VendorContractTerm.effective_to >= as_of)
         )
-        .order_by(VendorContractTerm.version.desc())
+        .order_by(
+            # Bounded (false) sorts before open-ended (true).
+            VendorContractTerm.effective_to.is_(None).asc(),
+            # Days covered; NULL for the open-ended rows, which the first
+            # key has already put last, so they tie here and fall through
+            # to the version.
+            (VendorContractTerm.effective_to - VendorContractTerm.effective_from).asc(),
+            VendorContractTerm.version.desc(),
+        )
         .limit(1)
     ).scalar_one_or_none()
 

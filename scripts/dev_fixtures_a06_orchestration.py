@@ -116,7 +116,34 @@ def seed(db: Session, festival_id: str, run_tag: str) -> dict:
     for pm in card:
         pm.bank_entry_id = be.id
 
-    for version, bps, kind in ((1, 1500, "signed_contract"), (2, 1000, "producer_email")):
+    # Every vendor has a signed agreement at the festival rate. Without one
+    # the nightly close holds the vendor on a `vendor_terms_unevidenced`
+    # case instead of billing the festival default at nobody's authority
+    # (app/terms_resolution.py), so "no contract on file" is not the state
+    # this fixture is about -- Gamma's 15%-vs-10% conflict is.
+    #
+    # `minimum_fee_cents=None` means "use the festival default" (per
+    # models_ledger.py), so the hand-worked figures above are unchanged by
+    # these rows: 15% with a $500 festival minimum, exactly as before.
+    for name in EXPECTED:
+        db.add(
+            VendorContractTerm(
+                vendor_id=vendors[name].id,
+                version=1,
+                commission_bps=1500,
+                minimum_fee_cents=None,
+                processor_fee_deductible=False,
+                effective_from=date(2026, 10, 1),
+                status="active",
+                source_refs=[m.ref(f"{name.lower()}:signed_contract")],
+            )
+        )
+    db.flush()
+
+    # Gamma's conflict: the same two candidate rates A06 stage 2 would
+    # propose from documents, seeded directly. `version` continues after
+    # the standing terms above.
+    for version, bps, kind in ((2, 1500, "signed_contract"), (3, 1000, "producer_email")):
         db.add(
             VendorContractTerm(
                 vendor_id=vendors["Gamma"].id,

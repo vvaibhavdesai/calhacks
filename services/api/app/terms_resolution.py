@@ -31,6 +31,13 @@ contract). What it writes, per (vendor, business_date), idempotently:
     case (lane B's CONFLICTING_TERMS) opens -- or auto-resolves against an
     ACTIVE human-approved policy -- through the one existing code path,
     with the real financial impact computed from the day's eligible sales.
+  - a BLOCKING `vendor_terms_unevidenced` case when the signed documents
+    yield no rate at all, or yield contradictory ones. Before this existed
+    such a vendor quietly billed at the festival default (15% / $500) --
+    a figure no document, human or policy had tied to THIS vendor -- and
+    nothing anywhere recorded that a default had been used. The default is
+    still what A04 applies; a human now has to say it is right, and the
+    money waits until they do;
   - a NON-blocking `minimum_period_claim` case for a vendor's claim that
     the minimum is nightly (the contract minimum stands, nothing is held);
   - a blocking `beneficiary_change_unverified` case for a payout-account
@@ -46,6 +53,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
+from domain.policy import CaseFacts
 from domain.terms import (
     TERMS_RESOLUTION_VERSION,
     ClaimFact,
@@ -56,11 +64,13 @@ from domain.terms import (
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
+import app.policy as policy
 from app.models import CAPABILITY_RESOLVE_CASE
 from app.models_agents import DocumentClaim
 from app.models_ledger import Case, SourceDocument, Vendor, VendorContractTerm
 from app.policy import CONTRACT_CONFLICT_REASON_CODE, detect_contract_term_conflicts
-from app.settlement import gather_reconciled_day_facts
+from app.settlement import DEFAULT_COMMISSION_BPS, gather_reconciled_day_facts
+from app.settlement import resolve_vendor_terms as settlement_terms
 from app.uow import UnitOfWork
 
 # Business timezone: a document's `available_from` and a business_date are
@@ -70,6 +80,35 @@ TZ = ZoneInfo("America/Los_Angeles")
 
 MINIMUM_PERIOD_CLAIM_REASON = "minimum_period_claim"
 BENEFICIARY_CHANGE_REASON = "beneficiary_change_unverified"
+VENDOR_TERMS_UNEVIDENCED_REASON = "vendor_terms_unevidenced"
+# The safety case docs/progress/V1-READINESS.md V1-22 records as dropped,
+# restored under the policy loop: signed documents now say something other
+# than the rate a human (or a policy) decided for a night that is already
+# decided. A04 keeps billing the decision -- see
+# app.settlement.resolve_vendor_terms, which prefers the narrower window --
+# so nothing is silently rebilled; this is about somebody being TOLD, and
+# about the money waiting while they look.
+SUPERSEDING_SIGNED_EVIDENCE_REASON = "superseding_signed_evidence"
+
+# Which `TermsResolution.unresolved` entries mean "no billable rate comes
+# out of the signed documents", as opposed to "somebody asserted something
+# this resolver does not act on". Only the first kind holds a vendor:
+#
+#   contract_states_conflicting_<field>  the signed contract states two
+#       different values for a field, so the rate billed would be arbitrary;
+#   contract_minimum_period_unsupported  the signed contract applies its
+#       minimum over a period A04 does not implement, so the fee computed
+#       is knowably not the fee the contract describes.
+#
+# `minimum_period_statement:*` and `unhandled_statement:*` are unsigned
+# assertions: the signed contract stands (the same stance
+# `minimum_period_claim` already takes) and a human sees them in `detail`
+# without the night being held. Holding on those would hold a vendor for
+# somebody else's email.
+UNEVIDENCED_UNRESOLVED_PREFIXES = (
+    "contract_states_conflicting_",
+    "contract_minimum_period_unsupported",
+)
 
 # Which case kinds this module can be holding a vendor with. A05's
 # contract-conflict code is reused, not re-declared, so the two detectors
@@ -79,7 +118,12 @@ BENEFICIARY_CHANGE_REASON = "beneficiary_change_unverified"
 # these withhold the vendor's money. `minimum_period_claim` is deliberately
 # absent -- the signed contract stands and a human sees the question
 # without the night being held.
-BLOCKING_REASON_CODES = (CONTRACT_CONFLICT_REASON_CODE, BENEFICIARY_CHANGE_REASON)
+BLOCKING_REASON_CODES = (
+    CONTRACT_CONFLICT_REASON_CODE,
+    BENEFICIARY_CHANGE_REASON,
+    VENDOR_TERMS_UNEVIDENCED_REASON,
+    SUPERSEDING_SIGNED_EVIDENCE_REASON,
+)
 NON_BLOCKING_REASON_CODES = (MINIMUM_PERIOD_CLAIM_REASON,)
 
 DOCUMENT_BASIS_MARKER = {
@@ -132,6 +176,12 @@ class VendorTermsOutcome:
     conflicts_proposed: int = 0
     cases_opened: list[dict] = field(default_factory=list)
     unresolved: list[str] = field(default_factory=list)
+    # Why no rate is evidenced for this vendor, or [] when one is. Non-empty
+    # means a blocking `vendor_terms_unevidenced` case exists.
+    unevidenced: list[str] = field(default_factory=list)
+    # What happened to a case that was holding this vendor and whose premise
+    # has since gone away: "noted", "noted_already", "resolved_by_policy".
+    stale_case_outcome: str | None = None
 
 
 @dataclass
@@ -248,11 +298,24 @@ def _open_case_once(
     run_id: str | None,
     actor_id: str,
     actor_capability: str,
+    policy_predicates: dict | None = None,
 ) -> Case | None:
     """Open a case unless one with the same (vendor, reason, dedupe key)
     already exists in ANY status: the same document must never re-ask a
     question a human already answered, on this night or a later one.
-    Returns None when nothing was opened."""
+    Returns None when nothing was opened.
+
+    `policy_predicates`, when given, makes this case kind policy-driven
+    (app.policy `ruling_for`): a standing ruling a human already made for
+    these exact facts decides whether this occurrence is accepted or goes
+    to a human again. Absent a ruling the case opens OPEN, which is the
+    default on purpose -- silence is not permission. Callers that leave it
+    None always open OPEN, which is what the kinds predating this did.
+
+    A caller may only pass `policy_predicates` where an `accept` ruling is
+    a genuine no-op on the money: accepting records that the state the
+    system already holds stands, and writes no term.
+    """
     existing = db.execute(
         select(Case.id).where(
             Case.vendor_id == vendor.id,
@@ -262,6 +325,23 @@ def _open_case_once(
     ).first()
     if existing is not None:
         return None
+
+    predicate_values = {"dedupe_key": dedupe_key, **(policy_predicates or {})}
+    ruling = (
+        policy.PolicyRuling(None, None, "not_policy_driven")
+        if policy_predicates is None
+        else policy.ruling_for(
+            db,
+            CaseFacts(
+                vendor_id=vendor.id,
+                festival_id=vendor.festival_id,
+                reason_code=reason_code,
+                business_date=business_date_,
+                predicate_values=predicate_values,
+            ),
+        )
+    )
+    accepted = ruling.auto_resolves
     case = Case(
         run_id=run_id,
         vendor_id=vendor.id,
@@ -271,15 +351,38 @@ def _open_case_once(
         financial_impact_cents=financial_impact_cents,
         proposed_resolution=proposed_resolution,
         required_capability=CAPABILITY_RESOLVE_CASE,
-        status="OPEN",
+        status="RESOLVED" if accepted else "OPEN",
         blocking=blocking,
-        predicate_values={"dedupe_key": dedupe_key},
+        predicate_values=predicate_values,
+        # An OPEN case that names a policy is the "a human ruled that this
+        # always goes to a human" state: status OPEN + applied_policy_
+        # version_id set + auto_resolved False. It is deliberately
+        # distinguishable from nobody having ruled at all.
+        applied_policy_version_id=ruling.policy.id if ruling.policy is not None else None,
+        origin_case_id=(ruling.policy.source_case_id if ruling.policy is not None else None),
+        auto_resolved=accepted,
+        resolution_decision="auto_applied_by_policy" if accepted else None,
+        resolution_note=(
+            f"auto-applied policy {ruling.policy.policy_id} v{ruling.policy.version}: "
+            f"effect={ruling.policy.effect}"
+            if accepted and ruling.policy is not None
+            else None
+        ),
+        resolution_effect=(
+            ruling.policy.effect if accepted and ruling.policy is not None else None
+        ),
+        resolved_by=None,
+        resolved_capability=None,
+        resolved_at=datetime.now(UTC) if accepted else None,
     )
     db.add(case)
     db.flush()
+    lineage = [{"ref_kind": "case", "ref_id": case.id}]
+    if ruling.policy is not None:
+        lineage.append({"ref_kind": "policy_version", "ref_id": ruling.policy.id})
     uow.append_event(
         stream_id=f"case:{case.id}",
-        event_type="case.opened",
+        event_type="case.auto_resolved" if accepted else "case.opened",
         aggregate_id=case.id,
         aggregate_version=1,
         actor_id=actor_id,
@@ -296,8 +399,13 @@ def _open_case_once(
             "dedupe_key": dedupe_key,
             "financial_impact_cents": financial_impact_cents,
             "evidence_refs": evidence_refs,
+            # Why this occurrence went the way it did: no ruling exists, a
+            # ruling requires a human, or a ruling accepted it.
+            "policy_ruling": ruling.reason,
+            "applied_policy_version_id": (ruling.policy.id if ruling.policy is not None else None),
+            "effect": ruling.policy.effect if accepted and ruling.policy else None,
         },
-        lineage_refs=[{"ref_kind": "case", "ref_id": case.id}],
+        lineage_refs=lineage,
     )
     return case
 
@@ -485,6 +593,160 @@ def _propose_rate_conflict(
 # ---------------------------------------------------------------------------
 
 
+def _open_blocking_case(db: Session, vendor_id: str, reason_code: str) -> Case | None:
+    return (
+        db.execute(
+            select(Case)
+            .where(
+                Case.vendor_id == vendor_id,
+                Case.reason_code == reason_code,
+                Case.status == "OPEN",
+            )
+            .order_by(Case.created_at)
+        )
+        .scalars()
+        .first()
+    )
+
+
+def _rule_on_stale_case(
+    db: Session,
+    uow: UnitOfWork,
+    *,
+    case: Case,
+    vendor: Vendor,
+    business_date_: date,
+    why: dict,
+    run_id: str | None,
+    actor_id: str,
+    actor_capability: str,
+) -> str:
+    """An OPEN case whose premise provably no longer holds -- the missing
+    contract arrived and a term is in force now. Returns what was decided.
+
+    Closing it is NOT automatic. The vendor's money is withheld by this
+    case, and releasing money is exactly what must wait for an explicit
+    human ruling, so with no policy on file the case stays OPEN and only
+    records (once) that its premise is gone. A human may rule that cases of
+    this kind close themselves when the evidence arrives, and that ruling
+    -- a policy -- is then what closes them, badged with the policy that
+    did it.
+    """
+    already = (case.predicate_values or {}).get("premise_no_longer_holds")
+    ruling = policy.ruling_for(
+        db,
+        CaseFacts(
+            vendor_id=vendor.id,
+            festival_id=vendor.festival_id,
+            reason_code=case.reason_code,
+            business_date=business_date_,
+            predicate_values=case.predicate_values or {},
+        ),
+    )
+    if not ruling.auto_resolves:
+        if already:
+            return "noted_already"
+        # Recorded on the case so a human reading the queue can see this
+        # one has answered itself, without the money moving on its own.
+        case.predicate_values = {
+            **(case.predicate_values or {}),
+            "premise_no_longer_holds": why,
+        }
+        case.version += 1
+        db.flush()
+        uow.append_event(
+            stream_id=f"case:{case.id}",
+            event_type="case.premise_no_longer_holds",
+            aggregate_id=case.id,
+            aggregate_version=case.version,
+            actor_id=actor_id,
+            actor_type="system",
+            actor_capability=actor_capability,
+            occurred_at=datetime.now(UTC),
+            run_id=run_id,
+            vendor_id=vendor.id,
+            versions={"terms_resolution": TERMS_RESOLUTION_VERSION},
+            payload={
+                "reason_code": case.reason_code,
+                "business_date": business_date_.isoformat(),
+                "why": why,
+                "policy_ruling": ruling.reason,
+                "applied_policy_version_id": (
+                    ruling.policy.id if ruling.policy is not None else None
+                ),
+                "note": "still OPEN and still withholding money: no ruling authorises closing it",
+            },
+            lineage_refs=[{"ref_kind": "case", "ref_id": case.id}],
+        )
+        return "noted"
+
+    case.status = "RESOLVED"
+    case.auto_resolved = True
+    case.applied_policy_version_id = ruling.policy.id
+    case.origin_case_id = ruling.policy.source_case_id
+    case.resolution_decision = "auto_applied_by_policy"
+    case.resolution_note = (
+        f"auto-applied policy {ruling.policy.policy_id} v{ruling.policy.version}: "
+        f"premise no longer holds ({why})"
+    )
+    case.resolution_effect = ruling.policy.effect
+    case.resolved_at = datetime.now(UTC)
+    case.version += 1
+    db.flush()
+    uow.append_event(
+        stream_id=f"case:{case.id}",
+        event_type="case.auto_resolved",
+        aggregate_id=case.id,
+        aggregate_version=case.version,
+        actor_id=actor_id,
+        actor_type="system",
+        actor_capability=actor_capability,
+        occurred_at=datetime.now(UTC),
+        run_id=run_id,
+        vendor_id=vendor.id,
+        versions={"terms_resolution": TERMS_RESOLUTION_VERSION},
+        payload={
+            "reason_code": case.reason_code,
+            "business_date": business_date_.isoformat(),
+            "why": why,
+            "policy_ruling": ruling.reason,
+            "applied_policy_version_id": ruling.policy.id,
+            "effect": ruling.policy.effect,
+        },
+        lineage_refs=[
+            {"ref_kind": "case", "ref_id": case.id},
+            {"ref_kind": "policy_version", "ref_id": ruling.policy.id},
+        ],
+    )
+    return "resolved_by_policy"
+
+
+def unevidenced_unresolved(res: TermsResolution) -> list[str]:
+    """The `unresolved` entries that mean a field A04 bills from is not
+    evidenced, as opposed to somebody having asserted something this
+    resolver does not act on."""
+    return [u for u in res.unresolved if u.startswith(UNEVIDENCED_UNRESOLVED_PREFIXES)]
+
+
+def unevidenced_reasons(db: Session, *, vendor_id: str, business_date: date, res) -> list[str]:
+    """Why no rate anybody can point at applies to this vendor on this
+    night, or [] when one does. Ordered and de-duplicated, so the case's
+    dedupe key is stable across runs.
+
+    The first question is asked of A04's OWN selector
+    (`app.settlement.resolve_vendor_terms`), not of the document claims:
+    what matters is whether the night would be billed from a term at all,
+    or from the festival default because nothing covers it. A rate a human
+    decided, a policy covered or an earlier contract established is
+    evidence even when today's claims yield nothing -- and conversely,
+    claims that resolve to a term this night's window excludes are not.
+    """
+    _bps, _minimum, _deductible, in_force = settlement_terms(db, vendor_id, business_date)
+    reasons = [] if in_force is not None else ["no_terms_in_force"]
+    reasons += unevidenced_unresolved(res)
+    return sorted(dict.fromkeys(reasons))
+
+
 def resolve_vendor_day_terms(
     db: Session,
     *,
@@ -555,6 +817,144 @@ def resolve_vendor_day_terms(
                 actor_capability=actor_capability,
             )
             out.conflicts_proposed = len(proposed_term_ids)
+
+    # No rate anybody can point at: A04 would bill this night from the
+    # festival default (15% / $500) because no term covers it, a figure no
+    # document, human or policy ever tied to THIS vendor -- the silent
+    # fallback the round-3 review found. The default is still what A04
+    # would apply; what changes is that a human has to say so first, and
+    # the money waits meanwhile (BLOCKING_REASON_CODES).
+    out.unevidenced = unevidenced_reasons(
+        db, vendor_id=vendor.id, business_date=business_date, res=res
+    )
+    if not out.unevidenced:
+        # The other direction: a case that held this vendor because nothing
+        # evidenced a rate, when something does now. Never closes itself --
+        # see `_rule_on_stale_case`.
+        stale = _open_blocking_case(db, vendor.id, VENDOR_TERMS_UNEVIDENCED_REASON)
+        if stale is not None:
+            _bps, _min, _ded, in_force = settlement_terms(db, vendor.id, business_date)
+            out.stale_case_outcome = _rule_on_stale_case(
+                db,
+                uow,
+                case=stale,
+                vendor=vendor,
+                business_date_=business_date,
+                why={
+                    "now_in_force_term_id": in_force.id if in_force else None,
+                    "now_in_force_term_version": in_force.version if in_force else None,
+                    "commission_bps": in_force.commission_bps if in_force else None,
+                },
+                run_id=run_id,
+                actor_id=actor_id,
+                actor_capability=actor_capability,
+            )
+    if out.unevidenced:
+        at_stake = (eligible_sales_cents * DEFAULT_COMMISSION_BPS) // 10_000
+        case = _open_case_once(
+            db,
+            uow,
+            vendor=vendor,
+            business_date_=business_date,
+            reason_code=VENDOR_TERMS_UNEVIDENCED_REASON,
+            # Keyed by WHICH question this is, not by the night: one vendor
+            # with no contract is one question, asked once, and a contract
+            # that later contradicts itself is a different one.
+            dedupe_key="unevidenced:" + ",".join(out.unevidenced),
+            blocking=True,
+            evidence_refs=res.corroborating_refs
+            or [r for refs in res.field_refs.values() for r in refs],
+            proposed_resolution=(
+                "No signed agreement establishes this vendor's commission rate"
+                + (
+                    ""
+                    if out.unevidenced == ["no_terms_in_force"]
+                    else f" ({', '.join(out.unevidenced)})"
+                )
+                + ". The festival default (15% / $500) is not applied on nobody's authority: "
+                "either import the signed agreement and let extraction read it, or resolve this "
+                "case to record that the default is correct for this vendor. Payouts are held "
+                "until one of those happens."
+            ),
+            # What the default rate would charge on this night's eligible
+            # sales: the money this question decides.
+            financial_impact_cents=at_stake or None,
+            run_id=run_id,
+            actor_id=actor_id,
+            actor_capability=actor_capability,
+        )
+        if case is not None:
+            out.cases_opened.append(
+                {"case_id": case.id, "reason_code": case.reason_code, "blocking": True}
+            )
+
+    # Signed documents now say something other than the rate in force for a
+    # night somebody already decided. A04 goes on billing the decision (it
+    # prefers the narrower window), so this is not about the number -- it is
+    # about a human being told, and about the money waiting while they look.
+    if res.has_signed_terms:
+        _bps, _min, _ded, in_force = settlement_terms(db, vendor.id, business_date)
+        decided = (
+            in_force is not None
+            and in_force.effective_to is not None  # bounded == decided FOR a night
+            and in_force.commission_bps is not None
+            and in_force.commission_bps != res.commission_bps
+        )
+        if decided:
+            case = _open_case_once(
+                db,
+                uow,
+                vendor=vendor,
+                business_date_=business_date,
+                reason_code=SUPERSEDING_SIGNED_EVIDENCE_REASON,
+                # Stable across nights and occurrences: one question per
+                # vendor per pair of rates, so a ruling about this
+                # disagreement is matchable the next time it happens.
+                dedupe_key=(f"superseding:{in_force.commission_bps}->{res.commission_bps}"),
+                blocking=True,
+                evidence_refs=[
+                    {
+                        "ref_kind": "vendor_contract_term",
+                        "ref_id": in_force.id,
+                        "role": "decided_rate_in_force",
+                        "commission_bps": in_force.commission_bps,
+                        "effective_from": in_force.effective_from.isoformat(),
+                        "effective_to": in_force.effective_to.isoformat(),
+                        "source_refs": in_force.source_refs,
+                    },
+                    *res.field_refs.get("commission_bps", []),
+                ],
+                proposed_resolution=(
+                    f"The signed documents now establish "
+                    f"{res.commission_bps / 100:.2f}% commission, but this night is billed at "
+                    f"{in_force.commission_bps / 100:.2f}% because a human decision (or a "
+                    f"policy applying one) covers it. The decision stands until a human says "
+                    f"otherwise -- nothing has been rebilled. Resolve this case to confirm the "
+                    f"decision, or decide the night again against the new document."
+                ),
+                financial_impact_cents=abs(
+                    (eligible_sales_cents * (res.commission_bps - in_force.commission_bps))
+                    // 10_000
+                ),
+                run_id=run_id,
+                actor_id=actor_id,
+                actor_capability=actor_capability,
+                # Policy-driven: an `accept` ruling here changes no money --
+                # it records that the decided rate stands.
+                policy_predicates={
+                    "decided_bps": in_force.commission_bps,
+                    "signed_bps": res.commission_bps,
+                },
+            )
+            if case is not None:
+                out.cases_opened.append(
+                    {
+                        "case_id": case.id,
+                        "reason_code": case.reason_code,
+                        "blocking": True,
+                        "status": case.status,
+                    }
+                )
 
     # The vendor's own minimum-period claim: a human sees it, the signed
     # contract stands, nothing is held.
@@ -649,6 +1049,8 @@ def resolve_vendor_day_terms(
         "blocking_case_ids": out.case_ids,
         "non_blocking_reason_codes": list(NON_BLOCKING_REASON_CODES),
         "unresolved": out.unresolved,
+        "unevidenced": out.unevidenced,
+        "stale_case_outcome": out.stale_case_outcome,
         "conflict_case": (
             None
             if conflict is None
