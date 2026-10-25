@@ -200,7 +200,7 @@ DUPLICATE_CHARGE_REFS = text(
 CASES = text(
     """
     SELECT c.id, c.reason_code, c.vendor_id, c.business_date, c.status,
-           c.blocking, c.evidence_refs
+           c.blocking, c.evidence_refs, c.auto_resolved, c.resolved_by
       FROM cases c
      ORDER BY c.created_at, c.id
     """
@@ -463,6 +463,20 @@ def _case_items(conn, src_by_doc_id: dict[str, str]) -> tuple[list[dict], int]:
     for i, c in enumerate(rows, start=1):
         oracle_reason = CASE_REASON_TO_ORACLE.get(c["reason_code"])
         if oracle_reason is None:
+            skipped += 1
+            continue
+        if c["auto_resolved"] and c["resolved_by"] is None:
+            # Decided without anyone being asked -- by a standing policy a
+            # human approved earlier (app/policy.py's
+            # `find_active_matching_policy`), or by the finding going away
+            # (reconcile_day's `_supersede_case`). Lane A still writes a
+            # RESOLVED `cases` row for the audit trail, and that row is why
+            # this export used to report a repeated question for
+            # ven_5aa2250fb593d2e8's terms conflict on night 2. It was not:
+            # the human chose the rate once on 2026-10-16 and approved it as
+            # a reusable policy, and night 2 was auto-applied by that policy
+            # with `resolved_by` NULL. A review question is one a person was
+            # put in front of, so these are not reviews.
             skipped += 1
             continue
         items.append(
