@@ -164,7 +164,26 @@ export const OPERATIONS = {
   listSupplierInvoices: { method: 'GET', path: '/invoices', backend: 'live', query: NO_PAGING },
   getSupplierInvoice: { method: 'GET', path: '/invoices/{invoice_id}', backend: 'live' },
   getInvoicePayability: { method: 'GET', path: '/invoices/{invoice_id}/payability', backend: 'live' },
+  getSupplierComparison: { method: 'GET', path: '/supplier-comparison', backend: 'live' },
   listSupplierPayments: { method: 'GET', path: '/supplier-payments', backend: 'live', query: { sort: null } },
+
+  // --------------------------------------------- X0.1 generic approval log
+  // Reading the log needs resolve_case; recording one needs whatever
+  // capability the action itself implies, which the server derives from the
+  // request body rather than from the route (see services/api/app/routers/
+  // approvals.py). createApproval therefore carries no Idempotency-Key: it is
+  // not a C03 envelope command, and src/hooks/usePlainCommand.ts is what
+  // sends it.
+  listApprovals: { method: 'GET', path: '/approvals', backend: 'live' },
+  getApproval: { method: 'GET', path: '/approvals/{approval_id}', backend: 'live' },
+  createApproval: { method: 'POST', path: '/approvals', backend: 'live' },
+
+  // ------------------------------------------------- R1 readiness checks
+  // The list is keyed by `counterparties`, not the C03 {items, next_cursor}
+  // envelope, so it is read with client.get rather than client.list.
+  listReadiness: { method: 'GET', path: '/readiness', backend: 'live' },
+  getReadiness: { method: 'GET', path: '/readiness/{readiness_check_id}', backend: 'live' },
+  recomputeReadiness: { method: 'POST', path: '/readiness/recompute', backend: 'live' },
 
   // ------------------------------------------------------- accounting (C07)
   listJournalEntries: { method: 'GET', path: '/journal', backend: 'live', query: { sort: null } },

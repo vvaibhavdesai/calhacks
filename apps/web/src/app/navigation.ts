@@ -44,6 +44,13 @@ export const NAV: NavGroup[] = [
         // list. Un-hide as soon as a close is run: the screen needs no change.
         hiddenReason: 'no close runs recorded for this festival',
       },
+      {
+        path: '/readiness',
+        label: 'Readiness',
+        task: 'R1',
+        summary: 'Whether each counterparty is ready to transact: eight deterministic checks, with a recompute.',
+        implemented: true,
+      },
       { path: '/reconciliation', label: 'Reconciliation', task: 'B04', summary: 'Match groups, variances and reason codes, with evidence.', implemented: true },
       { path: '/settlements', label: 'Settlements', task: 'B04', summary: 'Server-calculated vendor settlements, line items, holds and statements.', implemented: true },
       { path: '/cases', label: 'Exceptions', task: 'B04', summary: 'Cases with evidence, financial impact, proposed resolution and required capability.', implemented: true },
@@ -68,6 +75,7 @@ export const NAV: NavGroup[] = [
       },
       { path: '/cash', label: 'Cash', task: 'B05', summary: 'Available, pending and reserved cash, obligations, shortfalls and forecast.', implemented: true },
       { path: '/payables', label: 'Suppliers & invoices', task: 'B05', summary: 'Suppliers, purchase orders, invoices and supplier payments.', implemented: true },
+      { path: '/analyst-assistant', label: 'Analyst Assistant', task: 'B05', summary: 'Supplier quote comparison: completeness, cash impact and history, read-only.', implemented: true },
       { path: '/journal', label: 'Journal', task: 'B05', summary: 'Journal entries, posting rule versions and corrections.', implemented: true },
       {
         path: '/tax',
@@ -95,6 +103,13 @@ export const NAV: NavGroup[] = [
   {
     label: 'Audit',
     items: [
+      {
+        path: '/approvals',
+        label: 'Approvals',
+        task: 'X0.1',
+        summary: 'Every decision recorded through the generic approval mechanism, append-only, with its required capability.',
+        implemented: true,
+      },
       { path: '/recorder', label: 'Flight recorder', task: 'B06', summary: 'Event history, lineage, challenges, corrections and replay.', implemented: true },
       { path: '/records/vendors', label: 'Source records', task: 'B03', summary: 'Imported input records exactly as served by the API.' },
     ],

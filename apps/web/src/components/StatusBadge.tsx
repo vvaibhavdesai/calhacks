@@ -60,6 +60,12 @@ const TONES: Record<string, Tone> = {
   ORIGINAL: 'neutral',
   REVERSAL: 'warn',
   CORRECTION: 'info',
+  // readiness (R1). Lower case because that is what the server sends
+  // (domain.readiness.STATUSES); the badge shows the server's own string.
+  ready: 'ok',
+  ready_with_interpretation: 'warn',
+  blocked: 'bad',
+  stale: 'neutral',
 };
 
 export function toneFor(status: string): Tone {

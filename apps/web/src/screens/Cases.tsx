@@ -135,10 +135,9 @@ export function CaseDetail() {
   const impact = (c as unknown as { financial_impact?: { description?: string; basis?: string; affected_settlement_ids?: string[] } } | undefined)
     ?.financial_impact;
   // subject_type/subject_id (X0.1): what this case is about, beyond the
-  // implicit vendor/night assumption -- present on the real backend, not
-  // yet in the draft Case schema.
-  const subjectRaw = c as unknown as { subject_type?: string | null; subject_id?: string | null } | undefined;
-  const subject = { type: subjectRaw?.subject_type ?? null, id: subjectRaw?.subject_id ?? null };
+  // implicit vendor/night assumption. Optional in the contract because the
+  // ILLUSTRATIVE fixtures predate it; the real backend sends it.
+  const subject = { type: c?.subject_type ?? null, id: c?.subject_id ?? null };
   const open = (title: string, refs: SourceRef[]) => setEvidence({ title, refs });
   const optionLabel = (id: string | null | undefined) => c?.resolution_options?.find((o) => o.option_id === id)?.label ?? id ?? '—';
 
@@ -351,6 +350,7 @@ export function CaseDetail() {
             </section>
           ) : null}
 
+          <CaseCrossLinks c={c} />
           <CaseDecision c={c} onServerChange={result.refetch} />
           <ApproveReuse c={c} onServerChange={result.refetch} />
           {c.policy_candidate_id ? <CandidatePolicy id={c.policy_candidate_id} /> : null}
@@ -358,6 +358,61 @@ export function CaseDetail() {
       ) : null}
       <EvidenceDrawer open={evidence !== null} title={evidence?.title ?? ''} refs={evidence?.refs ?? []} onClose={() => setEvidence(null)} describeSource={describeSource} />
     </>
+  );
+}
+
+/**
+ * Where else this case appears: the X0.1 approval log, and the readiness check
+ * it was opened about.
+ *
+ * Both links are rendered only once the server has actually answered that
+ * there is something behind them -- a link to an empty list reads as a dead
+ * end, and a readiness check can only be linked by id, which has to be looked
+ * up from the counterparty.
+ */
+function CaseCrossLinks({ c }: { c: Case }) {
+  const { client } = useApp();
+  const { lookups } = useLookups();
+  const approvals = useApiQuery(`case-approvals:${c.id}`, (signal) =>
+    client.list('listApprovals', { signal, query: { case_id: c.id } }),
+  );
+  const count = approvals.data?.items.length ?? 0;
+
+  // Only a readiness case has a readiness check to jump to, and the list is
+  // keyed by festival, so it is read only for those cases.
+  const readinessSubject = c.subject_type === 'vendor_readiness' || c.subject_type === 'supplier_readiness';
+  const festivalId = lookups.festivalId;
+  const readiness = useApiQuery(
+    `readiness:${festivalId ?? ''}`,
+    (signal) => client.get('listReadiness', { signal, query: { festival_id: festivalId as string } }),
+    { enabled: readinessSubject && Boolean(festivalId) },
+  );
+  const check = (readiness.data?.counterparties ?? []).find((r) => r.counterparty_id === c.subject_id);
+
+  if (count === 0 && !check) return null;
+  return (
+    <section className="panel" aria-labelledby="case-elsewhere">
+      <h2 id="case-elsewhere" className="panel-title">
+        Elsewhere
+      </h2>
+      <ul className="rule-list">
+        {count > 0 ? (
+          <li>
+            <Link to={`/approvals?case_id=${encodeURIComponent(c.id)}`}>
+              {count === 1 ? '1 approval recorded' : `${count} approvals recorded`} against this case
+            </Link>
+          </li>
+        ) : null}
+        {check ? (
+          <li>
+            <Link to={`/readiness/${encodeURIComponent(check.id)}`}>
+              Readiness check for this counterparty
+            </Link>{' '}
+            <StatusBadge status={check.status} /> <span className="muted">v{check.version}</span>
+          </li>
+        ) : null}
+      </ul>
+    </section>
   );
 }
 

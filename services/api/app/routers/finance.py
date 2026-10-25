@@ -1274,8 +1274,16 @@ def supplier_comparison(
         cash = _load_fixture_json("cash_inputs")
         hist_contracts = {h["supplier_id"]: h for h in _load_fixture_json("historical_contracts")}
         hist_deliveries = {d["supplier_id"]: d for d in _load_fixture_json("historical_deliveries")}
+        # historical_contracts.json/historical_deliveries.json key by the
+        # FIXTURE's own supplier id ("sup_a"), but an imported SupplierQuote
+        # row's supplier_id is the real DB-generated Supplier.id -- there is
+        # no column linking the two back. Name is the only stable bridge the
+        # importer already establishes 1:1 (import_procurement_fixture.py
+        # creates exactly one Supplier per counterparties.json entry, named
+        # verbatim from there), so resolve fixture id by name, not by id.
+        fixture_id_by_name = {c["name"]: c["id"] for c in _load_fixture_json("counterparties")}
     except FileNotFoundError:
-        cash, hist_contracts, hist_deliveries = None, {}, {}
+        cash, hist_contracts, hist_deliveries, fixture_id_by_name = None, {}, {}, {}
 
     rows = []
     for q in quotes:
@@ -1311,18 +1319,27 @@ def supplier_comparison(
                 "buffer_gap_cents": result.buffer_gap_cents,
             }
 
-        h = hist_contracts.get(q.supplier_id)
+        supplier = db.get(Supplier, q.supplier_id)
+        fixture_supplier_id = fixture_id_by_name.get(supplier.name) if supplier else None
+        h = hist_contracts.get(fixture_supplier_id)
         history_label = "no_history"
         variance_bps = None
         otif = None
+        approved_scope_changes_cents = None
+        variance_vs_revised_budget_cents = None
         if h is not None:
             history_label = "has_history"
-            variance_bps = round(
-                (h["final_net_cost_cents"] - h["original_budget_cents"])
-                / h["original_budget_cents"]
-                * 10000
-            )
-            d = hist_deliveries.get(q.supplier_id)
+            variance_cents = h["final_net_cost_cents"] - h["original_budget_cents"]
+            variance_bps = round(variance_cents / h["original_budget_cents"] * 10000)
+            # TICKET section 7: approved scope changes are not supplier
+            # fault -- break the variance into the approved portion and
+            # whatever is left over against a budget already adjusted for
+            # those approved changes, so a reviewer never reads a change
+            # order as a cost overrun.
+            approved_scope_changes_cents = h.get("approved_scope_changes_cents", 0)
+            revised_budget_cents = h["original_budget_cents"] + approved_scope_changes_cents
+            variance_vs_revised_budget_cents = h["final_net_cost_cents"] - revised_budget_cents
+            d = hist_deliveries.get(fixture_supplier_id)
             if d is not None:
                 on_time = d["completed_at"] <= d["deadline"]
                 otif = f"{1 if on_time else 0}/{d.get('scheduled_delivery_count', 1)}"
@@ -1342,7 +1359,19 @@ def supplier_comparison(
                 "cash_impact_synthetic": breach,
                 "history_label": history_label,
                 "history_variance_bps": variance_bps,
+                "history_approved_scope_changes_cents": approved_scope_changes_cents,
+                "history_variance_vs_revised_budget_cents": variance_vs_revised_budget_cents,
                 "history_otif": otif,
+                # A single prior contract is too small a sample to rank on,
+                # and an approved scope change is not the supplier's fault --
+                # TICKET section 7's own caveat, stated here so the UI always
+                # carries it rather than needing to reconstruct it.
+                "history_caveat": (
+                    "Based on a single prior contract, not a reliable sample. Approved scope "
+                    "changes are not the supplier's fault."
+                )
+                if history_label == "has_history"
+                else None,
             }
         )
 
