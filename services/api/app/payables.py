@@ -107,7 +107,17 @@ def _invoice_ref(invoice_id: str, role: str = "related") -> dict:
     return {"ref_kind": "supplier_invoice", "ref_id": invoice_id, "role": role}
 
 
-def _open_case(db, *, reason_code, invoice: SupplierInvoice, evidence, impact, proposed, cap):
+def _open_case(
+    db,
+    *,
+    reason_code,
+    invoice: SupplierInvoice,
+    evidence,
+    impact,
+    proposed,
+    cap,
+    blocking: bool = True,
+):
     case = Case(
         vendor_id=None,
         reason_code=reason_code,
@@ -116,6 +126,7 @@ def _open_case(db, *, reason_code, invoice: SupplierInvoice, evidence, impact, p
         proposed_resolution=proposed,
         required_capability=cap,
         status="OPEN",
+        blocking=blocking,
     )
     db.add(case)
     db.flush()
@@ -414,6 +425,7 @@ def _recompute_delivery_shortfall(db: Session, po: PurchaseOrder, *, actor_id: s
                         "payable. Visible until resolved by more evidence."
                     ),
                     cap=CAPABILITY_MANAGE_PAYABLES,
+                    blocking=False,
                 )
             else:
                 for case in open_cases:
@@ -704,6 +716,7 @@ def open_sla_potential_credit_case(
         impact=0,
         proposed=note,
         cap=CAPABILITY_MANAGE_PAYABLES,
+        blocking=False,
     )
     _event(
         db,
