@@ -132,7 +132,7 @@ export function VendorPipeline({ runId, pageSize = 25, filterable = true }: { ru
     cursor: params.cursor ?? undefined,
   };
   const result = useApiQuery(`runVendors:${runId}:${JSON.stringify(query)}`, (signal) =>
-    client.list('listRunVendors', { signal, path: { id: runId }, query }),
+    client.list('listRunVendors', { signal, path: { run_id: runId }, query }),
   );
   return (
     <>
@@ -247,7 +247,7 @@ export function RunsList() {
 export function RunDetail() {
   const { runId = '' } = useParams();
   const { client } = useApp();
-  const run = useApiQuery(`run:${runId}`, (signal) => client.get('getRun', { signal, path: { id: runId } }));
+  const run = useApiQuery(`run:${runId}`, (signal) => client.get('getRun', { signal, path: { run_id: runId } }));
   return (
     <>
       <PageHeader title="Close run" qualifier={runId}>

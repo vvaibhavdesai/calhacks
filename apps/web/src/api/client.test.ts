@@ -116,7 +116,7 @@ describe('commands: envelope, Idempotency-Key and 202 jobs', () => {
       jsonResponse(200, { command_id: 'c', aggregate_id: 'case_1', version: 4, status: 'RESOLVED' }),
     );
     const cmd = prepareCommand({ expectedVersion: 3, payload: { resolution: 'ACCEPT', note: 'ok' }, idGenerator: ids });
-    const out = await client.command('resolveCase', cmd, { path: { id: 'case_1' } });
+    const out = await client.command('resolveCase', cmd, { path: { case_id: 'case_1' } });
     expect(out).toEqual({ kind: 'completed', status: 200, result: expect.objectContaining({ version: 4 }) });
     const [url, init] = transport.mock.calls[0]!;
     expect(url).toBe('https://api.example/api/v1/cases/case_1/resolve');

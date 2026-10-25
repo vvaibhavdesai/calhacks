@@ -25,6 +25,7 @@ import { PlaceholderScreen } from '../screens/PlaceholderScreen';
 import { SourceRecords } from '../screens/SourceRecords';
 import { AppProvider, useApp, type AppServices } from './AppContext';
 import { Layout } from './Layout';
+import { RouteError } from '../components/RouteError';
 import { PLACEHOLDERS } from './navigation';
 
 const ROUTER_FUTURE = {
@@ -39,6 +40,9 @@ export const routes: RouteObject[] = [
   {
     path: '/',
     element: <Layout />,
+    // Scoped to the children so the shell and navigation survive a screen
+    // that throws; without it React Router replaces the whole app.
+    errorElement: <RouteError />,
     children: [
       { index: true, element: <Overview /> },
       { path: 'runs', element: <RunsList /> },

@@ -142,7 +142,7 @@ describe('fixture transport with illustrative outputs', () => {
 
   it('serves lists, filters and details', async () => {
     const { client } = make();
-    expect((await client.list('listRunVendors', { path: { id: 'illus_run_n1' }, query: { state: 'HELD' } })).items).toHaveLength(3);
+    expect((await client.list('listRunVendors', { path: { run_id: 'illus_run_n1' }, query: { state: 'HELD' } })).items).toHaveLength(3);
     expect((await client.list('listCases', { query: { status: 'OPEN' } })).items.map((c) => c.id)).toEqual(['illus_case_taco_rate']);
     expect((await client.get('getPolicyVersion', { path: { policy_version_id: 'illus_pv_kettle_bag_v2' } })).status).toBe('ACTIVE');
     await expect(client.get('getSettlement', { path: { id: 'nope' } })).rejects.toMatchObject({ kind: 'not_found' });
@@ -151,28 +151,28 @@ describe('fixture transport with illustrative outputs', () => {
 
   it('enforces capability, expected_version, idempotent replay and transitions', async () => {
     const { client, transport } = make(['fixture.read']);
-    await expect(client.command('resolveCase', resolveCmd(3), { path: { id: 'illus_case_taco_rate' } })).rejects.toMatchObject({
+    await expect(client.command('resolveCase', resolveCmd(3), { path: { case_id: 'illus_case_taco_rate' } })).rejects.toMatchObject({
       kind: 'forbidden',
     });
 
     const ok = make();
-    await expect(ok.client.command('resolveCase', resolveCmd(2), { path: { id: 'illus_case_taco_rate' } })).rejects.toMatchObject({
+    await expect(ok.client.command('resolveCase', resolveCmd(2), { path: { case_id: 'illus_case_taco_rate' } })).rejects.toMatchObject({
       kind: 'conflict',
       currentVersion: 3,
     });
     const cmd = resolveCmd(3);
-    const first = await ok.client.command('resolveCase', cmd, { path: { id: 'illus_case_taco_rate' } });
+    const first = await ok.client.command('resolveCase', cmd, { path: { case_id: 'illus_case_taco_rate' } });
     expect(first).toMatchObject({ kind: 'completed', result: { status: 'RESOLVED', version: 4 } });
-    const replay = await ok.client.command('resolveCase', cmd, { path: { id: 'illus_case_taco_rate' } });
+    const replay = await ok.client.command('resolveCase', cmd, { path: { case_id: 'illus_case_taco_rate' } });
     expect(replay).toEqual(first);
-    expect((await ok.client.get('getCase', { path: { id: 'illus_case_taco_rate' } })).version).toBe(4);
+    expect((await ok.client.get('getCase', { path: { case_id: 'illus_case_taco_rate' } })).version).toBe(4);
 
     const reused = { ...resolveCmd(4, 'opt_contract_rate'), idempotencyKey: cmd.idempotencyKey };
-    await expect(ok.client.command('resolveCase', reused, { path: { id: 'illus_case_taco_rate' } })).rejects.toMatchObject({
+    await expect(ok.client.command('resolveCase', reused, { path: { case_id: 'illus_case_taco_rate' } })).rejects.toMatchObject({
       kind: 'conflict',
       code: 'IDEMPOTENCY_KEY_REUSED',
     });
-    await expect(ok.client.command('resolveCase', resolveCmd(4), { path: { id: 'illus_case_taco_rate' } })).rejects.toMatchObject({
+    await expect(ok.client.command('resolveCase', resolveCmd(4), { path: { case_id: 'illus_case_taco_rate' } })).rejects.toMatchObject({
       kind: 'invalid',
       code: 'INVALID_TRANSITION',
     });
@@ -189,7 +189,7 @@ describe('fixture transport with illustrative outputs', () => {
     const ok = await client.command('approvePolicy', prepareCommand({ expectedVersion: 1, payload: base }), { path: { id: p.id } });
     expect(ok).toMatchObject({ kind: 'completed', result: { status: 'ACTIVE', version: 2 } });
     // Approving reuse does not touch the case.
-    expect((await client.get('getCase', { path: { id: 'illus_case_taco_rate' } })).status).toBe('OPEN');
+    expect((await client.get('getCase', { path: { case_id: 'illus_case_taco_rate' } })).status).toBe('OPEN');
   });
 
   it('payout approval binds the exact amount, beneficiary version and version; it never clears hard blockers', async () => {

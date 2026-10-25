@@ -6,6 +6,7 @@ import type { Case, CaseStatus, ResolveCasePayload, SourceRef } from '../api/typ
 import { AppliedPolicyBadge } from '../components/AppliedPolicyBadge';
 import { CommandStatus } from '../components/CommandStatus';
 import { DataTable, type Column } from '../components/DataTable';
+import { caseImpactCents } from '../lib/money';
 import { EvidenceButton } from '../components/EvidenceButton';
 import { EvidenceDrawer } from '../components/EvidenceDrawer';
 import { FilterBar } from '../components/FilterBar';
@@ -50,7 +51,7 @@ export function CasesList() {
     { id: 'vendor', header: 'Vendor', render: (c) => (c.vendor_id ? lookups.vendorName(c.vendor_id) : '—') },
     { id: 'date', header: 'Business date', render: (c) => <BusinessDate value={c.business_date ?? null} /> },
     { id: 'reason', header: 'Reason code', render: (c) => <Code>{c.reason_code}</Code> },
-    { id: 'impact', header: 'Financial impact', numeric: true, render: (c) => <Money cents={c.financial_impact.amount_cents} /> },
+    { id: 'impact', header: 'Financial impact', numeric: true, render: (c) => <Money cents={caseImpactCents(c)} /> },
     {
       id: 'status',
       header: 'Status',
@@ -106,8 +107,11 @@ export function CaseDetail() {
   const { client } = useApp();
   const { lookups, describeSource } = useLookups();
   const [evidence, setEvidence] = useState<{ title: string; refs: SourceRef[] } | null>(null);
-  const result = useApiQuery(`case:${caseId}`, (signal) => client.get('getCase', { signal, path: { id: caseId } }));
+  const result = useApiQuery(`case:${caseId}`, (signal) => client.get('getCase', { signal, path: { case_id: caseId } }));
   const c = result.data;
+  // Present only in fixture data; the server sends a flat impact integer.
+  const impact = (c as unknown as { financial_impact?: { description?: string; basis?: string; affected_settlement_ids?: string[] } } | undefined)
+    ?.financial_impact;
   const open = (title: string, refs: SourceRef[]) => setEvidence({ title, refs });
   const optionLabel = (id: string | null | undefined) => c?.resolution_options?.find((o) => o.option_id === id)?.label ?? id ?? '—';
 
@@ -175,14 +179,17 @@ export function CaseDetail() {
               Financial impact
             </h2>
             <p className="impact-figure">
-              <Money cents={c.financial_impact.amount_cents} signDisplay="always" />
+              <Money cents={caseImpactCents(c)} signDisplay="always" />
             </p>
-            <p>{c.financial_impact.description}</p>
-            {c.financial_impact.basis ? <p className="muted">{c.financial_impact.basis}</p> : null}
-            {c.financial_impact.affected_settlement_ids?.length ? (
+            {/* The server states the impact as a single integer; the draft also
+                carried a description, basis and affected settlements, which
+                only fixture data provides. Render each only when present. */}
+            {impact?.description ? <p>{impact.description}</p> : null}
+            {impact?.basis ? <p className="muted">{impact.basis}</p> : null}
+            {impact?.affected_settlement_ids?.length ? (
               <p>
                 Affects:{' '}
-                {c.financial_impact.affected_settlement_ids.map((id, i) => (
+                {impact.affected_settlement_ids.map((id, i) => (
                   <span key={id}>
                     {i > 0 ? ', ' : ''}
                     <Link to={`/settlements/${encodeURIComponent(id)}`}>{id}</Link>
@@ -316,7 +323,7 @@ function CaseDecision({ c, onServerChange }: { c: Case; onServerChange: () => vo
   const choice = search.get('decision') ?? '';
   const [note, setNote] = useState('');
   const [staleAt, setStaleAt] = useState<number | null>(null);
-  const cmd = useCommand('resolveCase', { id: c.id }, { onServerChange });
+  const cmd = useCommand('resolveCase', { case_id: c.id }, { onServerChange });
   const { prepared, state, discard } = cmd;
   const headingId = useId();
   const noteId = useId();

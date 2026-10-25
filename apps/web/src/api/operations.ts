@@ -66,12 +66,7 @@ export const OPERATIONS = {
   getSession: { method: 'GET', path: '/auth/me', backend: 'live' },
 
   // --------------------------------------------- festival and configuration
-  getFestival: {
-    method: 'GET',
-    path: '/festival',
-    backend: 'absent',
-    gap: 'GET /api/v1/festivals and /api/v1/festivals/{festival_id} (id, name, status, timezone, currency, start/end date, business_dates, bank accounts). Nothing exposes the festival record, and ~12 live routes require festival_id as a query parameter, so the UI cannot call them.',
-  },
+  getFestival: { method: 'GET', path: '/festival', backend: 'live' },
   getBusinessConfig: {
     method: 'GET',
     path: '/business-config',
@@ -136,13 +131,7 @@ export const OPERATIONS = {
   },
 
   // ---------------------------------------------------- orchestration (C04)
-  listRuns: {
-    method: 'GET',
-    path: '/runs',
-    backend: 'shape',
-    route: '/orchestration/runs',
-    gap: 'GET /api/v1/orchestration/runs keys the run as run_id (not id) and has no per-state vendor summary. Serve id + vendor_summary {total, completed, active, held, failed} and this screen goes live unchanged.',
-  },
+  listRuns: { method: 'GET', path: '/orchestration/runs', backend: 'live', query: NO_PAGING },
   startRun: {
     method: 'POST',
     path: '/runs',
@@ -150,19 +139,12 @@ export const OPERATIONS = {
     route: '/orchestration/runs',
     gap: 'POST /api/v1/orchestration/runs takes StartRunIn {festival_id, business_date, ...} rather than the C03 command envelope, and its 202 body is a run record rather than {job_id, status_url}.',
   },
-  getRun: {
-    method: 'GET',
-    path: '/runs/{id}',
-    backend: 'shape',
-    route: '/orchestration/runs/{run_id}',
-    gap: 'Same run shape as the list route (run_id, no vendor_summary).',
-  },
+  getRun: { method: 'GET', path: '/orchestration/runs/{run_id}', backend: 'live' },
   listRunVendors: {
     method: 'GET',
-    path: '/runs/{id}/vendors',
-    backend: 'shape',
-    route: '/orchestration/runs/{run_id}',
-    gap: 'The run detail embeds vendors[], but each entry has no id, no business_date, no case_ids and hold_reasons as plain strings instead of Hold records. Serve GET /api/v1/orchestration/runs/{run_id}/vendors with the C04 vendor-run record.',
+    path: '/orchestration/runs/{run_id}/vendors',
+    backend: 'live',
+    query: { ...NO_PAGING, state: 'state' },
   },
 
   // --------------------------------------------------------- vendor records
@@ -196,27 +178,9 @@ export const OPERATIONS = {
   },
 
   // ------------------------------------------------------------- cases (C04)
-  listCases: {
-    method: 'GET',
-    path: '/cases',
-    backend: 'shape',
-    route: '/cases',
-    gap: 'GET /api/v1/cases has no version (the UI needs it for expected_version), no opened_at, no evidence_hash and no resolution_options, so a case cannot be reviewed or resolved safely from this payload.',
-  },
-  getCase: {
-    method: 'GET',
-    path: '/cases/{id}',
-    backend: 'shape',
-    route: '/cases/{case_id}',
-    gap: 'Same as the list route.',
-  },
-  resolveCase: {
-    method: 'POST',
-    path: '/cases/{id}/resolve',
-    backend: 'shape',
-    route: '/cases/{case_id}/resolve',
-    gap: 'POST /api/v1/cases/{case_id}/resolve takes {decision, resolution_note, commission_bps, minimum_fee_cents, effective_to} with no command envelope, no Idempotency-Key, no expected_version and no option_id/evidence_hash binding, so the reviewed option and evidence are not what gets applied.',
-  },
+  listCases: { method: 'GET', path: '/cases', backend: 'live', query: { ...NO_PAGING, status: 'status_' } },
+  getCase: { method: 'GET', path: '/cases/{case_id}', backend: 'live' },
+  resolveCase: { method: 'POST', path: '/cases/{case_id}/resolve', backend: 'live' },
 
   // ---------------------------------------------------------- policies (C04)
   listPolicies: {

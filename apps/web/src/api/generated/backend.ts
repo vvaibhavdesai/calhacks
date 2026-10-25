@@ -523,6 +523,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/festival": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Current Festival
+         * @description The festival this deployment operates.
+         *
+         *     A registered festival wins: registering one is the explicit statement of
+         *     which festival this is, and a dev or test database can hold dozens of
+         *     derived ids from fixtures. With exactly one registered we return it; with
+         *     several, this is ambiguous and the caller has to name one, so we say so
+         *     rather than guessing. With none registered we fall back to the derived
+         *     record carrying the most business dates, so a fresh database still answers.
+         */
+        get: operations["get_current_festival_api_v1_festival_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/festivals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Festivals
+         * @description Every festival that can be resolved, by id. `next_cursor` is always
+         *     null: a festival is a workspace-level record (there are a handful, not a
+         *     stream of them), so the envelope keeps the shape every other list here
+         *     uses without pretending to page.
+         */
+        get: operations["list_festivals_api_v1_festivals_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/festivals/{festival_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Festival */
+        get: operations["get_festival_api_v1_festivals__festival_id__get"];
+        /** Register Festival */
+        put: operations["register_festival_api_v1_festivals__festival_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/finance/bank-entries/scan": {
         parameters: {
             query?: never;
@@ -1095,6 +1163,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/audit-chain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ops Audit Chain
+         * @description Recompute the chain and report where (if anywhere) it diverges.
+         *
+         *     `SET TRANSACTION READ ONLY` for the same reason app/replay.py uses it:
+         *     a verifier that could write is not a verifier. Nothing here repairs a
+         *     divergence -- the response names the first divergent sequence per
+         *     stream and leaves the decision to a human.
+         */
+        get: operations["ops_audit_chain_api_v1_ops_audit_chain_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orchestration/runs": {
         parameters: {
             query?: never;
@@ -1143,6 +1236,30 @@ export interface paths {
          *     domain event stamped with this run id.
          */
         get: operations["run_events_api_v1_orchestration_runs__run_id__events_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orchestration/runs/{run_id}/vendors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Run Vendors
+         * @description The run's vendor obligations as C04 vendor-run records.
+         *
+         *     `GET /runs/{run_id}` embeds the same rows, but a reader paging or
+         *     filtering the pipeline wants them as a collection of their own, with
+         *     `hold_reasons` rendered as Hold records rather than raw node output.
+         */
+        get: operations["list_run_vendors_api_v1_orchestration_runs__run_id__vendors_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1922,6 +2039,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/terms/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resolve Terms */
+        post: operations["resolve_terms_api_v1_terms_resolve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/terms/vendors/{vendor_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Vendor Terms
+         * @description Every version ever recorded for this vendor, oldest first. Old
+         *     versions are never edited, so this is the full history: which rate was
+         *     in force when, what established it, and whether it came from signed
+         *     documents or from a human decision.
+         */
+        get: operations["list_vendor_terms_api_v1_terms_vendors__vendor_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/vendors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Vendors
+         * @description Cursor paging, same offset-cursor convention as `GET /journal`: the
+         *     cursor is an opaque decimal offset over a stable (name, id) order, and
+         *     `next_cursor` is null on the last page. `festival_id` is optional so a
+         *     single vendor-name lookup table can be loaded without one.
+         */
+        get: operations["list_vendors_api_v1_vendors_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/vendors/{vendor_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Vendor */
+        get: operations["get_vendor_api_v1_vendors__vendor_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/vendors/{vendor_id}/beneficiary": {
         parameters: {
             query?: never;
@@ -2044,6 +2241,21 @@ export interface components {
             bag_reference: string;
             /** Cash Count Id */
             cash_count_id?: string | null;
+        };
+        /** BankAccountOut */
+        BankAccountOut: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Opening As Of */
+            opening_as_of: string | null;
+            /** Opening Balance Cents */
+            opening_balance_cents: number | null;
+            /** Source */
+            source: string;
+            /** Source Refs */
+            source_refs: unknown[];
         };
         /** CalculateRequest */
         CalculateRequest: {
@@ -2340,6 +2552,80 @@ export interface components {
             /** Source Document Ids */
             source_document_ids?: string[] | null;
         };
+        /** FestivalIn */
+        FestivalIn: {
+            /**
+             * Currency
+             * @default USD
+             */
+            currency: string;
+            /**
+             * End Date
+             * Format: date
+             */
+            end_date: string;
+            /** Expected Version */
+            expected_version?: number | null;
+            /** Fictional Notice */
+            fictional_notice?: string | null;
+            /** Name */
+            name: string;
+            /** Organizer Name */
+            organizer_name?: string | null;
+            /**
+             * Start Date
+             * Format: date
+             */
+            start_date: string;
+            /**
+             * Status
+             * @default ACTIVE
+             */
+            status: string;
+            /**
+             * Timezone
+             * @default America/Los_Angeles
+             */
+            timezone: string;
+        };
+        /** FestivalListOut */
+        FestivalListOut: {
+            /** Items */
+            items: components["schemas"]["FestivalOut"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** FestivalOut */
+        FestivalOut: {
+            /** Bank Accounts */
+            bank_accounts: components["schemas"]["BankAccountOut"][];
+            /** Business Config Id */
+            business_config_id: string | null;
+            /** Business Dates */
+            business_dates: string[];
+            /** Currency */
+            currency: string;
+            /** End Date */
+            end_date: string | null;
+            /** Fictional Notice */
+            fictional_notice: string | null;
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Organizer Name */
+            organizer_name: string | null;
+            /** Registered */
+            registered: boolean;
+            /** Start Date */
+            start_date: string | null;
+            /** Status */
+            status: string;
+            /** Timezone */
+            timezone: string;
+            /** Version */
+            version: number;
+        };
         /** FundCashPoolRequest */
         FundCashPoolRequest: {
             /** Additional Cents */
@@ -2351,6 +2637,19 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** HoldOut */
+        HoldOut: {
+            /** Blocking */
+            blocking: boolean;
+            /** Case Id */
+            case_id?: string | null;
+            /** Description */
+            description: string;
+            /** Reason Code */
+            reason_code: string;
+            /** Since */
+            since?: string | null;
         };
         /** ImportRequest */
         ImportRequest: {
@@ -2667,18 +2966,84 @@ export interface components {
             changed: boolean;
             payout: components["schemas"]["PayoutOut"];
         };
-        /** ResolveCaseRequest */
+        /**
+         * ResolutionOptionOut
+         * @description One rate a human may choose when resolving a contract-term conflict.
+         *
+         *     Derived from the case's own `evidence_refs`, never supplied by the caller:
+         *     the options are exactly the candidate terms the detector cited, so a client
+         *     cannot introduce a rate nobody detected.
+         */
+        ResolutionOptionOut: {
+            /** Commission Bps */
+            commission_bps?: number | null;
+            /** Effect Summary */
+            effect_summary: string;
+            /** Impact Cents */
+            impact_cents?: number | null;
+            /**
+             * Is Proposed
+             * @default false
+             */
+            is_proposed: boolean;
+            /** Label */
+            label: string;
+            /** Minimum Fee Cents */
+            minimum_fee_cents?: number | null;
+            /** Option Id */
+            option_id: string;
+            /** Role */
+            role?: string | null;
+            /** Term Id */
+            term_id?: string | null;
+        };
+        /**
+         * ResolveCaseRequest
+         * @description Two accepted shapes for one command.
+         *
+         *     The original shape states the rate directly: `decision` of
+         *     approve/edit/reject plus `commission_bps`. Scripts and the verify suites
+         *     use it and it is unchanged.
+         *
+         *     The reviewer-facing shape names the option instead:
+         *     `decision: "ACCEPT_OPTION" | "REJECT"` with `option_id`, and binds the
+         *     decision to what the reviewer actually saw via `evidence_hash` and
+         *     `expected_version`. The rate then comes from the case's own evidence, so
+         *     the client never supplies the number that decides money.
+         */
         ResolveCaseRequest: {
+            /** Action */
+            action?: string | null;
             /** Commission Bps */
             commission_bps?: number | null;
             /** Decision */
             decision: string;
             /** Effective To */
             effective_to?: string | null;
+            /** Evidence Hash */
+            evidence_hash?: string | null;
+            /** Expected Version */
+            expected_version?: number | null;
             /** Minimum Fee Cents */
             minimum_fee_cents?: number | null;
+            /** Note */
+            note?: string | null;
+            /** Option Id */
+            option_id?: string | null;
             /** Resolution Note */
             resolution_note?: string | null;
+        };
+        /** ResolveTermsRequest */
+        ResolveTermsRequest: {
+            /** As Of */
+            as_of?: string | null;
+            /**
+             * Business Date
+             * Format: date
+             */
+            business_date: string;
+            /** Festival Id */
+            festival_id: string;
         };
         /** ResumeIn */
         ResumeIn: {
@@ -3002,6 +3367,30 @@ export interface components {
             /** Note */
             note?: string | null;
         };
+        /** VendorContractTermOut */
+        VendorContractTermOut: {
+            /** Commission Bps */
+            commission_bps: number | null;
+            /**
+             * Effective From
+             * Format: date
+             */
+            effective_from: string;
+            /** Effective To */
+            effective_to: string | null;
+            /** Id */
+            id: string;
+            /** Minimum Fee Cents */
+            minimum_fee_cents: number | null;
+            /** Processor Fee Deductible */
+            processor_fee_deductible: boolean;
+            /** Source Refs */
+            source_refs: unknown[];
+            /** Status */
+            status: string;
+            /** Version */
+            version: number;
+        };
         /** VendorDayAggregateOut */
         VendorDayAggregateOut: {
             /**
@@ -3013,6 +3402,44 @@ export interface components {
             committed_cents: number;
             /** Vendor Id */
             vendor_id: string;
+        };
+        /** VendorDetailOut */
+        VendorDetailOut: {
+            /** Beneficiary Configured */
+            beneficiary_configured: boolean;
+            /** Beneficiary Version */
+            beneficiary_version: number;
+            /** Contract Terms */
+            contract_terms: components["schemas"]["VendorContractTermOut"][];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Display Name */
+            display_name: string | null;
+            /** Festival Id */
+            festival_id: string;
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Status */
+            status: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
+        /** VendorListOut */
+        VendorListOut: {
+            /** Items */
+            items: components["schemas"]["VendorSummaryOut"][];
+            /** Next Cursor */
+            next_cursor: string | null;
         };
         /** VendorOut */
         VendorOut: {
@@ -3036,22 +3463,86 @@ export interface components {
             /** Vendor Id */
             vendor_id: string;
         };
+        /** VendorRunListOut */
+        VendorRunListOut: {
+            /** Items */
+            items: components["schemas"]["VendorRunOut"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /** VendorRunOut */
+        VendorRunOut: {
+            /** Business Date */
+            business_date: string;
+            /** Case Ids */
+            case_ids: string[];
+            /** Failure */
+            failure?: string | null;
+            /** Holds */
+            holds: components["schemas"]["HoldOut"][];
+            /** Id */
+            id: string;
+            /** Milestone */
+            milestone: string | null;
+            /** Payout Id */
+            payout_id?: string | null;
+            /**
+             * Retryable
+             * @default false
+             */
+            retryable: boolean;
+            /** Run Id */
+            run_id: string;
+            /** Settlement Id */
+            settlement_id?: string | null;
+            /** State */
+            state: string;
+            /** Statement Id */
+            statement_id?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+            /** Vendor Id */
+            vendor_id: string;
+            /** Version */
+            version: number;
+        };
+        /** VendorSummaryOut */
+        VendorSummaryOut: {
+            /** Display Name */
+            display_name: string | null;
+            /** Festival Id */
+            festival_id: string;
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Status */
+            status: string;
+            /** Version */
+            version: number;
+        };
         /** CaseOut */
         app__routers__cases__CaseOut: {
             /** Applied Policy Version Id */
             applied_policy_version_id: string | null;
             /** Auto Resolved */
             auto_resolved: boolean;
+            /** Blocking */
+            blocking: boolean;
             /** Business Date */
             business_date: string | null;
             /** Challenge Status */
             challenge_status: string | null;
+            /** Evidence Hash */
+            evidence_hash: string | null;
             /** Evidence Refs */
             evidence_refs: unknown[];
             /** Financial Impact Cents */
             financial_impact_cents: number | null;
             /** Id */
             id: string;
+            /** Opened At */
+            opened_at: string | null;
             /** Origin Case Id */
             origin_case_id: string | null;
             /** Predicate Values */
@@ -3068,6 +3559,10 @@ export interface components {
             resolution_effect: Record<string, never> | null;
             /** Resolution Note */
             resolution_note: string | null;
+            /** Resolution Options */
+            resolution_options: components["schemas"]["ResolutionOptionOut"][];
+            /** Resolved At */
+            resolved_at: string | null;
             /** Resolved By */
             resolved_by: string | null;
             /** Resolved Capability */
@@ -3076,8 +3571,12 @@ export interface components {
             run_id: string | null;
             /** Status */
             status: string;
+            /** Updated At */
+            updated_at: string | null;
             /** Vendor Id */
             vendor_id: string | null;
+            /** Version */
+            version: number;
         };
         /** CaseOut */
         app__routers__reconciliation__CaseOut: {
@@ -4172,6 +4671,123 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProtectedWriteResponse"];
+                };
+            };
+        };
+    };
+    get_current_festival_api_v1_festival_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FestivalOut"];
+                };
+            };
+        };
+    };
+    list_festivals_api_v1_festivals_get: {
+        parameters: {
+            query?: {
+                registered_only?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FestivalListOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_festival_api_v1_festivals__festival_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                festival_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FestivalOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    register_festival_api_v1_festivals__festival_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                festival_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FestivalIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FestivalOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -5343,6 +5959,41 @@ export interface operations {
             };
         };
     };
+    ops_audit_chain_api_v1_ops_audit_chain_get: {
+        parameters: {
+            query?: {
+                /** @description verify only this stream */
+                stream_id?: string | null;
+                /** @description verify only streams starting with this, e.g. "settlement:" */
+                stream_prefix?: string | null;
+                include_ok_streams?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_runs_api_v1_orchestration_runs_get: {
         parameters: {
             query?: {
@@ -5460,6 +6111,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": Record<string, never>;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_run_vendors_api_v1_orchestration_runs__run_id__vendors_get: {
+        parameters: {
+            query?: {
+                state?: string | null;
+            };
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VendorRunListOut"];
                 };
             };
             /** @description Validation Error */
@@ -7097,6 +7781,135 @@ export interface operations {
                 };
                 content: {
                     "application/json": Record<string, never>;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resolve_terms_api_v1_terms_resolve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResolveTermsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_vendor_terms_api_v1_terms_vendors__vendor_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vendor_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_vendors_api_v1_vendors_get: {
+        parameters: {
+            query?: {
+                festival_id?: string | null;
+                status?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VendorListOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_vendor_api_v1_vendors__vendor_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vendor_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VendorDetailOut"];
                 };
             };
             /** @description Validation Error */

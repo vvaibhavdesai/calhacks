@@ -90,6 +90,7 @@ app.include_router(recorder.router)
 app.include_router(corrections.router)
 app.include_router(terms.router)
 app.include_router(festivals.router)
+app.include_router(festivals.current_router)
 app.include_router(vendors.router)
 
 

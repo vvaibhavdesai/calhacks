@@ -7,6 +7,7 @@ import { IllustrativeNote } from '../components/IllustrativeNote';
 import { PageHeader } from '../components/PageHeader';
 import { EmptyState, ErrorState, Loading } from '../components/QueryState';
 import { StatusBadge } from '../components/StatusBadge';
+import { caseImpactCents } from '../lib/money';
 import { useApiQuery } from '../hooks/useApiQuery';
 import { useLookups } from '../hooks/useLookups';
 import { RunSummary, VendorPipeline } from './Runs';
@@ -149,7 +150,11 @@ function NeedsDecision() {
             <li key={c.id}>
               <Link to={`/cases/${encodeURIComponent(c.id)}`}>{c.title ?? c.reason_code}</Link>{' '}
               <StatusBadge status={c.status} /> <span className="muted">{lookups.vendorName(c.vendor_id)}</span>{' '}
-              <span className="muted">· impact</span> <Money cents={c.financial_impact.amount_cents} />
+              {caseImpactCents(c) !== null ? (
+                <>
+                  <span className="muted">· impact</span> <Money cents={caseImpactCents(c)!} />
+                </>
+              ) : null}
             </li>
           ))}
         </ul>

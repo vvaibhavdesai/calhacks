@@ -275,14 +275,14 @@ describe('fixture transport responses conform', () => {
   it('ILLUSTRATIVE output routes (dev/test fixture) validate against the draft schemas', async () => {
     const out = new ApiClient({ transport: createFixtureTransport({ illustrativeOutputs: true }) });
     expectValid('RunList', await out.list('listRuns'));
-    expectValid('Run', await out.get('getRun', { path: { id: 'illus_run_n1' } }));
-    expectValid('VendorRunList', await out.list('listRunVendors', { path: { id: 'illus_run_n1' } }));
+    expectValid('Run', await out.get('getRun', { path: { run_id: 'illus_run_n1' } }));
+    expectValid('VendorRunList', await out.list('listRunVendors', { path: { run_id: 'illus_run_n1' } }));
     expectValid('SettlementList', await out.list('listSettlements'));
     expectValid('CaseList', await out.list('listCases'));
     expectValid('PolicyVersionList', await out.list('listPolicies'));
     expectValid('MatchGroupList', await out.list('listMatchGroups'));
     for (const s of (await out.list('listSettlements')).items) expectValid('Settlement', await out.get('getSettlement', { path: { id: s.id } }));
-    for (const c of (await out.list('listCases')).items) expectValid('Case', await out.get('getCase', { path: { id: c.id } }));
+    for (const c of (await out.list('listCases')).items) expectValid('Case', await out.get('getCase', { path: { case_id: c.id } }));
     for (const p of (await out.list('listPolicies')).items) expectValid('PolicyVersion', await out.get('getPolicyVersion', { path: { policy_version_id: p.id } }));
     for (const g of (await out.list('listMatchGroups')).items) expectValid('MatchGroup', await out.get('getMatchGroup', { path: { id: g.id } }));
     // B05 finance outputs (proposals Q38-Q44).

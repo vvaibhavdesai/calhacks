@@ -118,3 +118,20 @@ export function centsScaleRatio(value: Cents, scale: Cents): number {
   // 4 decimal places of precision is plenty for pixels and avoids float division of huge values.
   return Math.min(1, Number((abs * 10000n) / s) / 10000);
 }
+
+/**
+ * A case's financial impact in cents, or null when the server states none.
+ *
+ * The backend sends a flat `financial_impact_cents` integer (money is a JSON
+ * integer -- CONTRACTS.md 38); the draft document modelled it as a
+ * `financial_impact` object carrying its own `amount_cents`. Read the flat
+ * field first and fall back to the nested one for fixture data. Impact is
+ * informative evidence about a case, not a number every case has, so a missing
+ * value is normal and must not be rendered as zero.
+ */
+export function caseImpactCents(c: unknown): number | null {
+  const rec = c as { financial_impact_cents?: number | null; financial_impact?: { amount_cents?: number } };
+  if (typeof rec.financial_impact_cents === 'number') return rec.financial_impact_cents;
+  const nested = rec.financial_impact?.amount_cents;
+  return typeof nested === 'number' ? nested : null;
+}

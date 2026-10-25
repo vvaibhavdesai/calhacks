@@ -73,7 +73,7 @@ export function PayoutTrace() {
     const cases = await Promise.all(
       caseIds.map((id) =>
         client
-          .get('getCase', { signal, path: { id } })
+          .get('getCase', { signal, path: { case_id: id } })
           .then((c) => ({ id, c }))
           .catch(() => ({ id, c: null })),
       ),

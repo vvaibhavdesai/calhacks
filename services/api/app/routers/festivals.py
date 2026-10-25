@@ -39,6 +39,11 @@ from app.models import CAPABILITY_CLOSE_BOOKS, User
 
 router = APIRouter(prefix="/api/v1/festivals", tags=["festivals"])
 
+# The UI asks "which festival am I operating?" with no id to give, so it needs a
+# singular route. Kept as its own router because the collection above is
+# plural-prefixed, not because it is a different resource.
+current_router = APIRouter(prefix="/api/v1/festival", tags=["festivals"])
+
 
 # ---------------------------------------------------------------------------
 # Response models
@@ -147,6 +152,39 @@ def get_festival(
     if view is None:
         raise HTTPException(status_code=404, detail="festival not found")
     return _festival_out(view)
+
+
+@current_router.get("", response_model=FestivalOut)
+def get_current_festival(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> FestivalOut:
+    """The festival this deployment operates.
+
+    A registered festival wins: registering one is the explicit statement of
+    which festival this is, and a dev or test database can hold dozens of
+    derived ids from fixtures. With exactly one registered we return it; with
+    several, this is ambiguous and the caller has to name one, so we say so
+    rather than guessing. With none registered we fall back to the derived
+    record carrying the most business dates, so a fresh database still answers.
+    """
+    views = festivals.list_festivals(db)
+    registered = [v for v in views if v.registered]
+    if len(registered) == 1:
+        return _festival_out(registered[0])
+    if len(registered) > 1:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "festival_ambiguous",
+                "message": "several festivals are registered; call /api/v1/festivals/{festival_id}",
+                "festival_ids": [v.id for v in registered],
+            },
+        )
+    if not views:
+        raise HTTPException(status_code=404, detail="no festival found")
+    best = max(views, key=lambda v: (len(v.business_dates or []), v.id))
+    return _festival_out(best)
 
 
 # ---------------------------------------------------------------------------
