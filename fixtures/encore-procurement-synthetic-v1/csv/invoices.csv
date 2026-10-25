@@ -1,0 +1,3 @@
+available_at,balance_requested_cents,contract_id,deposit_applied_cents,duplicate_submission_of,id,invoice_number,lines,po_id,source_document_id,supplier_id,total_cents
+2026-10-15T12:15:00-07:00,1450000,contract_b_demo,800000,,inv_b_001,B-001,"[{""po_line_id"": ""po_gen_b_1"", ""qty"": 6, ""unit_cents"": 375000}]",po_gen_b,invoice_b_001,sup_b,2250000
+,,,,inv_b_001,inv_b_001_retry, b-001 ,,po_gen_b,invoice_b_001,sup_b,2250000

@@ -1,0 +1,140 @@
+[
+  {
+    "available_at": "2026-09-25T09:00:00-07:00",
+    "id": "req_gen_2026",
+    "path": "sources/req_gen_2026.md",
+    "title": "Generator procurement requirements"
+  },
+  {
+    "available_at": "2026-10-01T09:00:00-07:00",
+    "id": "q_a_v1",
+    "path": "sources/q_a_v1.md",
+    "title": "Generator quote q_a_v1"
+  },
+  {
+    "available_at": "2026-10-01T09:00:00-07:00",
+    "id": "q_b_v1",
+    "path": "sources/q_b_v1.md",
+    "title": "Generator quote q_b_v1"
+  },
+  {
+    "available_at": "2026-10-01T09:00:00-07:00",
+    "id": "q_c_v1",
+    "path": "sources/q_c_v1.md",
+    "title": "Generator quote q_c_v1"
+  },
+  {
+    "available_at": "2026-10-06T09:00:00-07:00",
+    "id": "q_b_v2",
+    "path": "sources/q_b_v2.md",
+    "title": "Revised ClearPeak quote"
+  },
+  {
+    "available_at": "2026-09-01T09:00:00-07:00",
+    "id": "hist_a_2025",
+    "path": "sources/hist_a_2025.md",
+    "title": "Historical generator contract and close hist_a_2025"
+  },
+  {
+    "available_at": "2026-09-01T09:00:00-07:00",
+    "id": "hist_c_2025",
+    "path": "sources/hist_c_2025.md",
+    "title": "Historical generator contract and close hist_c_2025"
+  },
+  {
+    "available_at": "2026-09-01T09:00:00-07:00",
+    "id": "hist_concession_2025",
+    "path": "sources/hist_concession_2025.md",
+    "title": "Historical beverage concession agreement and close"
+  },
+  {
+    "available_at": "2026-09-01T09:00:00-07:00",
+    "id": "hist_a_2025_receipt",
+    "path": "sources/hist_a_2025_receipt.md",
+    "title": "Historical delivery receipt hist_a_2025"
+  },
+  {
+    "available_at": "2026-09-01T09:00:00-07:00",
+    "id": "hist_c_2025_receipt",
+    "path": "sources/hist_c_2025_receipt.md",
+    "title": "Historical delivery receipt hist_c_2025"
+  },
+  {
+    "available_at": "2026-10-02T08:00:00-07:00",
+    "id": "cash_baseline",
+    "path": "sources/cash_baseline.md",
+    "title": "Procurement cash assumptions"
+  },
+  {
+    "available_at": "2026-10-07T12:00:00-07:00",
+    "id": "contract_b_demo",
+    "path": "sources/contract_b_demo.md",
+    "title": "Separate authorized generator contract fixture"
+  },
+  {
+    "available_at": "2026-10-17T21:00:00-07:00",
+    "id": "evidence_late_supplier",
+    "path": "sources/evidence_late_supplier.md",
+    "title": "Mutually exclusive scenario: late_supplier"
+  },
+  {
+    "available_at": "2026-10-17T21:00:00-07:00",
+    "id": "evidence_excused_access",
+    "path": "sources/evidence_excused_access.md",
+    "title": "Mutually exclusive scenario: excused_access"
+  },
+  {
+    "available_at": "2026-10-17T21:00:00-07:00",
+    "id": "evidence_missing_receipt",
+    "path": "sources/evidence_missing_receipt.md",
+    "title": "Mutually exclusive scenario: missing_receipt"
+  },
+  {
+    "available_at": "2026-10-17T21:00:00-07:00",
+    "id": "evidence_late_notice",
+    "path": "sources/evidence_late_notice.md",
+    "title": "Mutually exclusive scenario: late_notice"
+  },
+  {
+    "available_at": "2026-10-15T11:00:00-07:00",
+    "id": "late_supplier_r1",
+    "path": "sources/late_supplier_r1.md",
+    "title": "Delivery acceptance late_supplier_r1"
+  },
+  {
+    "available_at": "2026-10-15T14:00:00-07:00",
+    "id": "late_supplier_r2",
+    "path": "sources/late_supplier_r2.md",
+    "title": "Delivery acceptance late_supplier_r2"
+  },
+  {
+    "available_at": "2026-10-15T11:00:00-07:00",
+    "id": "excused_access_r1",
+    "path": "sources/excused_access_r1.md",
+    "title": "Delivery acceptance excused_access_r1"
+  },
+  {
+    "available_at": "2026-10-15T14:00:00-07:00",
+    "id": "excused_access_r2",
+    "path": "sources/excused_access_r2.md",
+    "title": "Delivery acceptance excused_access_r2"
+  },
+  {
+    "available_at": "2026-10-15T11:00:00-07:00",
+    "id": "late_notice_r1",
+    "path": "sources/late_notice_r1.md",
+    "title": "Delivery acceptance late_notice_r1"
+  },
+  {
+    "available_at": "2026-10-15T14:00:00-07:00",
+    "id": "late_notice_r2",
+    "path": "sources/late_notice_r2.md",
+    "title": "Delivery acceptance late_notice_r2"
+  },
+  {
+    "available_at": "2026-10-15T12:15:00-07:00",
+    "id": "invoice_b_001",
+    "path": "sources/invoice_b_001.md",
+    "title": "Generator invoice"
+  }
+]

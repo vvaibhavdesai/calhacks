@@ -1,0 +1,20 @@
+[
+  {
+    "amount_cents": 800000,
+    "condition": "simulated signed contract",
+    "contract_id": "contract_b_demo",
+    "due_date": "2026-10-07",
+    "id": "ob_b_deposit",
+    "kind": "deposit",
+    "source_clause": "A1"
+  },
+  {
+    "amount_cents": 1450000,
+    "condition": "accepted delivery, subject to approved adjustments",
+    "contract_id": "contract_b_demo",
+    "due_date": "2026-10-20",
+    "id": "ob_b_balance",
+    "kind": "final",
+    "source_clause": "A1"
+  }
+]

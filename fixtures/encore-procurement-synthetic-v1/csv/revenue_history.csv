@@ -1,0 +1,2 @@
+actual_attendance,actual_gross_cents,cash_collected_cents,category,counterparty_id,festival_share_bps,id,original_projected_gross_cents,projected_attendance,source_document_id,status
+16000,16000000,2000000,beverage_concession,partner_d,1500,hist_concession_2025,20000000,20000,hist_concession_2025,final

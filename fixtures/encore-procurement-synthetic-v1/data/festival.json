@@ -1,0 +1,13 @@
+{
+  "currency": "USD",
+  "event_end": "2026-10-18T23:00:00-07:00",
+  "event_start": "2026-10-16T12:00:00-07:00",
+  "id": "fest_demo_2026",
+  "integration_note": "Proposed fixture dates and IDs. Map to the existing repo festival/calendar; do not create another festival or overwrite its 80 vendors.",
+  "name": "Encore Demo Festival",
+  "procurement_as_of": "2026-10-02T09:00:00-07:00",
+  "synthetic": true,
+  "timezone": "America/Los_Angeles",
+  "window_end": "2026-11-01",
+  "window_start": "2026-09-21"
+}

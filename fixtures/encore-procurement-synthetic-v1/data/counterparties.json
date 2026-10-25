@@ -1,0 +1,31 @@
+[
+  {
+    "category": "generator_rental",
+    "id": "sup_a",
+    "name": "Copperline Power (fictional)",
+    "relationship": "returning",
+    "revenue_applicable": false
+  },
+  {
+    "category": "generator_rental",
+    "id": "sup_b",
+    "name": "ClearPeak Energy (fictional)",
+    "relationship": "new",
+    "revenue_applicable": false
+  },
+  {
+    "category": "generator_rental",
+    "id": "sup_c",
+    "name": "Harbor Current (fictional)",
+    "relationship": "returning",
+    "revenue_applicable": false
+  },
+  {
+    "category": "beverage_concession",
+    "id": "partner_d",
+    "name": "Meadow Refreshments (fictional)",
+    "note": "Separate revenue-generating partner example, never ranked against generator suppliers.",
+    "relationship": "returning",
+    "revenue_applicable": true
+  }
+]

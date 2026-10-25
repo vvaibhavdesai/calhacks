@@ -1,0 +1,5 @@
+contract_id,deadline,id,metric,remedy_clause,required_qty,source_clause,target_minutes
+contract_b_demo,2026-10-15T12:00:00-07:00,sla_delivery,delivery_in_full,A3,6,A2,
+contract_b_demo,2026-10-16T10:00:00-07:00,sla_install,installation_acceptance,,,A2,
+contract_b_demo,,sla_ack,critical_acknowledgment,,,A2,10
+contract_b_demo,,sla_restore,critical_restoration,,,A2,60

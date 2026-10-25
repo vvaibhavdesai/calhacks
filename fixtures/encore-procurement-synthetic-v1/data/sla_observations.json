@@ -1,0 +1,119 @@
+[
+  {
+    "assessment_evidence_available_at": "2026-10-17T21:00:00-07:00",
+    "contract_id": "contract_b_demo",
+    "delay_cause": "supplier",
+    "deliveries": [
+      {
+        "accepted_at": "2026-10-15T11:00:00-07:00",
+        "available_at": "2026-10-15T11:00:00-07:00",
+        "id": "late_supplier_r1",
+        "qty": 4,
+        "source_document_id": "late_supplier_r1"
+      },
+      {
+        "accepted_at": "2026-10-15T14:00:00-07:00",
+        "available_at": "2026-10-15T14:00:00-07:00",
+        "id": "late_supplier_r2",
+        "qty": 2,
+        "source_document_id": "late_supplier_r2"
+      }
+    ],
+    "exclusive_group": "delivery_alternatives",
+    "id": "late_supplier",
+    "incident": {
+      "acknowledged_at": "2026-10-17T20:18:00-07:00",
+      "available_at": "2026-10-17T20:50:00-07:00",
+      "opened_at": "2026-10-17T20:00:00-07:00",
+      "restored_at": "2026-10-17T20:50:00-07:00"
+    },
+    "installation_accepted_at": "2026-10-16T09:30:00-07:00",
+    "installation_available_at": "2026-10-16T09:30:00-07:00",
+    "notice_at": "2026-10-15T12:10:00-07:00",
+    "source_document_id": "evidence_late_supplier"
+  },
+  {
+    "assessment_evidence_available_at": "2026-10-17T21:00:00-07:00",
+    "contract_id": "contract_b_demo",
+    "delay_cause": "festival",
+    "deliveries": [
+      {
+        "accepted_at": "2026-10-15T11:00:00-07:00",
+        "available_at": "2026-10-15T11:00:00-07:00",
+        "id": "excused_access_r1",
+        "qty": 4,
+        "source_document_id": "excused_access_r1"
+      },
+      {
+        "accepted_at": "2026-10-15T14:00:00-07:00",
+        "available_at": "2026-10-15T14:00:00-07:00",
+        "id": "excused_access_r2",
+        "qty": 2,
+        "source_document_id": "excused_access_r2"
+      }
+    ],
+    "exclusive_group": "delivery_alternatives",
+    "id": "excused_access",
+    "incident": {
+      "acknowledged_at": "2026-10-17T20:18:00-07:00",
+      "available_at": "2026-10-17T20:50:00-07:00",
+      "opened_at": "2026-10-17T20:00:00-07:00",
+      "restored_at": "2026-10-17T20:50:00-07:00"
+    },
+    "installation_accepted_at": "2026-10-16T09:30:00-07:00",
+    "installation_available_at": "2026-10-16T09:30:00-07:00",
+    "notice_at": "2026-10-15T12:10:00-07:00",
+    "source_document_id": "evidence_excused_access"
+  },
+  {
+    "assessment_evidence_available_at": "2026-10-17T21:00:00-07:00",
+    "contract_id": "contract_b_demo",
+    "delay_cause": null,
+    "deliveries": [],
+    "exclusive_group": "delivery_alternatives",
+    "id": "missing_receipt",
+    "incident": {
+      "acknowledged_at": "2026-10-17T20:18:00-07:00",
+      "available_at": "2026-10-17T20:50:00-07:00",
+      "opened_at": "2026-10-17T20:00:00-07:00",
+      "restored_at": "2026-10-17T20:50:00-07:00"
+    },
+    "installation_accepted_at": "2026-10-16T09:30:00-07:00",
+    "installation_available_at": "2026-10-16T09:30:00-07:00",
+    "notice_at": null,
+    "source_document_id": "evidence_missing_receipt"
+  },
+  {
+    "assessment_evidence_available_at": "2026-10-17T21:00:00-07:00",
+    "contract_id": "contract_b_demo",
+    "delay_cause": "supplier",
+    "deliveries": [
+      {
+        "accepted_at": "2026-10-15T11:00:00-07:00",
+        "available_at": "2026-10-15T11:00:00-07:00",
+        "id": "late_notice_r1",
+        "qty": 4,
+        "source_document_id": "late_notice_r1"
+      },
+      {
+        "accepted_at": "2026-10-15T14:00:00-07:00",
+        "available_at": "2026-10-15T14:00:00-07:00",
+        "id": "late_notice_r2",
+        "qty": 2,
+        "source_document_id": "late_notice_r2"
+      }
+    ],
+    "exclusive_group": "delivery_alternatives",
+    "id": "late_notice",
+    "incident": {
+      "acknowledged_at": "2026-10-17T20:18:00-07:00",
+      "available_at": "2026-10-17T20:50:00-07:00",
+      "opened_at": "2026-10-17T20:00:00-07:00",
+      "restored_at": "2026-10-17T20:50:00-07:00"
+    },
+    "installation_accepted_at": "2026-10-16T09:30:00-07:00",
+    "installation_available_at": "2026-10-16T09:30:00-07:00",
+    "notice_at": "2026-10-16T13:00:00-07:00",
+    "source_document_id": "evidence_late_notice"
+  }
+]

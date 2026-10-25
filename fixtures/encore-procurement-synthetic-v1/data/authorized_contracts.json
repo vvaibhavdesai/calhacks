@@ -1,0 +1,13 @@
+[
+  {
+    "available_at": "2026-10-07T12:00:00-07:00",
+    "id": "contract_b_demo",
+    "partial_payment_allowed": true,
+    "po_id": "po_gen_b",
+    "selected_quote_id": "q_b_v2",
+    "source_document_id": "contract_b_demo",
+    "state": "simulated_signed",
+    "supplier_id": "sup_b",
+    "total_cents": 2250000
+  }
+]
