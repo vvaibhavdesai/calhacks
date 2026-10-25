@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Link, NavLink, useParams } from 'react-router-dom';
 import { useApp } from '../app/AppContext';
-import type { PurchaseOrder, SourceRef, Supplier, SupplierInvoice, SupplierPayment } from '../api/types';
+import type { InvoicePayability, PurchaseOrder, SourceRef, Supplier, SupplierInvoice, SupplierPayment } from '../api/types';
 import { DataTable, type Column } from '../components/DataTable';
 import { EvidenceButton } from '../components/EvidenceButton';
 import { EvidenceDrawer } from '../components/EvidenceDrawer';
@@ -16,8 +16,11 @@ import { PayoutStateBadge } from '../components/PayoutStateBadge';
 import { EmptyState, ErrorState, Loading } from '../components/QueryState';
 import { StatusBadge } from '../components/StatusBadge';
 import { useApiQuery, type QueryResult } from '../hooks/useApiQuery';
+import { useAsOf } from '../hooks/useAsOf';
 import { useListParams } from '../hooks/useListParams';
 import { useLookups } from '../hooks/useLookups';
+import { invoiceIdFromCaseEvidence } from '../lib/caseEvidence';
+import { compareCents } from '../lib/money';
 
 const QUALIFIER = `Suppliers, purchase orders, invoices and credit notes, and supplier payments. Server figures; supplier payments are ${SIMULATED_TEXT}.`;
 
@@ -289,6 +292,20 @@ export function InvoiceDetail() {
   const [evidence, setEvidence] = useState<Evidence>(null);
   const result = useApiQuery(`invoice:${invoiceId}`, (signal) => client.get('getSupplierInvoice', { signal, path: { invoice_id: invoiceId } }));
   const i = result.data;
+  const { asOf, setAsOf } = useAsOf();
+  const payability = useApiQuery(`invoice:${invoiceId}:payability:${asOf ?? ''}`, (signal) =>
+    client.get('getInvoicePayability', { signal, path: { invoice_id: invoiceId }, query: { as_of: asOf ?? undefined } }),
+  );
+  // No dedicated backend filter for "cases about this invoice" -- read the
+  // open SLA cases and match client-side via the evidence-ref marker (see
+  // lib/caseEvidence). Small, bounded list (SLA cases are rare), same cost
+  // as a dedicated filter would be for this one screen.
+  const slaCases = useApiQuery('cases:sla-potential-credit:open', (signal) =>
+    client.list('listCases', { signal, query: { status: 'OPEN', reason_code: 'SLA_POTENTIAL_CREDIT' } }),
+  );
+  const openSlaCaseForThisInvoice = (slaCases.data?.items ?? []).find(
+    (c) => invoiceIdFromCaseEvidence(c.evidence_refs) === invoiceId,
+  );
   return (
     <>
       <PageHeader title={i ? `${i.kind === 'CREDIT_NOTE' ? 'Credit note' : 'Invoice'} ${i.invoice_number}` : 'Invoice'} qualifier={QUALIFIER}>
@@ -386,6 +403,16 @@ export function InvoiceDetail() {
               <EvidenceButton title={`Invoice ${i.invoice_number}`} refs={i.source_refs} onOpen={(title, refs) => setEvidence({ title, refs })} label="Source documents" />
             </p>
           </section>
+
+          <DeliveryDepositPanel
+            invoiceNumber={i.invoice_number}
+            invoiceSourceRefs={i.source_refs}
+            payability={payability}
+            asOf={asOf}
+            onAsOfChange={setAsOf}
+            onEvidence={(title, refs) => setEvidence({ title, refs })}
+            openSlaCaseId={openSlaCaseForThisInvoice?.id ?? null}
+          />
         </>
       ) : null}
       <EvidenceDrawer open={evidence !== null} title={evidence?.title ?? ''} refs={evidence?.refs ?? []} onClose={() => setEvidence(null)} describeSource={describeSource} />
@@ -393,3 +420,128 @@ export function InvoiceDetail() {
   );
 }
 
+/**
+ * The agreed/invoiced/deposit/accepted-units/max-payable/pending picture as
+ * of a point in time (GET /invoices/{id}/payability?as_of=). No backend
+ * route carries per-figure evidence yet, so every EvidenceButton here opens
+ * the same invoice-level source_refs -- a known simplification, not a gap
+ * in the server's own figures.
+ */
+function DeliveryDepositPanel({
+  invoiceNumber,
+  invoiceSourceRefs,
+  payability,
+  asOf,
+  onAsOfChange,
+  onEvidence,
+  openSlaCaseId,
+}: {
+  invoiceNumber: string;
+  invoiceSourceRefs: SourceRef[];
+  payability: QueryResult<InvoicePayability>;
+  asOf: string | null;
+  onAsOfChange: (value: string | null) => void;
+  onEvidence: (title: string, refs: SourceRef[]) => void;
+  openSlaCaseId: string | null;
+}) {
+  const [draftAsOf, setDraftAsOf] = useState(asOf ?? '');
+  const p = payability.data;
+  const ev = (figure: string) => (
+    <EvidenceButton title={`Invoice ${invoiceNumber} — ${figure}`} refs={invoiceSourceRefs} onOpen={onEvidence} />
+  );
+  const willBlockPendingSlaCredit = openSlaCaseId !== null && !!p && compareCents(p.outstanding_cents, 0) > 0;
+  return (
+    <section className="panel" aria-labelledby="inv-payability">
+      <h2 id="inv-payability" className="panel-title">
+        Delivery &amp; deposit
+      </h2>
+      <form
+        className="as-of-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          onAsOfChange(draftAsOf.trim() || null);
+        }}
+      >
+        <div className="field">
+          <label htmlFor="inv-as-of">
+            As of (timezone-aware instant, e.g. 2026-10-15T12:30:00-07:00; blank = now)
+          </label>
+          <input id="inv-as-of" type="text" value={draftAsOf} placeholder="now" onChange={(e) => setDraftAsOf(e.target.value)} />
+        </div>
+        <button type="submit" className="button button-small">
+          Apply
+        </button>
+      </form>
+      {payability.status === 'loading' ? <Loading label="Loading delivery &amp; deposit" /> : null}
+      {payability.status === 'error' ? <ErrorState error={payability.error} onRetry={payability.refetch} /> : null}
+      {p ? (
+        <>
+          <p className="muted">
+            As of <code className="code code-wrap">{p.as_of}</code>
+          </p>
+          <dl className="facts facts-money">
+            <div>
+              <dt>Agreed {ev('agreed')}</dt>
+              <dd>
+                <Money cents={p.agreed_cents} />
+              </dd>
+            </div>
+            <div>
+              <dt>Invoiced {ev('invoiced')}</dt>
+              <dd>
+                <Money cents={p.invoiced_cents} />
+              </dd>
+            </div>
+            <div>
+              <dt>Deposit applied {ev('deposit applied')}</dt>
+              <dd>
+                <Money cents={p.deposit_applied_cents} />
+              </dd>
+            </div>
+            <div>
+              <dt>Paid so far {ev('paid so far')}</dt>
+              <dd>
+                <Money cents={p.paid_cents} />
+              </dd>
+            </div>
+            <div>
+              <dt>Accepted / total units {ev('accepted units')}</dt>
+              <dd>{p.has_delivery_limit ? `${p.accepted_units} / ${p.total_units ?? '—'}` : <span className="muted">no delivery-based limit</span>}</dd>
+            </div>
+            <div>
+              <dt>Unit price {ev('unit price')}</dt>
+              <dd>
+                <Money cents={p.unit_price_cents} />
+              </dd>
+            </div>
+            <div>
+              <dt>Most payable now {ev('max payable now')}</dt>
+              <dd>
+                <Money cents={p.max_payable_now_cents} />
+              </dd>
+            </div>
+            <div>
+              <dt>Pending evidence {ev('pending evidence')}</dt>
+              <dd>
+                <Money cents={p.pending_evidence_cents} />
+              </dd>
+            </div>
+            <div>
+              <dt>Outstanding {ev('outstanding')}</dt>
+              <dd>
+                <Money cents={p.outstanding_cents} />
+              </dd>
+            </div>
+          </dl>
+          {willBlockPendingSlaCredit ? (
+            <p className="command-status is-error" role="alert">
+              <strong>Paying the full balance now would block the pending SLA credit.</strong>{' '}
+              <Link to={`/cases/${encodeURIComponent(openSlaCaseId as string)}`}>Review the open case</Link> before paying
+              the remaining outstanding balance.
+            </p>
+          ) : null}
+        </>
+      ) : null}
+    </section>
+  );
+}

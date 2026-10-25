@@ -21,6 +21,7 @@ import { useApiQuery } from '../hooks/useApiQuery';
 import { useCommand } from '../hooks/useCommand';
 import { useListParams } from '../hooks/useListParams';
 import { useLookups } from '../hooks/useLookups';
+import { invoiceIdFromCaseEvidence } from '../lib/caseEvidence';
 import { PolicyRuleView } from './Policies';
 
 const STATUS_OPTIONS: { value: CaseStatus; label: string }[] = (['OPEN', 'IN_REVIEW', 'RESOLVED', 'REJECTED'] as const).map((v) => ({
@@ -29,6 +30,14 @@ const STATUS_OPTIONS: { value: CaseStatus; label: string }[] = (['OPEN', 'IN_REV
 }));
 
 const REJECT = '__reject__';
+
+// The backend refuses the generic resolve/approve-policy flow for these two
+// reason codes (422 generic_resolve_not_allowed_for_reason_code /
+// reusable_policy_not_allowed_for_reason_code) -- they are decided from the
+// invoice they concern instead (a credit note, a delivery receipt), not by
+// picking approve/edit/reject here. Steering the UI away from a dead end,
+// not a new safety boundary: the backend's own 422 already prevents it.
+const INVOICE_DECIDED_REASON_CODES: readonly string[] = ['DELIVERY_SHORTFALL', 'SLA_POTENTIAL_CREDIT'];
 
 export function CasesList() {
   const { client } = useApp();
@@ -112,6 +121,11 @@ export function CaseDetail() {
   // Present only in fixture data; the server sends a flat impact integer.
   const impact = (c as unknown as { financial_impact?: { description?: string; basis?: string; affected_settlement_ids?: string[] } } | undefined)
     ?.financial_impact;
+  // subject_type/subject_id (X0.1): what this case is about, beyond the
+  // implicit vendor/night assumption -- present on the real backend, not
+  // yet in the draft Case schema.
+  const subjectRaw = c as unknown as { subject_type?: string | null; subject_id?: string | null } | undefined;
+  const subject = { type: subjectRaw?.subject_type ?? null, id: subjectRaw?.subject_id ?? null };
   const open = (title: string, refs: SourceRef[]) => setEvidence({ title, refs });
   const optionLabel = (id: string | null | undefined) => c?.resolution_options?.find((o) => o.option_id === id)?.label ?? id ?? '—';
 
@@ -165,6 +179,15 @@ export function CaseDetail() {
                 <dt>Run</dt>
                 <dd>{c.run_id ? <Link to={`/runs/${encodeURIComponent(c.run_id)}`}>{c.run_id}</Link> : '—'}</dd>
               </div>
+              {subject.type ? (
+                <div>
+                  <dt>Subject</dt>
+                  <dd>
+                    <Code>{subject.type}</Code>
+                    {subject.id ? <> · <Code>{subject.id}</Code></> : null}
+                  </dd>
+                </div>
+              ) : null}
               <div>
                 <dt>Required capability</dt>
                 <dd>
@@ -343,6 +366,11 @@ function ApproveReuse({ c, onServerChange }: { c: Case; onServerChange: () => vo
     c.status === 'RESOLVED' && (decision === 'approve' || decision === 'edit') && !autoResolved;
   if (!eligible) return null;
   if (appliedPolicy) return null;
+  // Backend refuses reusable-policy approval for these reason codes too
+  // (reusable_policy_not_allowed_for_reason_code) -- see
+  // INVOICE_DECIDED_REASON_CODES above. CaseDecision already points to the
+  // invoice instead; nothing to offer here.
+  if (INVOICE_DECIDED_REASON_CODES.includes(c.reason_code)) return null;
   if (!hasCapability(capabilities, 'policy.approve')) return null;
 
   const pending = state.phase === 'pending';
@@ -463,6 +491,31 @@ function CaseDecision({ c, onServerChange }: { c: Case; onServerChange: () => vo
     else next.delete('decision');
     setSearch(next, { replace: true });
   };
+
+  if (INVOICE_DECIDED_REASON_CODES.includes(c.reason_code)) {
+    const invoiceId = invoiceIdFromCaseEvidence(c.evidence_refs);
+    return (
+      <section className="panel" aria-labelledby={headingId}>
+        <h2 id={headingId} className="panel-title">
+          Resolved from the invoice
+        </h2>
+        {invoiceId ? (
+          <p>
+            A <Code>{c.reason_code}</Code> case is decided from the invoice it concerns (a delivery receipt or a
+            credit note), not by approve/edit/reject here.{' '}
+            <Link to={`/payables/invoices/${encodeURIComponent(invoiceId)}`} className="button">
+              Open invoice
+            </Link>
+          </p>
+        ) : (
+          <p className="muted">
+            A <Code>{c.reason_code}</Code> case is decided from the invoice it concerns, but no invoice reference was
+            found in this case's evidence.
+          </p>
+        )}
+      </section>
+    );
+  }
 
   const decidable = c.status === 'OPEN' || c.status === 'IN_REVIEW';
   const wrap = (body: ReactNode) => (

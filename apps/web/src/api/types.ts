@@ -71,6 +71,7 @@ export type CashForecastPoint = Schemas['CashForecastPoint'];
 export type Supplier = Schemas['Supplier'];
 export type PurchaseOrder = Schemas['PurchaseOrder'];
 export type SupplierInvoice = Schemas['SupplierInvoice'];
+export type InvoicePayability = Schemas['InvoicePayability'];
 export type SupplierPayment = Schemas['SupplierPayment'];
 export type JournalEntry = Schemas['JournalEntry'];
 export type JournalLine = Schemas['JournalLine'];
