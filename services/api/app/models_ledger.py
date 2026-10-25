@@ -335,6 +335,16 @@ class Payment(Base):
         String(32), ForeignKey("bank_entries.id", ondelete="SET NULL"), nullable=True, index=True
     )
     provider_reference: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    # The fee the processor's own settlement file states for THIS payment
+    # (migration 0019). `bank_entries.batch_fee_cents` is the sum of these
+    # over a batch; keeping only the sum forced app/settlement.py to
+    # apportion it across payments by amount, which is not the same number:
+    # a per-transaction fee schedule charges a vendor of many small tickets
+    # more than its share of the batch amount. Nullable -- a cash payment
+    # carries no processor, and a payment imported before this column
+    # existed has no stated fee, in which case settlement falls back to
+    # apportioning the batch total for those rows alone.
+    processor_fee_cents: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     source_document_id: Mapped[str | None] = mapped_column(
         String(32), ForeignKey("source_documents.id", ondelete="RESTRICT"), nullable=True
     )

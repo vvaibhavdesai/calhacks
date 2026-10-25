@@ -58,7 +58,8 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.holds import active_vendor_hold
-from app.models_ledger import Order, Payment, Payout, Vendor, VendorContractTerm
+from app.models import CAPABILITY_RESOLVE_CASE
+from app.models_ledger import Case, Order, Payment, Payout, Vendor, VendorContractTerm
 from app.models_reconciliation import BankEntry, MatchGroup, MatchGroupMember
 from app.models_settlement import Settlement, SettlementLineItem
 from app.uow import UnitOfWork
@@ -369,24 +370,40 @@ def gather_reconciled_day_facts(
         # second time here. Tax/tips are removed below from
         # order.tax_cents/order.tips_cents.
         eligible_for_order = group.matched_amount_cents - order.tax_cents - order.tips_cents
-        if eligible_for_order < 0:
+        if eligible_for_order < 0 and order.gross_cents >= 0:
+            # A SALE order must never contribute negative eligible sales:
+            # more came back than went out, which A03 has already raised as
+            # a case. A REFUND order (negative `gross_cents`) is the
+            # opposite situation -- its eligible amount is negative by
+            # definition and has to stay negative, or the refund never
+            # reduces the vendor-day's commission base.
             eligible_for_order = 0
 
         payments = [m for m in members if m.member_kind == "payment"]
-        captures = [m for m in payments if batch.payments.get(m.member_id) is not None]
+        known = [m for m in payments if batch.payments.get(m.member_id) is not None]
         # Determine custody for this order: look at its capture payment(s).
         # In practice an order has one payment method; if a hand-built
         # fixture ever mixes custody on one order, split proportionally by
         # capture amount rather than guessing a single custody.
-        capture_payments = [
+        custody_payments = [
             (batch.payments[m.member_id], m.amount_cents)
-            for m in captures
+            for m in known
             if batch.payments[m.member_id].kind == "capture"
         ]
-        captures_total = sum(amt for _p, amt in capture_payments) or 1
+        if not custody_payments:
+            # A refund-only order has no capture of its own -- the money
+            # moved the other way -- so its refund payments carry the
+            # custody, and its (negative) eligible amount splits across
+            # them exactly as a sale's splits across its captures.
+            custody_payments = [
+                (batch.payments[m.member_id], m.amount_cents)
+                for m in known
+                if batch.payments[m.member_id].kind in ("refund", "chargeback")
+            ]
+        captures_total = sum(amt for _p, amt in custody_payments) or 1
 
         held_this_order = False
-        for payment, _amt in capture_payments:
+        for payment, _amt in custody_payments:
             share = (
                 Decimal(eligible_for_order)
                 * Decimal(payment.amount_cents)
@@ -406,7 +423,29 @@ def gather_reconciled_day_facts(
             # (settled, fee explained). An unsettled/pending/case bank
             # deposit means this money is not confirmed available cash yet
             # -- held, not included, per the module docstring.
-            if payment.bank_entry_id is None:
+            #
+            # Two exceptions, and both are about which direction the money
+            # moved and whether a bank deposit is even owed:
+            #
+            #  * A refund (negative share) is money the organizer has
+            #    already given back. Waiting for its debit to appear on a
+            #    bank statement before letting it reduce the commission
+            #    base is the opposite of conservative: it keeps charging
+            #    the vendor commission on a sale that no longer exists.
+            #    Recognised immediately, like the sale it reverses.
+            #  * Cash taken at a centrally-operated till never passes
+            #    through a processor, so no deposit will ever be allocated
+            #    to it (`bank_entry_id` is NULL for every cash payment, by
+            #    construction -- processor batches list card and wristband
+            #    payments only). Gating it on a bank match is a condition
+            #    that can never clear, so the revenue would be suppressed
+            #    permanently rather than temporarily. The money is in the
+            #    organizer's own hands the moment it is taken; whether the
+            #    till adds up is a cash-count variance, raised as its own
+            #    review case, not a reason to under-assess the vendor.
+            recognise_without_bank_match = share_cents < 0 or payment.method == "cash"
+
+            if payment.bank_entry_id is None and not recognise_without_bank_match:
                 # Centrally-collected but not yet allocated to any bank
                 # deposit at all -- conservatively treated the same as
                 # "not yet settled": held, not counted as available.
@@ -429,7 +468,11 @@ def gather_reconciled_day_facts(
             # may well have last run in a different run than this
             # vendor's order pass.
             bank_group = batch.newest_bank_group.get(payment.bank_entry_id)
-            if bank_group is None or bank_group.status != "matched":
+            if (
+                not recognise_without_bank_match
+                and payment.bank_entry_id is not None
+                and (bank_group is None or bank_group.status != "matched")
+            ):
                 held_this_order = True
                 facts.held_reasons.append(
                     {
@@ -453,9 +496,31 @@ def gather_reconciled_day_facts(
             )
 
             # Proportional processor-fee attribution (fixture 6): this
-            # payment's share of its settled bank entry's stated fee.
-            entry = batch.bank_entries.get(payment.bank_entry_id)
-            if entry is not None and entry.batch_fee_cents:
+            # payment's share of its settled bank entry's stated fee. Only
+            # captures take a share: the denominator below is the entry's
+            # CAPTURE total, so a refund riding along in the same deposit
+            # is not part of the pool the fee is divided over and must not
+            # draw from it.
+            entry = (
+                batch.bank_entries.get(payment.bank_entry_id) if payment.kind == "capture" else None
+            )
+            if payment.kind == "capture" and payment.processor_fee_cents is not None:
+                # The processor's settlement file states this payment's own
+                # fee (migration 0019). Preferred over any apportionment of
+                # the batch total: a per-transaction schedule is not
+                # proportional to amount, so apportioning charges a vendor
+                # of many small tickets too little and a vendor of few
+                # large ones too much. On full_v1 the apportionment was the
+                # only remaining difference from the independent oracle on
+                # 43 of 240 vendor-nights.
+                facts.processor_fee_assessed_cents += payment.processor_fee_cents
+                facts.source_refs.append(
+                    {"ref_kind": "payment", "ref_id": payment.id, "role": "processor_fee_stated"}
+                )
+            elif entry is not None and entry.batch_fee_cents:
+                # Fallback for a payment imported before the per-payment fee
+                # was recorded: its share of its settled bank entry's stated
+                # batch fee, by amount (fixture 6).
                 total = batch.bank_entry_capture_totals.get(entry.id) or 1
                 fee_share = _round_half_up(
                     Decimal(entry.batch_fee_cents) * Decimal(payment.amount_cents) / Decimal(total)
@@ -613,6 +678,120 @@ class SettlementCalculationOutcome:
     is_correction: bool
     corrected_settlement_id: str | None = None
     adjustment: object | None = None  # domain.settlement.SettlementAdjustmentResult | None
+
+
+def closing_uncollected_fee_cents(
+    db: Session, vendor_id: str, festival_id: str, through_business_date: date
+) -> int:
+    """What this vendor still owes in commission at the end of
+    `through_business_date`: the running sum of `unpaid_balance_cents` and
+    `vendor_fee_receivable_cents` over the LIVE version of each of its
+    settlement chains up to and including that date.
+
+    Both are per-period amounts and are kept distinct on purpose (see
+    domain.settlement: one is fee no proceeds can cover, the other is fee
+    the vendor's own retained cash could cover but centrally-held funds
+    could not). Neither row ever states the running position, so this is
+    where it is computed. Live version only, same rule as
+    `gather_cumulative_history`: once a correction supersedes a night, the
+    original's figures are no longer what the vendor owes for it."""
+    rows = db.execute(
+        select(
+            Settlement.id,
+            Settlement.correction_of,
+            Settlement.unpaid_balance_cents,
+            Settlement.vendor_fee_receivable_cents,
+        ).where(
+            Settlement.vendor_id == vendor_id,
+            Settlement.festival_id == festival_id,
+            Settlement.business_date <= through_business_date,
+            Settlement.status.in_(("FINAL", "CORRECTION")),
+        )
+    ).all()
+    superseded = {r[1] for r in rows if r[1]}
+    return sum(r[2] + r[3] for r in rows if r[0] not in superseded)
+
+
+def _raise_unpaid_balance_review(
+    db: Session,
+    settlement: Settlement,
+    *,
+    festival_id: str,
+    actor_id: str,
+    actor_capability: str,
+) -> Case | None:
+    """A vendor that reaches the end of the festival still owing commission
+    is somebody's follow-up, so say so once, on the final period.
+
+    Nothing used to. The figures were on the settlement rows and correct,
+    but no row states the running position and nothing told a human that
+    the festival had ended with money still to collect from this vendor --
+    it would have been found, if at all, by someone summing a chain by
+    hand.
+
+    NON-blocking, deliberately: the organizer owes this vendor nothing (its
+    payout is already zero or already paid), so there is no money to
+    withhold and nothing to stop. It is a collection task, not a gate --
+    the same reasoning that makes `minimum_period_claim` non-blocking."""
+    if not settlement.is_final_period:
+        return None
+    owed = closing_uncollected_fee_cents(
+        db, settlement.vendor_id, festival_id, settlement.business_date
+    )
+    if owed <= 0:
+        return None
+    existing = db.execute(
+        select(Case).where(
+            Case.vendor_id == settlement.vendor_id,
+            Case.reason_code == "UNPAID_BALANCE",
+            Case.business_date == settlement.business_date,
+            Case.status == "OPEN",
+        )
+    ).scalar_one_or_none()
+    if existing is not None:
+        existing.financial_impact_cents = owed
+        return existing
+    case = Case(
+        vendor_id=settlement.vendor_id,
+        reason_code="UNPAID_BALANCE",
+        business_date=settlement.business_date,
+        evidence_refs=[
+            {"ref_kind": "settlement", "ref_id": settlement.id, "role": "subject"},
+            {"ref_kind": "festival", "ref_id": festival_id, "role": "scope"},
+        ],
+        financial_impact_cents=owed,
+        proposed_resolution=(
+            "The festival ended with commission still uncollected from this vendor. "
+            "Collect it or waive it; the settlement rows carry the split between fee "
+            "no proceeds could cover and fee held as vendor-retained cash."
+        ),
+        required_capability=CAPABILITY_RESOLVE_CASE,
+        blocking=False,
+        status="OPEN",
+    )
+    db.add(case)
+    db.flush()
+    UnitOfWork(db).append_event(
+        stream_id=f"case:{case.id}",
+        event_type="case.opened",
+        aggregate_id=case.id,
+        aggregate_version=case.version,
+        actor_id=actor_id,
+        actor_type="system",
+        actor_capability=actor_capability,
+        occurred_at=datetime.now(UTC),
+        vendor_id=settlement.vendor_id,
+        payload={
+            "reason_code": case.reason_code,
+            "financial_impact_cents": owed,
+            "evidence_refs": case.evidence_refs,
+        },
+        lineage_refs=[
+            {"ref_kind": "case", "ref_id": case.id},
+            {"ref_kind": "settlement", "ref_id": settlement.id},
+        ],
+    )
+    return case
 
 
 def calculate_and_record_settlement(
@@ -831,6 +1010,14 @@ def calculate_and_record_settlement(
             )
         )
     db.flush()
+
+    _raise_unpaid_balance_review(
+        db,
+        settlement,
+        festival_id=festival_id,
+        actor_id=actor_id,
+        actor_capability=actor_capability,
+    )
 
     uow = UnitOfWork(db)
     uow.append_event(

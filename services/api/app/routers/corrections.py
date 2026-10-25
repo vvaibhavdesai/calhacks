@@ -13,6 +13,7 @@ from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -36,6 +37,344 @@ from app.models import (
 from app.models_corrections import Challenge, Correction, Replay, VendorRecovery, WhatIfBranch
 
 router = APIRouter(prefix="/api/v1", tags=["corrections"])
+
+
+# -- Response models --------------------------------------------------------
+#
+# Two rules run through this router.
+#
+# MONEY IS A STRING here. A09 renders corrected amounts, deltas and every
+# `totals` figure with `str(...)` so a cent is never handed to a reader as a
+# float. The models below say `str`, not `int`: retyping them would change
+# the JSON and break any screen that compares or displays the string.
+#
+# Instants are `str` too -- the handlers emit `.isoformat()`, and a
+# `datetime` field would make pydantic rewrite the `+00:00` offset as `Z`.
+#
+# Every COMMAND below (the POSTs) returns a JSONResponse through
+# `_run_command`, so FastAPI neither validates nor filters those bodies.
+# Their models document the reply; they do not shape it.
+
+
+class RecordRefOut(BaseModel):
+    """Which record a row is about."""
+
+    kind: str
+    id: str | None
+    version: int | None
+    label: str | None
+
+
+class EvidenceRefOut(BaseModel):
+    """A superseding document, as the challenge reports it. Note the key is
+    `source_id` here, not `source_document_id`."""
+
+    source_id: str | None
+    source_version: int | None
+    # Prefixed "sha256:" by `challenge_out`.
+    content_hash: str | None
+    locator_kind: str | None
+    locator: str | None
+    quoted_excerpt: str | None
+
+
+class ChallengeTargetOut(BaseModel):
+    kind: str | None
+    id: str | None
+    version: int | None
+    # Always null today; reserved for a human-readable target name.
+    label: str | None
+
+
+class PausedWorkOut(BaseModel):
+    """Work a challenge paused. `hold_id` is only present for an entry that
+    took an actual hold, which is why the reads here serialise with
+    `response_model_exclude_unset`."""
+
+    record: dict
+    detail: str
+    hold_id: str | None = None
+
+
+class ChallengeOut(BaseModel):
+    id: str
+    version: int
+    status: str
+    festival_id: str | None
+    vendor_id: str | None
+    target: ChallengeTargetOut
+    reason: str
+    superseding_evidence: list[EvidenceRefOut]
+    evidence_hash: str | None
+    # The change the challenger proposes; its keys are whatever the proposal
+    # states (e.g. `commission_bps`), so it stays an open object.
+    proposed_effect: dict | None
+    effective_from: str | None
+    # What raising the challenge did to the policy that was applied.
+    policy_effect: dict | None
+    paused_work: list[PausedWorkOut]
+    policy_version_id: str | None
+    case_id: str | None
+    contract_term_id: str | None
+    correction_id: str | None
+    created_by: str | None
+    capability: str | None
+    created_at: str | None
+    correlation_id: str | None
+
+
+class ChallengeListOut(BaseModel):
+    items: list[ChallengeOut]
+    # Always null: challenges are a page, not a stream.
+    next_cursor: str | None
+
+
+class CorrectionItemOut(BaseModel):
+    """One line of a correction plan. The three amounts are STRINGS."""
+
+    item_id: str
+    description: str
+    record: dict
+    original_cents: str
+    corrected_cents: str
+    delta_cents: str
+    amount_label: str
+    treatment: str
+    state_at_preview: str
+    state_group: str
+    requires_human: bool
+    # Set when this item only applies if another one does.
+    contingent_on: str | None
+
+
+class CorrectionApprovalOut(BaseModel):
+    approval_id: str
+    actor_id: str | None
+    capability: str | None
+    decided_at: str
+    preview_hash: str | None
+
+
+class CorrectionHoldOut(BaseModel):
+    hold_id: str
+    status: str
+    reason_code: str
+
+
+class CorrectionOut(BaseModel):
+    id: str
+    version: int
+    status: str
+    challenge_id: str | None
+    festival_id: str | None
+    vendor_id: str | None
+    preview_hash: str | None
+    evidence_hash: str | None
+    required_capability: str | None
+    summary: str | None
+    generated_at: str
+    # Taken from the stored plan. `policy_changes`, `nights` and `usages`
+    # keep their own shapes: each is the plan's own working, and a model over
+    # them would drop whatever a later plan adds.
+    policy_changes: list[dict]
+    contract_term_change: dict | None
+    paused_work: list[PausedWorkOut]
+    items: list[CorrectionItemOut]
+    nights: list[dict]
+    # What already used the figures being corrected, per record kind.
+    usages: dict
+    # Every figure here is a STRING.
+    totals: dict[str, str]
+    # Null until a human has approved.
+    approval: CorrectionApprovalOut | None
+    progress: list[dict]
+    # The per-night execution log, lifted out of `progress`.
+    execution: list[dict]
+    results: list[dict]
+    holds: list[CorrectionHoldOut]
+    correlation_id: str | None
+    completed_at: str | None
+
+
+class CorrectionListOut(BaseModel):
+    items: list[CorrectionOut]
+    next_cursor: str | None
+
+
+class RecoveryActionOut(BaseModel):
+    id: str
+    action: str
+    amount_cents: int
+    payout_id: str | None
+    journal_entry_id: str | None
+    actor_id: str | None
+    capability: str | None
+    note: str | None
+    at: str | None
+
+
+class RecoveryOut(BaseModel):
+    id: str
+    version: int
+    status: str
+    festival_id: str | None
+    vendor_id: str
+    origin_kind: str
+    origin_id: str
+    settlement_id: str | None
+    payout_id: str | None
+    business_date: str | None
+    # These five are ints: a recovery carries raw cents, unlike a correction
+    # plan, which renders them.
+    amount_cents: int
+    offset_cents: int
+    received_cents: int
+    waived_cents: int
+    remaining_cents: int
+    reason: str | None
+    # Constant: no real money is ever collected by this system.
+    label: str
+    actions: list[RecoveryActionOut]
+
+
+class RecoveryListOut(BaseModel):
+    items: list[RecoveryOut]
+    next_cursor: str | None
+
+
+class BranchComparisonOut(BaseModel):
+    """Production vs branch for one measure. All three amounts are STRINGS."""
+
+    record: dict
+    label: str
+    measure: str  # payout | commission
+    production_cents: str
+    branch_cents: str
+    delta_cents: str
+
+
+class BranchPromotionOut(BaseModel):
+    # Always false: a branch is never merged or applied.
+    allowed: bool
+    how: str
+
+
+class BranchOut(BaseModel):
+    id: str
+    version: int
+    status: str
+    label: str
+    festival_id: str
+    base_knowledge_cutoff: str
+    business_date: str | None
+    overrides: list[dict]
+    # The branch's proof that it touched nothing in production.
+    isolation: dict
+    comparison: list[BranchComparisonOut]
+    # Six STRING figures: production/branch payout and fee, plus both deltas.
+    totals: dict[str, str]
+    summary: dict
+    note: str | None
+    promotion: BranchPromotionOut
+    created_by: str | None
+    created_at: str | None
+
+
+class BranchListOut(BaseModel):
+    items: list[BranchOut]
+    next_cursor: str | None
+
+
+class ReplayOut(BaseModel):
+    id: str
+    version: int
+    status: str
+    mode: str
+    # Lifted out of `scope`, which also carries festival_id and vendor_id.
+    run_id: str | None
+    scope: dict
+    from_sequence: int | None
+    to_sequence: int | None
+    # Counts of side effects the replay guard refused; all zero on a clean
+    # replay, which is the point of reporting them.
+    effects: dict
+    processed: int
+    total: int
+    matching: int
+    divergences: list[dict]
+    # What the replay compared and how much of it, plus the before/after
+    # production row counts that prove nothing was written.
+    checks: dict
+    label: str
+    created_by: str | None
+    created_at: str | None
+    completed_at: str | None
+
+
+class ReplayListOut(BaseModel):
+    items: list[ReplayOut]
+    next_cursor: str | None
+
+
+# -- Command replies --------------------------------------------------------
+# All of these come back as a JSONResponse, so they are documentation.
+
+
+class ChallengeCommandOut(BaseModel):
+    command_id: str
+    aggregate_id: str
+    version: int
+    # The challenge's own status, not a command status.
+    status: str
+    resource: ChallengeOut
+
+
+class CorrectionCommandOut(BaseModel):
+    command_id: str
+    aggregate_id: str
+    version: int
+    status: str
+    resource: CorrectionOut
+
+
+class CorrectionApproveOut(BaseModel):
+    """Approval is a long job (sent 202), so it carries the C03 job envelope
+    AND the correction. `status` here is the JOB's status; the correction's
+    own status is under `correction_status` -- two different things that
+    would otherwise collide on one name."""
+
+    job_id: str
+    status_url: str
+    status: str  # SUCCEEDED | RUNNING
+    command_id: str
+    aggregate_id: str
+    version: int
+    correction_status: str
+    resource: CorrectionOut
+
+
+class RecoveryCommandOut(BaseModel):
+    command_id: str
+    aggregate_id: str
+    version: int
+    status: str
+    resource: RecoveryOut
+
+
+class BranchCommandOut(BaseModel):
+    command_id: str
+    aggregate_id: str
+    version: int
+    status: str
+    resource: BranchOut
+
+
+class ReplayCommandOut(BaseModel):
+    command_id: str
+    aggregate_id: str
+    version: int
+    status: str
+    resource: ReplayOut
 
 
 def _domain_error(exc: Exception) -> HTTPException:
@@ -146,7 +485,7 @@ def _date(v, field: str) -> date | None:
 # ---------------------------------------------------------------------------
 
 
-@router.get("/challenges")
+@router.get("/challenges", response_model=ChallengeListOut, response_model_exclude_unset=True)
 def list_challenges(
     target_id: str | None = None,
     vendor_id: str | None = None,
@@ -168,7 +507,9 @@ def list_challenges(
     return {"items": [corrections.challenge_out(c) for c in rows], "next_cursor": None}
 
 
-@router.get("/challenges/{challenge_id}")
+@router.get(
+    "/challenges/{challenge_id}", response_model=ChallengeOut, response_model_exclude_unset=True
+)
 def get_challenge(
     challenge_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ) -> dict:
@@ -178,7 +519,7 @@ def get_challenge(
     return corrections.challenge_out(c)
 
 
-@router.post("/challenges")
+@router.post("/challenges", response_model=ChallengeCommandOut)
 def create_challenge(
     env: CommandEnvelope,
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
@@ -218,7 +559,7 @@ def create_challenge(
     )
 
 
-@router.post("/challenges/{challenge_id}/withdraw")
+@router.post("/challenges/{challenge_id}/withdraw", response_model=ChallengeCommandOut)
 def withdraw_challenge(
     challenge_id: str,
     env: CommandEnvelope,
@@ -260,7 +601,7 @@ def withdraw_challenge(
 # ---------------------------------------------------------------------------
 
 
-@router.post("/corrections/preview")
+@router.post("/corrections/preview", response_model=CorrectionCommandOut)
 def preview_correction(
     env: CommandEnvelope,
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
@@ -292,7 +633,7 @@ def preview_correction(
     )
 
 
-@router.get("/corrections")
+@router.get("/corrections", response_model=CorrectionListOut, response_model_exclude_unset=True)
 def list_corrections(
     challenge_id: str | None = None,
     db: Session = Depends(get_db),
@@ -305,7 +646,9 @@ def list_corrections(
     return {"items": [corrections.correction_out(db, c) for c in rows], "next_cursor": None}
 
 
-@router.get("/corrections/{correction_id}")
+@router.get(
+    "/corrections/{correction_id}", response_model=CorrectionOut, response_model_exclude_unset=True
+)
 def get_correction(
     correction_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ) -> dict:
@@ -315,7 +658,11 @@ def get_correction(
     return corrections.correction_out(db, c)
 
 
-@router.post("/corrections/{correction_id}/approve")
+@router.post(
+    "/corrections/{correction_id}/approve",
+    response_model=CorrectionApproveOut,
+    responses={202: {"model": CorrectionApproveOut}},
+)
 def approve_correction(
     correction_id: str,
     env: CommandEnvelope,
@@ -362,7 +709,7 @@ def approve_correction(
     )
 
 
-@router.post("/corrections/{correction_id}/resolve-contingent")
+@router.post("/corrections/{correction_id}/resolve-contingent", response_model=CorrectionCommandOut)
 def resolve_contingent(
     correction_id: str,
     env: CommandEnvelope,
@@ -400,7 +747,7 @@ def resolve_contingent(
 # ---------------------------------------------------------------------------
 
 
-@router.get("/recoveries")
+@router.get("/recoveries", response_model=RecoveryListOut)
 def list_recoveries(
     festival_id: str | None = None,
     vendor_id: str | None = None,
@@ -419,7 +766,7 @@ def list_recoveries(
     return {"items": [recovery.recovery_out(db, r) for r in rows], "next_cursor": None}
 
 
-@router.get("/recoveries/{recovery_id}")
+@router.get("/recoveries/{recovery_id}", response_model=RecoveryOut)
 def get_recovery(
     recovery_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ) -> dict:
@@ -439,7 +786,7 @@ def _recovery_result(env, r, db, code=200):
     }, code
 
 
-@router.post("/recoveries")
+@router.post("/recoveries", response_model=RecoveryCommandOut)
 def open_recovery(
     env: CommandEnvelope,
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
@@ -462,7 +809,7 @@ def open_recovery(
     )
 
 
-@router.post("/recoveries/{recovery_id}/approve")
+@router.post("/recoveries/{recovery_id}/approve", response_model=RecoveryCommandOut)
 def approve_recovery(
     recovery_id: str,
     env: CommandEnvelope,
@@ -496,7 +843,7 @@ def approve_recovery(
     )
 
 
-@router.post("/recoveries/{recovery_id}/receipts")
+@router.post("/recoveries/{recovery_id}/receipts", response_model=RecoveryCommandOut)
 def record_receipt(
     recovery_id: str,
     env: CommandEnvelope,
@@ -529,7 +876,7 @@ def record_receipt(
     )
 
 
-@router.post("/recoveries/{recovery_id}/waive")
+@router.post("/recoveries/{recovery_id}/waive", response_model=RecoveryCommandOut)
 def waive_recovery(
     recovery_id: str,
     env: CommandEnvelope,
@@ -567,7 +914,7 @@ def waive_recovery(
 # ---------------------------------------------------------------------------
 
 
-@router.get("/branches")
+@router.get("/branches", response_model=BranchListOut)
 def list_branches(
     festival_id: str | None = None,
     db: Session = Depends(get_db),
@@ -580,7 +927,7 @@ def list_branches(
     return {"items": [whatif.branch_out(db, b) for b in rows], "next_cursor": None}
 
 
-@router.get("/branches/{branch_id}")
+@router.get("/branches/{branch_id}", response_model=BranchOut)
 def get_branch(
     branch_id: str,
     db: Session = Depends(get_db),
@@ -592,7 +939,7 @@ def get_branch(
     return whatif.branch_out(db, b)
 
 
-@router.post("/branches")
+@router.post("/branches", response_model=BranchCommandOut)
 def create_branch(
     env: CommandEnvelope,
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
@@ -641,7 +988,7 @@ def create_branch(
 # ---------------------------------------------------------------------------
 
 
-@router.get("/replays")
+@router.get("/replays", response_model=ReplayListOut)
 def list_replays(
     db: Session = Depends(get_db), user: User = Depends(require_capability(CAPABILITY_REPLAY))
 ) -> dict:
@@ -649,7 +996,7 @@ def list_replays(
     return {"items": [replay.replay_out(r) for r in rows], "next_cursor": None}
 
 
-@router.get("/replays/{replay_id}")
+@router.get("/replays/{replay_id}", response_model=ReplayOut)
 def get_replay(
     replay_id: str,
     db: Session = Depends(get_db),
@@ -661,7 +1008,7 @@ def get_replay(
     return replay.replay_out(r)
 
 
-@router.post("/replays")
+@router.post("/replays", response_model=ReplayCommandOut)
 def start_replay(
     env: CommandEnvelope,
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useApp } from '../app/AppContext';
 import type { Supplier, SupplierComparisonQuote } from '../api/types';
 import { DataTable, type Column } from '../components/DataTable';
@@ -38,7 +38,15 @@ function useSupplierNamesById() {
 export function AnalystAssistant() {
   const { client } = useApp();
   const { asOf, setAsOf } = useAsOf();
-  const effectiveAsOf = asOf ?? new Date().toISOString();
+  // Frozen once, when the screen opens, rather than read per render: this
+  // value is part of the query key, so a fresh Date.now() on every render
+  // made the screen refetch without end -- measured at 19 requests in 1.5s --
+  // whenever no instant was pinned in the URL, which is both the default
+  // state and where the "Now" preset returns to. Freezing it also makes the
+  // comparison on screen reproducible for as long as it is open, which is
+  // the point of reading as of an instant at all.
+  const [openedAt] = useState(() => new Date().toISOString());
+  const effectiveAsOf = asOf ?? openedAt;
   const supplierNames = useSupplierNamesById();
   const result = useApiQuery(`supplier-comparison:${REQUEST_KEY}:${effectiveAsOf}`, (signal) =>
     client.get('getSupplierComparison', {

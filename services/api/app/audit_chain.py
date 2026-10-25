@@ -39,15 +39,31 @@ keeping a second copy of the walk.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+import itertools
+from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models_ledger import BusinessEvent, StreamHead
 from app.uow import GENESIS_HASH, compute_event_hash, event_hash_input
+
+# Postgres accepts at most 65,535 bind parameters in one statement. A scope
+# of stream ids therefore cannot go into a single IN (...): on the demo
+# festival there are 202,478 streams, and passing them all made
+# `head_consistency` fail outright with "number of parameters must be
+# between 0 and 65535" rather than merely run slowly. Anything built from a
+# caller's id list is chunked, and anything that can be expressed as a
+# WHERE clause is, instead of being enumerated in Python.
+_ID_CHUNK = 10_000
+
+# Rows per round-trip while scanning. The scan is ordered by stream id, so
+# one stream's events arrive together and are verified and discarded before
+# the next; the whole log is never materialized at once.
+_SCAN_CHUNK = 5_000
 
 # Divergence kinds. Strings, not an enum, because they are published in
 # JSON and on `/metrics` and must stay stable for whoever reads them.
@@ -67,8 +83,11 @@ DEFAULT_MAX_DIVERGENCES_PER_STREAM = 20
 DEFAULT_MAX_DIVERGENCES = 500
 
 
-def recompute_event_hash(e: BusinessEvent) -> str:
+def recompute_event_hash(e: Any) -> str:
     """The hash `e` must have, recomputed from the stored row.
+
+    `e` is a `BusinessEvent` or any row exposing the same column names --
+    `verify_chain` passes narrowed Rows rather than ORM entities.
 
     Uses the event's OWN `previous_hash`, not the recomputed hash of its
     predecessor, so this answers "was this row edited?" independently of
@@ -208,7 +227,7 @@ class ChainReport:
 
 
 def _verify_one_stream(
-    events: Sequence[BusinessEvent],
+    events: Sequence[Any],
     *,
     stream_id: str,
     max_divergences: int = DEFAULT_MAX_DIVERGENCES_PER_STREAM,
@@ -294,11 +313,119 @@ def _verify_one_stream(
     return report
 
 
-def _stream_ids(db: Session, *, stream_prefix: str | None = None) -> list[str]:
-    q = select(BusinessEvent.stream_id).distinct().order_by(BusinessEvent.stream_id)
+# `_stream_ids` (SELECT DISTINCT stream_id, then a query per id) was
+# deleted rather than left unused: it is the pattern this change exists to
+# remove, and leaving it next to `_scan_streams` would read as a sanctioned
+# alternative. `_stream_scope` below expresses the same scoping as a
+# predicate.
+
+
+# `COLLATE "C"` so the scan's stream order is byte order, which is what
+# Python's `sorted()` gives for these ASCII ids. Without it the order would
+# be the database's collation (en_US.UTF-8 here), and the order of
+# `report.streams` -- a published array -- would depend on the locale the
+# database happened to be created with.
+_STREAM_ORDER = BusinessEvent.stream_id.collate("C")
+
+# Every column `recompute_event_hash` and `_verify_one_stream` read, and no
+# others. That is most of the table, so this is not about fetching fewer
+# bytes -- it is about not building 203,379 ORM entities (identity map,
+# attribute instrumentation, a session reference each) to read fields off
+# them once. A Row exposes the same attribute names, so both functions take
+# either without knowing the difference.
+_VERIFY_COLUMNS = (
+    BusinessEvent.event_id,
+    BusinessEvent.stream_id,
+    BusinessEvent.sequence,
+    BusinessEvent.schema_version,
+    BusinessEvent.event_type,
+    BusinessEvent.actor_id,
+    BusinessEvent.actor_type,
+    BusinessEvent.actor_capability,
+    BusinessEvent.occurred_at,
+    BusinessEvent.aggregate_id,
+    BusinessEvent.aggregate_version,
+    BusinessEvent.run_id,
+    BusinessEvent.vendor_id,
+    BusinessEvent.branch_id,
+    BusinessEvent.correlation_id,
+    BusinessEvent.causation_id,
+    BusinessEvent.command_id,
+    BusinessEvent.payload,
+    BusinessEvent.versions,
+    BusinessEvent.previous_hash,
+    BusinessEvent.hash,
+)
+
+
+def _stream_scope(
+    stream_ids: Sequence[str] | None, stream_prefix: str | None
+) -> list:  # list of SQLAlchemy clauses
+    """The WHERE clauses that narrow a scan to the requested streams.
+
+    This is the scoping that used to be done by selecting every stream id
+    into Python and then looping over it: expressed as a predicate, the
+    database does the narrowing and no id crosses the wire twice.
+    """
+    if stream_ids is not None:
+        ids = list(stream_ids)
+        if not ids:
+            # `IN ()` is not valid SQL; an impossible predicate is.
+            return [BusinessEvent.stream_id.is_(None), BusinessEvent.stream_id.isnot(None)]
+        chunks = [ids[i : i + _ID_CHUNK] for i in range(0, len(ids), _ID_CHUNK)]
+        return [or_(*[BusinessEvent.stream_id.in_(chunk) for chunk in chunks])]
     if stream_prefix:
-        q = q.where(BusinessEvent.stream_id.startswith(stream_prefix))
-    return list(db.execute(q).scalars().all())
+        return [BusinessEvent.stream_id.startswith(stream_prefix)]
+    return []
+
+
+def _scan_streams(
+    db: Session, *, stream_ids: Sequence[str] | None, stream_prefix: str | None
+) -> Iterator[tuple[str, list[Any]]]:
+    """Every scoped event in one ordered pass, grouped per stream.
+
+    Replaces a `SELECT ... WHERE stream_id = ?` per stream. On the demo
+    festival that was 202,478 round-trips for 203,379 events -- all but 101
+    of those streams hold a single event -- and the round-trip, not the
+    hashing, was the cost. `yield_per` keeps the one-stream-at-a-time memory
+    behaviour the per-stream loop had.
+    """
+    q = (
+        select(*_VERIFY_COLUMNS)
+        .where(*_stream_scope(stream_ids, stream_prefix))
+        .order_by(_STREAM_ORDER, BusinessEvent.sequence)
+        .execution_options(yield_per=_SCAN_CHUNK)
+    )
+    rows = db.execute(q)
+    for stream_id, group in itertools.groupby(rows, key=lambda e: e.stream_id):
+        yield stream_id, list(group)
+
+
+def _requested_in_order(
+    requested: Iterable[str], scanned: Iterator[tuple[str, list[Any]]]
+) -> Iterator[tuple[str, list[Any]]]:
+    """Walk `requested` (already sorted) alongside the scan, which is in the
+    same order, so a stream the caller named but which has no events still
+    gets an empty report in its place -- as it did when every stream was
+    queried individually.
+
+    The scan is scoped to `requested`, so it can only ever be at or ahead
+    of the id being asked for, never behind. That makes a one-slot buffer
+    enough: `held` is the scanned stream not yet claimed. Duplicates in
+    `requested` are adjacent once sorted, so a repeated id is served from
+    `held` without re-reading.
+    """
+    held: tuple[str, list[Any]] | None = next(scanned, None)
+    for stream_id in requested:
+        while held is not None and held[0] < stream_id:
+            # Only reachable if the scan returned a stream the caller did
+            # not ask for, which the scoping rules out. Skip rather than
+            # mis-attribute its events to the stream being asked for.
+            held = next(scanned, None)
+        if held is not None and held[0] == stream_id:
+            yield stream_id, held[1]
+        else:
+            yield stream_id, []
 
 
 def verify_chain(
@@ -323,21 +450,18 @@ def verify_chain(
     which is how replay calls it.
     """
     report = ChainReport(checked_at=now or datetime.now(UTC))
+    scanned = _scan_streams(db, stream_ids=stream_ids, stream_prefix=stream_prefix)
     if stream_ids is not None:
-        ids = list(stream_ids)
+        # Sorted, duplicates kept: the old loop did `sorted(list(stream_ids))`
+        # and would verify a repeated id twice, so this does too.
+        groups = _requested_in_order(sorted(stream_ids), scanned)
     else:
-        ids = _stream_ids(db, stream_prefix=stream_prefix)
+        # Unscoped or prefix-scoped, the streams to check ARE the streams
+        # that have events, which is exactly what the scan returns -- and in
+        # the same order the old `sorted(_stream_ids(...))` produced.
+        groups = scanned
     recorded = 0
-    for stream_id in sorted(ids):
-        events = list(
-            db.execute(
-                select(BusinessEvent)
-                .where(BusinessEvent.stream_id == stream_id)
-                .order_by(BusinessEvent.sequence)
-            )
-            .scalars()
-            .all()
-        )
+    for stream_id, events in groups:
         remaining = max(0, max_divergences - recorded)
         if remaining == 0:
             report.truncated = True
@@ -365,11 +489,26 @@ def verify_chain(
                 report.sequence_gaps += 1
 
     if include_heads:
-        report.head_findings = head_consistency(db, stream_ids=ids)
+        # The same scope, stated the same way. It used to be handed the list
+        # of every stream id, which is what blew the bind-parameter ceiling;
+        # `with_events_only` reproduces what that list MEANT -- streams that
+        # have at least one event -- as a WHERE clause.
+        report.head_findings = head_consistency(
+            db,
+            stream_ids=stream_ids,
+            stream_prefix=stream_prefix,
+            with_events_only=stream_ids is None,
+        )
     return report
 
 
-def head_consistency(db: Session, *, stream_ids: Sequence[str] | None = None) -> list[HeadFinding]:
+def head_consistency(
+    db: Session,
+    *,
+    stream_ids: Sequence[str] | None = None,
+    stream_prefix: str | None = None,
+    with_events_only: bool = False,
+) -> list[HeadFinding]:
     """Cross-check `stream_heads` against the events that exist, in SQL
     only -- no event rows are loaded and nothing is re-hashed.
 
@@ -403,14 +542,41 @@ def head_consistency(db: Session, *, stream_ids: Sequence[str] | None = None) ->
         (BusinessEvent.stream_id == per_stream.c.stream_id)
         & (BusinessEvent.sequence == per_stream.c.last_sequence),
     )
-    heads_q = select(StreamHead)
+    # The three columns the comparison below reads, not whole StreamHead
+    # entities: there is one head row per stream, so on the demo festival
+    # that is 202,478 of them, and this function runs on every
+    # /api/v1/ops/alerts and /metrics call.
+    heads_q = select(StreamHead.stream_id, StreamHead.last_sequence, StreamHead.last_hash)
     if stream_ids is not None:
+        # An explicit list from a caller. Chunked, because Postgres takes at
+        # most 65,535 bind parameters in one statement and a replay of a
+        # large run can name more streams than that.
         ids = list(stream_ids)
-        tips_q = tips_q.where(per_stream.c.stream_id.in_(ids))
-        heads_q = heads_q.where(StreamHead.stream_id.in_(ids))
+        if ids:
+            tip_chunks, head_chunks = [], []
+            for i in range(0, len(ids), _ID_CHUNK):
+                chunk = ids[i : i + _ID_CHUNK]
+                tip_chunks.append(per_stream.c.stream_id.in_(chunk))
+                head_chunks.append(StreamHead.stream_id.in_(chunk))
+            tips_q = tips_q.where(or_(*tip_chunks))
+            heads_q = heads_q.where(or_(*head_chunks))
+        else:
+            return []
+    else:
+        if stream_prefix:
+            tips_q = tips_q.where(per_stream.c.stream_id.startswith(stream_prefix))
+            heads_q = heads_q.where(StreamHead.stream_id.startswith(stream_prefix))
+        if with_events_only:
+            # `tips` is events-only by construction; this applies the same
+            # restriction to `heads`, which is what passing "every stream id
+            # that has an event" used to do. A head whose stream has no
+            # events at all is therefore still out of scope here -- the
+            # unrestricted call from app/ops.py is what reports those.
+            with_events = select(BusinessEvent.stream_id).distinct().scalar_subquery()
+            heads_q = heads_q.where(StreamHead.stream_id.in_(with_events))
 
     tips = {r.stream_id: r for r in db.execute(tips_q).all()}
-    heads = {h.stream_id: h for h in db.execute(heads_q).scalars().all()}
+    heads = {h.stream_id: h for h in db.execute(heads_q).all()}
 
     findings: list[HeadFinding] = []
     for stream_id in sorted(set(tips) | set(heads)):

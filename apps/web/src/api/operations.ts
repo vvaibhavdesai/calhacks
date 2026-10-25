@@ -116,6 +116,10 @@ export const OPERATIONS = {
   listCases: { method: 'GET', path: '/cases', backend: 'live', query: { ...NO_PAGING, status: 'status_' } },
   getCase: { method: 'GET', path: '/cases/{case_id}', backend: 'live' },
   resolveCase: { method: 'POST', path: '/cases/{case_id}/resolve', backend: 'live' },
+  // How a reusable rule is BORN: the second, separate decision on a case a
+  // human already resolved. Addressed by the case because no policy version
+  // exists yet -- there is nothing else to address.
+  approveCasePolicy: { method: 'POST', path: '/cases/{case_id}/approve-policy', backend: 'live' },
 
   // ---------------------------------------------------------- policies (C04)
   listPolicies: {
@@ -125,12 +129,14 @@ export const OPERATIONS = {
     query: { ...NO_PAGING, status: 'status_' },
   },
   getPolicyVersion: { method: 'GET', path: '/policies/{policy_version_id}', backend: 'live' },
-  // Approving REUSE is a command on the deciding CASE, not on a policy: no
-  // DRAFT policy version exists in this system (checked -- policy_versions
-  // only ever hold ACTIVE/SUSPENDED/SUPERSEDED), the policy comes into
-  // existence at approval. So this operation targets the case, and the control
-  // lives on the case screen where the case id is.
-  approvePolicy: { method: 'POST', path: '/cases/{case_id}/approve-policy', backend: 'live' },
+  // Approving ONE EXACT VERSION that is still waiting for a human, from the
+  // policy itself. A PolicyVersion row sits DRAFT until approved (the status
+  // column's own default; domain.policy only ever applies an ACTIVE version),
+  // and until this route existed nothing in the API could approve one -- the
+  // only approval was addressed by a case (approveCasePolicy above), which a
+  // reader looking at a policy does not have. The two are different decisions
+  // on different resources, not one route moved.
+  approvePolicy: { method: 'POST', path: '/policies/{policy_version_id}/approve', backend: 'live' },
 
   // ----------------------------------------------------------- payouts (C06)
   listPayouts: {
@@ -160,6 +166,24 @@ export const OPERATIONS = {
   getInvoicePayability: { method: 'GET', path: '/invoices/{invoice_id}/payability', backend: 'live' },
   getSupplierComparison: { method: 'GET', path: '/supplier-comparison', backend: 'live' },
   listSupplierPayments: { method: 'GET', path: '/supplier-payments', backend: 'live', query: { sort: null } },
+
+  // --------------------------------------------- X0.1 generic approval log
+  // Reading the log needs resolve_case; recording one needs whatever
+  // capability the action itself implies, which the server derives from the
+  // request body rather than from the route (see services/api/app/routers/
+  // approvals.py). createApproval therefore carries no Idempotency-Key: it is
+  // not a C03 envelope command, and src/hooks/usePlainCommand.ts is what
+  // sends it.
+  listApprovals: { method: 'GET', path: '/approvals', backend: 'live' },
+  getApproval: { method: 'GET', path: '/approvals/{approval_id}', backend: 'live' },
+  createApproval: { method: 'POST', path: '/approvals', backend: 'live' },
+
+  // ------------------------------------------------- R1 readiness checks
+  // The list is keyed by `counterparties`, not the C03 {items, next_cursor}
+  // envelope, so it is read with client.get rather than client.list.
+  listReadiness: { method: 'GET', path: '/readiness', backend: 'live' },
+  getReadiness: { method: 'GET', path: '/readiness/{readiness_check_id}', backend: 'live' },
+  recomputeReadiness: { method: 'POST', path: '/readiness/recompute', backend: 'live' },
 
   // ------------------------------------------------------- accounting (C07)
   listJournalEntries: { method: 'GET', path: '/journal', backend: 'live', query: { sort: null } },

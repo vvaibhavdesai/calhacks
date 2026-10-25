@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 
 from fastapi import APIRouter, Depends, Response, status
+from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -12,7 +13,19 @@ router = APIRouter(tags=["health"])
 logger = logging.getLogger("encore.health")
 
 
-@router.get("/health/live")
+class HealthOut(BaseModel):
+    """Both health reads. `detail`/`error` are sent ONLY on the 503 branch of
+    readiness, so they carry defaults and both routes serialise with
+    `response_model_exclude_unset`: a healthy answer stays exactly
+    `{"status": "ok"}` rather than growing two null fields."""
+
+    status: str
+    detail: str | None = None
+    # The exception CLASS only (A10) -- never the message.
+    error: str | None = None
+
+
+@router.get("/health/live", response_model=HealthOut, response_model_exclude_unset=True)
 def liveness() -> dict:
     """Process is up. No external dependency check -- this must stay cheap
     and always answer even if the database is unreachable, so orchestrators
@@ -20,7 +33,7 @@ def liveness() -> dict:
     return {"status": "ok"}
 
 
-@router.get("/health/ready")
+@router.get("/health/ready", response_model=HealthOut, response_model_exclude_unset=True)
 def readiness(response: Response, db: Session = Depends(get_db)) -> dict:
     """Process is up AND can reach Postgres."""
     try:

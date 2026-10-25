@@ -306,6 +306,39 @@ def figures_consistent(kind: str, n: Normalized, excerpt: str) -> tuple[bool, li
     return True, []
 
 
+def _quoted_sentence(haystack: str, excerpt: str) -> str:
+    """The sentence `excerpt` was quoted from, within already-normalized
+        `haystack`.
+
+    Used by `verify_claim` only when the excerpt supports nothing at all:
+        an excerpt that stopped a word short of the words supporting it failed
+        as unsupported even though the clause it quoted said exactly what the
+        claim said. On this festival that discarded a signed, countersigned
+        amendment -- "Effective 2026-10-06 and for the entire festival, card and
+        wristband processing fees are deducted from Vendor's settlement", quoted
+        up to "card and wristband" -- so the base agreement's "Organizer shall
+        absorb" stood, one vendor's processing fees went uncharged for three
+        nights, and nothing was raised to say so.
+
+        The sentence, not the page: a page holds several clauses, and a figure
+        belonging to a different one must never be able to support this claim.
+        The excerpt is still required to appear verbatim in the source first, so
+        this widens what counts as SUPPORT, never what counts as a citation.
+    """
+    at = haystack.find(excerpt)
+    if at < 0:  # pragma: no cover - caller has already checked
+        return excerpt
+    start = max(
+        (haystack.rfind(end, 0, at) for end in (". ", "? ", "! ", "; ")),
+        default=-1,
+    )
+    end_at = min(
+        (p for p in (haystack.find(e, at + len(excerpt)) for e in (". ", "? ", "! ")) if p >= 0),
+        default=-1,
+    )
+    return haystack[start + 2 if start >= 0 else 0 : end_at + 1 if end_at >= 0 else len(haystack)]
+
+
 def verify_claim(
     *,
     pages: list[str],
@@ -325,6 +358,10 @@ def verify_claim(
         notes.append(f"unknown_speaker_role: {speaker_role}")
 
     excerpt = normalize(quoted_excerpt)
+    # The sentence the excerpt was quoted from, once it has been located in
+    # the source. Used ONLY as a second look when the excerpt supports
+    # nothing at all -- see below.
+    sentence: str | None = None
     if len(excerpt) < 8:
         ok = False
         notes.append("excerpt_too_short")
@@ -340,6 +377,8 @@ def verify_claim(
         if excerpt not in haystack:
             ok = False
             notes.append(f"excerpt_not_found_in_{where.replace(' ', '_')}")
+        else:
+            sentence = _quoted_sentence(haystack, excerpt)
 
     normalized, value_notes = parse_value(kind, value_raw, effective_from)
     notes += value_notes
@@ -347,6 +386,24 @@ def verify_claim(
         ok = False
     elif ok:
         consistent, fig_notes = figures_consistent(kind, normalized, quoted_excerpt)
+        # The excerpt states nothing about this term at all -- the "stopped
+        # a word short" case, not a disagreement. Look once at the sentence
+        # the excerpt was quoted from. Deliberately only here: a mismatch or
+        # a figure the excerpt attributes to something else stands as a
+        # rejection, so this can turn an unsupported claim into a supported
+        # one but never a contradicted claim into an accepted one, and a
+        # claim that already verified is untouched.
+        if (
+            not consistent
+            and sentence
+            and all(n.startswith("excerpt_does_not_state_a_") for n in fig_notes)
+        ):
+            retried, retry_notes = figures_consistent(kind, normalized, sentence)
+            if retried:
+                consistent, fig_notes = True, [
+                    *retry_notes,
+                    "supported_by_quoted_sentence_not_excerpt_alone",
+                ]
         notes += fig_notes
         ok = ok and consistent
     return Verification(ok, normalized, notes)

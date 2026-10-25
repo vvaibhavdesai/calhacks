@@ -72,6 +72,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/approvals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Approvals */
+        get: operations["list_approvals_api_v1_approvals_get"];
+        put?: never;
+        /** Create Approval */
+        post: operations["create_approval_api_v1_approvals_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/approvals/{approval_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Approval */
+        get: operations["get_approval_api_v1_approvals__approval_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -1723,6 +1758,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/policies/{policy_version_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve Policy Version Endpoint
+         * @description Approve this exact DRAFT policy version so it may be applied.
+         *
+         *     Capability `approve_policy`, the C03 envelope and an `Idempotency-Key`
+         *     (app/commands.py): the same key with the same request replays the original
+         *     response and approves nothing twice; the same key with a different request
+         *     is 409 IDEMPOTENCY_KEY_REUSED.
+         */
+        post: operations["approve_policy_version_endpoint_api_v1_policies__policy_version_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/policies/{policy_version_id}/revise": {
         parameters: {
             query?: never;
@@ -1769,6 +1829,57 @@ export interface paths {
         put?: never;
         /** Create Purchase Order */
         post: operations["create_purchase_order_api_v1_purchase_orders_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/readiness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Readiness */
+        get: operations["list_readiness_api_v1_readiness_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/readiness/recompute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Recompute Readiness */
+        post: operations["recompute_readiness_api_v1_readiness_recompute_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/readiness/{readiness_check_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Readiness */
+        get: operations["get_readiness_api_v1_readiness__readiness_check_id__get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2611,12 +2722,49 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AlertOut
+         * @description One firing alert (app/ops.py `Alert`).
+         */
+        AlertOut: {
+            /** Code */
+            code: string;
+            /** Count */
+            count: number;
+            /** Detail */
+            detail: string;
+            /** Severity */
+            severity: string;
+        };
         /** ApplyDepositIn */
         ApplyDepositIn: {
             /** Amount Cents */
             amount_cents: number;
             /** Deposit Id */
             deposit_id: string;
+        };
+        /** ApprovalOut */
+        ApprovalOut: {
+            /** Action */
+            action: string;
+            /** Actor Capability */
+            actor_capability: string;
+            /** Actor Id */
+            actor_id: string | null;
+            /** Case Id */
+            case_id: string | null;
+            /** Id */
+            id: string;
+            /** Note */
+            note: string | null;
+            /** Payload */
+            payload: Record<string, never>;
+            /** Required Capability */
+            required_capability: string;
+            /** Subject Id */
+            subject_id: string;
+            /** Subject Type */
+            subject_type: string;
         };
         /**
          * ApprovePolicyRequest
@@ -2625,10 +2773,19 @@ export interface components {
          *     Separate from resolving the case, deliberately: a one-time resolution is
          *     never auto-promoted into a reusable rule. The scope is the case's own
          *     vendor and effect; only the validity window is chosen here.
+         *
+         *     Both shapes the real callers send: the verify suites post
+         *     {valid_from, valid_to} directly, and the case screen posts the same
+         *     fields inside the C03 envelope's `payload` (see
+         *     `EnvelopeTolerantRequest`). Before the flattening, the envelope form was
+         *     answered "valid_from: Field required" to a reviewer who had chosen a
+         *     window, so the control on the case screen could not be used at all.
          */
         ApprovePolicyRequest: {
             /** Action */
             action?: string | null;
+            /** Command Id */
+            command_id?: string | null;
             /** Evidence Hash */
             evidence_hash?: string | null;
             /** Expected Version */
@@ -2643,16 +2800,63 @@ export interface components {
             /** Valid To */
             valid_to?: string | null;
         };
-        /** ApproveRequest */
+        /**
+         * ApprovePolicyVersionResult
+         * @description C03 command result: the authoritative state, plus the whole record.
+         */
+        ApprovePolicyVersionResult: {
+            /** Aggregate Id */
+            aggregate_id: string;
+            /** Command Id */
+            command_id: string;
+            resource: components["schemas"]["PolicyOut"];
+            /** Status */
+            status: string;
+            /** Version */
+            version: number;
+        };
+        /**
+         * ApproveRequest
+         * @description Both shapes the real callers send (see `EnvelopeTolerantRequest`).
+         *
+         *     The last four fields are lane B's `ApprovePayoutPayload` (draft Q39),
+         *     which is what the approval screen puts inside the envelope's `payload`.
+         *     They are echoes of what the approver was shown, so the server refuses
+         *     an approval that no longer matches any of them -- and because extras
+         *     are forbidden, a field the UI starts sending that the server does not
+         *     know is a loud 422 rather than a silently discarded consent echo.
+         */
         ApproveRequest: {
+            /** Action */
+            action?: "APPROVE_PAYOUT_ABOVE_LIMIT" | null;
             /** Amount Cents */
             amount_cents?: number | null;
             /** Beneficiary Version */
             beneficiary_version?: number | null;
+            /** Business Date */
+            business_date?: string | null;
+            /** Command Id */
+            command_id?: string | null;
             /** Expected Version */
             expected_version?: number | null;
+            /** Logical Obligation Id */
+            logical_obligation_id?: string | null;
             /** Note */
             note?: string | null;
+            /** Vendor Id */
+            vendor_id?: string | null;
+        };
+        /** AuditChainOut */
+        AuditChainOut: {
+            /** Checked At */
+            checked_at: string;
+            /** Head Findings */
+            head_findings: components["schemas"]["ChainHeadFindingOut"][];
+            /** Status */
+            status: string;
+            /** Streams */
+            streams: components["schemas"]["ChainStreamOut"][];
+            summary: components["schemas"]["ChainSummaryOut"];
         };
         /** AutonomyOut */
         AutonomyOut: {
@@ -2737,6 +2941,115 @@ export interface components {
             /** Status */
             status: string;
         };
+        /** BranchCommandOut */
+        BranchCommandOut: {
+            /** Aggregate Id */
+            aggregate_id: string;
+            /** Command Id */
+            command_id: string;
+            resource: components["schemas"]["BranchOut"];
+            /** Status */
+            status: string;
+            /** Version */
+            version: number;
+        };
+        /**
+         * BranchComparisonOut
+         * @description Production vs branch for one measure. All three amounts are STRINGS.
+         */
+        BranchComparisonOut: {
+            /** Branch Cents */
+            branch_cents: string;
+            /** Delta Cents */
+            delta_cents: string;
+            /** Label */
+            label: string;
+            /** Measure */
+            measure: string;
+            /** Production Cents */
+            production_cents: string;
+            /** Record */
+            record: Record<string, never>;
+        };
+        /** BranchListOut */
+        BranchListOut: {
+            /** Items */
+            items: components["schemas"]["BranchOut"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** BranchOut */
+        BranchOut: {
+            /** Base Knowledge Cutoff */
+            base_knowledge_cutoff: string;
+            /** Business Date */
+            business_date: string | null;
+            /** Comparison */
+            comparison: components["schemas"]["BranchComparisonOut"][];
+            /** Created At */
+            created_at: string | null;
+            /** Created By */
+            created_by: string | null;
+            /** Festival Id */
+            festival_id: string;
+            /** Id */
+            id: string;
+            /** Isolation */
+            isolation: Record<string, never>;
+            /** Label */
+            label: string;
+            /** Note */
+            note: string | null;
+            /** Overrides */
+            overrides: Record<string, never>[];
+            promotion: components["schemas"]["BranchPromotionOut"];
+            /** Status */
+            status: string;
+            /** Summary */
+            summary: Record<string, never>;
+            /** Totals */
+            totals: {
+                [key: string]: string;
+            };
+            /** Version */
+            version: number;
+        };
+        /** BranchPromotionOut */
+        BranchPromotionOut: {
+            /** Allowed */
+            allowed: boolean;
+            /** How */
+            how: string;
+        };
+        /** BusinessConfigOut */
+        BusinessConfigOut: {
+            /** Currency */
+            currency: string;
+            default_terms: components["schemas"]["DefaultTermsOut"];
+            /** Draft Notice */
+            draft_notice: string | null;
+            /** Festival Id */
+            festival_id: string;
+            /** Forecast Horizon Days */
+            forecast_horizon_days: number;
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            payout_controls: components["schemas"]["PayoutControlsOut"];
+            /** Payout Local Time */
+            payout_local_time: string;
+            /** Statement Local Time */
+            statement_local_time: string;
+            /** Status */
+            status: string;
+            /** Tax */
+            tax: Record<string, never>;
+            /** Timezone */
+            timezone: string;
+            /** Version */
+            version: number;
+        };
         /** CalculateRequest */
         CalculateRequest: {
             /**
@@ -2788,6 +3101,76 @@ export interface components {
             payout: components["schemas"]["PayoutOut"];
             /** Result */
             result: string;
+        };
+        /**
+         * CaseExplanationOut
+         * @description An AI-proposed explanation of why a case is open. Never a decision.
+         */
+        CaseExplanationOut: {
+            /** Attempt */
+            attempt: number;
+            /** Citations */
+            citations: unknown[] | null;
+            /** Error */
+            error: string | null;
+            /** Explanation */
+            explanation: string | null;
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Model Requested */
+            model_requested: string;
+            /** Model Served */
+            model_served: string | null;
+            /** Prompt Version */
+            prompt_version: string;
+            /** Retryable */
+            retryable: boolean;
+            /** Status */
+            status: string;
+        };
+        /** CaseSubjectOut */
+        CaseSubjectOut: {
+            /** Ref Id */
+            ref_id: string;
+            /** Ref Kind */
+            ref_kind: string;
+            /** Role */
+            role: string;
+        };
+        /** CashCaseListOut */
+        CashCaseListOut: {
+            /** Items */
+            items: components["schemas"]["CashCaseOut"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /**
+         * CashCaseOut
+         * @description A cash-office or bank case (app/cash_office.py `case_out`). Also the
+         *     element type of `open_cases` on the cash-office view.
+         */
+        CashCaseOut: {
+            /** Business Date */
+            business_date: string | null;
+            /** Case Id */
+            case_id: string;
+            /** Financial Impact Cents */
+            financial_impact_cents: number;
+            /** Reason Code */
+            reason_code: string;
+            /** Required Capability */
+            required_capability: string | null;
+            /** Resolution Decision */
+            resolution_decision: string | null;
+            /** Resolution Effect */
+            resolution_effect: Record<string, never> | null;
+            /** Status */
+            status: string;
+            subject: components["schemas"]["CaseSubjectOut"] | null;
+            /** Vendor Id */
+            vendor_id: string | null;
         };
         /** CashCountIn */
         CashCountIn: {
@@ -2850,6 +3233,109 @@ export interface components {
             /** Vendor Id */
             vendor_id: string;
         };
+        /** CashOfficeBlockOut */
+        CashOfficeBlockOut: {
+            /** Awaiting Bank Credit Cents */
+            awaiting_bank_credit_cents: number;
+            /** Cash Office Cents */
+            cash_office_cents: number;
+            /** Deposit Slips */
+            deposit_slips: components["schemas"]["SlipSummaryOut"][];
+            /** Deposited Cents */
+            deposited_cents: number;
+            /** Note */
+            note: string;
+            /** Open Cases */
+            open_cases: components["schemas"]["CashCaseOut"][];
+        };
+        /**
+         * CashOfficeCountOut
+         * @description A cash-office BAG count. Named for its router because
+         *     `records.CashCountOut` is a different thing -- a POS till count, with
+         *     `amount_cents` and a custody -- and two models under one name mangle
+         *     the generated client.
+         */
+        CashOfficeCountOut: {
+            /** Bag Reference */
+            bag_reference: string;
+            /** Business Date */
+            business_date: string;
+            /** Counted At */
+            counted_at: string | null;
+            /** Counted By */
+            counted_by: string | null;
+            /** Counted Cents */
+            counted_cents: number;
+            /** Festival Id */
+            festival_id: string;
+            /** Id */
+            id: string;
+            /** Source Refs */
+            source_refs: unknown[];
+            /** Vendor Id */
+            vendor_id: string;
+        };
+        /** CashOfficeOut */
+        CashOfficeOut: {
+            /** Awaiting Bank Credit Cents */
+            awaiting_bank_credit_cents: number;
+            /** Counts */
+            counts: components["schemas"]["CashOfficeCountOut"][];
+            /** Deposit Slips */
+            deposit_slips: components["schemas"]["SlipSummaryOut"][];
+            /** Deposited Cents */
+            deposited_cents: number;
+            /** Note */
+            note: string;
+            /** Open Cases */
+            open_cases: components["schemas"]["CashCaseOut"][];
+            /** Suspense */
+            suspense: components["schemas"]["SuspenseItemOut"][];
+        };
+        /**
+         * CashOut
+         * @description A cash position is a single as-of snapshot, served ALSO as a one-entry
+         *     collection so a reader of a list gets the shape it expects. `items[0]`
+         *     is this same object; the flat keys stay for the callers that read them.
+         */
+        CashOut: {
+            /** As Of */
+            as_of: string;
+            /** Bank Cents */
+            bank_cents: number;
+            cash_office: components["schemas"]["CashOfficeBlockOut"];
+            /** Finance Config Version */
+            finance_config_version: number;
+            /** Forecast Horizon Days */
+            forecast_horizon_days: number;
+            /** Freely Available Cents */
+            freely_available_cents: number;
+            /** Horizon End */
+            horizon_end: string;
+            /** Items */
+            items: components["schemas"]["CashReportOut"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+            /** Obligations After Horizon Cents */
+            obligations_after_horizon_cents: number;
+            /** Obligations Due Within Horizon Cents */
+            obligations_due_within_horizon_cents: number;
+            /** Pending Cents */
+            pending_cents: number;
+            protected: components["schemas"]["ProtectedCashOut"];
+            /** Protected Cents */
+            protected_cents: number;
+            release_cash_pool: components["schemas"]["ReleaseCashPoolOut"] | null;
+            /** Reserved Payouts Cents */
+            reserved_payouts_cents: number;
+            suspense: components["schemas"]["SuspenseBlockOut"];
+            /** Upcoming Obligations */
+            upcoming_obligations: components["schemas"]["UpcomingObligationOut"][];
+            /** Upcoming Vendor Payouts */
+            upcoming_vendor_payouts: components["schemas"]["UpcomingPayoutOut"][];
+            /** Vendor Funds Payable Cents */
+            vendor_funds_payable_cents: number;
+        };
         /** CashPoolOut */
         CashPoolOut: {
             /** Available Cents */
@@ -2861,10 +3347,199 @@ export interface components {
             /** Version */
             version: number;
         };
+        /** CashReportOut */
+        CashReportOut: {
+            /** As Of */
+            as_of: string;
+            /** Bank Cents */
+            bank_cents: number;
+            cash_office: components["schemas"]["CashOfficeBlockOut"];
+            /** Finance Config Version */
+            finance_config_version: number;
+            /** Forecast Horizon Days */
+            forecast_horizon_days: number;
+            /** Freely Available Cents */
+            freely_available_cents: number;
+            /** Horizon End */
+            horizon_end: string;
+            /** Obligations After Horizon Cents */
+            obligations_after_horizon_cents: number;
+            /** Obligations Due Within Horizon Cents */
+            obligations_due_within_horizon_cents: number;
+            /** Pending Cents */
+            pending_cents: number;
+            protected: components["schemas"]["ProtectedCashOut"];
+            /** Protected Cents */
+            protected_cents: number;
+            release_cash_pool: components["schemas"]["ReleaseCashPoolOut"] | null;
+            /** Reserved Payouts Cents */
+            reserved_payouts_cents: number;
+            suspense: components["schemas"]["SuspenseBlockOut"];
+            /** Upcoming Obligations */
+            upcoming_obligations: components["schemas"]["UpcomingObligationOut"][];
+            /** Upcoming Vendor Payouts */
+            upcoming_vendor_payouts: components["schemas"]["UpcomingPayoutOut"][];
+            /** Vendor Funds Payable Cents */
+            vendor_funds_payable_cents: number;
+        };
+        /**
+         * ChainDivergenceOut
+         * @description One hash/linkage/sequence divergence (app/audit_chain.py `Divergence`).
+         */
+        ChainDivergenceOut: {
+            /** Detail */
+            detail: string;
+            /** Event Id */
+            event_id: string | null;
+            /** Expected */
+            expected: string | null;
+            /** Kind */
+            kind: string;
+            /** Sequence */
+            sequence: number;
+            /** Stored */
+            stored: string | null;
+            /** Stream Id */
+            stream_id: string;
+        };
+        /**
+         * ChainHeadFindingOut
+         * @description A `stream_heads` pointer that disagrees with the events that exist.
+         */
+        ChainHeadFindingOut: {
+            /** Detail */
+            detail: string;
+            /** Expected */
+            expected: string | null;
+            /** Kind */
+            kind: string;
+            /** Stored */
+            stored: string | null;
+            /** Stream Id */
+            stream_id: string;
+        };
+        /** ChainStreamOut */
+        ChainStreamOut: {
+            /** Divergences */
+            divergences: components["schemas"]["ChainDivergenceOut"][];
+            /** Divergences Truncated */
+            divergences_truncated: boolean;
+            /** Events */
+            events: number;
+            /** First Divergent Sequence */
+            first_divergent_sequence: number | null;
+            /** First Sequence */
+            first_sequence: number | null;
+            /** Hashes Intact */
+            hashes_intact: boolean;
+            /** Last Sequence */
+            last_sequence: number | null;
+            /** Linkage Intact */
+            linkage_intact: boolean;
+            /** Ok */
+            ok: boolean;
+            /** Sequence Contiguous */
+            sequence_contiguous: boolean;
+            /** Stream Id */
+            stream_id: string;
+        };
+        /** ChainSummaryOut */
+        ChainSummaryOut: {
+            /** Broken Links */
+            broken_links: number;
+            /** Divergences Truncated */
+            divergences_truncated: boolean;
+            /** Events Checked */
+            events_checked: number;
+            /** Hash Mismatches */
+            hash_mismatches: number;
+            /** Head Findings */
+            head_findings: number;
+            /** Sequence Gaps */
+            sequence_gaps: number;
+            /** Streams Checked */
+            streams_checked: number;
+            /** Streams Diverged */
+            streams_diverged: number;
+        };
         /** ChallengeCaseRequest */
         ChallengeCaseRequest: {
             /** Note */
             note: string;
+        };
+        /** ChallengeCommandOut */
+        ChallengeCommandOut: {
+            /** Aggregate Id */
+            aggregate_id: string;
+            /** Command Id */
+            command_id: string;
+            resource: components["schemas"]["ChallengeOut"];
+            /** Status */
+            status: string;
+            /** Version */
+            version: number;
+        };
+        /** ChallengeListOut */
+        ChallengeListOut: {
+            /** Items */
+            items: components["schemas"]["ChallengeOut"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** ChallengeOut */
+        ChallengeOut: {
+            /** Capability */
+            capability: string | null;
+            /** Case Id */
+            case_id: string | null;
+            /** Contract Term Id */
+            contract_term_id: string | null;
+            /** Correction Id */
+            correction_id: string | null;
+            /** Correlation Id */
+            correlation_id: string | null;
+            /** Created At */
+            created_at: string | null;
+            /** Created By */
+            created_by: string | null;
+            /** Effective From */
+            effective_from: string | null;
+            /** Evidence Hash */
+            evidence_hash: string | null;
+            /** Festival Id */
+            festival_id: string | null;
+            /** Id */
+            id: string;
+            /** Paused Work */
+            paused_work: components["schemas"]["PausedWorkOut"][];
+            /** Policy Effect */
+            policy_effect: Record<string, never> | null;
+            /** Policy Version Id */
+            policy_version_id: string | null;
+            /** Proposed Effect */
+            proposed_effect: Record<string, never> | null;
+            /** Reason */
+            reason: string;
+            /** Status */
+            status: string;
+            /** Superseding Evidence */
+            superseding_evidence: components["schemas"]["EvidenceRefOut"][];
+            target: components["schemas"]["ChallengeTargetOut"];
+            /** Vendor Id */
+            vendor_id: string | null;
+            /** Version */
+            version: number;
+        };
+        /** ChallengeTargetOut */
+        ChallengeTargetOut: {
+            /** Id */
+            id: string | null;
+            /** Kind */
+            kind: string | null;
+            /** Label */
+            label: string | null;
+            /** Version */
+            version: number | null;
         };
         /** ChargebackFeeIn */
         ChargebackFeeIn: {
@@ -2882,6 +3557,143 @@ export interface components {
             /** Source Refs */
             source_refs?: unknown[];
         };
+        /** ChargebackFeeListOut */
+        ChargebackFeeListOut: {
+            /** Items */
+            items: components["schemas"]["ChargebackFeeStatusOut"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** ChargebackFeeOut */
+        ChargebackFeeOut: {
+            chargeback_fee: components["schemas"]["ChargebackFeeStatusOut"];
+            /** Created */
+            created: boolean;
+        };
+        /** ChargebackFeeStatusOut */
+        ChargebackFeeStatusOut: {
+            /** Business Date */
+            business_date: string;
+            /** Contract Term Id */
+            contract_term_id: string | null;
+            /** Expense Booked Via */
+            expense_booked_via: string;
+            /** Fee Cents */
+            fee_cents: number;
+            /** Id */
+            id: string;
+            /** Payment Id */
+            payment_id: string;
+            /** Recharge Permitted By Contract */
+            recharge_permitted_by_contract: boolean;
+            /** Recharged Cents */
+            recharged_cents: number;
+            /** Vendor Id */
+            vendor_id: string;
+        };
+        /** ClaimListOut */
+        ClaimListOut: {
+            /** Items */
+            items: components["schemas"]["ClaimOut"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** ClaimOut */
+        ClaimOut: {
+            /** Available From */
+            available_from: string;
+            /** Claim Kind */
+            claim_kind: string;
+            /** Commission Bps */
+            commission_bps: number | null;
+            /** Effective From */
+            effective_from: string | null;
+            /** Extraction Id */
+            extraction_id: string;
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Minimum Fee Cents */
+            minimum_fee_cents: number | null;
+            /** Minimum Period */
+            minimum_period: string | null;
+            /** Processing Fee Deductible */
+            processing_fee_deductible: boolean | null;
+            /** Restates Existing Terms */
+            restates_existing_terms: boolean;
+            /** Source Ref */
+            source_ref: Record<string, never>;
+            /** Speaker Role */
+            speaker_role: string;
+            /** Value Raw */
+            value_raw: string;
+            /** Vendor Id */
+            vendor_id: string | null;
+            /** Verification Notes */
+            verification_notes: string[];
+            /** Verified */
+            verified: boolean;
+        };
+        /** CloseChecksOut */
+        CloseChecksOut: {
+            /** Cash Office Cents */
+            cash_office_cents: number;
+            hard: components["schemas"]["CloseHardChecksOut"];
+            /** Open Case Count */
+            open_case_count: number;
+            /** Open Cash And Bank Case Ids */
+            open_cash_and_bank_case_ids: string[];
+            /** Processor Clearing Cents */
+            processor_clearing_cents: number;
+            /** Suspense Cents */
+            suspense_cents: number;
+            trial_balance: components["schemas"]["TrialBalanceOut"];
+            /** Unaccounted Bank Entry Ids */
+            unaccounted_bank_entry_ids: string[];
+            /** Unposted Cash Deposit Slip Ids */
+            unposted_cash_deposit_slip_ids: string[];
+            /** Unposted Settlement Ids */
+            unposted_settlement_ids: string[];
+            /** Vendors Without Statement */
+            vendors_without_statement: string[];
+            warnings: components["schemas"]["CloseWarningsOut"];
+        };
+        /** CloseDayOut */
+        CloseDayOut: {
+            /** Business Date */
+            business_date: string;
+            /** Checks */
+            checks: Record<string, never>;
+            /** Created */
+            created: boolean;
+            /** Id */
+            id: string;
+            /** Journal Entry Count */
+            journal_entry_count: number;
+            /** Trial Balance Balanced */
+            trial_balance_balanced: boolean;
+        };
+        /**
+         * CloseHardChecksOut
+         * @description Checks that MUST pass before the day can close.
+         */
+        CloseHardChecksOut: {
+            /** All Settlements Posted */
+            all_settlements_posted: boolean;
+            /** Bank Entries Accounted For */
+            bank_entries_accounted_for: boolean;
+            /** Cash Deposits Posted */
+            cash_deposits_posted: boolean;
+            /** Every Entry Balanced */
+            every_entry_balanced: boolean;
+            /** Supplier Ap Matches Open Invoices */
+            supplier_ap_matches_open_invoices: boolean;
+            /** Tax Source Totals Match Journal */
+            tax_source_totals_match_journal: boolean;
+            /** Trial Balance Balanced */
+            trial_balance_balanced: boolean;
+        };
         /** CloseIn */
         CloseIn: {
             /**
@@ -2893,6 +3705,20 @@ export interface components {
             festival_id: string;
             /** Note */
             note?: string | null;
+        };
+        /**
+         * CloseWarningsOut
+         * @description Checks that are reported but do not block the close.
+         */
+        CloseWarningsOut: {
+            /** Cash Office And Bank Cases Resolved */
+            cash_office_and_bank_cases_resolved: boolean;
+            /** Processor Clearing Zero */
+            processor_clearing_zero: boolean;
+            /** Statements Issued For All Settled Vendors */
+            statements_issued_for_all_settled_vendors: boolean;
+            /** Suspense Zero */
+            suspense_zero: boolean;
         };
         /** CommandEnvelope */
         CommandEnvelope: {
@@ -2930,6 +3756,170 @@ export interface components {
              */
             timezone: string;
         };
+        /** CorrectionApprovalOut */
+        CorrectionApprovalOut: {
+            /** Actor Id */
+            actor_id: string | null;
+            /** Approval Id */
+            approval_id: string;
+            /** Capability */
+            capability: string | null;
+            /** Decided At */
+            decided_at: string;
+            /** Preview Hash */
+            preview_hash: string | null;
+        };
+        /**
+         * CorrectionApproveOut
+         * @description Approval is a long job (sent 202), so it carries the C03 job envelope
+         *     AND the correction. `status` here is the JOB's status; the correction's
+         *     own status is under `correction_status` -- two different things that
+         *     would otherwise collide on one name.
+         */
+        CorrectionApproveOut: {
+            /** Aggregate Id */
+            aggregate_id: string;
+            /** Command Id */
+            command_id: string;
+            /** Correction Status */
+            correction_status: string;
+            /** Job Id */
+            job_id: string;
+            resource: components["schemas"]["CorrectionOut"];
+            /** Status */
+            status: string;
+            /** Status Url */
+            status_url: string;
+            /** Version */
+            version: number;
+        };
+        /** CorrectionCommandOut */
+        CorrectionCommandOut: {
+            /** Aggregate Id */
+            aggregate_id: string;
+            /** Command Id */
+            command_id: string;
+            resource: components["schemas"]["CorrectionOut"];
+            /** Status */
+            status: string;
+            /** Version */
+            version: number;
+        };
+        /** CorrectionHoldOut */
+        CorrectionHoldOut: {
+            /** Hold Id */
+            hold_id: string;
+            /** Reason Code */
+            reason_code: string;
+            /** Status */
+            status: string;
+        };
+        /**
+         * CorrectionItemOut
+         * @description One line of a correction plan. The three amounts are STRINGS.
+         */
+        CorrectionItemOut: {
+            /** Amount Label */
+            amount_label: string;
+            /** Contingent On */
+            contingent_on: string | null;
+            /** Corrected Cents */
+            corrected_cents: string;
+            /** Delta Cents */
+            delta_cents: string;
+            /** Description */
+            description: string;
+            /** Item Id */
+            item_id: string;
+            /** Original Cents */
+            original_cents: string;
+            /** Record */
+            record: Record<string, never>;
+            /** Requires Human */
+            requires_human: boolean;
+            /** State At Preview */
+            state_at_preview: string;
+            /** State Group */
+            state_group: string;
+            /** Treatment */
+            treatment: string;
+        };
+        /** CorrectionListOut */
+        CorrectionListOut: {
+            /** Items */
+            items: components["schemas"]["CorrectionOut"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** CorrectionOut */
+        CorrectionOut: {
+            approval: components["schemas"]["CorrectionApprovalOut"] | null;
+            /** Challenge Id */
+            challenge_id: string | null;
+            /** Completed At */
+            completed_at: string | null;
+            /** Contract Term Change */
+            contract_term_change: Record<string, never> | null;
+            /** Correlation Id */
+            correlation_id: string | null;
+            /** Evidence Hash */
+            evidence_hash: string | null;
+            /** Execution */
+            execution: Record<string, never>[];
+            /** Festival Id */
+            festival_id: string | null;
+            /** Generated At */
+            generated_at: string;
+            /** Holds */
+            holds: components["schemas"]["CorrectionHoldOut"][];
+            /** Id */
+            id: string;
+            /** Items */
+            items: components["schemas"]["CorrectionItemOut"][];
+            /** Nights */
+            nights: Record<string, never>[];
+            /** Paused Work */
+            paused_work: components["schemas"]["PausedWorkOut"][];
+            /** Policy Changes */
+            policy_changes: Record<string, never>[];
+            /** Preview Hash */
+            preview_hash: string | null;
+            /** Progress */
+            progress: Record<string, never>[];
+            /** Required Capability */
+            required_capability: string | null;
+            /** Results */
+            results: Record<string, never>[];
+            /** Status */
+            status: string;
+            /** Summary */
+            summary: string | null;
+            /** Totals */
+            totals: {
+                [key: string]: string;
+            };
+            /** Usages */
+            usages: Record<string, never>;
+            /** Vendor Id */
+            vendor_id: string | null;
+            /** Version */
+            version: number;
+        };
+        /** CreateApprovalRequest */
+        CreateApprovalRequest: {
+            /** Action */
+            action: string;
+            /** Case Id */
+            case_id?: string | null;
+            /** Note */
+            note?: string | null;
+            /** Payload */
+            payload?: Record<string, never> | null;
+            /** Subject Id */
+            subject_id: string;
+            /** Subject Type */
+            subject_type: string;
+        };
         /** CreatePayoutRequest */
         CreatePayoutRequest: {
             /** Settlement Id */
@@ -2940,6 +3930,28 @@ export interface components {
             /** Created */
             created: boolean;
             payout: components["schemas"]["PayoutOut"];
+        };
+        /** CreatePurchaseOrderOut */
+        CreatePurchaseOrderOut: {
+            /** Amount Cents */
+            amount_cents: number;
+            /** Created */
+            created: boolean;
+            /** Id */
+            id: string;
+            /** Po Number */
+            po_number: string;
+        };
+        /** CreateSupplierOut */
+        CreateSupplierOut: {
+            /** Created */
+            created: boolean;
+            /** Festival Id */
+            festival_id: string;
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
         };
         /** CreditNoteIn */
         CreditNoteIn: {
@@ -2965,6 +3977,28 @@ export interface components {
              * @default 0
              */
             tax_cents: number;
+        };
+        /** DailyCloseListOut */
+        DailyCloseListOut: {
+            /** Items */
+            items: components["schemas"]["DailyCloseOut"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** DailyCloseOut */
+        DailyCloseOut: {
+            /** Business Date */
+            business_date: string;
+            /** Checks */
+            checks: Record<string, never>;
+            /** Closed At */
+            closed_at: string | null;
+            /** Closed By */
+            closed_by: string | null;
+            /** Id */
+            id: string;
+            /** Journal Entry Count */
+            journal_entry_count: number;
         };
         /** DashboardOut */
         DashboardOut: {
@@ -3007,6 +4041,25 @@ export interface components {
             /** Note */
             note?: string | null;
         };
+        /** DecisionOut */
+        DecisionOut: {
+            case: components["schemas"]["CashCaseOut"];
+            /** Effect */
+            effect: Record<string, never>;
+        };
+        /**
+         * DefaultTermsOut
+         * @description What a vendor falls back to when its own terms leave a field null.
+         *     Read from the domain constants the engines apply, not restated here.
+         */
+        DefaultTermsOut: {
+            /** Basis */
+            basis: string;
+            /** Commission Bps */
+            commission_bps: number;
+            /** Festival Minimum Cents */
+            festival_minimum_cents: number;
+        };
         /** DeliveryReceiptIn */
         DeliveryReceiptIn: {
             /**
@@ -3014,6 +4067,8 @@ export interface components {
              * Format: date-time
              */
             accepted_at: string;
+            /** Accepted By */
+            accepted_by?: string | null;
             /**
              * Available At
              * Format: date-time
@@ -3077,6 +4132,150 @@ export interface components {
             outcome: string | null;
             payout: components["schemas"]["PayoutOut"];
         };
+        /** EventEnvelopeOut */
+        EventEnvelopeOut: {
+            /** Actor Id */
+            actor_id: string | null;
+            /** Actor Label */
+            actor_label: string | null;
+            /** Actor Ref */
+            actor_ref: string | null;
+            /** Actor Type */
+            actor_type: string;
+            /** Aggregate Id */
+            aggregate_id: string;
+            /** Aggregate Type */
+            aggregate_type: string;
+            /** Aggregate Version */
+            aggregate_version: number | null;
+            /** Backdated */
+            backdated: boolean;
+            /** Branch Id */
+            branch_id: string | null;
+            /** Business Date */
+            business_date: string | null;
+            /** Capability */
+            capability: string | null;
+            /** Category */
+            category: string;
+            /** Causation Id */
+            causation_id: string | null;
+            /** Command Id */
+            command_id: string | null;
+            /** Correlation Id */
+            correlation_id: string | null;
+            /** Cursor */
+            cursor: string;
+            /** Event Id */
+            event_id: string;
+            /** Global Position */
+            global_position: number;
+            /** Hash */
+            hash: string;
+            /** Input Refs */
+            input_refs: components["schemas"]["EventInputRefOut"][];
+            /** Links */
+            links: components["schemas"]["EventLinkOut"][];
+            /** Occurred At */
+            occurred_at: string;
+            /** Payload */
+            payload: Record<string, never>;
+            /** Previous Hash */
+            previous_hash: string | null;
+            /** Recorded At */
+            recorded_at: string;
+            /** Run Id */
+            run_id: string | null;
+            /** Schema Version */
+            schema_version: number;
+            /** Stream Id */
+            stream_id: string;
+            /** Stream Sequence */
+            stream_sequence: number;
+            /** Summary */
+            summary: string;
+            /** Type */
+            type: string;
+            /** Vendor Id */
+            vendor_id: string | null;
+            versions: components["schemas"]["EventVersionsOut"];
+        };
+        /** EventInputRefOut */
+        EventInputRefOut: {
+            /** Content Hash */
+            content_hash: string | null;
+            /** Locator */
+            locator: string | null;
+            /** Locator Kind */
+            locator_kind: string | null;
+            /** Source Id */
+            source_id: string | null;
+            /** Source Version */
+            source_version: number | null;
+        };
+        /**
+         * EventLinkOut
+         * @description A record this event touched (app/history.py `envelope`).
+         */
+        EventLinkOut: {
+            /** Id */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Label */
+            label: string;
+            /** Version */
+            version: number | null;
+        };
+        /** EventListOut */
+        EventListOut: {
+            /** Head Sequence */
+            head_sequence: number;
+            /** Items */
+            items: components["schemas"]["EventEnvelopeOut"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /**
+         * EventVersionsOut
+         * @description Which versioned thing produced this event. Null means "not applicable
+         *     to this event type", not "version zero".
+         */
+        EventVersionsOut: {
+            /** Calculation */
+            calculation: string | null;
+            /** Config */
+            config: string | null;
+            /** Model */
+            model: string | null;
+            /** Policy Version Ids */
+            policy_version_ids: string[];
+            /** Posting Rule */
+            posting_rule: string | null;
+            /** Prompt */
+            prompt: string | null;
+            /** Tool */
+            tool: string | null;
+        };
+        /**
+         * EvidenceRefOut
+         * @description A superseding document, as the challenge reports it. Note the key is
+         *     `source_id` here, not `source_document_id`.
+         */
+        EvidenceRefOut: {
+            /** Content Hash */
+            content_hash: string | null;
+            /** Locator */
+            locator: string | null;
+            /** Locator Kind */
+            locator_kind: string | null;
+            /** Quoted Excerpt */
+            quoted_excerpt: string | null;
+            /** Source Id */
+            source_id: string | null;
+            /** Source Version */
+            source_version: number | null;
+        };
         /** ExpenseIn */
         ExpenseIn: {
             /** Amount Cents */
@@ -3115,6 +4314,95 @@ export interface components {
             max_documents: number;
             /** Source Document Ids */
             source_document_ids?: string[] | null;
+        };
+        /** ExtractOut */
+        ExtractOut: {
+            /** Budget Usd Applied */
+            budget_usd_applied: number;
+            /** Capped By Daily Budget */
+            capped_by_daily_budget: boolean;
+            /** Counts */
+            counts: {
+                [key: string]: number;
+            };
+            /** Documents */
+            documents: number;
+            /** Model */
+            model: string;
+            /** Results */
+            results: components["schemas"]["ExtractResultOut"][];
+            /** Spent Usd Estimate */
+            spent_usd_estimate: number;
+            /** Stopped For Budget */
+            stopped_for_budget: boolean;
+        };
+        /**
+         * ExtractResultOut
+         * @description One document's outcome (app/agents/extraction.py `ExtractResult`).
+         *     `cost_usd` is deliberately NOT reported per document -- only the batch
+         *     total is, under `spent_usd_estimate`.
+         */
+        ExtractResultOut: {
+            /** Claims */
+            claims: number;
+            /** Extraction Id */
+            extraction_id: string | null;
+            /** Note */
+            note: string | null;
+            /** Source Document Id */
+            source_document_id: string;
+            /** Status */
+            status: string;
+            /** Verified */
+            verified: number;
+        };
+        /** ExtractionListOut */
+        ExtractionListOut: {
+            /** Items */
+            items: components["schemas"]["ExtractionOut"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** ExtractionOut */
+        ExtractionOut: {
+            /** Attempt */
+            attempt: number;
+            /** Content Hash */
+            content_hash: string;
+            /** Document Kind */
+            document_kind: string | null;
+            /** Embedded Instructions Detected */
+            embedded_instructions_detected: boolean | null;
+            /** Error */
+            error: string | null;
+            /** Id */
+            id: string;
+            /** Model Requested */
+            model_requested: string;
+            /** Model Served */
+            model_served: string | null;
+            /** Parser */
+            parser: string;
+            /** Prompt Version */
+            prompt_version: string;
+            /** Request Id */
+            request_id: string | null;
+            /** Retryable */
+            retryable: boolean;
+            /** Source Document Id */
+            source_document_id: string;
+            /** Status */
+            status: string;
+            /** Summary */
+            summary: string | null;
+            usage: components["schemas"]["ExtractionUsageOut"];
+        };
+        /** ExtractionUsageOut */
+        ExtractionUsageOut: {
+            /** Input Tokens */
+            input_tokens: number | null;
+            /** Output Tokens */
+            output_tokens: number | null;
         };
         /** FestivalIn */
         FestivalIn: {
@@ -3190,6 +4478,58 @@ export interface components {
             /** Version */
             version: number;
         };
+        /**
+         * FestivalReportOut
+         * @description Everything the organizer's one-page view needs, composed from the
+         *     reports above rather than recomputed.
+         */
+        FestivalReportOut: {
+            /** As Of */
+            as_of: string;
+            cash: components["schemas"]["CashReportOut"];
+            /** Cash Office And Bank Cases */
+            cash_office_and_bank_cases: components["schemas"]["CashCaseOut"][];
+            /** Chargeback Fees */
+            chargeback_fees: components["schemas"]["ChargebackFeeStatusOut"][];
+            /** Closed Business Dates */
+            closed_business_dates: string[];
+            /** Festival Id */
+            festival_id: string;
+            /** Journal Entry Counts By Kind */
+            journal_entry_counts_by_kind: {
+                [key: string]: number;
+            };
+            /** Labels */
+            labels: string[];
+            payables: components["schemas"]["PayablesSummaryOut"];
+            profit_and_loss: components["schemas"]["PnlReportOut"];
+            /** Sponsorship Receivables Memo */
+            sponsorship_receivables_memo: components["schemas"]["SponsorshipMemoOut"][];
+            tax: components["schemas"]["TaxReportOut"];
+        };
+        /** FinanceConfigOut */
+        FinanceConfigOut: {
+            /** Festival Id */
+            festival_id: string;
+            /** Forecast Horizon Days */
+            forecast_horizon_days: number;
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Payout Local Time */
+            payout_local_time: string;
+            /** Statement Local Time */
+            statement_local_time: string;
+            /** Status */
+            status: string;
+            /** Tax */
+            tax: Record<string, never>;
+            /** Timezone */
+            timezone: string;
+            /** Version */
+            version: number;
+        };
         /** FundCashPoolRequest */
         FundCashPoolRequest: {
             /** Additional Cents */
@@ -3201,6 +4541,53 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /**
+         * HealthOut
+         * @description Both health reads. `detail`/`error` are sent ONLY on the 503 branch of
+         *     readiness, so they carry defaults and both routes serialise with
+         *     `response_model_exclude_unset`: a healthy answer stays exactly
+         *     `{"status": "ok"}` rather than growing two null fields.
+         */
+        HealthOut: {
+            /** Detail */
+            detail?: string | null;
+            /** Error */
+            error?: string | null;
+            /** Status */
+            status: string;
+        };
+        /** HistoricalProjectionOut */
+        HistoricalProjectionOut: {
+            /** As Of Sequence */
+            as_of_sequence: number;
+            /** Branch Id */
+            branch_id: string | null;
+            /** Business Date */
+            business_date: string | null;
+            /** Events Applied */
+            events_applied: number;
+            /** Events Folded Total */
+            events_folded_total: number;
+            /** Festival Id */
+            festival_id: string;
+            /** Generated At */
+            generated_at: string;
+            /** Knowledge Cutoff */
+            knowledge_cutoff: string;
+            /** Label */
+            label: string;
+            /** Recorded Later */
+            recorded_later: Record<string, never>[];
+            /** Rows */
+            rows: components["schemas"]["ProjectionRowOut"][];
+            snapshot: components["schemas"]["SnapshotRefOut"] | null;
+            /** Snapshot Rejected */
+            snapshot_rejected: string | null;
+            /** State Hash */
+            state_hash: string;
+            /** Vendor Id */
+            vendor_id: string | null;
         };
         /** HoldOut */
         HoldOut: {
@@ -3259,6 +4646,54 @@ export interface components {
              */
             tax_cents: number;
         };
+        /**
+         * InvoiceOut
+         * @description One supplier invoice or credit note (`_invoice_out`).
+         */
+        InvoiceOut: {
+            /** Applies To Invoice Id */
+            applies_to_invoice_id: string | null;
+            /** Credited Cents */
+            credited_cents: number;
+            /** Due Date */
+            due_date: string | null;
+            /** Festival Id */
+            festival_id: string;
+            /** Gross Cents */
+            gross_cents: number;
+            /** Id */
+            id: string;
+            /** Invoice Date */
+            invoice_date: string;
+            /** Invoice Number */
+            invoice_number: string;
+            /** Journal Entry Id */
+            journal_entry_id: string | null;
+            /** Kind */
+            kind: string;
+            /** Net Cents */
+            net_cents: number;
+            /** Outstanding Cents */
+            outstanding_cents: number;
+            /** Paid Cents */
+            paid_cents: number;
+            /** Po Excess Cents */
+            po_excess_cents: number;
+            /** Po Refs */
+            po_refs: unknown[];
+            /** Source Refs */
+            source_refs: unknown[];
+            /** Status */
+            status: string;
+            /** Supplier Id */
+            supplier_id: string;
+            /** Tax Cents */
+            tax_cents: number;
+            /** Variance Approved By */
+            variance_approved_by: string | null;
+            /** Version */
+            version: number;
+        };
         /** IssueDayIn */
         IssueDayIn: {
             /**
@@ -3270,6 +4705,147 @@ export interface components {
             demo_effective_at?: string | null;
             /** Festival Id */
             festival_id: string;
+        };
+        /** IssueDayOut */
+        IssueDayOut: {
+            /** Statements */
+            statements: components["schemas"]["IssueDayStatementOut"][];
+        };
+        /** IssueDayStatementOut */
+        IssueDayStatementOut: {
+            /** Created */
+            created: boolean;
+            /** Issued On Time */
+            issued_on_time: boolean;
+            /** Statement Id */
+            statement_id: string;
+            /** Statement Version */
+            statement_version: number;
+            /** Status */
+            status: string;
+            /** Vendor Id */
+            vendor_id: string;
+        };
+        /** IssueStatementOut */
+        IssueStatementOut: {
+            /** Created */
+            created: boolean;
+            statement: components["schemas"]["StatementOut"];
+        };
+        /**
+         * JournalEntryOut
+         * @description A journal entry. `sources` and `corrections` are added only by the
+         *     drill-down (GET /journal/{id}), so they are defaulted and that route
+         *     serialises with `response_model_exclude_unset`.
+         */
+        JournalEntryOut: {
+            /** Business Date */
+            business_date: string | null;
+            /** Correction Of */
+            correction_of: string | null;
+            /**
+             * Corrections
+             * @default []
+             */
+            corrections: string[];
+            /** Entry Key */
+            entry_key: string;
+            /** Festival Id */
+            festival_id: string;
+            /** Id */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Lines */
+            lines: components["schemas"]["JournalLineOut"][];
+            /** Note */
+            note: string | null;
+            /** Posted At */
+            posted_at: string | null;
+            /** Posted By */
+            posted_by: string | null;
+            /** Posting Rule Version */
+            posting_rule_version: string | null;
+            /** Source Record Ids */
+            source_record_ids: string[];
+            /** Source Refs */
+            source_refs: unknown[];
+            /**
+             * Sources
+             * @default []
+             */
+            sources: Record<string, never>[];
+        };
+        /** JournalLineOut */
+        JournalLineOut: {
+            /** Account Code */
+            account_code: string;
+            /** Account Role */
+            account_role: string;
+            /** Credit Cents */
+            credit_cents: number;
+            /** Debit Cents */
+            debit_cents: number;
+        };
+        /** JournalListOut */
+        JournalListOut: {
+            /** Items */
+            items: components["schemas"]["JournalEntryOut"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /**
+         * LineageEdgeOut
+         * @description `later=true` points at a record created after the `from` one.
+         */
+        LineageEdgeOut: {
+            /** From */
+            from: string;
+            /** Later */
+            later: boolean;
+            /** Relation */
+            relation: string;
+            /** To */
+            to: string;
+        };
+        /**
+         * LineageOut
+         * @description A record traced back to the sources and decisions behind it.
+         *
+         *     `nodes`, `sources`, `decisions` and `root_node` are deliberately open
+         *     objects: a node's keys depend on its `kind` (a settlement node carries
+         *     `commission_bps_used`, a source-document node carries `content_hash` and
+         *     `locator`, a journal node carries `lines`). A fixed model would keep the
+         *     handful of keys every kind shares and silently drop the rest -- which is
+         *     most of what makes a lineage graph worth reading.
+         */
+        LineageOut: {
+            /** Decisions */
+            decisions: Record<string, never>[];
+            /** Edges */
+            edges: components["schemas"]["LineageEdgeOut"][];
+            /** Human Decisions */
+            human_decisions: Record<string, never>[];
+            /** Nodes */
+            nodes: Record<string, never>[];
+            /** Note */
+            note: string;
+            /** Root */
+            root: string;
+            /** Root Node */
+            root_node: Record<string, never>;
+            /** Sources */
+            sources: Record<string, never>[];
+            /** Truncated */
+            truncated: boolean;
+            vendor: components["schemas"]["LineageVendorOut"] | null;
+        };
+        /** LineageVendorOut */
+        LineageVendorOut: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
         };
         /** LoginRequest */
         LoginRequest: {
@@ -3381,6 +4957,52 @@ export interface components {
             /** Source Refs */
             source_refs?: unknown[];
         };
+        /** OpsAlertsOut */
+        OpsAlertsOut: {
+            /** Alerts */
+            alerts: components["schemas"]["AlertOut"][];
+            /** Checked At */
+            checked_at: string;
+            signals: components["schemas"]["OpsSignalsOut"];
+            /** Status */
+            status: string;
+        };
+        /**
+         * OpsSignalsOut
+         * @description The raw gauges the alerts are derived from (app/ops.py `Signals`).
+         */
+        OpsSignalsOut: {
+            /** Audit Chain Head Mismatches */
+            audit_chain_head_mismatches: number;
+            /** Audit Chain Head Streams */
+            audit_chain_head_streams: string[];
+            /** Claude Daily Budget Usd */
+            claude_daily_budget_usd: number;
+            /** Claude Spent 24H Usd Estimate */
+            claude_spent_24h_usd_estimate: number;
+            /** Outbox Failed */
+            outbox_failed: number;
+            /** Outbox Oldest Pending Age Seconds */
+            outbox_oldest_pending_age_seconds: number | null;
+            /** Outbox Pending */
+            outbox_pending: number;
+            /** Outbox Pending Stale */
+            outbox_pending_stale: number;
+            /** Outbox Unconsumed Pending */
+            outbox_unconsumed_pending: number;
+            /** Outbox Unknown */
+            outbox_unknown: number;
+            /** Payouts Recovery Required */
+            payouts_recovery_required: number;
+            /** Payouts Unknown */
+            payouts_unknown: number;
+            /** Runs Active */
+            runs_active: number;
+            /** Runs Stalled */
+            runs_stalled: number;
+            /** Worker Up */
+            worker_up: boolean | null;
+        };
         /** OrderListOut */
         OrderListOut: {
             /** Items */
@@ -3423,6 +5045,20 @@ export interface components {
             /** Vendor Id */
             vendor_id: string;
         };
+        /**
+         * PausedWorkOut
+         * @description Work a challenge paused. `hold_id` is only present for an entry that
+         *     took an actual hold, which is why the reads here serialise with
+         *     `response_model_exclude_unset`.
+         */
+        PausedWorkOut: {
+            /** Detail */
+            detail: string;
+            /** Hold Id */
+            hold_id?: string | null;
+            /** Record */
+            record: Record<string, never>;
+        };
         /** PayIn */
         PayIn: {
             /** Amount Cents */
@@ -3434,6 +5070,92 @@ export interface components {
              * Format: date
              */
             business_date: string;
+        };
+        /** PayInvoiceOut */
+        PayInvoiceOut: {
+            /** Created */
+            created: boolean;
+            invoice: components["schemas"]["InvoiceOut"];
+            payment: components["schemas"]["PaymentSimulationOut"];
+        };
+        /**
+         * PayableInvoiceOut
+         * @description An invoice as the payables summary lists it. Note this is NOT
+         *     `InvoiceOut`: the summary keys the id as `invoice_id`, adds the supplier
+         *     name and the cases blocking payment, and reports `variance_approved` as
+         *     a boolean instead of naming the approver.
+         */
+        PayableInvoiceOut: {
+            /** Applies To Invoice Id */
+            applies_to_invoice_id: string | null;
+            /** Blocking Case Ids */
+            blocking_case_ids: string[];
+            /** Credited Cents */
+            credited_cents: number;
+            /** Due Date */
+            due_date: string | null;
+            /** Gross Cents */
+            gross_cents: number;
+            /** Invoice Date */
+            invoice_date: string;
+            /** Invoice Id */
+            invoice_id: string;
+            /** Invoice Number */
+            invoice_number: string;
+            /** Journal Entry Id */
+            journal_entry_id: string | null;
+            /** Kind */
+            kind: string;
+            /** Outstanding Cents */
+            outstanding_cents: number;
+            /** Paid Cents */
+            paid_cents: number;
+            /** Po Excess Cents */
+            po_excess_cents: number;
+            /** Status */
+            status: string;
+            /** Supplier Id */
+            supplier_id: string;
+            /** Supplier Name */
+            supplier_name: string | null;
+            /** Variance Approved */
+            variance_approved: boolean;
+        };
+        /**
+         * PayablesOut
+         * @description GET /invoices: the summary, plus the collection envelope. `items` is
+         *     the same list as `invoices`, under the name every other collection uses;
+         *     `invoices` stays where the summary's existing callers look for it.
+         */
+        PayablesOut: {
+            /** As Of */
+            as_of: string;
+            /** Invoices */
+            invoices: components["schemas"]["PayableInvoiceOut"][];
+            /** Items */
+            items: components["schemas"]["PayableInvoiceOut"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+            /** Total Outstanding Cents */
+            total_outstanding_cents: number;
+        };
+        /**
+         * PayablesSummaryOut
+         * @description The payables summary as `payables.payables_summary` builds it.
+         *
+         *     This is the shape the FESTIVAL REPORT embeds. It has no `items` /
+         *     `next_cursor`: those are added by GET /invoices below, not by the
+         *     summary, so the two are deliberately different models. Declaring one
+         *     model for both made the festival report fail response validation --
+         *     which is how this difference was found.
+         */
+        PayablesSummaryOut: {
+            /** As Of */
+            as_of: string;
+            /** Invoices */
+            invoices: components["schemas"]["PayableInvoiceOut"][];
+            /** Total Outstanding Cents */
+            total_outstanding_cents: number;
         };
         /** PaymentListOut */
         PaymentListOut: {
@@ -3476,6 +5198,21 @@ export interface components {
             /** Vendor Id */
             vendor_id: string;
         };
+        /** PaymentSimulationOut */
+        PaymentSimulationOut: {
+            /** Amount Cents */
+            amount_cents: number;
+            /** Id */
+            id: string;
+            /** Journal Entry Id */
+            journal_entry_id: string | null;
+            /** Label */
+            label: string;
+            /** Payment Reference */
+            payment_reference: string;
+            /** State */
+            state: string;
+        };
         /** PayoutApprovalOut */
         PayoutApprovalOut: {
             /** Actor Id */
@@ -3490,6 +5227,17 @@ export interface components {
             id: string;
             /** Note */
             note: string | null;
+        };
+        /** PayoutControlsOut */
+        PayoutControlsOut: {
+            /** Auto Limit Cents Per Vendor Day */
+            auto_limit_cents_per_vendor_day: number;
+            /** Payment Mode */
+            payment_mode: string;
+            /** Payout Local Time */
+            payout_local_time: string | null;
+            /** Statement Local Time */
+            statement_local_time: string | null;
         };
         /** PayoutOut */
         PayoutOut: {
@@ -3533,12 +5281,42 @@ export interface components {
             /** Version */
             version: number;
         };
+        /** PnlLineOut */
+        PnlLineOut: {
+            /** Account Code */
+            account_code: string;
+            /** Account Role */
+            account_role: string;
+            /** Amount Cents */
+            amount_cents: number;
+            /** Name */
+            name: string;
+        };
+        /** PnlReportOut */
+        PnlReportOut: {
+            /** Expenses */
+            expenses: components["schemas"]["PnlLineOut"][];
+            /** Net Income Cents */
+            net_income_cents: number;
+            /** Note */
+            note: string;
+            /** Revenue */
+            revenue: components["schemas"]["PnlLineOut"][];
+            /** Through */
+            through: string | null;
+            /** Total Expenses Cents */
+            total_expenses_cents: number;
+            /** Total Revenue Cents */
+            total_revenue_cents: number;
+        };
         /** PolicyOut */
         PolicyOut: {
             /** Approver Ref */
             approver_ref: string | null;
             /** Effect */
             effect: Record<string, never>;
+            /** Evidence Hash */
+            evidence_hash: string | null;
             /** Evidence Refs */
             evidence_refs: unknown[];
             /** Id */
@@ -3549,6 +5327,8 @@ export interface components {
             policy_id: string;
             /** Predicates */
             predicates: Record<string, never>;
+            /** Required Capability */
+            required_capability: string;
             /** Scope */
             scope: Record<string, never>;
             /** Source Case Id */
@@ -3574,6 +5354,91 @@ export interface components {
             /** Festival Id */
             festival_id: string;
         };
+        /** PostDayOut */
+        PostDayOut: {
+            /** Posted */
+            posted: string[];
+            /** Unchanged */
+            unchanged: string[];
+        };
+        /**
+         * PostingStatusOut
+         * @description Whether a slip's cash has reached the books
+         *     (app/cash_office.py `_deposit_posting_status`).
+         */
+        PostingStatusOut: {
+            /** Bank Entry Id */
+            bank_entry_id: string | null;
+            /**
+             * Entry Keys
+             * @default []
+             */
+            entry_keys: string[];
+            /** Status */
+            status: string;
+        };
+        /**
+         * ProjectionMismatchOut
+         * @description One disagreement between the folded events and the live tables.
+         *
+         *     `live`/`projected` are absent (not null) on a `missing_event` finding --
+         *     there is no pair of values to compare -- which is why the route
+         *     serialises with `response_model_exclude_unset`.
+         */
+        ProjectionMismatchOut: {
+            /** Field */
+            field: string;
+            /** Id */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Live */
+            live?: unknown;
+            /** Projected */
+            projected?: unknown;
+        };
+        /**
+         * ProjectionRowOut
+         * @description One record as it stood at the knowledge cutoff.
+         */
+        ProjectionRowOut: {
+            /** Amount Cents */
+            amount_cents: string | null;
+            /** Amount Label */
+            amount_label: string | null;
+            /** Backdated */
+            backdated: boolean;
+            /** Business Date */
+            business_date: string | null;
+            /** Label */
+            label: string;
+            /** Note */
+            note: string | null;
+            /** Occurred At */
+            occurred_at: string;
+            /** Policy Version Id */
+            policy_version_id: string | null;
+            /** Record */
+            record: Record<string, never>;
+            /** Recorded At */
+            recorded_at: string;
+            /** Status */
+            status: string;
+            /** Vendor Id */
+            vendor_id: string | null;
+        };
+        /**
+         * ProtectedCashOut
+         * @description Cash that is in the bank but is not the organizer's to spend.
+         */
+        ProtectedCashOut: {
+            /** Customer Refunds Cents */
+            customer_refunds_cents: number;
+            /** Sales Tax Cents */
+            sales_tax_cents: number;
+            /** Tips Cents */
+            tips_cents: number;
+        };
         /** ProtectedWriteResponse */
         ProtectedWriteResponse: {
             /** Performed By */
@@ -3589,6 +5454,11 @@ export interface components {
             description?: string | null;
             /** Lines */
             lines?: components["schemas"]["PurchaseOrderLineIn"][] | null;
+            /**
+             * Partial Payment Allowed
+             * @default true
+             */
+            partial_payment_allowed: boolean;
             /**
              * Po Date
              * Format: date
@@ -3614,6 +5484,32 @@ export interface components {
             /** Unit Price Cents */
             unit_price_cents: number;
         };
+        /** PurchaseOrderListOut */
+        PurchaseOrderListOut: {
+            /** Items */
+            items: components["schemas"]["PurchaseOrderOut"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** PurchaseOrderOut */
+        PurchaseOrderOut: {
+            /** Amount Cents */
+            amount_cents: number;
+            /** Id */
+            id: string;
+            /** Invoiced Cents */
+            invoiced_cents: number;
+            /** Po Date */
+            po_date: string;
+            /** Po Number */
+            po_number: string;
+            /** Receipt Evidence Refs */
+            receipt_evidence_refs: unknown[];
+            /** Source Refs */
+            source_refs: unknown[];
+            /** Supplier Id */
+            supplier_id: string;
+        };
         /** ReasonOut */
         ReasonOut: {
             /** Auto Resolved */
@@ -3635,6 +5531,52 @@ export interface components {
             /** Festival Id */
             festival_id: string;
         };
+        /** RecognizeTicketsOut */
+        RecognizeTicketsOut: {
+            /** Created */
+            created: boolean;
+            /** Entry Key */
+            entry_key: string | null;
+        };
+        /** RecomputeIn */
+        RecomputeIn: {
+            /** Counterparty Id */
+            counterparty_id?: string | null;
+            /**
+             * Counterparty Type
+             * @default vendor
+             */
+            counterparty_type: string;
+            /**
+             * Festival End
+             * Format: date
+             */
+            festival_end: string;
+            /** Festival Id */
+            festival_id: string;
+            /**
+             * Festival Start
+             * Format: date
+             */
+            festival_start: string;
+        };
+        /** ReconcileOut */
+        ReconcileOut: {
+            /** Business Date */
+            business_date: string;
+            /** Festival Id */
+            festival_id: string;
+            /** Open Case Ids */
+            open_case_ids: string[];
+            /** Slips */
+            slips: components["schemas"]["ReconcileSlipOut"][];
+            /** Unlabelled Bag Case Ids */
+            unlabelled_bag_case_ids: string[];
+            /** Unlabelled Bags */
+            unlabelled_bags: components["schemas"]["UnlabelledBagOut"][];
+            /** Vendors */
+            vendors: components["schemas"]["ReconcileVendorOut"][];
+        };
         /** ReconcileRequest */
         ReconcileRequest: {
             /**
@@ -3643,8 +5585,196 @@ export interface components {
              */
             resolved_outcome: "ACCEPTED" | "DELAYED" | "FAILED" | "UNKNOWN";
         };
-        /** ReleaseRequest */
+        /** ReconcileSlipOut */
+        ReconcileSlipOut: {
+            /** Bag Count Mismatches */
+            bag_count_mismatches: number;
+            /** Bag Total Cents */
+            bag_total_cents: number;
+            /** Bank Cents */
+            bank_cents: number | null;
+            /** Bank Entry Id */
+            bank_entry_id: string | null;
+            /** Bank Variance Cents */
+            bank_variance_cents: number | null;
+            /** Case Id */
+            case_id: string | null;
+            posting: components["schemas"]["PostingStatusOut"];
+            /** Slip Id */
+            slip_id: string;
+            /** Slip Reference */
+            slip_reference: string;
+            /** Stated Total Cents */
+            stated_total_cents: number;
+            /** Status */
+            status: string;
+            /** Unlabelled Bag Count */
+            unlabelled_bag_count: number;
+        };
+        /** ReconcileVendorOut */
+        ReconcileVendorOut: {
+            /** Case Id */
+            case_id: string | null;
+            /** Cash Count Ids */
+            cash_count_ids: string[];
+            /** Counted Cents */
+            counted_cents: number | null;
+            /** Expected Pos Cash Cents */
+            expected_pos_cash_cents: number;
+            /** Status */
+            status: string | null;
+            /** Variance Cents */
+            variance_cents: number | null;
+            /** Vendor Id */
+            vendor_id: string;
+        };
+        /** RecordCountOut */
+        RecordCountOut: {
+            count: components["schemas"]["CashOfficeCountOut"];
+            /** Created */
+            created: boolean;
+        };
+        /**
+         * RecordCreatedOut
+         * @description The common reply for the one-shot organizer records (`_record`).
+         */
+        RecordCreatedOut: {
+            /** Created */
+            created: boolean;
+            /** Id */
+            id: string;
+        };
+        /** RecordCreditNoteOut */
+        RecordCreditNoteOut: {
+            /** Created */
+            created: boolean;
+            credit_note: components["schemas"]["InvoiceOut"];
+            invoice: components["schemas"]["InvoiceOut"];
+        };
+        /** RecordInvoiceOut */
+        RecordInvoiceOut: {
+            /** Case Ids */
+            case_ids: string[];
+            /** Created */
+            created: boolean;
+            invoice: components["schemas"]["InvoiceOut"];
+        };
+        /** RecordSlipOut */
+        RecordSlipOut: {
+            /** Bag Total Cents */
+            bag_total_cents: number;
+            /** Check Status */
+            check_status: string;
+            /** Created */
+            created: boolean;
+            posting: components["schemas"]["PostingStatusOut"];
+            /** Slip Id */
+            slip_id: string;
+            /** Slip Reference */
+            slip_reference: string;
+            /** Unlabelled Bag Count */
+            unlabelled_bag_count: number;
+        };
+        /** RecoveryActionOut */
+        RecoveryActionOut: {
+            /** Action */
+            action: string;
+            /** Actor Id */
+            actor_id: string | null;
+            /** Amount Cents */
+            amount_cents: number;
+            /** At */
+            at: string | null;
+            /** Capability */
+            capability: string | null;
+            /** Id */
+            id: string;
+            /** Journal Entry Id */
+            journal_entry_id: string | null;
+            /** Note */
+            note: string | null;
+            /** Payout Id */
+            payout_id: string | null;
+        };
+        /** RecoveryCommandOut */
+        RecoveryCommandOut: {
+            /** Aggregate Id */
+            aggregate_id: string;
+            /** Command Id */
+            command_id: string;
+            resource: components["schemas"]["RecoveryOut"];
+            /** Status */
+            status: string;
+            /** Version */
+            version: number;
+        };
+        /** RecoveryListOut */
+        RecoveryListOut: {
+            /** Items */
+            items: components["schemas"]["RecoveryOut"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** RecoveryOut */
+        RecoveryOut: {
+            /** Actions */
+            actions: components["schemas"]["RecoveryActionOut"][];
+            /** Amount Cents */
+            amount_cents: number;
+            /** Business Date */
+            business_date: string | null;
+            /** Festival Id */
+            festival_id: string | null;
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Offset Cents */
+            offset_cents: number;
+            /** Origin Id */
+            origin_id: string;
+            /** Origin Kind */
+            origin_kind: string;
+            /** Payout Id */
+            payout_id: string | null;
+            /** Reason */
+            reason: string | null;
+            /** Received Cents */
+            received_cents: number;
+            /** Remaining Cents */
+            remaining_cents: number;
+            /** Settlement Id */
+            settlement_id: string | null;
+            /** Status */
+            status: string;
+            /** Vendor Id */
+            vendor_id: string;
+            /** Version */
+            version: number;
+            /** Waived Cents */
+            waived_cents: number;
+        };
+        /** ReleaseCashPoolOut */
+        ReleaseCashPoolOut: {
+            /** Available Cents */
+            available_cents: number;
+            /** Exceeds Book Spendable */
+            exceeds_book_spendable: boolean;
+            /** Note */
+            note: string;
+            /** Reserved Cents */
+            reserved_cents: number;
+        };
+        /**
+         * ReleaseRequest
+         * @description Release takes the same shape, although no UI screen calls it yet
+         *     (there is no `release` operation in apps/web's client): a caller that
+         *     retries a release through the command client must not have its
+         *     `expected_version` quietly dropped either.
+         */
         ReleaseRequest: {
+            /** Command Id */
+            command_id?: string | null;
             /** Expected Version */
             expected_version?: number | null;
         };
@@ -3655,6 +5785,64 @@ export interface components {
             /** Changed */
             changed: boolean;
             payout: components["schemas"]["PayoutOut"];
+        };
+        /** ReplayCommandOut */
+        ReplayCommandOut: {
+            /** Aggregate Id */
+            aggregate_id: string;
+            /** Command Id */
+            command_id: string;
+            resource: components["schemas"]["ReplayOut"];
+            /** Status */
+            status: string;
+            /** Version */
+            version: number;
+        };
+        /** ReplayListOut */
+        ReplayListOut: {
+            /** Items */
+            items: components["schemas"]["ReplayOut"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** ReplayOut */
+        ReplayOut: {
+            /** Checks */
+            checks: Record<string, never>;
+            /** Completed At */
+            completed_at: string | null;
+            /** Created At */
+            created_at: string | null;
+            /** Created By */
+            created_by: string | null;
+            /** Divergences */
+            divergences: Record<string, never>[];
+            /** Effects */
+            effects: Record<string, never>;
+            /** From Sequence */
+            from_sequence: number | null;
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Matching */
+            matching: number;
+            /** Mode */
+            mode: string;
+            /** Processed */
+            processed: number;
+            /** Run Id */
+            run_id: string | null;
+            /** Scope */
+            scope: Record<string, never>;
+            /** Status */
+            status: string;
+            /** To Sequence */
+            to_sequence: number | null;
+            /** Total */
+            total: number;
+            /** Version */
+            version: number;
         };
         /** ReportListOut */
         ReportListOut: {
@@ -3751,6 +5939,8 @@ export interface components {
         ResolveCaseRequest: {
             /** Action */
             action?: string | null;
+            /** Command Id */
+            command_id?: string | null;
             /** Commission Bps */
             commission_bps?: number | null;
             /** Decision */
@@ -3769,6 +5959,21 @@ export interface components {
             option_id?: string | null;
             /** Resolution Note */
             resolution_note?: string | null;
+        };
+        /** ResolveTermsOut */
+        ResolveTermsOut: {
+            /** As Of */
+            as_of: string;
+            /** Business Date */
+            business_date: string;
+            /** Counts */
+            counts: {
+                [key: string]: number;
+            };
+            /** Festival Id */
+            festival_id: string;
+            /** Vendors */
+            vendors: components["schemas"]["TermsVendorOutcomeOut"][];
         };
         /** ResolveTermsRequest */
         ResolveTermsRequest: {
@@ -3789,6 +5994,23 @@ export interface components {
             /** Note */
             note?: string | null;
         };
+        /**
+         * ResumeOut
+         * @description The resume reply (202 created, 200 on idempotent replay). Also a
+         *     JSONResponse, so this documents rather than shapes the body.
+         */
+        ResumeOut: {
+            /** Command Id */
+            command_id: string;
+            /** Created */
+            created: boolean;
+            /** Kind */
+            kind: string;
+            /** Status */
+            status: string;
+            /** Status Url */
+            status_url: string;
+        };
         /** RevisePolicyRequest */
         RevisePolicyRequest: {
             /** Effect */
@@ -3802,6 +6024,157 @@ export interface components {
             valid_from: string;
             /** Valid To */
             valid_to?: string | null;
+        };
+        /** RunDetailOut */
+        RunDetailOut: {
+            /** Budget Usd */
+            budget_usd: number;
+            /** Business Date */
+            business_date: string;
+            /** Claim Count */
+            claim_count: number;
+            /** Completed At */
+            completed_at: string | null;
+            /** Created At */
+            created_at: string | null;
+            /** Explain Cases */
+            explain_cases: boolean;
+            /** Festival Id */
+            festival_id: string;
+            /** Graph Version */
+            graph_version: string;
+            /** Id */
+            id: string;
+            /** Is Final Period */
+            is_final_period: boolean;
+            /** Last Error */
+            last_error: string | null;
+            /** Lease Expires At */
+            lease_expires_at: string | null;
+            /** Lease Owner */
+            lease_owner: string | null;
+            /** Max Concurrency */
+            max_concurrency: number;
+            /** Needs Work */
+            needs_work: boolean;
+            /** Requested By */
+            requested_by: string | null;
+            /** Reserved Usd */
+            reserved_usd: number;
+            /** Run Id */
+            run_id: string;
+            /** Spent Usd */
+            spent_usd: number;
+            /** Started At */
+            started_at: string | null;
+            /** Status */
+            status: string;
+            /** Status Url */
+            status_url: string;
+            /** Vendor Counts */
+            vendor_counts: {
+                [key: string]: number;
+            };
+            /** Vendor Runs */
+            vendor_runs: components["schemas"]["VendorRunOut"][];
+            vendor_summary: components["schemas"]["RunVendorSummaryOut"];
+            /** Vendors */
+            vendors: components["schemas"]["VendorGraphStateOut"][];
+            /** Version */
+            version: number;
+        };
+        /** RunEventListOut */
+        RunEventListOut: {
+            /** Items */
+            items: components["schemas"]["RunEventOut"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** RunEventOut */
+        RunEventOut: {
+            /** Actor Capability */
+            actor_capability: string | null;
+            /** Actor Id */
+            actor_id: string | null;
+            /** Actor Type */
+            actor_type: string;
+            /** Command Id */
+            command_id: string | null;
+            /** Event Id */
+            event_id: string;
+            /** Event Type */
+            event_type: string;
+            /** Hash */
+            hash: string;
+            /** Payload */
+            payload: Record<string, never>;
+            /** Recorded At */
+            recorded_at: string | null;
+            /** Sequence */
+            sequence: number;
+            /** Stream Id */
+            stream_id: string;
+            /** Vendor Id */
+            vendor_id: string | null;
+            /** Versions */
+            versions: Record<string, never> | null;
+        };
+        /** RunListOut */
+        RunListOut: {
+            /** Items */
+            items: components["schemas"]["RunOut"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** RunOut */
+        RunOut: {
+            /** Budget Usd */
+            budget_usd: number;
+            /** Business Date */
+            business_date: string;
+            /** Claim Count */
+            claim_count: number;
+            /** Completed At */
+            completed_at: string | null;
+            /** Created At */
+            created_at: string | null;
+            /** Explain Cases */
+            explain_cases: boolean;
+            /** Festival Id */
+            festival_id: string;
+            /** Graph Version */
+            graph_version: string;
+            /** Id */
+            id: string;
+            /** Is Final Period */
+            is_final_period: boolean;
+            /** Last Error */
+            last_error: string | null;
+            /** Lease Expires At */
+            lease_expires_at: string | null;
+            /** Lease Owner */
+            lease_owner: string | null;
+            /** Max Concurrency */
+            max_concurrency: number;
+            /** Needs Work */
+            needs_work: boolean;
+            /** Requested By */
+            requested_by: string | null;
+            /** Reserved Usd */
+            reserved_usd: number;
+            /** Run Id */
+            run_id: string;
+            /** Spent Usd */
+            spent_usd: number;
+            /** Started At */
+            started_at: string | null;
+            /** Status */
+            status: string;
+            /** Status Url */
+            status_url: string;
+            vendor_summary: components["schemas"]["RunVendorSummaryOut"];
+            /** Version */
+            version: number;
         };
         /** RunRequest */
         RunRequest: {
@@ -3827,12 +6200,60 @@ export interface components {
             /** Vendor Results */
             vendor_results: components["schemas"]["VendorResultOut"][];
         };
+        /**
+         * RunVendorSummaryOut
+         * @description Server-derived counts of vendor runs by state. C04 makes completion a
+         *     property of every vendor obligation, so the count is computed here and the
+         *     UI displays it rather than recounting from a partial page.
+         */
+        RunVendorSummaryOut: {
+            /** Active */
+            active: number;
+            /** Completed */
+            completed: number;
+            /** Failed */
+            failed: number;
+            /** Held */
+            held: number;
+            /** Total */
+            total: number;
+        };
+        /** ScanBankEntryOut */
+        ScanBankEntryOut: {
+            /** Bank Entry Id */
+            bank_entry_id: string;
+            /** Business Date */
+            business_date: string;
+            /** Case Id */
+            case_id: string | null;
+            /** Entry Keys */
+            entry_keys: string[];
+            /** Explained By */
+            explained_by: string | null;
+            /** Provider Reference */
+            provider_reference: string | null;
+            /** Signed Amount Cents */
+            signed_amount_cents: number;
+            /** Status */
+            status: string | null;
+        };
         /** ScanIn */
         ScanIn: {
             /** Business Date */
             business_date?: string | null;
             /** Festival Id */
             festival_id: string;
+        };
+        /** ScanOut */
+        ScanOut: {
+            /** Bank Entries */
+            bank_entries: components["schemas"]["ScanBankEntryOut"][];
+            /** Business Date */
+            business_date: string | null;
+            /** Festival Id */
+            festival_id: string;
+            /** Unmatched Count */
+            unmatched_count: number;
         };
         /** SettlementLineItemOut */
         SettlementLineItemOut: {
@@ -3940,6 +6361,41 @@ export interface components {
             /** Potential Credit Cents */
             potential_credit_cents: number;
         };
+        /** SlipBagOut */
+        SlipBagOut: {
+            /** Amount Cents */
+            amount_cents: number;
+            /** Bag Reference */
+            bag_reference: string;
+            /** Cash Count Id */
+            cash_count_id: string | null;
+            /** Id */
+            id: string;
+        };
+        /** SlipDetailOut */
+        SlipDetailOut: {
+            /** Bag Total Cents */
+            bag_total_cents: number;
+            /** Bags */
+            bags: components["schemas"]["SlipBagOut"][];
+            /** Bank Cents */
+            bank_cents: number | null;
+            /** Bank Variance Cents */
+            bank_variance_cents: number | null;
+            /** Business Date */
+            business_date: string;
+            /** Check Status */
+            check_status: string;
+            posting: components["schemas"]["PostingStatusOut"];
+            /** Slip Id */
+            slip_id: string;
+            /** Slip Reference */
+            slip_reference: string;
+            /** Source Refs */
+            source_refs: unknown[];
+            /** Stated Total Cents */
+            stated_total_cents: number;
+        };
         /** SlipIn */
         SlipIn: {
             /** Bags */
@@ -3961,6 +6417,49 @@ export interface components {
             source_refs?: unknown[];
             /** Total Cents */
             total_cents: number;
+        };
+        /**
+         * SlipSummaryOut
+         * @description A slip as the cash-office view lists it.
+         */
+        SlipSummaryOut: {
+            /** Bag Total Cents */
+            bag_total_cents: number;
+            /** Bank Cents */
+            bank_cents: number | null;
+            /** Business Date */
+            business_date: string;
+            posting: components["schemas"]["PostingStatusOut"];
+            /** Slip Id */
+            slip_id: string;
+            /** Slip Reference */
+            slip_reference: string;
+            /** Status */
+            status: string;
+        };
+        /** SnapshotListOut */
+        SnapshotListOut: {
+            /** Items */
+            items: components["schemas"]["SnapshotRefOut"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** SnapshotRefOut */
+        SnapshotRefOut: {
+            /** Computed At */
+            computed_at: string | null;
+            /** Events Folded */
+            events_folded: number;
+            /** Projection Schema Version */
+            projection_schema_version: number;
+            /** Snapshot Id */
+            snapshot_id: string;
+            /** State Hash */
+            state_hash: string;
+            /** Stream Cursor */
+            stream_cursor: string;
+            /** Taken At */
+            taken_at: string | null;
         };
         /** SourceDocumentListOut */
         SourceDocumentListOut: {
@@ -4074,6 +6573,87 @@ export interface components {
             /** Sponsor Invoice Id */
             sponsor_invoice_id: string;
         };
+        /** SponsorshipMemoOut */
+        SponsorshipMemoOut: {
+            /** Amount Cents */
+            amount_cents: number;
+            /** Invoice Number */
+            invoice_number: string;
+            /** Outstanding Memo Cents */
+            outstanding_memo_cents: number;
+            /** Received Cents */
+            received_cents: number;
+            /** Sponsor Invoice Id */
+            sponsor_invoice_id: string;
+            /** Sponsor Name */
+            sponsor_name: string;
+            /** Status */
+            status: string;
+        };
+        /**
+         * StartRunOut
+         * @description The start-run reply: the C03 long-job envelope plus the run itself.
+         *
+         *     The job IS the run here -- there is no separate job record -- so the
+         *     run's id and status URL are repeated under the names a command client
+         *     follows. Sent 202 when the run was created and 200 on an idempotent
+         *     replay, and the handler returns a JSONResponse, so nothing below is
+         *     filtered: this model documents the body rather than shaping it.
+         */
+        StartRunOut: {
+            /** Budget Usd */
+            budget_usd: number;
+            /** Business Date */
+            business_date: string;
+            /** Claim Count */
+            claim_count: number;
+            /** Command Id */
+            command_id: string;
+            /** Completed At */
+            completed_at: string | null;
+            /** Created */
+            created: boolean;
+            /** Created At */
+            created_at: string | null;
+            /** Explain Cases */
+            explain_cases: boolean;
+            /** Festival Id */
+            festival_id: string;
+            /** Graph Version */
+            graph_version: string;
+            /** Id */
+            id: string;
+            /** Is Final Period */
+            is_final_period: boolean;
+            /** Job Id */
+            job_id: string;
+            /** Last Error */
+            last_error: string | null;
+            /** Lease Expires At */
+            lease_expires_at: string | null;
+            /** Lease Owner */
+            lease_owner: string | null;
+            /** Max Concurrency */
+            max_concurrency: number;
+            /** Needs Work */
+            needs_work: boolean;
+            /** Requested By */
+            requested_by: string | null;
+            /** Reserved Usd */
+            reserved_usd: number;
+            /** Run Id */
+            run_id: string;
+            /** Spent Usd */
+            spent_usd: number;
+            /** Started At */
+            started_at: string | null;
+            /** Status */
+            status: string;
+            /** Status Url */
+            status_url: string;
+            /** Version */
+            version: number;
+        };
         /** StatementIn */
         StatementIn: {
             /**
@@ -4083,6 +6663,44 @@ export interface components {
             business_date: string;
             /** Demo Effective At */
             demo_effective_at?: string | null;
+            /** Vendor Id */
+            vendor_id: string;
+        };
+        /** StatementListOut */
+        StatementListOut: {
+            /** Items */
+            items: components["schemas"]["StatementOut"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** StatementOut */
+        StatementOut: {
+            /** Business Date */
+            business_date: string;
+            /** Content */
+            content: Record<string, never>;
+            /** Due By */
+            due_by: string;
+            /** Finance Config Id */
+            finance_config_id: string | null;
+            /** Id */
+            id: string;
+            /** Issued At */
+            issued_at: string | null;
+            /** Issued On Time */
+            issued_on_time: boolean;
+            /** Payout Id */
+            payout_id: string | null;
+            /** Payout State */
+            payout_state: string | null;
+            /** Settlement Id */
+            settlement_id: string | null;
+            /** Statement Version */
+            statement_version: number;
+            /** Status */
+            status: string;
+            /** Supersedes Statement Id */
+            supersedes_statement_id: string | null;
             /** Vendor Id */
             vendor_id: string;
         };
@@ -4113,6 +6731,22 @@ export interface components {
             category?: string | null;
             /** Festival Id */
             festival_id: string;
+            /** Name */
+            name: string;
+        };
+        /** SupplierListOut */
+        SupplierListOut: {
+            /** Items */
+            items: components["schemas"]["SupplierOut"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** SupplierOut */
+        SupplierOut: {
+            /** Category */
+            category: string | null;
+            /** Id */
+            id: string;
             /** Name */
             name: string;
         };
@@ -4193,6 +6827,140 @@ export interface components {
             /** Reason */
             reason: string;
         };
+        /** SuspenseBlockOut */
+        SuspenseBlockOut: {
+            /** Items */
+            items: components["schemas"]["SuspenseItemOut"][];
+            /** Note */
+            note: string;
+            /** Suspense Cents */
+            suspense_cents: number;
+        };
+        /**
+         * SuspenseItemOut
+         * @description A bank entry held in suspense because no record explains it.
+         */
+        SuspenseItemOut: {
+            /** Bank Entry Id */
+            bank_entry_id: string;
+            /** Business Date */
+            business_date: string;
+            /** Case Id */
+            case_id: string | null;
+            /** Case Status */
+            case_status: string | null;
+            /** Status */
+            status: string;
+            /** Suspense Cents */
+            suspense_cents: number;
+        };
+        /** TaxLineageOut */
+        TaxLineageOut: {
+            /** Decisions */
+            decisions: Record<string, never>[];
+            /** Edges */
+            edges: components["schemas"]["LineageEdgeOut"][];
+            /** Entries Truncated */
+            entries_truncated: boolean;
+            /** Human Decisions */
+            human_decisions: Record<string, never>[];
+            /** Nodes */
+            nodes: Record<string, never>[];
+            /** Note */
+            note: string;
+            /** Root */
+            root: string;
+            /** Root Node */
+            root_node: Record<string, never>;
+            /** Sources */
+            sources: Record<string, never>[];
+            /** Truncated */
+            truncated: boolean;
+            vendor: components["schemas"]["LineageVendorOut"] | null;
+        };
+        /**
+         * TaxReportOut
+         * @description Draft sales tax. `by_business_date` and `mismatch_lines` stay open
+         *     objects: a per-date row only carries the columns that apply to it (a
+         *     night with no vendor-retained sales has no vendor-retained keys at all),
+         *     so a model would either invent them as null or drop them.
+         */
+        TaxReportOut: {
+            /** By Business Date */
+            by_business_date: Record<string, never>[];
+            /** Config Label */
+            config_label: string | null;
+            /** Finance Config Id */
+            finance_config_id: string;
+            /** Finance Config Version */
+            finance_config_version: number;
+            /** Journal Sales Tax Liability Cents */
+            journal_sales_tax_liability_cents: number;
+            /** Mismatch Lines */
+            mismatch_lines: Record<string, never>[];
+            /** Source Totals Match Journal */
+            source_totals_match_journal: boolean;
+            /** Status */
+            status: string;
+            totals: components["schemas"]["TaxTotalsOut"];
+        };
+        /** TaxTotalsOut */
+        TaxTotalsOut: {
+            /** Central Recalculated Tax Cents */
+            central_recalculated_tax_cents: number;
+            /** Central Supplied Tax Cents */
+            central_supplied_tax_cents: number;
+            /** Vendor Retained Supplied Tax Memo Cents */
+            vendor_retained_supplied_tax_memo_cents: number;
+        };
+        /** TermsCaseOpenedOut */
+        TermsCaseOpenedOut: {
+            /** Blocking */
+            blocking: boolean;
+            /** Case Id */
+            case_id: string;
+            /** Reason Code */
+            reason_code: string;
+        };
+        /**
+         * TermsVendorOutcomeOut
+         * @description What TERMS_RESOLVED decided for one vendor
+         *     (app/terms_resolution.py `VendorTermsOutcome`).
+         *
+         *     Every term value is `| None`, and null means "no signed document
+         *     evidences this field" -- never zero. A screen that read null as 0%
+         *     commission would invent a rate nobody agreed to.
+         */
+        TermsVendorOutcomeOut: {
+            /** Action */
+            action: string;
+            /** Case Ids */
+            case_ids: string[];
+            /** Cases Opened */
+            cases_opened: components["schemas"]["TermsCaseOpenedOut"][];
+            /** Commission Bps */
+            commission_bps: number | null;
+            /** Conflicts Proposed */
+            conflicts_proposed: number;
+            /** Detail */
+            detail: Record<string, never>;
+            /** Minimum Fee Cents */
+            minimum_fee_cents: number | null;
+            /** Minimum Period */
+            minimum_period: string | null;
+            /** Processor Fee Deductible */
+            processor_fee_deductible: boolean | null;
+            /** Status */
+            status: string;
+            /** Term Id */
+            term_id: string | null;
+            /** Term Version */
+            term_version: number | null;
+            /** Unresolved */
+            unresolved: string[];
+            /** Vendor Id */
+            vendor_id: string;
+        };
         /** TicketIn */
         TicketIn: {
             /** Bank Entry Id */
@@ -4249,6 +7017,73 @@ export interface components {
             /** Vendors */
             vendors: number;
         };
+        /** TrialBalanceOut */
+        TrialBalanceOut: {
+            /** Balanced */
+            balanced: boolean;
+            /** Rows */
+            rows: components["schemas"]["TrialBalanceRowOut"][];
+            /** Through */
+            through: string | null;
+            /** Total Credit Cents */
+            total_credit_cents: number;
+            /** Total Debit Cents */
+            total_debit_cents: number;
+        };
+        /** TrialBalanceRowOut */
+        TrialBalanceRowOut: {
+            /** Account Code */
+            account_code: string;
+            /** Account Role */
+            account_role: string;
+            /** Category */
+            category: string;
+            /** Credit Cents */
+            credit_cents: number;
+            /** Debit Cents */
+            debit_cents: number;
+            /** Name */
+            name: string;
+        };
+        /** UnlabelledBagOut */
+        UnlabelledBagOut: {
+            /** Amount Cents */
+            amount_cents: number;
+            /** Bag Id */
+            bag_id: string;
+            /** Bag Reference */
+            bag_reference: string;
+            /** Slip Id */
+            slip_id: string;
+        };
+        /** UpcomingObligationOut */
+        UpcomingObligationOut: {
+            /** Amount Cents */
+            amount_cents: number;
+            /** Due Date */
+            due_date: string | null;
+            /** Kind */
+            kind: string;
+            /** Ref Id */
+            ref_id: string;
+            /** Within Horizon */
+            within_horizon: boolean;
+        };
+        /** UpcomingPayoutOut */
+        UpcomingPayoutOut: {
+            /** Amount Cents */
+            amount_cents: number;
+            /** Business Date */
+            business_date: string;
+            /** Included In Vendor Funds Payable */
+            included_in_vendor_funds_payable: boolean;
+            /** Payout Id */
+            payout_id: string;
+            /** State */
+            state: string;
+            /** Vendor Id */
+            vendor_id: string;
+        };
         /** UpdateBeneficiaryRequest */
         UpdateBeneficiaryRequest: {
             /** Beneficiary Details */
@@ -4267,6 +7102,59 @@ export interface components {
         VarianceIn: {
             /** Note */
             note?: string | null;
+        };
+        /** VendorCaseOut */
+        VendorCaseOut: {
+            /** Case Id */
+            case_id: string;
+            /** Explanations */
+            explanations: components["schemas"]["CaseExplanationOut"][];
+            /** Financial Impact Cents */
+            financial_impact_cents: number;
+            /** Reason Code */
+            reason_code: string;
+            /** Status */
+            status: string;
+        };
+        /** VendorCommandOut */
+        VendorCommandOut: {
+            /** Actor Id */
+            actor_id: string | null;
+            /** Command Id */
+            command_id: string;
+            /** Kind */
+            kind: string;
+            /** Status */
+            status: string;
+        };
+        /**
+         * VendorContractTermHistoryOut
+         * @description One recorded version of a vendor's terms. Old versions are never
+         *     edited, so a list of these is the full history.
+         */
+        VendorContractTermHistoryOut: {
+            /** Approved By */
+            approved_by: string | null;
+            /** Basis */
+            basis: string;
+            /** Commission Bps */
+            commission_bps: number;
+            /** Effective From */
+            effective_from: string | null;
+            /** Effective To */
+            effective_to: string | null;
+            /** Id */
+            id: string;
+            /** Minimum Fee Cents */
+            minimum_fee_cents: number | null;
+            /** Processor Fee Deductible */
+            processor_fee_deductible: boolean;
+            /** Source Refs */
+            source_refs: unknown[];
+            /** Status */
+            status: string;
+            /** Version */
+            version: number;
         };
         /** VendorContractTermOut */
         VendorContractTermOut: {
@@ -4335,6 +7223,38 @@ export interface components {
             /** Version */
             version: number;
         };
+        /**
+         * VendorGraphStateOut
+         * @description A vendor's raw graph row, as `_vendor_out` builds it.
+         */
+        VendorGraphStateOut: {
+            /** Held At */
+            held_at: string | null;
+            /** Hold Reasons */
+            hold_reasons: Record<string, never>[];
+            /** Last Error */
+            last_error: string | null;
+            /** Milestone */
+            milestone: string | null;
+            /** Payout Id */
+            payout_id: string | null;
+            /** Retryable */
+            retryable: boolean;
+            /** Settlement Id */
+            settlement_id: string | null;
+            /** Statement Id */
+            statement_id: string | null;
+            /** Status */
+            status: string;
+            /** Thread Id */
+            thread_id: string;
+            /** Updated At */
+            updated_at: string | null;
+            /** Vendor Id */
+            vendor_id: string;
+            /** Version */
+            version: number;
+        };
         /** VendorListOut */
         VendorListOut: {
             /** Items */
@@ -4363,6 +7283,48 @@ export interface components {
             order_groups: number;
             /** Vendor Id */
             vendor_id: string;
+        };
+        /**
+         * VendorRunDetailOut
+         * @description One vendor's position in a RUN. Not `vendors.VendorDetailOut`, which
+         *     is the vendor record itself; the names are kept apart so the generated
+         *     client does not have to fully qualify either.
+         */
+        VendorRunDetailOut: {
+            /** Cases */
+            cases: components["schemas"]["VendorCaseOut"][];
+            /** Checkpoint */
+            checkpoint: Record<string, never> | null;
+            /** Commands */
+            commands: components["schemas"]["VendorCommandOut"][];
+            /** Held At */
+            held_at: string | null;
+            /** Hold Reasons */
+            hold_reasons: Record<string, never>[];
+            /** Last Error */
+            last_error: string | null;
+            /** Milestone */
+            milestone: string | null;
+            /** Payout Id */
+            payout_id: string | null;
+            /** Retryable */
+            retryable: boolean;
+            /** Run Id */
+            run_id: string;
+            /** Settlement Id */
+            settlement_id: string | null;
+            /** Statement Id */
+            statement_id: string | null;
+            /** Status */
+            status: string;
+            /** Thread Id */
+            thread_id: string;
+            /** Updated At */
+            updated_at: string | null;
+            /** Vendor Id */
+            vendor_id: string;
+            /** Version */
+            version: number;
         };
         /** VendorRunListOut */
         VendorRunListOut: {
@@ -4422,6 +7384,21 @@ export interface components {
             /** Version */
             version: number;
         };
+        /** VerifyProjectionOut */
+        VerifyProjectionOut: {
+            /** Events Folded */
+            events_folded: number;
+            /** Festival Id */
+            festival_id: string;
+            /** Mismatches */
+            mismatches: components["schemas"]["ProjectionMismatchOut"][];
+            /** Rebuild Matches Live Tables */
+            rebuild_matches_live_tables: boolean;
+            /** Records Checked */
+            records_checked: number;
+            /** State Hash */
+            state_hash: string;
+        };
         /** CaseOut */
         app__routers__cases__CaseOut: {
             /** Applied Policy Version Id */
@@ -4472,6 +7449,10 @@ export interface components {
             run_id: string | null;
             /** Status */
             status: string;
+            /** Subject Id */
+            subject_id: string | null;
+            /** Subject Type */
+            subject_type: string | null;
             /** Updated At */
             updated_at: string | null;
             /** Vendor Id */
@@ -4547,7 +7528,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["ClaimListOut"];
                 };
             };
             /** @description Validation Error */
@@ -4580,7 +7561,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["ExtractOut"];
                 };
             };
             /** @description Validation Error */
@@ -4611,7 +7592,104 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["ExtractionListOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_approvals_api_v1_approvals_get: {
+        parameters: {
+            query?: {
+                subject_type?: string | null;
+                subject_id?: string | null;
+                case_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_approval_api_v1_approvals_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateApprovalRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_approval_api_v1_approvals__approval_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                approval_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalOut"];
                 };
             };
             /** @description Validation Error */
@@ -4730,7 +7808,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["BranchListOut"];
                 };
             };
             /** @description Validation Error */
@@ -4765,7 +7843,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["BranchCommandOut"];
                 };
             };
             /** @description Validation Error */
@@ -4796,7 +7874,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["BranchOut"];
                 };
             };
             /** @description Validation Error */
@@ -4827,7 +7905,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["BusinessConfigOut"];
                 };
             };
             /** @description Validation Error */
@@ -5062,7 +8140,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["CashOut"];
                 };
             };
             /** @description Validation Error */
@@ -5194,7 +8272,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["ChallengeListOut"];
                 };
             };
             /** @description Validation Error */
@@ -5229,7 +8307,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["ChallengeCommandOut"];
                 };
             };
             /** @description Validation Error */
@@ -5260,7 +8338,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["ChallengeOut"];
                 };
             };
             /** @description Validation Error */
@@ -5297,7 +8375,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["ChallengeCommandOut"];
                 };
             };
             /** @description Validation Error */
@@ -5328,7 +8406,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["DailyCloseListOut"];
                 };
             };
             /** @description Validation Error */
@@ -5361,7 +8439,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["CloseDayOut"];
                 };
             };
             /** @description Validation Error */
@@ -5393,7 +8471,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["CloseChecksOut"];
                 };
             };
             /** @description Validation Error */
@@ -5424,7 +8502,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["CorrectionListOut"];
                 };
             };
             /** @description Validation Error */
@@ -5459,7 +8537,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["CorrectionCommandOut"];
                 };
             };
             /** @description Validation Error */
@@ -5490,7 +8568,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["CorrectionOut"];
                 };
             };
             /** @description Validation Error */
@@ -5527,7 +8605,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["CorrectionApproveOut"];
+                };
+            };
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CorrectionApproveOut"];
                 };
             };
             /** @description Validation Error */
@@ -5564,7 +8651,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["CorrectionCommandOut"];
                 };
             };
             /** @description Validation Error */
@@ -5677,7 +8764,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["EventListOut"];
                 };
             };
             /** @description Validation Error */
@@ -5708,7 +8795,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["EventEnvelopeOut"];
                 };
             };
             /** @description Validation Error */
@@ -5878,7 +8965,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["ScanOut"];
                 };
             };
             /** @description Validation Error */
@@ -5910,7 +8997,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["CashCaseListOut"];
                 };
             };
             /** @description Validation Error */
@@ -5945,7 +9032,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["DecisionOut"];
                 };
             };
             /** @description Validation Error */
@@ -5977,7 +9064,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["CashOfficeOut"];
                 };
             };
             /** @description Validation Error */
@@ -6010,7 +9097,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["RecordCountOut"];
                 };
             };
             /** @description Validation Error */
@@ -6043,7 +9130,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["RecordSlipOut"];
                 };
             };
             /** @description Validation Error */
@@ -6074,7 +9161,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["SlipDetailOut"];
                 };
             };
             /** @description Validation Error */
@@ -6107,7 +9194,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["ReconcileOut"];
                 };
             };
             /** @description Validation Error */
@@ -6138,7 +9225,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["ChargebackFeeListOut"];
                 };
             };
             /** @description Validation Error */
@@ -6171,7 +9258,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["ChargebackFeeOut"];
                 };
             };
             /** @description Validation Error */
@@ -6202,7 +9289,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["FinanceConfigOut"];
                 };
             };
             /** @description Validation Error */
@@ -6235,7 +9322,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["FinanceConfigOut"];
                 };
             };
             /** @description Validation Error */
@@ -6268,7 +9355,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["RecordCreatedOut"];
                 };
             };
             /** @description Validation Error */
@@ -6301,7 +9388,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["RecordCreatedOut"];
                 };
             };
             /** @description Validation Error */
@@ -6334,7 +9421,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["RecordCreatedOut"];
                 };
             };
             /** @description Validation Error */
@@ -6367,7 +9454,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["RecordCreatedOut"];
                 };
             };
             /** @description Validation Error */
@@ -6400,7 +9487,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["RecordCreatedOut"];
                 };
             };
             /** @description Validation Error */
@@ -6433,7 +9520,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["RecognizeTicketsOut"];
                 };
             };
             /** @description Validation Error */
@@ -6468,7 +9555,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["HistoricalProjectionOut"];
                 };
             };
             /** @description Validation Error */
@@ -6499,7 +9586,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["SnapshotListOut"];
                 };
             };
             /** @description Validation Error */
@@ -6531,7 +9618,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["SnapshotRefOut"];
                 };
             };
             /** @description Validation Error */
@@ -6562,7 +9649,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["VerifyProjectionOut"];
                 };
             };
             /** @description Validation Error */
@@ -6627,7 +9714,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["PayablesOut"];
                 };
             };
             /** @description Validation Error */
@@ -6660,7 +9747,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["RecordInvoiceOut"];
                 };
             };
             /** @description Validation Error */
@@ -6691,7 +9778,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["InvoiceOut"];
                 };
             };
             /** @description Validation Error */
@@ -6761,7 +9848,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["InvoiceOut"];
                 };
             };
             /** @description Validation Error */
@@ -6796,7 +9883,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["RecordCreditNoteOut"];
                 };
             };
             /** @description Validation Error */
@@ -6833,7 +9920,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["PayInvoiceOut"];
                 };
             };
             /** @description Validation Error */
@@ -6936,7 +10023,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["JournalListOut"];
                 };
             };
             /** @description Validation Error */
@@ -6969,7 +10056,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["PostDayOut"];
                 };
             };
             /** @description Validation Error */
@@ -7001,7 +10088,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["TrialBalanceOut"];
                 };
             };
             /** @description Validation Error */
@@ -7032,7 +10119,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["JournalEntryOut"];
                 };
             };
             /** @description Validation Error */
@@ -7063,7 +10150,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["TaxLineageOut"];
                 };
             };
             /** @description Validation Error */
@@ -7095,7 +10182,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["LineageOut"];
                 };
             };
             /** @description Validation Error */
@@ -7124,7 +10211,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["OpsAlertsOut"];
                 };
             };
         };
@@ -7150,7 +10237,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["AuditChainOut"];
                 };
             };
             /** @description Validation Error */
@@ -7181,7 +10268,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["RunListOut"];
                 };
             };
             /** @description Validation Error */
@@ -7216,7 +10303,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["StartRunOut"];
                 };
             };
             /** @description Validation Error */
@@ -7247,7 +10334,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["RunDetailOut"];
                 };
             };
             /** @description Validation Error */
@@ -7280,7 +10367,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["RunEventListOut"];
                 };
             };
             /** @description Validation Error */
@@ -7345,7 +10432,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["VendorRunDetailOut"];
                 };
             };
             /** @description Validation Error */
@@ -7383,7 +10470,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["ResumeOut"];
                 };
             };
             /** @description Validation Error */
@@ -7597,7 +10684,9 @@ export interface operations {
     approve_api_v1_payouts__payout_id__approve_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
             path: {
                 payout_id: string;
             };
@@ -7799,7 +10888,9 @@ export interface operations {
     release_api_v1_payouts__payout_id__release_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
             path: {
                 payout_id: string;
             };
@@ -7926,6 +11017,43 @@ export interface operations {
             };
         };
     };
+    approve_policy_version_endpoint_api_v1_policies__policy_version_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                policy_version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommandEnvelope"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovePolicyVersionResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     revise_policy_endpoint_api_v1_policies__policy_version_id__revise_post: {
         parameters: {
             query?: never;
@@ -8013,7 +11141,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["PurchaseOrderListOut"];
                 };
             };
             /** @description Validation Error */
@@ -8042,6 +11170,101 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatePurchaseOrderOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_readiness_api_v1_readiness_get: {
+        parameters: {
+            query: {
+                festival_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    recompute_readiness_api_v1_readiness_recompute_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecomputeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_readiness_api_v1_readiness__readiness_check_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                readiness_check_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8246,7 +11469,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["RecoveryListOut"];
                 };
             };
             /** @description Validation Error */
@@ -8281,7 +11504,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["RecoveryCommandOut"];
                 };
             };
             /** @description Validation Error */
@@ -8312,7 +11535,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["RecoveryOut"];
                 };
             };
             /** @description Validation Error */
@@ -8349,7 +11572,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["RecoveryCommandOut"];
                 };
             };
             /** @description Validation Error */
@@ -8386,7 +11609,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["RecoveryCommandOut"];
                 };
             };
             /** @description Validation Error */
@@ -8423,7 +11646,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["RecoveryCommandOut"];
                 };
             };
             /** @description Validation Error */
@@ -8452,7 +11675,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["ReplayListOut"];
                 };
             };
         };
@@ -8478,7 +11701,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["ReplayCommandOut"];
                 };
             };
             /** @description Validation Error */
@@ -8509,7 +11732,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["ReplayOut"];
                 };
             };
             /** @description Validation Error */
@@ -8604,7 +11827,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["FestivalReportOut"];
                 };
             };
             /** @description Validation Error */
@@ -8636,7 +11859,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["PnlReportOut"];
                 };
             };
             /** @description Validation Error */
@@ -8668,7 +11891,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["TaxReportOut"];
                 };
             };
             /** @description Validation Error */
@@ -8993,7 +12216,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["StatementListOut"];
                 };
             };
             /** @description Validation Error */
@@ -9026,7 +12249,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["IssueStatementOut"];
                 };
             };
             /** @description Validation Error */
@@ -9059,7 +12282,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["IssueDayOut"];
                 };
             };
             /** @description Validation Error */
@@ -9189,7 +12412,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["SupplierListOut"];
                 };
             };
             /** @description Validation Error */
@@ -9222,7 +12445,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["CreateSupplierOut"];
                 };
             };
             /** @description Validation Error */
@@ -9325,7 +12548,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["ResolveTermsOut"];
                 };
             };
             /** @description Validation Error */
@@ -9356,7 +12579,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>[];
+                    "application/json": components["schemas"]["VendorContractTermHistoryOut"][];
                 };
             };
             /** @description Validation Error */
@@ -9518,7 +12741,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["HealthOut"];
                 };
             };
         };
@@ -9538,7 +12761,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["HealthOut"];
                 };
             };
         };

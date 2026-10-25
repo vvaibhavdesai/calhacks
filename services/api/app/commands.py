@@ -34,6 +34,38 @@ class CommandEnvelope(BaseModel):
     payload: dict[str, Any]
 
 
+def unwrap_envelope(body: dict) -> dict:
+    """Flatten a C03 command envelope onto the top level.
+
+    The endpoints that take this envelope (the A09 commands) and the ones
+    that take a flat body are both real: the UI's command client sends
+    every effectful call as {command_id, expected_version, payload: {...}},
+    while the verify scripts post the fields directly. An endpoint whose
+    request model reads the flat shape therefore sees the envelope's
+    `payload` as one unknown field and -- with pydantic's default, which
+    ignores unknown fields -- silently drops everything inside it. That is
+    how `POST /payouts/{id}/approve` came to discard the approver's
+    `amount_cents`/`beneficiary_version` echo while appearing to bind it.
+
+    Flattening here, BEFORE the typed model validates, lets one request
+    model accept both shapes. The envelope's own top-level fields
+    (`command_id`, `expected_version`) are kept; `payload`'s contents win
+    on a key collision, since that is where the UI puts its intent.
+
+    Copies of this flattening already live in `app/routers/cases.py` and
+    `app/routers/imports.py`; this is the shared version, in the module
+    that defines the envelope. Those two can collapse onto it (a one-line
+    import each) whenever their owners are next in those files -- not done
+    here, to stay out of files another agent is editing right now.
+    """
+    payload = body.get("payload")
+    if isinstance(payload, dict):
+        merged = {k: v for k, v in body.items() if k != "payload"}
+        merged.update(payload)
+        return merged
+    return body
+
+
 def error(status: int, code: str, message: str, **extra) -> HTTPException:
     return HTTPException(
         status_code=status,
