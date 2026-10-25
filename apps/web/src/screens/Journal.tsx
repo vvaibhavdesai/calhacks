@@ -19,8 +19,10 @@ import { useLookups } from '../hooks/useLookups';
 
 const QUALIFIER = 'Posted entries are never edited: corrections are linked reversing/correcting entries. Totals are the server’s; the UI does not add lines.';
 
-function entryLink(id: string) {
-  return <Link to={`/journal/${encodeURIComponent(id)}`}>{id}</Link>;
+/** `label` lets the list show the server's readable `entry_key` while the
+ *  link still addresses the entry by the id the detail route expects. */
+function entryLink(id: string, label: string = id) {
+  return <Link to={`/journal/${encodeURIComponent(id)}`}>{label}</Link>;
 }
 
 /** Balance as stated by the server (Q42 totals.balanced). Never derived client-side. */
@@ -71,15 +73,52 @@ export function JournalList() {
     (signal) => client.list('listJournalEntries', { signal, query }),
     { enabled: Boolean(query.festival_id) },
   );
+  const rows = result.status === 'success' ? result.data.items : [];
+  /**
+   * The live route identifies an entry by `id` and names it with
+   * `entry_key` ("SUPPLIER_INVOICE:c553..."), carries its text in `note`,
+   * and states NO `totals` -- the debit and credit figures live on each
+   * line instead.
+   *
+   * The totals columns are therefore dropped rather than filled in: summing
+   * the lines here would be a financial formula in the UI, which this app
+   * forbids on purpose (lib/money.ts, enforced by noMoneyMath.test.ts and
+   * the eslint money rules). The per-line debits and credits the server does
+   * state are shown on the entry's own page.
+   */
+  const idOf = (e: JournalEntry) => e.entry_id ?? (e as { id?: string }).id ?? '';
+  const nameOf = (e: JournalEntry) => (e as { entry_key?: string }).entry_key ?? idOf(e);
+  const textOf = (e: JournalEntry) => e.description ?? (e as { note?: string | null }).note ?? null;
+  const hasAny = (has: (e: JournalEntry) => boolean) => rows.length > 0 && rows.some(has);
+  const showTotals = hasAny((e) => Boolean(e.totals));
+
   const columns: Column<JournalEntry>[] = [
-    { id: 'id', header: 'Entry', rowHeader: true, render: (e) => entryLink(e.entry_id) },
+    { id: 'id', header: 'Entry', rowHeader: true, render: (e) => entryLink(idOf(e), nameOf(e)) },
     { id: 'date', header: 'Business date', render: (e) => <BusinessDate value={e.business_date ?? null} /> },
-    { id: 'desc', header: 'Description', render: (e) => e.description ?? '—' },
+    ...(hasAny((e) => Boolean(textOf(e)))
+      ? [{ id: 'desc', header: 'Description', render: (e: JournalEntry) => textOf(e) ?? '—' } as Column<JournalEntry>]
+      : []),
     { id: 'kind', header: 'Kind', render: (e) => (e.kind ? <StatusBadge status={e.kind} /> : '—') },
-    { id: 'debit', header: 'Debits (server)', numeric: true, render: (e) => <Money cents={e.totals?.debit_cents ?? null} /> },
-    { id: 'credit', header: 'Credits (server)', numeric: true, render: (e) => <Money cents={e.totals?.credit_cents ?? null} /> },
-    { id: 'bal', header: 'Balance', render: (e) => <BalanceFlag e={e} /> },
-    { id: 'links', header: 'Corrections', render: (e) => <CorrectionLinks e={e} /> },
+    ...(showTotals
+      ? ([
+          {
+            id: 'debit',
+            header: 'Debits (server)',
+            numeric: true,
+            render: (e: JournalEntry) => <Money cents={e.totals?.debit_cents ?? null} />,
+          },
+          {
+            id: 'credit',
+            header: 'Credits (server)',
+            numeric: true,
+            render: (e: JournalEntry) => <Money cents={e.totals?.credit_cents ?? null} />,
+          },
+          { id: 'bal', header: 'Balance', render: (e: JournalEntry) => <BalanceFlag e={e} /> },
+        ] as Column<JournalEntry>[])
+      : []),
+    ...(hasAny((e) => Boolean(e.correction_of || e.corrected_by))
+      ? [{ id: 'links', header: 'Corrections', render: (e: JournalEntry) => <CorrectionLinks e={e} /> } as Column<JournalEntry>]
+      : []),
     { id: 'rule', header: 'Posting rules', render: (e) => <Code>{e.posting_rule_version}</Code> },
   ];
   return (
@@ -97,7 +136,7 @@ export function JournalList() {
         {result.status === 'success' && result.data.items.length === 0 ? <EmptyState title="No journal entries match" /> : null}
         {result.status === 'success' && result.data.items.length > 0 ? (
           <>
-            <DataTable caption={`Journal entries, page ${params.page}`} columns={columns} rows={result.data.items} rowKey={(e) => e.entry_id} busy={result.refetching} />
+            <DataTable caption={`Journal entries, page ${params.page}`} columns={columns} rows={rows} rowKey={(e) => idOf(e)} busy={result.refetching} />
             <Pagination
               page={params.page}
               nextCursor={result.data.next_cursor}
