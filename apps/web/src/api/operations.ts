@@ -158,6 +158,7 @@ export const OPERATIONS = {
   listSupplierInvoices: { method: 'GET', path: '/invoices', backend: 'live', query: NO_PAGING },
   getSupplierInvoice: { method: 'GET', path: '/invoices/{invoice_id}', backend: 'live' },
   getInvoicePayability: { method: 'GET', path: '/invoices/{invoice_id}/payability', backend: 'live' },
+  getSupplierComparison: { method: 'GET', path: '/supplier-comparison', backend: 'live' },
   listSupplierPayments: { method: 'GET', path: '/supplier-payments', backend: 'live', query: { sort: null } },
 
   // ------------------------------------------------------- accounting (C07)

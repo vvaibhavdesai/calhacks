@@ -68,6 +68,7 @@ export const NAV: NavGroup[] = [
       },
       { path: '/cash', label: 'Cash', task: 'B05', summary: 'Available, pending and reserved cash, obligations, shortfalls and forecast.', implemented: true },
       { path: '/payables', label: 'Suppliers & invoices', task: 'B05', summary: 'Suppliers, purchase orders, invoices and supplier payments.', implemented: true },
+      { path: '/analyst-assistant', label: 'Analyst Assistant', task: 'B05', summary: 'Supplier quote comparison: completeness, cash impact and history, read-only.', implemented: true },
       { path: '/journal', label: 'Journal', task: 'B05', summary: 'Journal entries, posting rule versions and corrections.', implemented: true },
       {
         path: '/tax',

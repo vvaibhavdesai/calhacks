@@ -571,6 +571,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/supplier-comparison": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Quote amounts from the imported supplier_quotes rows (demo-clock gated by available_at), a synthetic cash-impact baseline and supplier history read from the fixture pack. No winner field, no aggregate score -- selection stays undecided. */
+        get: operations["getSupplierComparison"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/supplier-payments": {
         parameters: {
             query?: never;
@@ -1718,6 +1735,41 @@ export interface components {
             pending_evidence_cents: components["schemas"]["MoneyCents"];
             outstanding_cents: components["schemas"]["MoneyCents"];
             has_delivery_limit: boolean;
+        };
+        SupplierComparisonQuote: {
+            supplier_id: string;
+            quote_id: string;
+            version: number;
+            supersedes_id: string | null;
+            complete: boolean;
+            missing_requirements: string[];
+            complete_quote_cents: components["schemas"]["MoneyCents"] | null;
+            deposit_cents: components["schemas"]["MoneyCents"] | null;
+            deposit_due: string | null;
+            balance_due: string | null;
+            cash_impact_synthetic: {
+                minimum_closing_cents: components["schemas"]["MoneyCents"];
+                first_breach_date: string | null;
+                buffer_gap_cents: components["schemas"]["MoneyCents"];
+            } | null;
+            /** @enum {string} */
+            history_label: "has_history" | "no_history";
+            history_variance_bps: number | null;
+            history_approved_scope_changes_cents: components["schemas"]["MoneyCents"] | null;
+            history_variance_vs_revised_budget_cents: components["schemas"]["MoneyCents"] | null;
+            history_otif: string | null;
+            history_caveat: string | null;
+        };
+        /** @description TICKET section 7. A labelled synthetic comparison: cash_baseline_note is the backend's own disclaimer, not optional framing, and selection/no_automatic_winner are always undecided/true here -- this endpoint never picks a supplier. */
+        SupplierComparison: {
+            request_key: string;
+            /** Format: date-time */
+            as_of: string;
+            cash_baseline_note: string;
+            /** @enum {string} */
+            selection: "undecided";
+            no_automatic_winner: boolean;
+            quotes: components["schemas"]["SupplierComparisonQuote"][];
         };
         SupplierPayment: {
             id: string;
@@ -3494,6 +3546,32 @@ export interface operations {
             401: components["responses"]["Unauthenticated"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    getSupplierComparison: {
+        parameters: {
+            query: {
+                request_key: string;
+                /** @description Timezone-aware instant, not a bare date. */
+                as_of: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Supplier comparison as of the given instant. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplierComparison"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
         };
     };
     listSupplierPayments: {
