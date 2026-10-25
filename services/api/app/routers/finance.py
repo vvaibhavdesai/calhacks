@@ -104,6 +104,7 @@ def _invoice_out(inv: SupplierInvoice, as_of: date | None = None) -> dict:
         "journal_entry_id": inv.journal_entry_id,
         "source_refs": inv.source_refs,
         "version": inv.version,
+        "deposit_applied_cents": inv.deposit_applied_cents,
     }
 
 
@@ -142,6 +143,13 @@ def list_suppliers(
     }
 
 
+class PurchaseOrderLineIn(BaseModel):
+    line_no: int
+    item_code: str
+    quantity: int
+    unit_price_cents: int
+
+
 class PurchaseOrderIn(BaseModel):
     supplier_id: str
     po_number: str
@@ -150,6 +158,7 @@ class PurchaseOrderIn(BaseModel):
     description: str | None = None
     receipt_evidence_refs: list = Field(default_factory=list)
     source_refs: list = Field(default_factory=list)
+    lines: list[PurchaseOrderLineIn] | None = None
 
 
 @router.post("/purchase-orders", status_code=201)
@@ -158,18 +167,35 @@ def create_purchase_order(
     db: Session = Depends(get_db),
     user: User = Depends(require_capability(CAPABILITY_MANAGE_PAYABLES)),
 ) -> dict:
+    payload = body.model_dump()
+    lines = payload.pop("lines")
     try:
         po, created = payables.create_purchase_order(
-            db, **body.model_dump(), actor_id=user.id, actor_capability=CAPABILITY_MANAGE_PAYABLES
+            db,
+            **payload,
+            lines=lines,
+            actor_id=user.id,
+            actor_capability=CAPABILITY_MANAGE_PAYABLES,
         )
     except _DOMAIN_ERRORS as exc:
         raise _err(exc) from exc
     db.commit()
+    po_lines = payables._po_lines(db, po.id)
     return {
         "id": po.id,
         "po_number": po.po_number,
         "amount_cents": po.amount_cents,
         "created": created,
+        "lines": [
+            {
+                "id": line_.id,
+                "line_no": line_.line_no,
+                "item_code": line_.item_code,
+                "quantity": line_.quantity,
+                "unit_price_cents": line_.unit_price_cents,
+            }
+            for line_ in po_lines
+        ],
     }
 
 
@@ -235,6 +261,7 @@ class CreditNoteIn(BaseModel):
     gross_cents: int
     received_at: datetime | None = None
     source_refs: list = Field(default_factory=list)
+    resolves_case_id: str | None = None
 
 
 @router.post("/invoices/{invoice_id}/credit-notes", status_code=201)
@@ -323,6 +350,297 @@ def pay_invoice(
         },
         "created": created,
         "invoice": _invoice_out(inv),
+    }
+
+
+@router.get("/invoices/{invoice_id}/payability")
+def invoice_payability(
+    invoice_id: str,
+    as_of: datetime | None = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict:
+    """As-of view (TICKET section 5): the agreed/invoiced/deposit/accepted-
+    units/max-payable/pending picture for one invoice. `as_of` filters
+    which delivery receipts count -- defaults to now if omitted, but a
+    caller building a reproducible demo screen should always pass it
+    explicitly."""
+    inv = db.get(SupplierInvoice, invoice_id)
+    if inv is None:
+        raise HTTPException(status_code=404, detail="invoice not found")
+    cutoff = as_of or datetime.now(UTC)
+    accepted_qty = 0
+    total_units: int | None = None
+    unit_price_cents: int | None = None
+    delivery_supported = None
+    if inv.po_refs:
+        po_id = inv.po_refs[0]
+        lines = payables._po_lines(db, po_id)
+        if lines:
+            total_units = sum(line_.quantity for line_ in lines)
+            delivery_supported = 0
+            for line_ in lines:
+                receipts = (
+                    db.execute(
+                        select(payables.DeliveryReceipt).where(
+                            payables.DeliveryReceipt.po_line_id == line_.id,
+                            payables.DeliveryReceipt.available_at <= cutoff,
+                        )
+                    )
+                    .scalars()
+                    .all()
+                )
+                qty_as_of = sum(r.quantity for r in receipts)
+                accepted_qty += qty_as_of
+                delivery_supported += qty_as_of * line_.unit_price_cents
+            if len(lines) == 1:
+                unit_price_cents = lines[0].unit_price_cents
+    balance = payables._balance(inv)
+    max_payable = (
+        payables.rules.max_payable_now(balance, delivery_supported) if inv.kind == "INVOICE" else 0
+    )
+    pending_evidence_cents = (
+        max(inv.gross_cents - (delivery_supported or 0), 0) if delivery_supported is not None else 0
+    )
+    return {
+        "invoice_id": inv.id,
+        "as_of": cutoff.isoformat(),
+        "agreed_cents": inv.gross_cents,
+        "invoiced_cents": inv.gross_cents,
+        "deposit_applied_cents": inv.deposit_applied_cents,
+        "paid_cents": inv.paid_cents,
+        "accepted_units": accepted_qty,
+        "total_units": total_units,
+        "unit_price_cents": unit_price_cents,
+        "delivery_supported_cents": delivery_supported,
+        "max_payable_now_cents": max_payable,
+        "pending_evidence_cents": pending_evidence_cents,
+        "outstanding_cents": balance.outstanding_cents,
+        "has_delivery_limit": delivery_supported is not None,
+    }
+
+
+class SupplierDepositIn(BaseModel):
+    po_id: str | None = None
+    amount_cents: int
+    paid_business_date: date
+    paid_at: datetime
+    idempotency_key: str
+    source_refs: list = Field(default_factory=list)
+
+
+@router.post("/suppliers/{supplier_id}/deposits", status_code=201)
+def pay_supplier_deposit(
+    supplier_id: str,
+    body: SupplierDepositIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_capability(CAPABILITY_MANAGE_PAYABLES)),
+) -> dict:
+    try:
+        deposit, created = payables.pay_supplier_deposit(
+            db,
+            supplier_id=supplier_id,
+            **body.model_dump(),
+            actor_id=user.id,
+            actor_capability=CAPABILITY_MANAGE_PAYABLES,
+        )
+    except _DOMAIN_ERRORS as exc:
+        raise _err(exc) from exc
+    db.commit()
+    return {
+        "id": deposit.id,
+        "supplier_id": deposit.supplier_id,
+        "amount_cents": deposit.amount_cents,
+        "journal_entry_id": deposit.journal_entry_id,
+        "created": created,
+    }
+
+
+class ApplyDepositIn(BaseModel):
+    deposit_id: str
+    amount_cents: int
+
+
+@router.post("/invoices/{invoice_id}/apply-deposit", status_code=201)
+def apply_deposit(
+    invoice_id: str,
+    body: ApplyDepositIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_capability(CAPABILITY_MANAGE_PAYABLES)),
+) -> dict:
+    try:
+        application, created = payables.apply_deposit(
+            db,
+            invoice_id=invoice_id,
+            **body.model_dump(),
+            actor_id=user.id,
+            actor_capability=CAPABILITY_MANAGE_PAYABLES,
+        )
+    except _DOMAIN_ERRORS as exc:
+        raise _err(exc) from exc
+    db.commit()
+    inv = db.get(SupplierInvoice, invoice_id)
+    return {
+        "application_id": application.id,
+        "amount_cents": application.amount_cents,
+        "created": created,
+        "invoice": _invoice_out(inv),
+    }
+
+
+class DeliveryReceiptIn(BaseModel):
+    po_id: str
+    line_no: int
+    quantity: int
+    accepted_at: datetime
+    available_at: datetime
+    receipt_key: str
+    source_refs: list = Field(default_factory=list)
+
+
+@router.post("/deliveries", status_code=201)
+def record_delivery(
+    body: DeliveryReceiptIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_capability(CAPABILITY_MANAGE_PAYABLES)),
+) -> dict:
+    line = db.execute(
+        select(payables.PurchaseOrderLine).where(
+            payables.PurchaseOrderLine.po_id == body.po_id,
+            payables.PurchaseOrderLine.line_no == body.line_no,
+        )
+    ).scalar_one_or_none()
+    if line is None:
+        raise HTTPException(status_code=404, detail="purchase order line not found")
+    try:
+        receipt, created = payables.record_delivery_receipt(
+            db,
+            po_line_id=line.id,
+            quantity=body.quantity,
+            accepted_at=body.accepted_at,
+            available_at=body.available_at,
+            receipt_key=body.receipt_key,
+            source_refs=body.source_refs,
+            actor_id=user.id,
+            actor_capability=CAPABILITY_MANAGE_PAYABLES,
+        )
+    except _DOMAIN_ERRORS as exc:
+        raise _err(exc) from exc
+    db.commit()
+    return {
+        "id": receipt.id,
+        "po_line_id": receipt.po_line_id,
+        "quantity": receipt.quantity,
+        "receipt_key": receipt.receipt_key,
+        "created": created,
+    }
+
+
+class SlaPotentialCreditIn(BaseModel):
+    potential_credit_cents: int
+    clause: str
+    evidence_refs: list = Field(default_factory=list)
+    note: str
+
+
+@router.post("/invoices/{invoice_id}/sla-potential-credit", status_code=201)
+def post_sla_potential_credit(
+    invoice_id: str,
+    body: SlaPotentialCreditIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_capability(CAPABILITY_MANAGE_PAYABLES)),
+) -> dict:
+    try:
+        case = payables.open_sla_potential_credit_case(
+            db,
+            invoice_id=invoice_id,
+            **body.model_dump(),
+            actor_id=user.id,
+            actor_capability=CAPABILITY_MANAGE_PAYABLES,
+        )
+    except _DOMAIN_ERRORS as exc:
+        raise _err(exc) from exc
+    db.commit()
+    return {"case_id": case.id if case else None, "created": case is not None}
+
+
+class SupplierQuoteIn(BaseModel):
+    request_key: str
+    version: int
+    supersedes_id: str | None = None
+    available_at: datetime
+    base_cents: int | None = None
+    delivery_cents: int | None = None
+    tax_cents: int | None = None
+    deposit_cents: int | None = None
+    deposit_due: date | None = None
+    balance_due: date | None = None
+    insurance_evidence: bool | None = None
+    citations: dict = Field(default_factory=dict)
+    source_refs: list = Field(default_factory=list)
+
+
+@router.post("/suppliers/{supplier_id}/quotes", status_code=201)
+def post_supplier_quote(
+    supplier_id: str,
+    body: SupplierQuoteIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_capability(CAPABILITY_MANAGE_PAYABLES)),
+) -> dict:
+    from app.models_finance import SupplierQuote
+
+    existing = db.execute(
+        select(SupplierQuote).where(
+            SupplierQuote.supplier_id == supplier_id,
+            SupplierQuote.request_key == body.request_key,
+            SupplierQuote.version == body.version,
+        )
+    ).scalar_one_or_none()
+    if existing is not None:
+        return {"id": existing.id, "created": False}
+    quote = SupplierQuote(supplier_id=supplier_id, **body.model_dump())
+    db.add(quote)
+    db.commit()
+    return {"id": quote.id, "created": True}
+
+
+@router.get("/supplier-quotes")
+def list_supplier_quotes(
+    supplier_id: str | None = None,
+    as_of: datetime | None = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict:
+    from app.models_finance import SupplierQuote
+
+    q = select(SupplierQuote)
+    if supplier_id is not None:
+        q = q.where(SupplierQuote.supplier_id == supplier_id)
+    cutoff = as_of or datetime.now(UTC)
+    q = q.where(SupplierQuote.available_at <= cutoff)
+    rows = db.execute(q.order_by(SupplierQuote.request_key, SupplierQuote.version)).scalars().all()
+    return {
+        "as_of": cutoff.isoformat(),
+        "items": [
+            {
+                "id": r.id,
+                "supplier_id": r.supplier_id,
+                "request_key": r.request_key,
+                "version": r.version,
+                "supersedes_id": r.supersedes_id,
+                "available_at": r.available_at.isoformat(),
+                "base_cents": r.base_cents,
+                "delivery_cents": r.delivery_cents,
+                "tax_cents": r.tax_cents,
+                "deposit_cents": r.deposit_cents,
+                "deposit_due": r.deposit_due.isoformat() if r.deposit_due else None,
+                "balance_due": r.balance_due.isoformat() if r.balance_due else None,
+                "insurance_evidence": r.insurance_evidence,
+                "citations": r.citations,
+            }
+            for r in rows
+        ],
+        "next_cursor": None,
     }
 
 

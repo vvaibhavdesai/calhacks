@@ -462,6 +462,29 @@ def resolve_case_endpoint(
             # reviewer picks is an `edit`. Both are an explicit human decision.
             decision = "approve" if chosen.is_proposed else "edit"
 
+    # TICKET section 6 guard: an "approve"/"edit" on a payables SLA/delivery
+    # case would close it with no credit issued and no delivery actually
+    # resolved -- single-operator mode disables the capability-denial check
+    # that would otherwise stop this, so it's enforced here in code instead.
+    # Only the dedicated POST /invoices/{id}/credit-notes (resolves_case_id)
+    # path can resolve SLA_POTENTIAL_CREDIT; only new delivery evidence can
+    # resolve DELIVERY_SHORTFALL. Both still accept "reject".
+    if case.reason_code in ("SLA_POTENTIAL_CREDIT", "DELIVERY_SHORTFALL") and decision != "reject":
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "generic_resolve_not_allowed_for_reason_code",
+                "message": (
+                    f"{case.reason_code} cases cannot be approved/edited through this generic "
+                    "endpoint -- it would close the case with no credit issued or delivery "
+                    "resolved. Use POST /invoices/{id}/credit-notes with resolves_case_id for "
+                    "SLA_POTENTIAL_CREDIT, or record new delivery evidence for DELIVERY_SHORTFALL. "
+                    "Only 'reject' is accepted here."
+                ),
+                "reason_code": case.reason_code,
+            },
+        )
+
     uow = UnitOfWork(db)
     try:
         case = resolve_case(
@@ -511,6 +534,19 @@ def approve_policy_endpoint(
     case = db.get(Case, case_id)
     if case is None:
         raise HTTPException(status_code=404, detail="case not found")
+    if case.reason_code in ("SLA_POTENTIAL_CREDIT", "DELIVERY_SHORTFALL"):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "reusable_policy_not_allowed_for_reason_code",
+                "message": (
+                    f"{case.reason_code} is a one-off payables fact, never a reusable rule: "
+                    "no approved policy may auto-resolve a future SLA credit or delivery "
+                    "shortfall."
+                ),
+                "reason_code": case.reason_code,
+            },
+        )
     # Same bindings as resolving the case: making a decision REUSABLE is the
     # larger of the two commitments, so it must not be made against a stale
     # view either.
