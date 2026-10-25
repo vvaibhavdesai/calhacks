@@ -229,7 +229,11 @@ def resolve_terms_node(state: VendorState) -> dict:
             db,
             vendor=vendor,
             business_date=_bd(state),
-            eligible_sales_cents=facts.centrally_held_cents + facts.vendor_retained_cash_cents,
+            # A night of refunds against earlier sales nets negative; the
+            # conflict's impact estimate has no meaning below zero sales.
+            eligible_sales_cents=max(
+                0, facts.centrally_held_cents + facts.vendor_retained_cash_cents
+            ),
             run_id=state["run_id"],
             actor_id=state["actor_id"],
             actor_capability=ACTOR_CAPABILITY,

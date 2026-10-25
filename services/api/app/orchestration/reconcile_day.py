@@ -65,6 +65,7 @@ from datetime import UTC, date, datetime
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
+from app import demo_clock
 from app import reconciliation as a03
 from app.models_ledger import Case, Order, Payment, Run, Vendor
 from app.models_reconciliation import BankEntry, CashCount, MatchGroup, MatchGroupMember
@@ -596,13 +597,21 @@ def reconcile_bank_deposits_day(
     Entries from earlier days are deliberately in range: a deposit that was
     `pending` on night 1 and has settled since re-classifies to `matched`
     here on night 2 (and past the timing window to an overdue case), which
-    is what releases the orders A04 held on it."""
+    is what releases the orders A04 held on it.
+
+    "On or before" means on or before the day the close actually runs, not
+    the sales night: the close for night D runs the next morning, by which
+    time D's processor batch has landed. Bounding by D itself left every
+    card sale pending on its own night (the batch is always dated D+1), so
+    a night settled on its refunds alone. Entries dated after the close's
+    clock day are still out of range -- the bank has not shown them yet."""
     uow = UnitOfWork(db)
     _lock(db, f"reconcile_day:bank:{festival_id}:{business_date.isoformat()}")
+    known_by = max(business_date, demo_clock.business_date_of(demo_clock.now(db)))
     entries = (
         db.execute(
             select(BankEntry)
-            .where(BankEntry.festival_id == festival_id, BankEntry.business_date <= business_date)
+            .where(BankEntry.festival_id == festival_id, BankEntry.business_date <= known_by)
             .order_by(BankEntry.provider_reference)
         )
         .scalars()
@@ -613,6 +622,15 @@ def reconcile_bank_deposits_day(
         payments = (
             db.execute(select(Payment).where(Payment.bank_entry_id == entry.id)).scalars().all()
         )
+        # Only processor settlements are vendor deposits. Ticketing payouts,
+        # sponsor wires, payroll, supplier ACH and cash-office deposits carry
+        # no batch and no card payments; A08 books them and its own
+        # unmatched-bank check owns anything left over. Classified here they
+        # each read as a deposit with nothing captured -- an "unexplained
+        # variance" of the whole amount.
+        if not payments and entry.batch_gross_cents is None:
+            skipped += 1
+            continue
         order_dates = (
             db.execute(
                 select(Order.business_date)
@@ -635,7 +653,7 @@ def reconcile_bank_deposits_day(
             batch_fee_cents=entry.batch_fee_cents,
             settlement_status=entry.settlement_status,
             earliest_payment_business_date=min(order_dates) if order_dates else entry.business_date,
-            as_of=business_date,
+            as_of=known_by,
         )
         members = [("bank_entry", entry.id, "deposit", entry.amount_cents)] + [
             ("payment", p.id, p.kind, p.amount_cents) for p in payments
