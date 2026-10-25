@@ -39,7 +39,71 @@ class ResolveTermsRequest(BaseModel):
     as_of: datetime | None = None
 
 
-@router.post("/resolve", status_code=201)
+class TermsCaseOpenedOut(BaseModel):
+    case_id: str
+    reason_code: str
+    blocking: bool
+
+
+class TermsVendorOutcomeOut(BaseModel):
+    """What TERMS_RESOLVED decided for one vendor
+    (app/terms_resolution.py `VendorTermsOutcome`).
+
+    Every term value is `| None`, and null means "no signed document
+    evidences this field" -- never zero. A screen that read null as 0%
+    commission would invent a rate nobody agreed to."""
+
+    vendor_id: str
+    status: str  # RESOLVED | HELD
+    action: str  # written | unchanged | no_signed_terms
+    term_id: str | None
+    term_version: int | None
+    commission_bps: int | None
+    minimum_fee_cents: int | None
+    minimum_period: str | None
+    processor_fee_deductible: bool | None
+    conflicts_proposed: int
+    # A LIST of case records. Note that `counts["cases_opened"]` next to it
+    # is an int: the same name means the tally there and the records here.
+    cases_opened: list[TermsCaseOpenedOut]
+    case_ids: list[str]
+    unresolved: list[str]
+    # The resolver's full working: which claims it weighed, what it rejected
+    # and why. Keys differ by `action`, so this stays an open object rather
+    # than a model that would silently drop the unmodelled branches.
+    detail: dict
+
+
+class ResolveTermsOut(BaseModel):
+    festival_id: str
+    business_date: str
+    as_of: str
+    # Vendors per action and per status, plus `conflicts_proposed` and
+    # `cases_opened`. The action/status keys are data, so this is an open map.
+    counts: dict[str, int]
+    vendors: list[TermsVendorOutcomeOut]
+
+
+class VendorContractTermHistoryOut(BaseModel):
+    """One recorded version of a vendor's terms. Old versions are never
+    edited, so a list of these is the full history."""
+
+    id: str
+    version: int
+    status: str
+    # SIGNED_DOCUMENTS when documents established it, OTHER when a human did.
+    basis: str
+    commission_bps: int
+    minimum_fee_cents: int | None
+    processor_fee_deductible: bool
+    effective_from: str | None
+    # Null while this version is still the one in force.
+    effective_to: str | None
+    approved_by: str | None
+    source_refs: list
+
+
+@router.post("/resolve", status_code=201, response_model=ResolveTermsOut)
 def resolve_terms(
     body: ResolveTermsRequest,
     db: Session = Depends(get_db),
@@ -83,7 +147,7 @@ def resolve_terms(
     }
 
 
-@router.get("/vendors/{vendor_id}")
+@router.get("/vendors/{vendor_id}", response_model=list[VendorContractTermHistoryOut])
 def list_vendor_terms(
     vendor_id: str,
     db: Session = Depends(get_db),
