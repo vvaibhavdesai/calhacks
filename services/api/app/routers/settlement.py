@@ -19,9 +19,9 @@ from __future__ import annotations
 
 from datetime import date
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import select, tuple_
 from sqlalchemy.orm import Session
 
 from app.auth import require_capability
@@ -171,7 +171,7 @@ def _policy_version_ids(policy_refs: list | None) -> list[str]:
     return ids
 
 
-def _to_settlement_out(s: Settlement) -> SettlementOut:
+def _to_settlement_out(s: Settlement, *, line_items: bool = True) -> SettlementOut:
     return SettlementOut(
         id=s.id,
         festival_id=s.festival_id,
@@ -207,10 +207,23 @@ def _to_settlement_out(s: Settlement) -> SettlementOut:
         source_manifest_hash=s.source_manifest_hash,
         policy_refs=_policy_version_ids(s.policy_refs),
         applied_policies=[r for r in (s.policy_refs or []) if isinstance(r, dict)],
-        line_items=[
-            _line_item_out(li)
-            for li in sorted(s.line_items or [], key=lambda li: (li.line_type, li.id))
-        ],
+        # A LIST never carries line items. One settlement's items embed a
+        # source_ref for every payment and match group behind the figure --
+        # 381 of them on a single eligible_sales line in the real festival,
+        # ~184 KB per settlement row. Serving 640 rows that way is 129 MB of
+        # JSON, which a browser shows as a page that never finishes loading.
+        # Line items belong to one settlement at a time: GET /settlements/{id}
+        # carries them, and GET /settlements/{id}/line-items serves them on
+        # their own. Both the settlements screen and verify_a04 read them from
+        # there, not from the list.
+        line_items=(
+            [
+                _line_item_out(li)
+                for li in sorted(s.line_items or [], key=lambda li: (li.line_type, li.id))
+            ]
+            if line_items
+            else []
+        ),
     )
 
 
@@ -259,10 +272,27 @@ def list_settlements(
     festival_id: str | None = None,
     vendor_id: str | None = None,
     business_date: date | None = None,
+    status: str | None = None,
     status_: str | None = None,
+    limit: int = Query(100, ge=1, le=500),
+    cursor: str | None = None,
     db: Session = Depends(get_db),
     user: User = Depends(require_capability(CAPABILITY_CALCULATE_SETTLEMENT)),
 ) -> list[SettlementOut]:
+    """Settlements, oldest first, one page at a time, without line items.
+
+    This took no `limit` and returned every matching row with its line items
+    embedded: 640 rows and 129 MB of JSON on the real festival, because each
+    row's line items carry a source_ref per contributing payment and match
+    group. The size, not the query, was what made the screen slow.
+
+    Paging is keyset rather than OFFSET, for the same reason as the match-group
+    list: a close run inserting settlements mid-read must not make a page skip
+    or repeat rows. `cursor` is the id of the last row on the previous page.
+
+    `status` is accepted alongside the original `status_` so the name the
+    client sends actually binds.
+    """
     query = select(Settlement)
     if festival_id is not None:
         query = query.where(Settlement.festival_id == festival_id)
@@ -270,10 +300,25 @@ def list_settlements(
         query = query.where(Settlement.vendor_id == vendor_id)
     if business_date is not None:
         query = query.where(Settlement.business_date == business_date)
-    if status_ is not None:
-        query = query.where(Settlement.status == status_)
-    rows = db.execute(query.order_by(Settlement.created_at.asc())).scalars().all()
-    return [_to_settlement_out(r) for r in rows]
+    wanted_status = status if status is not None else status_
+    if wanted_status is not None:
+        query = query.where(Settlement.status == wanted_status)
+    if cursor is not None:
+        after = db.get(Settlement, cursor)
+        if after is None:
+            raise HTTPException(
+                status_code=422,
+                detail={"code": "cursor_unknown", "details": {"cursor": cursor}},
+            )
+        query = query.where(
+            tuple_(Settlement.created_at, Settlement.id) > (after.created_at, after.id)
+        )
+    rows = (
+        db.execute(query.order_by(Settlement.created_at.asc(), Settlement.id.asc()).limit(limit))
+        .scalars()
+        .all()
+    )
+    return [_to_settlement_out(r, line_items=False) for r in rows]
 
 
 @router.get("/vendors/{vendor_id}", response_model=list[SettlementOut])

@@ -12923,6 +12923,7 @@
     },
     "/api/v1/settlements": {
       "get": {
+        "description": "Settlements, oldest first, one page at a time, without line items.\n\nThis took no `limit` and returned every matching row with its line items\nembedded: 640 rows and 129 MB of JSON on the real festival, because each\nrow's line items carry a source_ref per contributing payment and match\ngroup. The size, not the query, was what made the screen slow.\n\nPaging is keyset rather than OFFSET, for the same reason as the match-group\nlist: a close run inserting settlements mid-read must not make a page skip\nor repeat rows. `cursor` is the id of the last row on the previous page.\n\n`status` is accepted alongside the original `status_` so the name the\nclient sends actually binds.",
         "operationId": "list_settlements_api_v1_settlements_get",
         "parameters": [
           {
@@ -12976,6 +12977,22 @@
           },
           {
             "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
             "name": "status_",
             "required": false,
             "schema": {
@@ -12988,6 +13005,34 @@
                 }
               ],
               "title": "Status "
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
             }
           }
         ],

@@ -2031,7 +2031,22 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Settlements */
+        /**
+         * List Settlements
+         * @description Settlements, oldest first, one page at a time, without line items.
+         *
+         *     This took no `limit` and returned every matching row with its line items
+         *     embedded: 640 rows and 129 MB of JSON on the real festival, because each
+         *     row's line items carry a source_ref per contributing payment and match
+         *     group. The size, not the query, was what made the screen slow.
+         *
+         *     Paging is keyset rather than OFFSET, for the same reason as the match-group
+         *     list: a close run inserting settlements mid-read must not make a page skip
+         *     or repeat rows. `cursor` is the id of the last row on the previous page.
+         *
+         *     `status` is accepted alongside the original `status_` so the name the
+         *     client sends actually binds.
+         */
         get: operations["list_settlements_api_v1_settlements_get"];
         put?: never;
         post?: never;
@@ -8273,7 +8288,10 @@ export interface operations {
                 festival_id?: string | null;
                 vendor_id?: string | null;
                 business_date?: string | null;
+                status?: string | null;
                 status_?: string | null;
+                limit?: number;
+                cursor?: string | null;
             };
             header?: never;
             path?: never;

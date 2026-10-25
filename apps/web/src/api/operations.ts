@@ -107,7 +107,9 @@ export const OPERATIONS = {
   getVendor: { method: 'GET', path: '/vendors/{vendor_id}', backend: 'live' },
 
   // ------------------------------------------------------- settlements (C04)
-  listSettlements: { method: 'GET', path: '/settlements', backend: 'live', query: NO_PAGING },
+  // Paged for real now: the backend takes limit + a keyset cursor, and no
+  // longer embeds each settlement's line items in the list.
+  listSettlements: { method: 'GET', path: '/settlements', backend: 'live', query: { sort: null } },
   getSettlement: { method: 'GET', path: '/settlements/{settlement_id}', backend: 'live' },
 
   // ------------------------------------------------------------- cases (C04)
