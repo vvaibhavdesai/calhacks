@@ -114,6 +114,13 @@ def main() -> int:
         return 1
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     c = httpx.Client(base_url=f"{API_BASE_URL}/api/v1", timeout=15.0, headers=headers)
+    # Fund this script's own cash pool rather than relying on some earlier
+    # script having already funded it -- a prior version of this check
+    # only ever passed by accident of run order (discovered when run
+    # first, alone, against a truly fresh pool: a KeyError on the deposit
+    # response, because the deposit payment was silently refused
+    # insufficient_available_cash).
+    c.post("/cash-pool/fund", json={"festival_id": FESTIVAL_ID, "additional_cents": 100_000_000})
 
     # --- build a fresh, fixture-identical supplier/PO/invoice ---
     sup = c.post(

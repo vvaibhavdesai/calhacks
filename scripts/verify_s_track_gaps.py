@@ -18,7 +18,14 @@ verified NOT to disturb existing, already-proven behavior:
    (no double-fire); a 10-day-apart pair opens neither.
 
 Self-contained, fresh suppliers/POs/invoices per PID, no pytest files, per
-standing convention. Run against a fresh database.
+standing convention. Run against a fresh database -- specifically, NOT
+on the same database as a prior verify_payables_v2.py run in the same
+session: that script closes 2026-10-07/2026-10-15 for fest_golden_coast
+as part of its own proof, and this script's S1/S3 checks create
+invoices dated 2026-10-15 (fixture-identical), which a closed date then
+refuses. Same fixture dates, same already-documented constraint as
+verify_payables_v2.py's own docstring -- not a product bug, a run-order
+one, confirmed by reproducing it.
 """
 
 from __future__ import annotations
